@@ -1,0 +1,98 @@
+{% load resume_filters %}
+
+<!-- Professional Template -->
+<div class="professional-template">
+    <!-- Header -->
+    <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold text-gray-900">{{ resume_data.personal_info.full_name }}</h1>
+        <p class="text-lg text-gray-600">{{ resume_data.personal_info.title }}</p>
+        <div class="mt-2 text-gray-600">
+            <span>{{ resume_data.personal_info.email }}</span> |
+            <span>{{ resume_data.personal_info.phone }}</span>
+        </div>
+    </div>
+
+    <!-- Professional Summary -->
+    <div class="mb-8">
+        <h2 class="text-xl font-semibold text-gray-900 border-b border-gray-300 pb-2 mb-4">Professional Summary</h2>
+        <p class="text-gray-700">{{ resume_data.personal_info.summary }}</p>
+    </div>
+
+    <!-- Experience -->
+    <div class="mb-8">
+        <h2 class="text-xl font-semibold text-gray-900 border-b border-gray-300 pb-2 mb-4">Professional Experience</h2>
+        {% for exp in resume_data.experience %}
+        <div class="mb-6">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h3 class="font-semibold text-gray-900">{{ exp.position }}</h3>
+                    <p class="text-gray-600">{{ exp.company }}</p>
+                </div>
+                <p class="text-gray-600">{{ exp.startDate }} - {{ exp.endDate|default:"Present" }}</p>
+            </div>
+            <p class="mt-2 text-gray-700">{{ exp.description }}</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Education -->
+    <div class="mb-8">
+        <h2 class="text-xl font-semibold text-gray-900 border-b border-gray-300 pb-2 mb-4">Education</h2>
+        {% for edu in resume_data.education %}
+        <div class="mb-6">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h3 class="font-semibold text-gray-900">{{ edu.degree }}</h3>
+                    <p class="text-gray-600">{{ edu.institution }}</p>
+                </div>
+                <p class="text-gray-600">{{ edu.startDate }} - {{ edu.endDate|default:"Present" }}</p>
+            </div>
+            {% if edu.description %}
+            <p class="mt-2 text-gray-700">{{ edu.description }}</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Skills -->
+    <div class="mb-8">
+        <h2 class="text-xl font-semibold text-gray-900 border-b border-gray-300 pb-2 mb-4">Skills</h2>
+        <div class="grid grid-cols-2 gap-6">
+            <div>
+                <h3 class="font-semibold text-gray-900 mb-2">Technical Skills</h3>
+                <div class="flex flex-wrap gap-2">
+                    {% for skill in resume_data.skills.technical %}
+                    <span class="bg-gray-100 text-gray-700 px-3 py-1 rounded-full">{{ skill }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            <div>
+                <h3 class="font-semibold text-gray-900 mb-2">Soft Skills</h3>
+                <div class="flex flex-wrap gap-2">
+                    {% for skill in resume_data.skills.soft %}
+                    <span class="bg-gray-100 text-gray-700 px-3 py-1 rounded-full">{{ skill }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Information -->
+    {% if resume_data.additional.certifications or resume_data.additional.projects %}
+    <div>
+        <h2 class="text-xl font-semibold text-gray-900 border-b border-gray-300 pb-2 mb-4">Additional Information</h2>
+        {% if resume_data.additional.certifications %}
+        <div class="mb-4">
+            <h3 class="font-semibold text-gray-900 mb-2">Certifications</h3>
+            <p class="text-gray-700">{{ resume_data.additional.certifications }}</p>
+        </div>
+        {% endif %}
+        {% if resume_data.additional.projects %}
+        <div>
+            <h3 class="font-semibold text-gray-900 mb-2">Projects</h3>
+            <p class="text-gray-700">{{ resume_data.additional.projects }}</p>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div> 

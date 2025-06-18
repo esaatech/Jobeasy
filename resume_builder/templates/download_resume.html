@@ -1,0 +1,302 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <!-- Template Selector -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+        <div class="bg-white rounded-lg shadow p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Choose Template</h2>
+            <div class="grid grid-cols-3 gap-4">
+                {% for template in templates %}
+                <button 
+                    data-template-id="{{ template.id }}"
+                    class="template-btn {% if template.id == active_template %}border-blue-500{% else %}border-gray-200{% endif %} border-2 rounded-lg p-4 hover:border-blue-300 transition-colors">
+                    {% if template.id == 'professional' %}
+                    <!-- Professional Template SVG -->
+                    <svg class="w-full h-32 mb-2" viewBox="0 0 240 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="240" height="120" fill="white"/>
+                        <!-- Header -->
+                        <rect x="20" y="10" width="200" height="20" rx="2" fill="#E5E7EB"/>
+                        <!-- Left Column -->
+                        <rect x="20" y="40" width="60" height="70" rx="2" fill="#F3F4F6"/>
+                        <!-- Right Column Content -->
+                        <rect x="90" y="40" width="130" height="8" rx="2" fill="#D1D5DB"/>
+                        <rect x="90" y="55" width="130" height="8" rx="2" fill="#D1D5DB"/>
+                        <rect x="90" y="70" width="130" height="8" rx="2" fill="#D1D5DB"/>
+                        <rect x="90" y="85" width="90" height="8" rx="2" fill="#D1D5DB"/>
+                    </svg>
+                    {% elif template.id == 'modern' %}
+                    <!-- Modern Template SVG -->
+                    <svg class="w-full h-32 mb-2" viewBox="0 0 240 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="240" height="120" fill="white"/>
+                        <!-- Circle Avatar -->
+                        <circle cx="120" cy="25" r="15" fill="#E5E7EB"/>
+                        <!-- Content Blocks -->
+                        <rect x="40" y="50" width="160" height="10" rx="2" fill="#D1D5DB"/>
+                        <!-- Skill Pills -->
+                        <rect x="40" y="70" width="40" height="8" rx="4" fill="#93C5FD"/>
+                        <rect x="90" y="70" width="40" height="8" rx="4" fill="#93C5FD"/>
+                        <rect x="140" y="70" width="40" height="8" rx="4" fill="#93C5FD"/>
+                        <!-- Timeline -->
+                        <rect x="40" y="90" width="160" height="20" rx="2" fill="#F3F4F6"/>
+                    </svg>
+                    {% else %}
+                    <!-- Creative Template SVG -->
+                    <svg class="w-full h-32 mb-2" viewBox="0 0 240 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="240" height="120" fill="#F5F3FF"/>
+                        <!-- Gradient Header -->
+                        <rect x="20" y="10" width="200" height="30" rx="4" fill="#C4B5FD"/>
+                        <!-- Card Grid -->
+                        <rect x="20" y="50" width="95" height="60" rx="4" fill="white"/>
+                        <rect x="125" y="50" width="95" height="60" rx="4" fill="white"/>
+                        <!-- Decorative Elements -->
+                        <circle cx="40" cy="65" r="6" fill="#8B5CF6"/>
+                        <circle cx="145" cy="65" r="6" fill="#8B5CF6"/>
+                    </svg>
+                    {% endif %}
+                    <p class="text-sm font-medium text-gray-900">{{ template.name }}</p>
+                </button>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Resume Preview -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="bg-white rounded-lg shadow">
+            <!-- Template Content -->
+            <div id="resumeContent" class="p-8">
+                {% include selected_template %}
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="border-t border-gray-200 p-6 bg-gray-50 rounded-b-lg">
+                <div class="flex justify-between items-center">
+                    <div class="flex space-x-4">
+                        <button id="pdfButton" 
+                                class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center space-x-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                            </svg>
+                            <span>Download PDF</span>
+                        </button>
+                        <button id="saveButton"
+                                class="bg-violet-600 text-white px-4 py-2 rounded-md hover:bg-violet-700 flex items-center space-x-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                            </svg>
+                            <span>Save Resume</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.1.0/docx.min.js"></script>
+
+<script>
+// Add event listeners when the document is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Add click handlers to all template buttons
+    document.querySelectorAll('.template-btn').forEach(button => {
+        button.addEventListener('click', async function(e) {
+            try {
+                const templateId = this.dataset.templateId;
+                
+                const response = await fetch("{% url 'resume_builder:switch_template' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({
+                        template_id: templateId
+                    })
+                });
+
+                if (!response.ok) throw new Error('Failed to switch template');
+
+                const html = await response.text();
+                document.getElementById('resumeContent').innerHTML = html;
+
+                // Update active template button
+                document.querySelectorAll('.template-btn').forEach(btn => {
+                    btn.classList.remove('border-blue-500');
+                    btn.classList.add('border-gray-200');
+                });
+                this.classList.remove('border-gray-200');
+                this.classList.add('border-blue-500');
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to switch template');
+            }
+        });
+    });
+});
+
+async function downloadAsPDF() {
+    try {
+        const element = document.getElementById('resumeContent').children[0];
+
+        const options = {
+            margin: 10,
+            filename: 'resume.pdf',
+            html2canvas: { 
+                scale: 2,
+                useCORS: true,
+                logging: true,
+                letterRendering: true,
+                allowTaint: true,
+                scrollY: 0
+            },
+            jsPDF: { 
+                unit: 'mm', 
+                format: 'a4', 
+                orientation: 'portrait',
+                compress: true
+            }
+        };
+
+        // Generate PDF
+        await html2pdf()
+            .from(element)
+            .set(options)
+            .save();
+
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to download PDF. Please try again.');
+    }
+}
+
+async function downloadAsWord() {
+    try {
+        // Ensure docx is available
+        const { Document, Packer, Paragraph, TextRun } = window.docx;
+
+        const element = document.getElementById('resumeContent').children[0];
+        const content = element.innerText.split('\n').filter(line => line.trim() !== '');
+
+        const doc = new Document({
+            sections: [{
+                properties: {},
+                children: content.map(line => new Paragraph({
+                    children: [new TextRun(line)],
+                })),
+            }],
+        });
+
+        const blob = await Packer.toBlob(doc);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'resume.docx';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to download Word document. Please try again.');
+    }
+}
+
+async function saveResume() {
+    try {
+        const element = document.getElementById('resumeContent').children[0];
+        
+        // Generate PDF blob
+        const pdfBlob = await html2pdf().from(element).outputPdf('blob');
+        
+        // Create FormData
+        const formData = new FormData();
+        formData.append('pdf_file', new File([pdfBlob], 'resume.pdf', { type: 'application/pdf' }));
+        formData.append('template_id', '{{ active_template }}');
+
+        // Send to server
+        const response = await fetch("{% url 'resume_builder:save_resume' %}", {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: formData
+        });
+
+        if (!response.ok) throw new Error('Failed to save resume');
+
+        const result = await response.json();
+        if (result.success) {
+            alert('Resume saved successfully!');
+        } else {
+            throw new Error(result.error || 'Failed to save resume');
+        }
+
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to save resume. Please try again.');
+    }
+}
+
+async function downloadAndSharePDF() {
+    try {
+        const element = document.getElementById('resumeContent').children[0];
+
+        // First generate the PDF blob
+        const pdf = await html2pdf().from(element).outputPdf('blob');
+        
+        // Create a File from the blob
+        const pdfFile = new File([pdf], 'resume.pdf', {
+            type: 'application/pdf',
+            lastModified: new Date().getTime()
+        });
+
+        // Check if file sharing is supported
+        if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+            try {
+                await navigator.share({
+                    files: [pdfFile],
+                    title: 'My Resume',
+                    text: 'Check out my resume!'
+                });
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    console.log('Share cancelled');
+                    return;
+                }
+                throw error;
+            }
+        } else {
+            // Fallback for browsers that don't support file sharing
+            const url = URL.createObjectURL(pdf);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'resume.pdf';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to generate or share PDF. Please try again.');
+    }
+}
+
+// Add event listeners when document is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Add click handlers for download and save buttons
+    document.querySelector('[id="pdfButton"]').addEventListener('click', downloadAsPDF);
+    document.querySelector('[id="saveButton"]').addEventListener('click', saveResume);
+    
+    // Remove inline onclick attributes
+    document.querySelectorAll('button').forEach(button => {
+        button.removeAttribute('onclick');
+    });
+});
+</script>
+{% endblock %}

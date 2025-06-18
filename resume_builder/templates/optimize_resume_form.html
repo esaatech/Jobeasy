@@ -1,0 +1,237 @@
+<form method="POST" enctype="multipart/form-data" class="space-y-6" id="optimizeForm">
+    {% csrf_token %}
+    
+    <!-- Resume Upload Section -->
+    <div class="bg-white p-6 rounded-lg shadow-md">
+        <h2 class="text-xl font-semibold mb-4">Upload Your Resume</h2>
+        <div class="space-y-4">
+            <!-- Drag & Drop Zone -->
+            <div class="drag-drop-zone">
+                <div id="drop-zone" 
+                     class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-500 transition-colors duration-200 cursor-pointer">
+                    <input type="file" 
+                           name="resume_file" 
+                           id="resume-file" 
+                           accept=".pdf,.doc,.docx" 
+                           class="hidden">
+                    <div class="space-y-4">
+                        <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                            <path d="M28 8H12a4 4 0 00-4 4v20m0 0v4a4 4 0 004 4h20a4 4 0 004-4V28m-4-4h4a4 4 0 004-4V12a4 4 0 00-4-4h-4m-12 8v-4m0 4v4m0-4h12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <div class="flex flex-col items-center text-sm text-gray-600">
+                            <label for="resume-file" class="font-medium text-blue-600 hover:text-blue-500 cursor-pointer">
+                                Click to upload
+                            </label>
+                            <span class="mt-1">or drag and drop</span>
+                        </div>
+                        <p class="text-xs text-gray-500">
+                            PDF, DOC, or DOCX (up to 10MB)
+                        </p>
+                    </div>
+                    <div id="file-info" class="hidden mt-4 text-sm text-gray-600">
+                        <span class="file-name font-medium"></span>
+                        <button type="button" id="remove-file" class="ml-2 text-red-500 hover:text-red-700">
+                            Remove
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="relative">
+                <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t border-gray-300"></div>
+                </div>
+                <div class="relative flex justify-center text-sm">
+                    <span class="px-2 bg-white text-gray-500">OR</span>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Paste Resume Text</label>
+                <textarea name="resume_text" 
+                          rows="6" 
+                          class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm"
+                          placeholder="Copy and paste your resume content here..."></textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- Job Description Section -->
+    <div class="bg-white p-6 rounded-lg shadow-md">
+        <h2 class="text-xl font-semibold mb-4">Job Description</h2>
+        <div>
+            <label class="block text-sm font-medium text-gray-700">Paste Job Description</label>
+            <textarea name="job_description" rows="6" required
+                      class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm"
+                      placeholder="Copy and paste the job description here..."></textarea>
+            <p class="mt-1 text-sm text-gray-500">This will be used to optimize your resume for ATS systems</p>
+        </div>
+    </div>
+
+    <!-- Options Section -->
+    <div class="bg-white p-6 rounded-lg shadow-md">
+        <h2 class="text-xl font-semibold mb-4">Optimization Options</h2>
+        <div class="space-y-4">
+            <div class="flex items-center">
+                <input type="checkbox" name="keyword_optimization" id="keyword_optimization" 
+                       class="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                       checked>
+                <label for="keyword_optimization" class="ml-2 block text-sm text-gray-700">
+                    Keyword Optimization
+                </label>
+            </div>
+            <div class="flex items-center">
+                <input type="checkbox" name="format_optimization" id="format_optimization" 
+                       class="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                       checked>
+                <label for="format_optimization" class="ml-2 block text-sm text-gray-700">
+                    Format Optimization
+                </label>
+            </div>
+            <div class="flex items-center">
+                <input type="checkbox" name="content_suggestions" id="content_suggestions" 
+                       class="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                       checked>
+                <label for="content_suggestions" class="ml-2 block text-sm text-gray-700">
+                    Content Improvement Suggestions
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submit Button -->
+    <div class="flex justify-center">
+        <button type="submit" 
+                class="px-6 py-3 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+            Optimize Resume
+        </button>
+    </div>
+</form>
+
+<script>
+document.getElementById('optimizeForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const submitButton = this.querySelector('button[type="submit"]');
+    
+    try {
+        submitButton.disabled = true;
+        submitButton.innerHTML = `
+            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Optimizing...
+        `;
+
+        const response = await fetch('{% url "resume_builder:optimize_resume" %}', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Optimization failed');
+        }
+
+        if (data.success) {
+            window.location.href = data.redirect_url;
+        } else {
+            throw new Error(data.error || 'Unknown error occurred');
+        }
+
+    } catch (error) {
+        console.error('Error:', error);
+        alert(error.message || 'Failed to optimize resume. Please try again.');
+    } finally {
+        submitButton.disabled = false;
+        submitButton.innerHTML = 'Optimize Resume';
+    }
+});
+
+// Drag and drop functionality
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('resume-file');
+const fileInfo = document.getElementById('file-info');
+const fileName = fileInfo.querySelector('.file-name');
+const removeButton = document.getElementById('remove-file');
+
+// Prevent default drag behaviors
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, preventDefaults, false);
+    document.body.addEventListener(eventName, preventDefaults, false);
+});
+
+function preventDefaults (e) {
+    e.preventDefault();
+    e.stopPropagation();
+}
+
+// Highlight drop zone when dragging over it
+['dragenter', 'dragover'].forEach(eventName => {
+    dropZone.addEventListener(eventName, highlight, false);
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+    dropZone.addEventListener(eventName, unhighlight, false);
+});
+
+function highlight(e) {
+    dropZone.classList.add('border-blue-500', 'bg-blue-50');
+}
+
+function unhighlight(e) {
+    dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+}
+
+// Handle dropped files
+dropZone.addEventListener('drop', handleDrop, false);
+
+function handleDrop(e) {
+    const dt = e.dataTransfer;
+    const files = dt.files;
+    handleFiles(files);
+}
+
+function handleFiles(files) {
+    if (files.length > 0) {
+        const file = files[0];
+        const allowedTypes = ['.pdf', '.doc', '.docx'];
+        const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+        
+        if (!allowedTypes.includes(fileExtension)) {
+            alert('Please upload a PDF, DOC, or DOCX file');
+            return;
+        }
+
+        // Set the file in the file input
+        const dataTransfer = new DataTransfer();
+        dataTransfer.items.add(file);
+        fileInput.files = dataTransfer.files;
+
+        // Show file info
+        fileName.textContent = file.name;
+        fileInfo.classList.remove('hidden');
+        dropZone.classList.add('border-green-500', 'bg-green-50');
+
+        // Log for debugging
+        console.log('File added:', file.name);
+    }
+}
+
+// Remove file
+removeButton.addEventListener('click', function() {
+    fileInput.value = '';
+    fileInfo.classList.add('hidden');
+    dropZone.classList.remove('border-green-500', 'bg-green-50');
+});
+
+// Click anywhere in drop zone to trigger file input
+dropZone.addEventListener('click', function(e) {
+    if (e.target !== removeButton && !removeButton.contains(e.target)) {
+        fileInput.click();
+    }
+});
+</script>
