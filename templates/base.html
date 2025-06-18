@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AI Cover Letter Generator{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom CSS -->
+    {% block extra_css %}{% endblock %}
+    
+    <!-- Base CSS -->
+    <style>
+        .prose {
+            max-width: 65ch;
+            color: #374151;
+        }
+        .prose p {
+            margin-top: 1.25em;
+            margin-bottom: 1.25em;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Navigation -->
+    {% include 'navigation.html' %}
+    
+    <!-- Main Content -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+    
+    <!-- Footer -->
+    <footer class="bg-white border-t mt-12">
+        <div class="max-w-7xl mx-auto py-6 px-4">
+            <p class="text-center text-gray-500 text-sm">
+                © {% now "Y" %} AI Cover Letter Generator. All rights reserved.
+            </p>
+        </div>
+    </footer>
+
+    <!-- Base JavaScript -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Extra JavaScript -->
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>        

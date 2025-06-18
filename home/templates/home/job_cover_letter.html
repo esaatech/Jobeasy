@@ -1,0 +1,297 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<section class="bg-gradient-to-r from-blue-50 to-white py-16">
+    <div class="max-w-7xl mx-auto px-4">
+        <div class="text-center">
+            <h1 class="text-4xl lg:text-5xl font-bold mb-4">
+                AI Cover Letter Generator
+            </h1>
+            <p class="text-lg text-gray-600 mb-8">
+                Create a personalized cover letter in seconds
+            </p>
+        </div>
+    </div>
+</section>
+
+<section class="py-12">
+    <div class="max-w-4xl mx-auto px-4">
+        <form id="coverLetterForm" class="space-y-8">
+            {% csrf_token %}
+            
+            <!-- Personal Information -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-bold mb-6">Personal Information</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Full Name
+                        </label>
+                        <input type="text" name="full_name" required
+                               class="w-full p-3 border border-gray-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Email
+                        </label>
+                        <input type="email" name="email" required
+                               class="w-full p-3 border border-gray-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Phone
+                        </label>
+                        <input type="tel" name="phone" required
+                               class="w-full p-3 border border-gray-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Location
+                        </label>
+                        <input type="text" name="location" required
+                               class="w-full p-3 border border-gray-300 rounded-lg"
+                               placeholder="City, Province">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mode Selection -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-bold mb-6">Choose Input Method</h2>
+                <div class="flex items-center space-x-4">
+                    <label class="flex items-center">
+                        <input type="radio" name="input_method" value="manual" checked
+                               class="form-radio text-blue-600">
+                        <span class="ml-2 text-sm text-gray-700">Enter Experience Manually</span>
+                        <span class="ml-2 text-sm font-semibold text-green-600">{{ manual_credit_cost }} credits</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="radio" name="input_method" value="upload"
+                               class="form-radio text-blue-600">
+                        <span class="ml-2 text-sm text-gray-700">Upload CV for Automated Extraction</span>
+                        <span class="ml-2 text-sm font-semibold text-red-600">{{ automated_credit_cost }} credits</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Experience Highlights (Manual Entry) -->
+            <div id="manual-entry-section" class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-bold mb-6">Experience Highlights</h2>
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Current Role
+                        </label>
+                        <input type="text" name="current_role" required
+                               class="w-full p-3 border border-gray-300 rounded-lg"
+                               placeholder="Your current job title...">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Years of Experience
+                        </label>
+                        <input type="number" name="experience" required
+                               class="w-full p-3 border border-gray-300 rounded-lg"
+                               placeholder="Total years of experience...">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Key Skills
+                        </label>
+                        <textarea name="key_skills" rows="3"
+                                  class="w-full p-3 border border-gray-300 rounded-lg"
+                                  placeholder="List your relevant skills..."></textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Notable Achievements
+                        </label>
+                        <textarea name="achievements" rows="4"
+                                  class="w-full p-3 border border-gray-300 rounded-lg"
+                                  placeholder="Highlight your key achievements..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resume Upload (Automated Extraction) -->
+            <div id="upload-section" class="bg-white rounded-lg shadow-lg p-6 hidden">
+                <h2 class="text-xl font-bold mb-6">Resume Upload</h2>
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-sm font-medium text-gray-700">
+                            Upload Your Resume (PDF, DOC, DOCX)
+                        </label>
+                        <span class="text-xs text-gray-500">Optional but recommended</span>
+                    </div>
+                    
+                    <div class="relative border-2 border-dashed border-gray-300 rounded-lg p-6">
+                        <input type="file" 
+                               id="resume" 
+                               name="resume" 
+                               accept=".pdf,.doc,.docx"
+                               class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                               onchange="handleResumeUpload(this)">
+                        
+                        <div class="text-center" id="dropzone-content">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                            </svg>
+                            <p class="mt-1 text-sm text-gray-600">
+                                Drag and drop your resume here, or click to select
+                            </p>
+                            <p class="mt-1 text-xs text-gray-500">
+                                PDF, DOC, or DOCX up to 5MB
+                            </p>
+                        </div>
+
+                        <div id="file-preview" class="hidden mt-4">
+                            <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                <div class="flex items-center">
+                                    <svg class="h-6 w-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" />
+                                    </svg>
+                                    <span id="file-name" class="ml-2 text-sm text-gray-600"></span>
+                                </div>
+                                <button type="button" 
+                                        onclick="removeResume()"
+                                        class="text-red-500 hover:text-red-700">
+                                    <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="parse-status" class="hidden mt-4">
+                        <div class="flex items-center text-sm text-gray-600">
+                            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Parsing resume...
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Job Details Section -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-bold mb-6">Job Details</h2>
+                
+                <!-- Job Input Method Selection -->
+                <div class="mb-6">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <label class="flex items-center">
+                            <input type="radio" name="job_input_method" value="structured" checked
+                                   class="form-radio text-blue-600">
+                            <span class="ml-2 text-sm text-gray-700">Enter Details Manually</span>
+                            <span class="ml-2 text-sm font-semibold text-green-600">({{ manual_job_credit_cost }} credits)</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="radio" name="job_input_method" value="unstructured"
+                                   class="form-radio text-blue-600">
+                            <span class="ml-2 text-sm text-gray-700">Paste Full Job Description</span>
+                            <span class="ml-2 text-sm font-semibold text-red-600">({{ automated_job_credit_cost }} credits)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Structured Job Details -->
+                <div id="structured-job-section" class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Position Title
+                        </label>
+                        <input type="text" name="position" required
+                               class="w-full p-3 border border-gray-300 rounded-lg"
+                               placeholder="e.g., Senior Software Engineer">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Company Name
+                        </label>
+                        <input type="text" name="company" required
+                               class="w-full p-3 border border-gray-300 rounded-lg"
+                               placeholder="e.g., Tech Corp">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Department/Team
+                        </label>
+                        <input type="text" name="department"
+                               class="w-full p-3 border border-gray-300 rounded-lg"
+                               placeholder="e.g., Engineering">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Job Description
+                        </label>
+                        <textarea name="description" required rows="4"
+                                  class="w-full p-3 border border-gray-300 rounded-lg"
+                                  placeholder="Enter the key responsibilities and requirements..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Unstructured Job Details -->
+                <div id="unstructured-job-section" class="space-y-6 hidden">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Full Job Posting
+                        </label>
+                        <textarea name="job_posting" rows="8"
+                                  class="w-full p-3 border border-gray-300 rounded-lg"
+                                  placeholder="Paste the complete job posting here. Our AI will automatically extract the relevant information..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Generate Button -->
+            <div class="text-center">
+                <button type="submit" 
+                        class="bg-blue-600 text-white px-8 py-4 rounded-full hover:bg-blue-700 transition-colors">
+                    Generate Cover Letter
+                </button>
+            </div>
+        </form>
+
+        <!-- Results Section -->
+        <div id="results" class="mt-8 hidden">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-xl font-bold mb-4">Your Cover Letter</h2>
+                <div id="coverLetterContent" class="prose max-w-none whitespace-pre-line" style="min-height: 200px;">
+                    <!-- Content will be inserted here -->
+                </div>
+                <div class="mt-6 flex justify-center space-x-4">
+                    <button id="copyButton" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
+                        Copy to Clipboard
+                    </button>
+                    <button id="downloadPdfBtn" onclick="coverLetterUtils.downloadAsPDF()" 
+                            class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                        Download as PDF
+                    </button>
+                    <button id="emailBtn" onclick="coverLetterUtils.emailCoverLetter()" 
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded inline-flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                            <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                        </svg>
+                        Email
+                    </button>
+                    <button id="editButton" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                        Edit Letter
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+<script src="{% static 'js/tools/cover_letter_utils.js' %}"></script>
+<script src="{% static 'js/tools/job_cover_letter.js' %}"></script>
+
+{% endblock %} 
