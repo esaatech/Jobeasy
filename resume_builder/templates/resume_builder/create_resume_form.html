@@ -30,7 +30,7 @@
             <input type="hidden" name="resume_id" id="resumeId" value="{{ resume_instance.id|default:'' }}">
 
             <!-- Template Selection Section -->
-           {% include 'partials/template_selection.html' %}
+           {% include 'partials/template_selection.html' with selected_template=resume_instance.template_id %}
 
             <!-- Step 1: Personal Information -->
             <div class="form-step" data-step="1">
@@ -351,6 +351,11 @@
     // Save functions for each step
     async function savePersonalInfo(andExit = false) {
         const formData = new FormData(document.getElementById('resumeForm'));
+        
+        // Get template selection
+        const selectedTemplate = document.querySelector('input[name="template_id"]:checked');
+        const templateId = selectedTemplate ? selectedTemplate.value : 'professional';
+        
         const data = {
             resume_name: formData.get('resume_name'),
             fullName: formData.get('fullName'),
@@ -358,6 +363,7 @@
             email: formData.get('email'),
             phone: formData.get('phone'),
             summary: formData.get('summary'),
+            template_id: templateId,
             is_editing_save: andExit
         };
         if (resumeId) {
@@ -413,9 +419,14 @@
             experience.push(entryData);
         }
 
+        // Get template selection
+        const selectedTemplate = document.querySelector('input[name="template_id"]:checked');
+        const templateId = selectedTemplate ? selectedTemplate.value : 'professional';
+
         const data = {
             resume_id: resumeId,
             experience: experience,
+            template_id: templateId,
             is_editing_save: andExit
         };
 
@@ -462,9 +473,14 @@
             education.push(entryData);
         }
 
+        // Get template selection
+        const selectedTemplate = document.querySelector('input[name="template_id"]:checked');
+        const templateId = selectedTemplate ? selectedTemplate.value : 'professional';
+
         const data = {
             resume_id: resumeId,
             education: education,
+            template_id: templateId,
             is_editing_save: andExit
         };
 
@@ -497,11 +513,17 @@
 
     async function saveSkills(andExit = false) {
         const formData = new FormData(document.getElementById('resumeForm'));
+        
+        // Get template selection
+        const selectedTemplate = document.querySelector('input[name="template_id"]:checked');
+        const templateId = selectedTemplate ? selectedTemplate.value : 'professional';
+        
         const data = {
             resume_id: resumeId,
             technicalSkills: formData.get('technicalSkills'),
             softSkills: formData.get('softSkills'),
             languages: formData.get('languages'),
+            template_id: templateId,
             is_editing_save: andExit
         };
 
@@ -534,10 +556,16 @@
 
     async function saveAdditional(andExit = false) {
         const formData = new FormData(document.getElementById('resumeForm'));
+        
+        // Get template selection
+        const selectedTemplate = document.querySelector('input[name="template_id"]:checked');
+        const templateId = selectedTemplate ? selectedTemplate.value : 'professional';
+        
         const data = {
             resume_id: resumeId,
             certifications: formData.get('certifications'),
             projects: formData.get('projects'),
+            template_id: templateId,
             is_editing_save: andExit
         };
 
@@ -726,6 +754,14 @@
             document.querySelector('[name="email"]').value = resume.personal_info.email || '';
             document.querySelector('[name="phone"]').value = resume.personal_info.phone || '';
             document.querySelector('[name="summary"]').value = resume.personal_info.summary || '';
+        }
+        
+        // Populate template selection
+        if (resume.template_id) {
+            const templateRadio = document.querySelector(`input[name="template_id"][value="${resume.template_id}"]`);
+            if (templateRadio) {
+                templateRadio.checked = true;
+            }
         }
         
         // Populate skills fields

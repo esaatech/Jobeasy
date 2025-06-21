@@ -959,7 +959,7 @@ def save_personal_info(request):
                     user=request.user,
                     name=data.get('resume_name', 'My Resume'),
                     draft=True,
-                    template_id='professional'
+                    template_id=data.get('template_id', 'professional')
                 )
             
             # Update data
@@ -971,6 +971,11 @@ def save_personal_info(request):
                 'phone': data.get('phone'),
                 'summary': data.get('summary')
             }
+            
+            # Update template if provided
+            if data.get('template_id'):
+                resume.template_id = data.get('template_id')
+            
             resume.save()
 
             if is_editing_save:
@@ -1008,6 +1013,11 @@ def save_experience(request):
             
             resume = get_object_or_404(Resume, id=resume_id, user=request.user)
             resume.experience = data.get('experience', [])
+            
+            # Update template if provided
+            if data.get('template_id'):
+                resume.template_id = data.get('template_id')
+            
             resume.save()
             
             if is_editing_save:
@@ -1041,6 +1051,11 @@ def save_education(request):
             
             resume = get_object_or_404(Resume, id=resume_id, user=request.user)
             resume.education = data.get('education', [])
+            
+            # Update template if provided
+            if data.get('template_id'):
+                resume.template_id = data.get('template_id')
+            
             resume.save()
             
             if is_editing_save:
@@ -1078,6 +1093,11 @@ def save_skills(request):
                 'soft': [skill.strip() for skill in data.get('softSkills', '').split(',') if skill.strip()],
                 'languages': [lang.strip() for lang in data.get('languages', '').split(',') if lang.strip()]
             }
+            
+            # Update template if provided
+            if data.get('template_id'):
+                resume.template_id = data.get('template_id')
+            
             resume.save()
             
             if is_editing_save:
@@ -1114,6 +1134,11 @@ def save_additional(request):
                 'certifications': data.get('certifications'),
                 'projects': data.get('projects')
             }
+            
+            # Update template if provided
+            if data.get('template_id'):
+                resume.template_id = data.get('template_id')
+            
             resume.save()
             
             if is_editing_save:
