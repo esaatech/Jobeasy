@@ -109,7 +109,7 @@ def create_resume(request, resume_id=None):
         'description': 'Create or optimize your ATS-friendly resume with our professional templates and AI-powered suggestions. Stand out to employers and increase your chances of getting hired.',
         'buttons': {
             'create': 'Create New Resume',
-            'optimize': 'Optimize Existing Resume'
+            'optimize': 'Update Resume'
         },
         'credits_text': ''
     }
@@ -221,6 +221,23 @@ def optimize_resume(request):
         'page_description': 'Upload your resume and job description to create an ATS-optimized version tailored to the position.'
     }
     return render(request, 'resume_builder/optimize_resume.html', {'hero_content': hero_content})
+
+@login_required
+def upload_resume(request):
+    """Upload resume endpoint - placeholder for now"""
+    if request.method == 'POST':
+        # TODO: Implement resume upload functionality
+        return JsonResponse({
+            'success': False,
+            'error': 'Upload resume functionality not yet implemented'
+        }, status=501)
+    
+    # GET request - render the upload form
+    hero_content = {
+        'page_title': 'Upload Resume',
+        'page_description': 'Upload your existing resume to edit or convert it to a new format.'
+    }
+    return render(request, 'resume_builder/optimize_resume_form.html', {'hero_content': hero_content})
 
 @login_required
 def view_resume(request, resume_id=None):

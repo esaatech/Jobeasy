@@ -25,6 +25,7 @@ urlpatterns = [
     path('resume/', include('resume_builder.urls')),
     path('job-service/', include('job_service.urls')),
     path('auth/', include('authentication.urls')),
+    path('coverletter/', include('coverletter.urls')),
 ]
 
 # Serve media files in development

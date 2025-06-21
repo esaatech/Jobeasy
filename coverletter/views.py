@@ -9,7 +9,7 @@ logger = logging.getLogger('home')
 
 # Create your views here.
 def index(request):
-    return render(request, 'home/home.html')   
+    return render(request, 'coverletter/index.html')   
 
 
 
@@ -23,7 +23,7 @@ def job_cover_letter(request):
             'page_description': 'Generate a professional cover letter using AI',
             'meta_description': 'Create a customized cover letter instantly with our AI-powered tool.',
         }
-        return render(request, 'tools/job_cover_letter.html', context)
+        return render(request, 'coverletter/job_cover_letter.html', context)
     
     try:
         data = request.POST

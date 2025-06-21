@@ -9,6 +9,7 @@ urlpatterns = [
     path('edit-resume/<int:resume_id>/', views.create_resume, name='edit_resume'),
     path('create-resume/submit/', views.create_resume_submit, name='create_resume_submit'),
     path('optimize/', views.optimize_resume, name='optimize_resume'),
+    path('upload-resume/', views.upload_resume, name='upload_resume'),
     path('resume/view/', views.view_resume, name='view_resume'),
     path('resume/view/<int:resume_id>/', views.view_resume, name='view_resume_by_id'),
     path('download/', views.download_resume, name='download_resume'),

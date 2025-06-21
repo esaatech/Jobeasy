@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'authentication',
     'email_utility',
     'pdf_generator',
+    'coverletter',
 ]
 
 MIDDLEWARE = [
