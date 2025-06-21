@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'job_service',
     'authentication',
     'email_utility',
+    'pdf_generator',
 ]
 
 MIDDLEWARE = [

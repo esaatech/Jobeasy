@@ -18,6 +18,7 @@ from django.core.files.base import ContentFile
 from django.conf import settings
 import uuid
 from django.template.loader import render_to_string
+from django.utils import timezone
 
 # Import libraries for file processing
 import PyPDF2
@@ -247,6 +248,30 @@ def view_resume(request, resume_id=None):
         
         # Render the resume with the chosen template
         html_content = render_to_string(f'resume_templates/{template_id}.html', {'resume_data': resume_data})
+        
+        # Create full HTML document
+        full_html = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{resume.personal_info.get('full_name', 'Resume')} - Resume</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media print {{
+            body {{{{ margin: 0; padding: 20px; }}}}
+            .professional-template, .modern-template, .creative-template {{{{
+                max-width: none; box-shadow: none;
+            }}}}
+        }}
+    </style>
+</head>
+<body class="bg-white">
+    {html_content}
+</body>
+</html>
+"""
         
         context = {
             'resume': resume,
@@ -555,10 +580,25 @@ def save_resume(request):
                 
                 full_html = f"""
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Optimized Resume</title><script src="https://cdn.tailwindcss.com"></script>
-<style>@media print {{ body {{ margin: 0; padding: 20px; }} .professional-template, .modern-template, .creative-template {{ max-width: none; box-shadow: none; }} }}</style>
-</head><body class="bg-white">{html_content}</body></html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Optimized Resume</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media print {{
+            body {{{{ margin: 0; padding: 20px; }}}}
+            .professional-template, .modern-template, .creative-template {{{{
+                max-width: none; box-shadow: none;
+            }}}}
+        }}
+    </style>
+</head>
+<body class="bg-white">
+    {html_content}
+</body>
+</html>
 """
                 file_content = ContentFile(full_html.encode('utf-8'))
                 
@@ -727,6 +767,179 @@ def delete_resume(request, resume_id):
         'success': False,
         'error': 'Method not allowed'
     }, status=405)
+
+@login_required
+def download_resume_file(request, resume_id, format_type='html'):
+    """Download a resume in the specified format - generates files on-the-fly from database data"""
+    try:
+        # Get the resume and ensure it belongs to the current user
+        resume = get_object_or_404(Resume, id=resume_id, user=request.user)
+        
+        # Prepare resume data for template rendering
+        resume_data = {
+            'personal_info': resume.personal_info or {},
+            'experience': resume.experience or [],
+            'education': resume.education or [],
+            'skills': resume.skills or {},
+            'additional': resume.additional or {}
+        }
+        
+        # Get the template ID (default to professional if not set)
+        template_id = resume.template_id or 'professional'
+        
+        if format_type == 'html':
+            # Render the resume with the chosen template
+            html_content = render_to_string(f'resume_templates/{template_id}.html', {'resume_data': resume_data})
+            
+            # Create full HTML document
+            full_html = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{resume.personal_info.get('full_name', 'Resume')} - Resume</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media print {{
+            body {{{{ margin: 0; padding: 20px; }}}}
+            .professional-template, .modern-template, .creative-template {{{{
+                max-width: none; box-shadow: none;
+            }}}}
+        }}
+    </style>
+</head>
+<body class="bg-white">
+    {html_content}
+</body>
+</html>
+"""
+            # Return HTML directly
+            response = HttpResponse(full_html, content_type='text/html')
+            response['Content-Disposition'] = f'attachment; filename="resume_{resume_id}.html"'
+            return response
+                
+        elif format_type == 'pdf':
+            # Use the new standalone PDF Generator app
+            try:
+                from pdf_generator.core.generator import PDFGenerator
+                
+                # Create context for the resume template
+                context = {
+                    'resume_data': resume_data,
+                    'resume_name': resume.name,
+                    'generated_date': timezone.now().strftime('%B %d, %Y')
+                }
+                
+                # Generate PDF using the standalone PDF generator
+                pdf_bytes = PDFGenerator.generate_from_template(
+                    template_name=f'resume_templates/{template_id}.html',
+                    context=context,
+                    options={
+                        'format': 'A4',
+                        'print_background': True,
+                        'margins': {
+                            'top': '0.5in',
+                            'right': '0.5in',
+                            'bottom': '0.5in',
+                            'left': '0.5in'
+                        }
+                    }
+                )
+                
+                response = HttpResponse(pdf_bytes, content_type='application/pdf')
+                response['Content-Disposition'] = f'attachment; filename="resume_{resume_id}.pdf"'
+                return response
+                
+            except ImportError:
+                # Fallback to xhtml2pdf if PDF generator is not available
+                logger.warning("PDF Generator app not available, falling back to xhtml2pdf")
+                from xhtml2pdf import pisa
+                
+                # Render the resume with the chosen template
+                html_content = render_to_string(f'resume_templates/{template_id}.html', {'resume_data': resume_data})
+                
+                # Create full HTML document
+                full_html = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{resume.personal_info.get('full_name', 'Resume')} - Resume</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @media print {{
+            body {{{{ margin: 0; padding: 20px; }}}}
+            .professional-template, .modern-template, .creative-template {{{{
+                max-width: none; box-shadow: none;
+            }}}}
+        }}
+    </style>
+</head>
+<body class="bg-white">
+    {html_content}
+</body>
+</html>
+"""
+                pdf_buffer = BytesIO()
+                
+                pisa_status = pisa.CreatePDF(
+                    full_html,
+                    dest=pdf_buffer
+                )
+                
+                if pisa_status.err:
+                    return HttpResponse(f'We had some errors <pre>{full_html}</pre>')
+
+                pdf_buffer.seek(0)
+                
+                response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
+                response['Content-Disposition'] = f'attachment; filename="resume_{resume_id}.pdf"'
+                return response
+                
+        elif format_type == 'word':
+            # Convert HTML to Word document using html2docx
+            try:
+                from html2docx import html2docx
+                
+                # Render the resume with the chosen template
+                html_content = render_to_string(f'resume_templates/{template_id}.html', {'resume_data': resume_data})
+                
+                # Create full HTML document
+                full_html = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{resume.personal_info.get('full_name', 'Resume')} - Resume</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white">
+    {html_content}
+</body>
+</html>
+"""
+                docx_buffer = html2docx(full_html, title=f"Resume - {resume.name}")
+
+                response = HttpResponse(
+                    docx_buffer.getvalue(), 
+                    content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                )
+                response['Content-Disposition'] = f'attachment; filename="resume_{resume_id}.docx"'
+                return response
+                
+            except ImportError:
+                logger.error("html2docx not available for Word document generation")
+                return JsonResponse({'error': 'Word document generation not available'}, status=500)
+        
+        else:
+            return JsonResponse({'error': 'Invalid format'}, status=400)
+            
+    except Exception as e:
+        logger.error(f"Download resume error: {str(e)}")
+        return JsonResponse({'error': 'Failed to download resume'}, status=500)
 
 @login_required
 def save_personal_info(request):
