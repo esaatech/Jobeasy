@@ -248,54 +248,38 @@ def view_resume(request, resume_id=None):
         # Render the resume with the chosen template
         html_content = render_to_string(f'resume_templates/{template_id}.html', {'resume_data': resume_data})
         
-        # Create full HTML document
-        full_html = f"""
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{resume.personal_info.get('full_name', 'Resume')} - Resume</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @media print {{
-            body {{ margin: 0; padding: 20px; }}
-            .professional-template, .modern-template, .creative-template {{
-                max-width: none; box-shadow: none;
-            }}
-        }}
-    </style>
-</head>
-<body class="bg-white">
-    {html_content}
-</body>
-</html>
-"""
-        
         context = {
-            'resume_html': full_html,
             'resume': resume,
+            'resume_html': html_content,
             'hero_content': {
-                'page_title': f'Resume: {resume.name}',
-                'page_description': 'View your resume below. You can edit, save, or download it.'
+                'page_title': 'View Resume',
+                'page_description': 'Review your generated resume below. You can edit it further or download it.'
             }
         }
         
         return render(request, 'resume_builder/view_resume.html', context)
     else:
-        # Viewing a newly optimized, unsaved resume (legacy support)
-        resume_data = request.session.get('optimization_results')
-        if not resume_data:
+        # Viewing unsaved optimization results from session
+        optimization_results = request.session.get('optimization_results')
+        
+        if not optimization_results:
+            # If no session data, redirect to the start
             return redirect('resume_builder:optimize_resume')
         
-        context = {
-            'resume_data': resume_data,
-            'hero_content': {
-                'page_title': 'Optimization Results',
-                'page_description': 'Review your resume below. You can edit, save, or download it.'
-            }
+        # Prepare data for template rendering (simplified version)
+        resume_data = {
+            'optimized_content': optimization_results.get('optimized_content', '')
         }
         
+        context = {
+            'resume': None, # No saved resume object
+            'resume_html': None, # No HTML for this case
+            'resume_data': resume_data,
+            'hero_content': {
+                'page_title': 'Optimized Resume',
+                'page_description': 'Review your optimized resume content. You can now save or download it.'
+            }
+        }
         return render(request, 'resume_builder/view_resume.html', context)
 
 @login_required
@@ -691,6 +675,27 @@ def my_resumes(request):
     return render(request, 'resume_builder/my_resumes.html', context)
 
 @login_required
+def get_resume_content(request, resume_id):
+    """
+    Fetch and render only the HTML content of a specific resume.
+    This is used to populate the preview modal without a full page reload.
+    """
+    resume = get_object_or_404(Resume, id=resume_id, user=request.user)
+    
+    resume_data = {
+        'personal_info': resume.personal_info or {},
+        'experience': resume.experience or [],
+        'education': resume.education or [],
+        'skills': resume.skills or {},
+        'additional': resume.additional or {}
+    }
+    
+    template_id = resume.template_id or 'professional'
+    html_content = render_to_string(f'resume_templates/{template_id}.html', {'resume_data': resume_data})
+    
+    return HttpResponse(html_content)
+
+@login_required
 def delete_resume(request, resume_id):
     """Delete a resume and its associated file"""
     if request.method == 'POST':
@@ -722,99 +727,6 @@ def delete_resume(request, resume_id):
         'success': False,
         'error': 'Method not allowed'
     }, status=405)
-
-@login_required
-def download_resume_file(request, resume_id, format_type='html'):
-    """Download a resume in the specified format - generates files on-the-fly from database data"""
-    try:
-        # Get the resume and ensure it belongs to the current user
-        resume = get_object_or_404(Resume, id=resume_id, user=request.user)
-        
-        # Prepare resume data for template rendering
-        resume_data = {
-            'personal_info': resume.personal_info or {},
-            'experience': resume.experience or [],
-            'education': resume.education or [],
-            'skills': resume.skills or {},
-            'additional': resume.additional or {}
-        }
-        
-        # Get the template ID (default to professional if not set)
-        template_id = resume.template_id or 'professional'
-        
-        # Render the resume with the chosen template
-        html_content = render_to_string(f'resume_templates/{template_id}.html', {'resume_data': resume_data})
-        
-        # Create full HTML document for PDF/HTML downloads
-        # Note: We need absolute paths for images/CSS for PDF conversion to work reliably
-        base_url = request.build_absolute_uri('/')
-        full_html = f"""
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{resume.personal_info.get('full_name', 'Resume')} - Resume</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @media print {{
-            body {{ margin: 0; padding: 20px; }}
-            .professional-template, .modern-template, .creative-template {{
-                max-width: none; box-shadow: none;
-            }}
-        }}
-    </style>
-</head>
-<body class="bg-white">
-    {html_content}
-</body>
-</html>
-"""
-        
-        if format_type == 'html':
-            # Return HTML directly
-            response = HttpResponse(full_html, content_type='text/html')
-            response['Content-Disposition'] = f'attachment; filename="resume_{resume_id}.html"'
-            return response
-                
-        elif format_type == 'pdf':
-            # Convert HTML to PDF on-the-fly using xhtml2pdf
-            from xhtml2pdf import pisa
-            pdf_buffer = BytesIO()
-            
-            pisa_status = pisa.CreatePDF(
-                full_html,
-                dest=pdf_buffer
-            )
-            
-            if pisa_status.err:
-                return HttpResponse(f'We had some errors <pre>{full_html}</pre>')
-
-            pdf_buffer.seek(0)
-            
-            response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
-            response['Content-Disposition'] = f'attachment; filename="resume_{resume_id}.pdf"'
-            return response
-                
-        elif format_type == 'word':
-            # Convert HTML to Word document using html2docx
-            from html2docx import html2docx
-            
-            docx_buffer = html2docx(full_html, title=f"Resume - {resume.name}")
-
-            response = HttpResponse(
-                docx_buffer.getvalue(), 
-                content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-            )
-            response['Content-Disposition'] = f'attachment; filename="resume_{resume_id}.docx"'
-            return response
-        
-        else:
-            return JsonResponse({'error': 'Invalid format'}, status=400)
-            
-    except Exception as e:
-        logger.error(f"Download resume error: {str(e)}")
-        return JsonResponse({'error': 'Failed to download resume'}, status=500)
 
 @login_required
 def save_personal_info(request):

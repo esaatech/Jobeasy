@@ -31,7 +31,7 @@
             </div>
             
             <!-- Resume Content -->
-            <div class="p-6">
+            <div class="p-6" id="resumeContent">
                 {{ resume_html|safe }}
             </div>
         </div>
@@ -47,7 +47,7 @@
 
         <!-- Action Buttons -->
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
-            {% if resume %}
+            {% if resume and resume.id %}
             <!-- For saved resumes -->
             <a href="{% url 'resume_builder:edit_resume' resume.id %}" 
                class="bg-blue-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 text-center">
@@ -57,28 +57,13 @@
                 Edit Resume
             </a>
             
-            <div class="relative">
-                <button onclick="toggleDownloadDropdown(event, this)" 
-                        class="bg-gray-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 flex items-center">
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    </svg>
-                    Download
-                    <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                    </svg>
-                </button>
-                <div class="download-dropdown absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 hidden">
-                    <a href="{% url 'resume_builder:download_resume_file' resume.id 'pdf' %}" 
-                       class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                        Download as PDF
-                    </a>
-                    <a href="{% url 'resume_builder:download_resume_file' resume.id 'word' %}" 
-                       class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
-                        Download as Word
-                    </a>
-                </div>
-            </div>
+            <button onclick="downloadAsPDF()" 
+                    class="bg-red-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 flex items-center justify-center">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                </svg>
+                Download PDF
+            </button>
             
             <a href="{% url 'resume_builder:my_resumes' %}" 
                class="bg-gray-500 text-white px-8 py-3 rounded-lg font-medium hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 text-center">
@@ -180,6 +165,51 @@ window.addEventListener('click', function(event) {
     });
 });
 
+function downloadAsPDF() {
+    const element = document.querySelector('#resumeContent > div'); // Target the actual resume div
+    const resumeName = "{{ resume.name|default:'resume'|slugify }}";
+    
+    // Ensure the element exists before proceeding
+    if (!element) {
+        console.error("Resume content not found for PDF generation.");
+        alert("Could not generate PDF: content element is missing.");
+        return;
+    }
+    
+    const opt = {
+        margin: [0.5, 0.5],
+        filename: `${resumeName}.pdf`,
+        image: { type: 'png', quality: 1.0 },
+        html2canvas: {
+            scale: 3, // Higher scale for better resolution
+            useCORS: true,
+            letterRendering: true,
+            dpi: 300, // Set DPI for high quality
+            // Adding a delay to ensure all assets (like images, fonts) are loaded
+            async onrendered(canvas) {
+                const imgData = canvas.toDataURL('image/png');
+            }
+        },
+        jsPDF: {
+            unit: 'in',
+            format: 'letter',
+            orientation: 'portrait',
+            putOnlyUsedFonts: true, // Embed only used fonts
+            floatPrecision: 16 // Higher precision for element positioning
+        }
+    };
+
+    // Use a promise-based approach to handle potential rendering delays
+    html2pdf().from(element).set(opt).toPdf().get('pdf').then(function (pdf) {
+        // Optional: add headers/footers if needed in the future
+        // var totalPages = pdf.internal.getNumberOfPages();
+        // for (var i = 1; i <= totalPages; i++) {
+        //     pdf.setPage(i);
+        //     pdf.text('Page ' + i + ' of ' + totalPages, pdf.internal.pageSize.getWidth() - 1, pdf.internal.pageSize.getHeight() - 1);
+        // }
+    }).save();
+}
+
 // Legacy ResumeUtils class for optimization results (if needed)
 class ResumeUtils {
     constructor() {
@@ -218,23 +248,12 @@ class ResumeUtils {
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
         this.hideActionDialog();
     }
 
     downloadAsPDF() {
-        const element = document.getElementById('optimizedResumeContent');
-        const opt = {
-            margin: 1,
-            filename: 'resume.pdf',
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2 },
-            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
-        };
-        
-        html2pdf().set(opt).from(element).save().then(() => {
-            this.hideActionDialog();
-        });
+        // Implementation for PDF download
+        this.hideActionDialog();
     }
 
     downloadAsWord() {

@@ -21,10 +21,11 @@ urlpatterns = [
     path('save-skills/', views.save_skills, name='save_skills'),
     path('save-additional/', views.save_additional, name='save_additional'),
     path('finalize-resume/', views.finalize_resume, name='finalize_resume'),
-    
+    path('get-resume-content/<int:resume_id>/', views.get_resume_content, name='get_resume_content'),
+
+    # Misc
     path('save-resume/', views.save_resume, name='save_resume'),
     path('my-resumes/', views.my_resumes, name='my_resumes'),
     path('delete-resume/<int:resume_id>/', views.delete_resume, name='delete_resume'),
-    path('download-resume/<int:resume_id>/<str:format_type>/', views.download_resume_file, name='download_resume_file'),
     path('switch-template/', views.switch_template, name='switch_template'),
 ]
