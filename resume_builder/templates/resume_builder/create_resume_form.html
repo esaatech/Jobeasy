@@ -198,13 +198,13 @@
             </div>
             <div>
                 <label class="block text-sm font-bold text-gray-700 mb-2">Start Date</label>
-                <input type="month" name="experience[].startDate" required
-                    class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+                <input type="text" name="experience[].startDate" required placeholder="Select start date"
+                    class="date-picker-start w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
             </div>
             <div>
                 <label class="block text-sm font-bold text-gray-700 mb-2">End Date</label>
-                <input type="month" name="experience[].endDate"
-                    class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+                <input type="text" name="experience[].endDate" placeholder="Select end date (optional)"
+                    class="date-picker-end w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
             </div>
             <div class="md:col-span-2">
                 <label class="block text-sm font-bold text-gray-700 mb-2">Description</label>
@@ -236,13 +236,13 @@
             </div>
             <div>
                 <label class="block text-sm font-bold text-gray-700 mb-2">Start Date</label>
-                <input type="month" name="education[].startDate" required
-                    class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+                <input type="text" name="education[].startDate" required placeholder="Select start date"
+                    class="date-picker-start w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
             </div>
             <div>
                 <label class="block text-sm font-bold text-gray-700 mb-2">End Date</label>
-                <input type="month" name="education[].endDate"
-                    class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+                <input type="text" name="education[].endDate" placeholder="Select end date (optional)"
+                    class="date-picker-end w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
             </div>
             <div class="md:col-span-2">
                 <label class="block text-sm font-bold text-gray-700 mb-2">Description</label>
@@ -719,6 +719,9 @@
         const container = document.getElementById('experienceContainer');
         const clone = template.content.cloneNode(true);
         container.appendChild(clone);
+        
+        // Initialize Flatpickr for the new date fields
+        initializeDatePickersInEntry(clone);
     }
 
     function addEducation() {
@@ -726,6 +729,89 @@
         const container = document.getElementById('educationContainer');
         const clone = template.content.cloneNode(true);
         container.appendChild(clone);
+        
+        // Initialize Flatpickr for the new date fields
+        initializeDatePickersInEntry(clone);
+    }
+
+    // Initialize Flatpickr for date picker fields
+    function initializeDatePickersInEntry(entryElement) {
+        // Initialize start date pickers
+        const startDatePickers = entryElement.querySelectorAll('.date-picker-start');
+        startDatePickers.forEach(picker => {
+            flatpickr(picker, {
+                dateFormat: "Y-m",
+                allowInput: true,
+                placeholder: "Select start date",
+                onChange: function(selectedDates, dateStr, instance) {
+                    // When start date changes, update the corresponding end date picker
+                    const endDatePicker = instance.input.closest('.experience-entry, .education-entry').querySelector('.date-picker-end');
+                    if (endDatePicker && endDatePicker._flatpickr) {
+                        endDatePicker._flatpickr.set('minDate', dateStr);
+                    }
+                }
+            });
+        });
+
+        // Initialize end date pickers
+        const endDatePickers = entryElement.querySelectorAll('.date-picker-end');
+        endDatePickers.forEach(picker => {
+            flatpickr(picker, {
+                dateFormat: "Y-m",
+                allowInput: true,
+                placeholder: "Select end date (optional)",
+                // Set min date based on corresponding start date
+                onReady: function(selectedDates, dateStr, instance) {
+                    const startDatePicker = instance.input.closest('.experience-entry, .education-entry').querySelector('.date-picker-start');
+                    if (startDatePicker && startDatePicker._flatpickr) {
+                        const startDate = startDatePicker._flatpickr.selectedDates[0];
+                        if (startDate) {
+                            instance.set('minDate', startDate);
+                        }
+                    }
+                }
+            });
+        });
+    }
+
+    // Initialize all existing date pickers on page load
+    function initializeAllDatePickers() {
+        // Initialize start date pickers
+        const startDatePickers = document.querySelectorAll('.date-picker-start');
+        startDatePickers.forEach(picker => {
+            flatpickr(picker, {
+                dateFormat: "Y-m",
+                allowInput: true,
+                placeholder: "Select start date",
+                onChange: function(selectedDates, dateStr, instance) {
+                    // When start date changes, update the corresponding end date picker
+                    const endDatePicker = instance.input.closest('.experience-entry, .education-entry').querySelector('.date-picker-end');
+                    if (endDatePicker && endDatePicker._flatpickr) {
+                        endDatePicker._flatpickr.set('minDate', dateStr);
+                    }
+                }
+            });
+        });
+
+        // Initialize end date pickers
+        const endDatePickers = document.querySelectorAll('.date-picker-end');
+        endDatePickers.forEach(picker => {
+            flatpickr(picker, {
+                dateFormat: "Y-m",
+                allowInput: true,
+                placeholder: "Select end date (optional)",
+                // Set min date based on corresponding start date
+                onReady: function(selectedDates, dateStr, instance) {
+                    const startDatePicker = instance.input.closest('.experience-entry, .education-entry').querySelector('.date-picker-start');
+                    if (startDatePicker && startDatePicker._flatpickr) {
+                        const startDate = startDatePicker._flatpickr.selectedDates[0];
+                        if (startDate) {
+                            instance.set('minDate', startDate);
+                        }
+                    }
+                }
+            });
+        });
     }
 
     function removeEntry(button) {
@@ -740,6 +826,10 @@
         if (resumeInstance && resumeInstance.id) {
             populateForm(resumeInstance);
         }
+        
+        // Initialize date pickers for any existing entries
+        initializeAllDatePickers();
+        
         showStep(1);
     });
 
@@ -805,6 +895,21 @@
         clone.querySelector('[name*="description"]').value = data.description || '';
         
         container.appendChild(clone);
+        
+        // Initialize Flatpickr and set the dates
+        initializeDatePickersInEntry(clone);
+        
+        // Set the dates in the Flatpickr instances
+        const startDateInput = clone.querySelector('[name*="startDate"]');
+        const endDateInput = clone.querySelector('[name*="endDate"]');
+        
+        if (startDateInput && startDateInput._flatpickr && data.startDate) {
+            startDateInput._flatpickr.setDate(formatDateForFlatpickr(data.startDate));
+        }
+        
+        if (endDateInput && endDateInput._flatpickr && data.endDate) {
+            endDateInput._flatpickr.setDate(formatDateForFlatpickr(data.endDate));
+        }
     }
 
     function addEducationWithData(data) {
@@ -820,13 +925,28 @@
         clone.querySelector('[name*="description"]').value = data.description || '';
         
         container.appendChild(clone);
+        
+        // Initialize Flatpickr and set the dates
+        initializeDatePickersInEntry(clone);
+        
+        // Set the dates in the Flatpickr instances
+        const startDateInput = clone.querySelector('[name*="startDate"]');
+        const endDateInput = clone.querySelector('[name*="endDate"]');
+        
+        if (startDateInput && startDateInput._flatpickr && data.startDate) {
+            startDateInput._flatpickr.setDate(formatDateForFlatpickr(data.startDate));
+        }
+        
+        if (endDateInput && endDateInput._flatpickr && data.endDate) {
+            endDateInput._flatpickr.setDate(formatDateForFlatpickr(data.endDate));
+        }
     }
 
     function formatDateForInput(dateString) {
         if (!dateString) return '';
         
         // Handle different date formats
-        // If it's already in YYYY-MM format, return as is
+        // If it's already in YYYY-MM format, return as is for display
         if (/^\d{4}-\d{2}$/.test(dateString)) {
             return dateString;
         }
@@ -850,6 +970,18 @@
         }
         
         return '';
+    }
+
+    function formatDateForFlatpickr(dateString) {
+        if (!dateString) return '';
+        
+        // Convert YYYY-MM to YYYY-MM-01 for Flatpickr
+        if (/^\d{4}-\d{2}$/.test(dateString)) {
+            return `${dateString}-01`;
+        }
+        
+        // Handle other formats
+        return formatDateForInput(dateString) + '-01';
     }
 </script>
 
