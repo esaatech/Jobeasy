@@ -26,6 +26,7 @@ urlpatterns = [
     path('job-service/', include('job_service.urls')),
     path('auth/', include('authentication.urls')),
     path('coverletter/', include('coverletter.urls')),
+    path('dashboard/', include('dashboard.urls')),
 ]
 
 # Serve media files in development

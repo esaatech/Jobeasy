@@ -13,6 +13,9 @@
                 <a href="{% url 'home:index' %}" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
                     Home
                 </a>
+                <a href="{% url 'dashboard:dashboard' %}" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
+                    Dashboard
+                </a>
                 <a href="{% url 'resume_builder:create_resume' %}" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
                     Resume
                 </a>
@@ -78,6 +81,9 @@
         <div class="px-2 pt-2 pb-3 space-y-1">
             <a href="{% url 'home:index' %}" class="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
                 Home
+            </a>
+            <a href="{% url 'dashboard:dashboard' %}" class="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
+                Dashboard
             </a>
             <a href="{% url 'resume_builder:create_resume' %}" class="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
                 Resume

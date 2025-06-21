@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<!-- Top Stats Cards -->
+<section class="py-8">
+    <div class="max-w-7xl mx-auto px-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Resume Stats Card -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-lg font-semibold text-gray-900">Resumes</h3>
+                        <p class="text-2xl font-bold text-blue-600">{{ resumes.count }}</p>
+                        <p class="text-sm text-gray-500">Total resumes</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cover Letter Stats Card -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-green-100 text-green-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-lg font-semibold text-gray-900">Cover Letters</h3>
+                        <p class="text-2xl font-bold text-green-600">0</p>
+                        <p class="text-sm text-gray-500">Generated</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Job Service Stats Card -->
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <div class="flex items-center">
+                    <div class="p-3 rounded-full bg-purple-100 text-purple-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2V6"></path>
+                        </svg>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-lg font-semibold text-gray-900">Job Applications</h3>
+                        <p class="text-2xl font-bold text-purple-600">0</p>
+                        <p class="text-sm text-gray-500">Tracked</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- AI Job Assistant Section -->
+<section class="py-8">
+    <div class="max-w-7xl mx-auto px-4">
+        <!-- AI Job Assistant Title -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">AI Job Assistant</h1>
+            <p class="text-gray-600">Optimize your resume and generate cover letters with AI</p>
+        </div>
+
+        <!-- Resume Selection -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-bold mb-4">Select Resume</h2>
+            <div class="relative">
+                <div class="flex space-x-4 overflow-x-auto pb-4" id="resume-carousel">
+                    {% for resume in resumes %}
+                    <div class="resume-card flex-shrink-0 w-48 bg-gray-50 rounded-lg p-4 border-2 border-transparent hover:border-blue-300 cursor-pointer transition-all" data-resume-id="{{ resume.id }}">
+                        <div class="text-center">
+                            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                                <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                            </div>
+                            <h3 class="font-medium text-gray-900 text-sm mb-1">{{ resume.name|truncatechars:20 }}</h3>
+                            <p class="text-xs text-gray-500">{{ resume.updated_at|date:"M d, Y" }}</p>
+                            <div class="mt-2">
+                                <input type="radio" name="selected_resume" value="{{ resume.id }}" class="resume-radio hidden">
+                                <div class="radio-indicator w-4 h-4 border-2 border-gray-300 rounded-full mx-auto"></div>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="flex-shrink-0 w-48 bg-gray-50 rounded-lg p-4 border-2 border-dashed border-gray-300">
+                        <div class="text-center">
+                            <p class="text-gray-500 text-sm">No resumes yet</p>
+                            <a href="{% url 'resume_builder:create_resume' %}" class="text-blue-600 text-sm hover:underline">Create one</a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- Navigation arrows -->
+                <button class="absolute left-0 top-1/2 transform -translate-y-1/2 bg-white rounded-full p-2 shadow-lg hover:shadow-xl transition-shadow" id="prev-btn">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                </button>
+                <button class="absolute right-0 top-1/2 transform -translate-y-1/2 bg-white rounded-full p-2 shadow-lg hover:shadow-xl transition-shadow" id="next-btn">
+                    <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Action Checkboxes -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <div class="flex flex-wrap gap-6">
+                <label class="flex items-center space-x-3 cursor-pointer">
+                    <input type="checkbox" id="optimize-resume" class="form-checkbox h-5 w-5 text-blue-600 rounded" checked>
+                    <span class="text-gray-700 font-medium">Optimize Resume</span>
+                </label>
+                <label class="flex items-center space-x-3 cursor-pointer">
+                    <input type="checkbox" id="generate-cover-letter" class="form-checkbox h-5 w-5 text-blue-600 rounded" checked>
+                    <span class="text-gray-700 font-medium">Generate Cover Letter</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Job Description Form -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+            <div class="mb-6">
+                <label for="job-description" class="block text-sm font-medium text-gray-700 mb-2">
+                    Job Description
+                </label>
+                <textarea 
+                    id="job-description" 
+                    name="job-description" 
+                    rows="8" 
+                    class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                    placeholder="Paste the job description here..."></textarea>
+            </div>
+            
+            <div class="text-center">
+                <button 
+                    id="generate-btn" 
+                    class="bg-blue-600 text-white px-8 py-4 rounded-lg hover:bg-blue-700 transition-colors font-medium text-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                    Generate
+                </button>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Resume selection functionality
+    const resumeCards = document.querySelectorAll('.resume-card');
+    const resumeRadios = document.querySelectorAll('.resume-radio');
+    
+    resumeCards.forEach((card, index) => {
+        card.addEventListener('click', function() {
+            // Remove active state from all cards
+            resumeCards.forEach(c => {
+                c.classList.remove('border-blue-500', 'bg-blue-50');
+                c.classList.add('border-transparent', 'bg-gray-50');
+            });
+            
+            // Uncheck all radios
+            resumeRadios.forEach(radio => radio.checked = false);
+            
+            // Add active state to clicked card
+            this.classList.remove('border-transparent', 'bg-gray-50');
+            this.classList.add('border-blue-500', 'bg-blue-50');
+            
+            // Check the corresponding radio
+            if (resumeRadios[index]) {
+                resumeRadios[index].checked = true;
+            }
+        });
+    });
+
+    // Carousel navigation
+    const carousel = document.getElementById('resume-carousel');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    
+    if (prevBtn && nextBtn && carousel) {
+        prevBtn.addEventListener('click', () => {
+            carousel.scrollBy({ left: -200, behavior: 'smooth' });
+        });
+        
+        nextBtn.addEventListener('click', () => {
+            carousel.scrollBy({ left: 200, behavior: 'smooth' });
+        });
+    }
+
+    // Generate button functionality
+    const generateBtn = document.getElementById('generate-btn');
+    const jobDescription = document.getElementById('job-description');
+    const optimizeResume = document.getElementById('optimize-resume');
+    const generateCoverLetter = document.getElementById('generate-cover-letter');
+    
+    generateBtn.addEventListener('click', function() {
+        const selectedResume = document.querySelector('input[name="selected_resume"]:checked');
+        
+        if (!selectedResume) {
+            alert('Please select a resume');
+            return;
+        }
+        
+        if (!jobDescription.value.trim()) {
+            alert('Please enter a job description');
+            return;
+        }
+        
+        if (!optimizeResume.checked && !generateCoverLetter.checked) {
+            alert('Please select at least one action (Optimize Resume or Generate Cover Letter)');
+            return;
+        }
+        
+        // TODO: Implement generation logic
+        console.log('Generating...', {
+            resumeId: selectedResume.value,
+            jobDescription: jobDescription.value,
+            optimizeResume: optimizeResume.checked,
+            generateCoverLetter: generateCoverLetter.checked
+        });
+        
+        // For now, just show a placeholder
+        alert('Generation functionality will be implemented next!');
+    });
+});
+</script>
+{% endblock %} 
