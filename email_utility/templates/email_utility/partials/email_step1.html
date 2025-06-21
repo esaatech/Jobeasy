@@ -1,0 +1,39 @@
+<!-- Provider Selection Step -->
+<div class="p-6">
+    <h2 class="text-lg font-medium text-gray-900 mb-6">Email Integration Setup</h2>
+    
+    <!-- Hidden agent ID field -->
+    <input type="hidden" name="agent_id" value="{{ agent_id }}" data-agent-id>
+    
+    <!-- Existing emails section -->
+    <div id="existing-emails"
+         hx-get="{% url 'email_utility:get_existing_emails' %}"
+         hx-trigger="load"
+         hx-include="[data-agent-id]">
+        <div class="animate-pulse">
+            <div class="h-4 bg-gray-200 rounded w-3/4 mb-4"></div>
+            <div class="space-y-3">
+                <div class="h-4 bg-gray-200 rounded"></div>
+                <div class="h-4 bg-gray-200 rounded"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add new email section -->
+    <div class="space-y-4">
+        <h3 class="text-lg font-medium text-gray-900">Add New Email Account</h3>
+        <div class="grid grid-cols-1 gap-4">
+            {% for id, name in providers %}
+            <button class="flex items-center justify-between p-4 border rounded-lg hover:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    hx-get="{% url 'email_utility:email_setup_step2' id %}"
+                    hx-include="[data-agent-id]"
+                    hx-target="#setup-dialog-content">
+                <span class="text-sm font-medium text-gray-900">{{ name }}</span>
+                <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" />
+                </svg>
+            </button>
+            {% endfor %}
+        </div>
+    </div>
+</div> 

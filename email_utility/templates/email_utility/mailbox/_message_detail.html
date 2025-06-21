@@ -1,0 +1,43 @@
+{% if message %}
+    <div class="message-detail h-full flex flex-col">
+        <!-- Header -->
+        <div class="message-header border-b border-gray-200 p-4 bg-white">
+            <h2 class="text-xl font-semibold text-gray-900">{{ message.subject }}</h2>
+            <div class="message-meta mt-2 space-y-1">
+                <div class="flex items-center text-sm text-gray-600">
+                    <span class="font-medium w-16">From:</span>
+                    <span>{{ from_address }}</span>
+                </div>
+                <div class="flex items-center text-sm text-gray-600">
+                    <span class="font-medium w-16">To:</span>
+                    <span>{{ to_addresses }}</span>
+                </div>
+                <div class="flex items-center text-sm text-gray-600">
+                    <span class="font-medium w-16">Date:</span>
+                    <span>{{ date|date:"F j, Y, g:i a" }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Message Body -->
+        <div class="message-body flex-1 overflow-y-auto">
+            {{ email_content|safe }}
+
+   
+
+    <script>
+    function toggleEmailSource() {
+        const modal = document.getElementById('emailSourceModal');
+        modal.classList.toggle('hidden');
+    }
+
+    // Adjust iframe height to content
+    document.getElementById('emailContent')?.addEventListener('load', function() {
+        this.style.height = this.contentWindow.document.documentElement.scrollHeight + 'px';
+    });
+    </script>
+{% else %}
+    <div class="flex items-center justify-center h-full text-gray-500">
+        Select a message to view its contents
+    </div>
+{% endif %}

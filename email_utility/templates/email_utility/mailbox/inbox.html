@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block content %}
+<style>
+    .email-container {
+        display: flex;
+        height: 100vh;
+        background-color: #f3f4f6;
+    }
+
+    .sidebar {
+        width: 250px;
+        background-color: #ffffff;
+        border-right: 1px solid #e5e7eb;
+        overflow-y: auto;
+    }
+
+    .message-list {
+        width: 300px;
+        background-color: #ffffff;
+        border-right: 1px solid #e5e7eb;
+        overflow-y: auto;
+    }
+
+    .message-content {
+        flex: 1;
+        background-color: #ffffff;
+        overflow-y: auto;
+    }
+
+    /* Email list item styling */
+    .email-item {
+        padding: 1rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .email-item:last-child {
+        border-bottom: none;
+    }
+
+    .email-item:hover {
+        background-color: #f9fafb;
+    }
+
+    /* Responsive adjustments if needed */
+    @media (max-width: 768px) {
+        .email-container {
+            flex-direction: column;
+        }
+        .sidebar, .message-list {
+            width: 100%;
+            height: auto;
+        }
+    }
+
+    /* Message Detail Styles */
+    .message-detail {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        background-color: #ffffff;
+    }
+
+    .message-body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5rem;
+    }
+
+    .message-body img {
+        max-width: 100%;
+        height: auto;
+    }
+
+    .message-body a {
+        color: #4f46e5;
+        text-decoration: underline;
+    }
+
+    .message-body a:hover {
+        color: #4338ca;
+    }
+
+    /* Handle pre-formatted text */
+    .message-body pre {
+        white-space: pre-wrap;
+        font-family: monospace;
+        background-color: #f9fafb;
+        padding: 1rem;
+        border-radius: 0.375rem;
+        margin: 1rem 0;
+    }
+
+    /* Style blockquotes in email replies */
+    .message-body blockquote {
+        border-left: 4px solid #e5e7eb;
+        padding-left: 1rem;
+        margin: 1rem 0;
+        color: #6b7280;
+    }
+
+    .email-content-wrapper {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.email-content-wrapper img {
+    max-width: 100%;
+    height: auto;
+}
+
+.email-content-wrapper table {
+    width: 100%;
+    table-layout: fixed; /* Ensure tables don't break the layout */
+}
+
+.email-content-wrapper td,
+.email-content-wrapper th {
+    word-break: break-word;
+}
+
+.email-content-wrapper a {
+    color: #1a0dab;
+    text-decoration: underline;
+}
+
+.email-content-wrapper p {
+    margin: 1em 0;
+}
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .message-header {
+            padding: 1rem;
+        }
+        
+        .message-body {
+            padding: 1rem;
+        }
+        
+        .message-footer {
+            padding: 1rem;
+        }
+    }
+</style>
+
+<div class="email-container">
+    <!-- Left Sidebar - Folders -->
+    <div class="sidebar">
+        <div class="p-4">
+            <h2 class="text-lg font-medium text-gray-900">{{ email_config.email }}</h2>
+            
+            <!-- Sync Button -->
+            <button 
+                class="mt-2 w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+                hx-post="{% url 'email_utility:sync_mailbox' %}"
+                hx-target="#sync-status"
+                hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+            >
+                Sync Mailbox
+            </button>
+            <div id="sync-status" class="mt-2 text-sm"></div>
+        </div>
+        
+        <!-- Folder List -->
+        <nav class="mt-4">
+            {% for folder_name, folder_path in folders.items %}
+            <a 
+                href="#"
+                hx-get="{% url 'email_utility:mailbox' %}?folder={{ folder_name }}"
+                hx-target="#message-list"
+                class="flex items-center px-4 py-2 text-sm {% if current_folder == folder_name %}bg-indigo-50 text-indigo-600{% else %}text-gray-600 hover:bg-gray-100{% endif %}"
+            >
+                <!-- Folder Icon -->
+                <svg class="mr-3 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    {% if folder_name == 'inbox' %}
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                    {% elif folder_name == 'sent' %}
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    {% else %}
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                    {% endif %}
+                </svg>
+                {{ folder_name|title }}
+            </a>
+            {% endfor %}
+        </nav>
+    </div>
+    
+    <!-- Middle Section - Message List -->
+    <div class="message-list">
+        <div id="message-list">
+            {% include "email_utility/mailbox/_message_list.html" %}
+        </div>
+    </div>
+    
+    <!-- Right Section - Message Content -->
+    <div class="message-content">
+        <div id="message-detail" class="h-full">
+            <div class="flex items-center justify-center h-full text-gray-500">
+                Select a message to view its contents
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

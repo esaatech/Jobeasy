@@ -3,15 +3,26 @@
         <div class="flex justify-between h-16">
             <!-- Logo and Brand -->
             <div class="flex items-center">
-                <a href="#" class="flex items-center">
+                <a href="{% url 'home:index' %}" class="flex items-center">
                     <span class="text-xl font-bold text-blue-600">AI Cover Letter</span>
                 </a>
             </div>
 
             <!-- Desktop Navigation -->
             <div class="hidden sm:flex sm:items-center sm:space-x-8">
-                <a href="#" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
+                <a href="{% url 'home:index' %}" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
                     Home
+                </a>
+                <a href="{% url 'resume_builder:create_resume' %}" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
+                    Resume
+                </a>
+                {% if user.is_authenticated %}
+                <a href="{% url 'resume_builder:my_resumes' %}" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
+                    My Resumes
+                </a>
+                {% endif %}
+                <a href="{% url 'job_service:job_application_service' %}" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
+                    Job Service
                 </a>
                 <a href="#" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
                     Pricing
@@ -22,6 +33,25 @@
                 <a href="#" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
                     Contact
                 </a>
+                
+                <!-- Authentication Links -->
+                {% if user.is_authenticated %}
+                    <div class="flex items-center space-x-4">
+                        <span class="text-sm text-gray-500">Welcome, {{ user.username }}</span>
+                        <a href="{% url 'authentication:logout' %}" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
+                            Logout
+                        </a>
+                    </div>
+                {% else %}
+                    <div class="flex items-center space-x-4">
+                        <a href="{% url 'authentication:login' %}" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
+                            Login
+                        </a>
+                        <a href="{% url 'authentication:register' %}" class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700">
+                            Sign Up
+                        </a>
+                    </div>
+                {% endif %}
             </div>
 
             <!-- Mobile menu button -->
@@ -43,8 +73,19 @@
     <!-- Mobile menu -->
     <div class="sm:hidden hidden" id="mobile-menu">
         <div class="px-2 pt-2 pb-3 space-y-1">
-            <a href="#" class="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
+            <a href="{% url 'home:index' %}" class="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
                 Home
+            </a>
+            <a href="{% url 'resume_builder:create_resume' %}" class="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
+                Resume
+            </a>
+            {% if user.is_authenticated %}
+            <a href="{% url 'resume_builder:my_resumes' %}" class="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
+                My Resumes
+            </a>
+            {% endif %}
+            <a href="{% url 'job_service:job_application_service' %}" class="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
+                Job Service
             </a>
             <a href="#" class="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
                 Pricing
@@ -55,6 +96,25 @@
             <a href="#" class="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
                 Contact
             </a>
+            
+            <!-- Mobile Authentication Links -->
+            {% if user.is_authenticated %}
+                <div class="border-t border-gray-200 pt-4">
+                    <div class="px-3 py-2 text-sm text-gray-500">Welcome, {{ user.username }}</div>
+                    <a href="{% url 'authentication:logout' %}" class="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
+                        Logout
+                    </a>
+                </div>
+            {% else %}
+                <div class="border-t border-gray-200 pt-4">
+                    <a href="{% url 'authentication:login' %}" class="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
+                        Login
+                    </a>
+                    <a href="{% url 'authentication:register' %}" class="bg-blue-600 text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-blue-700">
+                        Sign Up
+                    </a>
+                </div>
+            {% endif %}
         </div>
     </div>
 </nav>

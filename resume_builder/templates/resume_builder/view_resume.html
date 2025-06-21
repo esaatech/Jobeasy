@@ -1,0 +1,259 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ hero_content.page_title }} - AI Cover Letter{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-4">{{ hero_content.page_title }}</h1>
+            <p class="text-lg text-gray-600">{{ hero_content.page_description }}</p>
+        </div>
+
+        <!-- Resume Display -->
+        {% if resume_html %}
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
+            <!-- Resume Header -->
+            <div class="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-xl font-semibold text-gray-900">{{ resume.name }}</h2>
+                        <p class="text-sm text-gray-600">Template: {{ resume.template_id|title }}</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {% if resume.draft %}bg-yellow-100 text-yellow-800{% else %}bg-green-100 text-green-800{% endif %}">
+                            {% if resume.draft %}Draft{% else %}Ready{% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Resume Content -->
+            <div class="p-6">
+                {{ resume_html|safe }}
+            </div>
+        </div>
+        {% else %}
+        <!-- Legacy optimization results display -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Optimized Resume</h2>
+            <div class="bg-gray-50 rounded-lg p-6">
+                <pre class="whitespace-pre-wrap text-gray-800 font-sans">{{ resume_data.optimized_content }}</pre>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            {% if resume %}
+            <!-- For saved resumes -->
+            <a href="{% url 'resume_builder:edit_resume' resume.id %}" 
+               class="bg-blue-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 text-center">
+                <svg class="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+                Edit Resume
+            </a>
+            
+            <div class="relative">
+                <button onclick="toggleDownloadDropdown(event, this)" 
+                        class="bg-gray-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    Download
+                    <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </button>
+                <div class="download-dropdown absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 hidden">
+                    <a href="{% url 'resume_builder:download_resume_file' resume.id 'pdf' %}" 
+                       class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        Download as PDF
+                    </a>
+                    <a href="{% url 'resume_builder:download_resume_file' resume.id 'word' %}" 
+                       class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        Download as Word
+                    </a>
+                </div>
+            </div>
+            
+            <a href="{% url 'resume_builder:my_resumes' %}" 
+               class="bg-gray-500 text-white px-8 py-3 rounded-lg font-medium hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 text-center">
+                Back to My Resumes
+            </a>
+            {% else %}
+            <!-- For legacy optimization results -->
+            <button onclick="resumeUtils.showActionDialog()" 
+                    class="bg-emerald-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
+                Save or Download Resume
+            </button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Action Dialog Modal -->
+<div id="actionDialog" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-900">Choose Action</h3>
+                <button onclick="resumeUtils.hideActionDialog()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="space-y-3">
+                <button onclick="resumeUtils.copyToClipboard()" 
+                        class="w-full flex items-center justify-center px-4 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                    </svg>
+                    Copy to Clipboard
+                </button>
+                
+                <button onclick="resumeUtils.downloadAsText()" 
+                        class="w-full flex items-center justify-center px-4 py-3 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    Download as Text (.txt)
+                </button>
+                
+                <button onclick="resumeUtils.downloadAsPDF()" 
+                        class="w-full flex items-center justify-center px-4 py-3 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                    </svg>
+                    Download as PDF
+                </button>
+                
+                <button onclick="resumeUtils.downloadAsWord()" 
+                        class="w-full flex items-center justify-center px-4 py-3 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    Download as Word (.docx)
+                </button>
+                
+                <button onclick="resumeUtils.saveToAccount()" 
+                        class="w-full flex items-center justify-center px-4 py-3 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"></path>
+                    </svg>
+                    Save to My Resumes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
+<script>
+function toggleDownloadDropdown(event, button) {
+    event.stopPropagation();
+    const dropdown = button.nextElementSibling;
+
+    // Hide all other open dropdowns before showing the new one
+    document.querySelectorAll('.download-dropdown').forEach(d => {
+        if (d !== dropdown) {
+            d.classList.add('hidden');
+        }
+    });
+
+    // Toggle the current dropdown
+    dropdown.classList.toggle('hidden');
+}
+
+// Close dropdowns when clicking outside
+window.addEventListener('click', function(event) {
+    document.querySelectorAll('.download-dropdown:not(.hidden)').forEach(dropdown => {
+        const button = dropdown.previousElementSibling;
+        if (!button.contains(event.target) && !dropdown.contains(event.target)) {
+            dropdown.classList.add('hidden');
+        }
+    });
+});
+
+// Legacy ResumeUtils class for optimization results (if needed)
+class ResumeUtils {
+    constructor() {
+        this.actionDialog = document.getElementById('actionDialog');
+        this.resumeContent = `{{ resume_data.optimized_content|default:""|escapejs }}`;
+    }
+
+    showActionDialog() {
+        if (this.actionDialog) {
+            this.actionDialog.classList.remove('hidden');
+        }
+    }
+
+    hideActionDialog() {
+        if (this.actionDialog) {
+            this.actionDialog.classList.add('hidden');
+        }
+    }
+
+    async copyToClipboard() {
+        try {
+            await navigator.clipboard.writeText(this.resumeContent);
+            this.showToast('Resume copied to clipboard!');
+            this.hideActionDialog();
+        } catch (err) {
+            this.showToast('Failed to copy to clipboard', true);
+        }
+    }
+
+    downloadAsText() {
+        const blob = new Blob([this.resumeContent], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'resume.txt';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        this.hideActionDialog();
+    }
+
+    downloadAsPDF() {
+        const element = document.getElementById('optimizedResumeContent');
+        const opt = {
+            margin: 1,
+            filename: 'resume.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+        
+        html2pdf().set(opt).from(element).save().then(() => {
+            this.hideActionDialog();
+        });
+    }
+
+    downloadAsWord() {
+        // Implementation for Word download
+        this.hideActionDialog();
+    }
+
+    saveToAccount() {
+        // Implementation for saving to account
+        this.hideActionDialog();
+    }
+
+    showToast(message, isError = false) {
+        // Simple toast implementation
+        alert(message);
+    }
+}
+
+// Initialize ResumeUtils if needed
+const resumeUtils = new ResumeUtils();
+</script>
+{% endblock %} 

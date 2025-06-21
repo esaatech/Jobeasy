@@ -1,0 +1,213 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="bg-gradient-to-r from-blue-600 to-purple-700 text-white py-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center">
+            <h1 class="text-4xl md:text-6xl font-bold mb-6">
+                {{ hero_content.title }}
+            </h1>
+            <p class="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">
+                {{ hero_content.description }}
+            </p>
+            <div class="flex flex-wrap justify-center gap-4 mb-8">
+                {% for feature in hero_content.features %}
+                <span class="bg-white bg-opacity-20 px-4 py-2 rounded-full text-sm font-medium">
+                    {{ feature }}
+                </span>
+                {% endfor %}
+            </div>
+            <a href="#packages" class="bg-white text-blue-600 px-8 py-4 rounded-full font-bold text-lg hover:bg-gray-100 transition-colors">
+                Get Started Today
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- How It Works Section -->
+<section class="py-16 bg-gray-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-gray-900 mb-4">How It Works</h2>
+            <p class="text-lg text-gray-600">Your complete job application journey in 4 simple steps</p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            <!-- Step 1 -->
+            <div class="text-center">
+                <div class="bg-blue-600 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">
+                    1
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Upload Your Resume</h3>
+                <p class="text-gray-600">Upload your current resume and we'll analyze it for optimization opportunities</p>
+            </div>
+            
+            <!-- Step 2 -->
+            <div class="text-center">
+                <div class="bg-blue-600 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">
+                    2
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">AI Optimization</h3>
+                <p class="text-gray-600">Our AI optimizes your resume for ATS systems and target job descriptions</p>
+            </div>
+            
+            <!-- Step 3 -->
+            <div class="text-center">
+                <div class="bg-blue-600 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">
+                    3
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Cover Letter Generation</h3>
+                <p class="text-gray-600">Personalized cover letters tailored to each job application</p>
+            </div>
+            
+            <!-- Step 4 -->
+            <div class="text-center">
+                <div class="bg-blue-600 text-white w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold mx-auto mb-4">
+                    4
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Application Tracking</h3>
+                <p class="text-gray-600">Track all your applications and get insights on your job search progress</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Service Packages Section -->
+<section id="packages" class="py-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-gray-900 mb-4">Choose Your Package</h2>
+            <p class="text-lg text-gray-600">Select the perfect plan for your job search needs</p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {% for package in service_packages %}
+            <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-8 {% if package.name == 'Premium Package' %}ring-2 ring-blue-500 scale-105{% endif %}">
+                {% if package.name == 'Premium Package' %}
+                <div class="bg-blue-500 text-white text-sm font-bold px-3 py-1 rounded-full inline-block mb-4">
+                    Most Popular
+                </div>
+                {% endif %}
+                
+                <h3 class="text-2xl font-bold text-gray-900 mb-2">{{ package.name }}</h3>
+                <div class="text-4xl font-bold text-gray-900 mb-2">
+                    ${{ package.price }}
+                </div>
+                <p class="text-gray-600 mb-6">{{ package.best_for }}</p>
+                
+                <ul class="space-y-3 mb-8">
+                    {% for feature in package.features %}
+                    <li class="flex items-start">
+                        <svg class="w-5 h-5 text-green-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                        </svg>
+                        <span class="text-gray-700">{{ feature }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                
+                <button class="w-full {% if package.name == 'Premium Package' %}bg-blue-600 hover:bg-blue-700{% else %}bg-gray-600 hover:bg-gray-700{% endif %} text-white font-bold py-3 px-6 rounded-lg transition-colors">
+                    Get Started
+                </button>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Features Comparison Section -->
+<section class="py-16 bg-gray-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-gray-900 mb-4">Why Choose Our Service?</h2>
+            <p class="text-lg text-gray-600">Comprehensive automation that saves you time and increases your success rate</p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- Feature 1 -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">AI-Powered Optimization</h3>
+                <p class="text-gray-600">Advanced algorithms ensure your resume passes ATS systems and catches recruiters' attention</p>
+            </div>
+            
+            <!-- Feature 2 -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Time-Saving Automation</h3>
+                <p class="text-gray-600">Automate repetitive tasks and focus on what matters most - preparing for interviews</p>
+            </div>
+            
+            <!-- Feature 3 -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Success Tracking</h3>
+                <p class="text-gray-600">Monitor your application success rates and optimize your strategy based on real data</p>
+            </div>
+            
+            <!-- Feature 4 -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center mb-4">
+                    <svg class="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Expert Support</h3>
+                <p class="text-gray-600">Get help from career experts and dedicated support teams throughout your job search</p>
+            </div>
+            
+            <!-- Feature 5 -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mb-4">
+                    <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Personalized Experience</h3>
+                <p class="text-gray-600">Tailored recommendations and content based on your industry, experience, and career goals</p>
+            </div>
+            
+            <!-- Feature 6 -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
+                    <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-xl font-bold text-gray-900 mb-2">Fast Results</h3>
+                <p class="text-gray-600">Get optimized resumes and cover letters in minutes, not days</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="py-16 bg-blue-600">
+    <div class="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+        <h2 class="text-3xl font-bold text-white mb-4">Ready to Transform Your Job Search?</h2>
+        <p class="text-xl text-blue-100 mb-8">Join thousands of job seekers who have successfully landed their dream jobs with our automated service</p>
+        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+            <a href="#packages" class="bg-white text-blue-600 px-8 py-4 rounded-lg font-bold text-lg hover:bg-gray-100 transition-colors">
+                Start Your Free Trial
+            </a>
+            <a href="#" class="border-2 border-white text-white px-8 py-4 rounded-lg font-bold text-lg hover:bg-white hover:text-blue-600 transition-colors">
+                Schedule a Demo
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %} 

@@ -1,18 +1,22 @@
 from django.db import models
 from django.conf import settings
-from storages.backends.gcloud import GoogleCloudStorage
 from django.utils import timezone
-
-gcs_storage = GoogleCloudStorage()
+import os
 
 def resume_pdf_path(instance, filename):
-    return f'resumes/{instance.user.id}/resume.pdf'
+    """Generate a unique path for resume PDF files"""
+    # Get file extension
+    ext = os.path.splitext(filename)[1]
+    # Create a unique filename with timestamp
+    timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
+    return f'resumes/{instance.user.id}/resume_{timestamp}{ext}'
 
 class Resume(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='resumes')
+    name = models.CharField(max_length=100, default='My Resume')
+    draft = models.BooleanField(default=True)
     pdf_file = models.FileField(
         upload_to=resume_pdf_path,
-        storage=gcs_storage,
         null=True,
         blank=True
     )
@@ -20,10 +24,18 @@ class Resume(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
+   
     # Content fields with default values
     original_content = models.TextField(default='')
     optimized_content = models.TextField(default='')
     job_description = models.TextField(default='')
+    
+    # Structured data for created resumes
+    personal_info = models.JSONField(default=dict, blank=True)
+    experience = models.JSONField(default=list, blank=True)
+    education = models.JSONField(default=list, blank=True)
+    skills = models.JSONField(default=dict, blank=True)
+    additional = models.JSONField(default=dict, blank=True)
     
     # Optimization results with default values
     keyword_matches = models.JSONField(default=list)
@@ -34,7 +46,8 @@ class Resume(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"Resume for {self.user.username} - {self.created_at.strftime('%Y-%m-%d')}"
+        status = " (Draft)" if self.draft else ""
+        return f"{self.name}{status} - {self.user.username}"
 
     def save(self, *args, **kwargs):
         # If this is an update and there's an existing file, delete it

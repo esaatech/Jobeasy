@@ -1,0 +1,269 @@
+{% extends 'base.html' %}
+
+{% block title %}My Resumes - AI Cover Letter{% endblock %}
+
+{% block content %}
+{% csrf_token %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-4">{{ hero_content.page_title }}</h1>
+            <p class="text-lg text-gray-600">{{ hero_content.page_description }}</p>
+        </div>
+
+        <!-- Resume List -->
+        {% if resumes %}
+        <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {% for resume in resumes %}
+            <div class="bg-white rounded-xl shadow-lg p-6 flex flex-col justify-between" data-resume-id="{{ resume.id }}">
+                <div>
+                    <div class="flex items-start justify-between mb-4">
+                        <div class="flex-1">
+                            <h3 class="text-lg font-semibold text-gray-900 truncate">
+                                {{ resume.name }}
+                            </h3>
+                            <p class="text-sm text-gray-500">
+                                Updated: {{ resume.updated_at|date:"M d, Y" }}
+                            </p>
+                        </div>
+                        <div class="ml-2">
+                            {% if resume.draft %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                    Draft
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    Ready
+                                </span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Content Preview -->
+                    <div class="mb-4">
+                        {% if resume.optimized_content %}
+                            <p class="text-sm text-gray-600 line-clamp-3">
+                                {{ resume.optimized_content|truncatewords:20 }}
+                            </p>
+                        {% elif resume.personal_info.summary %}
+                            <p class="text-sm text-gray-600 line-clamp-3">
+                                {{ resume.personal_info.summary|truncatewords:20 }}
+                            </p>
+                        {% else %}
+                            <p class="text-sm text-gray-400 italic">No summary available.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex flex-wrap gap-2">
+                    <!-- Edit button for all resumes -->
+                    <a href="{% url 'resume_builder:edit_resume' resume.id %}"
+                       class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        </svg>
+                        Edit
+                    </a>
+                    
+                    <!-- View button for ready resumes -->
+                    {% if not resume.draft %}
+                    <a href="{% url 'resume_builder:view_resume_by_id' resume.id %}"
+                       class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                        </svg>
+                        View
+                    </a>
+                    
+                    <!-- Download dropdown for ready resumes -->
+                    <div class="relative">
+                        <button onclick="toggleDropdown(event, this)" class="inline-flex items-center px-3 py-2 border border-gray-300 text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            Download
+                            <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div class="download-dropdown absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10 hidden">
+                            <a href="{% url 'resume_builder:download_resume_file' resume.id 'pdf' %}" 
+                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                Download as PDF
+                            </a>
+                            <a href="{% url 'resume_builder:download_resume_file' resume.id 'word' %}" 
+                               class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                Download as Word
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <button onclick="deleteResume({{ resume.id }})" 
+                            class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                        Delete
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <!-- Empty State -->
+        <div class="text-center py-12">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">No resumes yet</h3>
+            <p class="mt-1 text-sm text-gray-500">Get started by creating or optimizing your first resume.</p>
+            <div class="mt-6">
+                <a href="{% url 'resume_builder:create_resume' %}" 
+                   class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Create Resume
+                </a>
+                <a href="{% url 'resume_builder:optimize_resume' %}" 
+                   class="ml-3 inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Optimize Resume
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+let currentResumeId = null;
+
+async function deleteResume(resumeId) {
+    if (confirm('Are you sure you want to delete this resume? This action cannot be undone.')) {
+        try {
+            const response = await fetch(`{% url 'resume_builder:delete_resume' 0 %}`.replace('0', resumeId), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                // Show success message
+                showToast(result.message, false);
+                
+                // Remove the resume card from the UI
+                const resumeCard = document.querySelector(`[data-resume-id="${resumeId}"]`);
+                if (resumeCard) {
+                    resumeCard.remove();
+                }
+                
+                // Check if there are any resumes left
+                const remainingResumes = document.querySelectorAll('[data-resume-id]');
+                if (remainingResumes.length === 0) {
+                    // Reload the page to show empty state
+                    location.reload();
+                }
+            } else {
+                showToast(result.error || 'Failed to delete resume', true);
+            }
+        } catch (error) {
+            console.error('Delete error:', error);
+            showToast('Error deleting resume', true);
+        }
+    }
+}
+
+function toggleDropdown(event, button) {
+    event.stopPropagation();
+    const dropdown = button.nextElementSibling;
+
+    // Hide all other open dropdowns before showing the new one
+    document.querySelectorAll('.download-dropdown').forEach(d => {
+        if (d !== dropdown) {
+            d.classList.add('hidden');
+        }
+    });
+
+    // Toggle the current dropdown
+    dropdown.classList.toggle('hidden');
+}
+
+// Close dropdowns when clicking outside
+window.addEventListener('click', function(event) {
+    document.querySelectorAll('.download-dropdown:not(.hidden)').forEach(dropdown => {
+        const button = dropdown.previousElementSibling;
+        if (!button.contains(event.target) && !dropdown.contains(event.target)) {
+            dropdown.classList.add('hidden');
+        }
+    });
+});
+
+function showToast(message, isError = false) {
+    // Remove any existing toasts
+    const existingToasts = document.querySelectorAll('.toast-message');
+    existingToasts.forEach(toast => toast.remove());
+
+    // Create new toast
+    const toast = document.createElement('div');
+    toast.className = `toast-message fixed bottom-4 left-4 px-6 py-3 rounded-lg shadow-lg ${
+        isError ? 'bg-red-500' : 'bg-green-500'
+    } text-white transform transition-all duration-300 ease-in-out z-50`;
+    
+    // Add styles for initial position (off-screen)
+    toast.style.transform = 'translateY(100%)';
+    toast.style.opacity = '0';
+    
+    // Create message container with flex
+    const messageContainer = document.createElement('div');
+    messageContainer.className = 'flex items-center space-x-2';
+    
+    // Add icon based on type
+    const icon = document.createElement('span');
+    if (isError) {
+        icon.innerHTML = `
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>`;
+    } else {
+        icon.innerHTML = `
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
+                      d="M5 13l4 4L19 7" />
+            </svg>`;
+    }
+    
+    // Add message text
+    const text = document.createElement('span');
+    text.textContent = message;
+    
+    // Assemble toast
+    messageContainer.appendChild(icon);
+    messageContainer.appendChild(text);
+    toast.appendChild(messageContainer);
+    document.body.appendChild(toast);
+
+    // Trigger animation
+    requestAnimationFrame(() => {
+        toast.style.transform = 'translateY(0)';
+        toast.style.opacity = '1';
+    });
+
+    // Remove after delay
+    setTimeout(() => {
+        toast.style.transform = 'translateY(100%)';
+        toast.style.opacity = '0';
+        setTimeout(() => {
+            if (toast.parentElement) {
+                toast.parentElement.removeChild(toast);
+            }
+        }, 300);
+    }, 3000);
+}
+</script>
+{% endblock %} 

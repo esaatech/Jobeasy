@@ -11,6 +11,10 @@ django = "^5.2.3"
 openai = "^1.88.0"
 dotenv = "^0.9.9"
 pdfplumber = "^0.11.7"
+django-mailbox = "^4.10.1"
+pypdf2 = "^3.0.1"
+python-docx = "^1.2.0"
+reportlab = "^4.4.2"
 
 
 [build-system]

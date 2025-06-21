@@ -1,0 +1,837 @@
+{% load json_filters %}
+<div class="min-h-screen bg-gray-50 py-8 font-sans">
+    <!-- Progress Bar -->
+    <div class="max-w-3xl mx-auto mb-8 px-4">
+        <div class="flex justify-between">
+            <div class="step active" data-step="1">Personal Info</div>
+            <div class="step" data-step="2">Experience</div>
+            <div class="step" data-step="3">Education</div>
+            <div class="step" data-step="4">Skills</div>
+            <div class="step" data-step="5">Additional</div>
+        </div>
+        <div class="mt-4 h-2 bg-gray-200 rounded-full">
+            <div class="progress-bar h-full w-1/5 bg-emerald-500 rounded-full transition-all duration-300"></div>
+        </div>
+    </div>
+
+    <!-- Form Container -->
+    <div class="max-w-3xl mx-auto bg-white rounded-xl shadow-lg border border-gray-200">
+        <form id="resumeForm" class="p-8 space-y-8">
+            {% csrf_token %}
+
+            <!-- Resume Name Field -->
+            <div class="bg-gray-50 p-6 rounded-lg border border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Resume Name</h3>
+                <input type="text" name="resume_name" id="resumeName" 
+                       value="{% if resume_instance %}{{ resume_instance.name }}{% else %}{{ default_resume_name }}{% endif %}" required
+                       class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+                <p class="text-sm text-gray-600 mt-2">Give your resume a name to help you identify it later.</p>
+            </div>
+            <input type="hidden" name="resume_id" id="resumeId" value="{{ resume_instance.id|default:'' }}">
+
+            <!-- Template Selection Section -->
+           {% include 'partials/template_selection.html' %}
+
+            <!-- Step 1: Personal Information -->
+            <div class="form-step" data-step="1">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">Personal Information</h2>
+                <div class="border-b-2 border-emerald-500 mb-6"></div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Full Name</label>
+                        <input type="text" name="fullName" value="{{ resume_instance.personal_info.full_name|default:'' }}" required
+                            class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Professional Title</label>
+                        <input type="text" name="title" value="{{ resume_instance.personal_info.title|default:'' }}" required
+                            class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Email</label>
+                        <input type="email" name="email" value="{{ resume_instance.personal_info.email|default:'' }}" required
+                            class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Phone</label>
+                        <input type="tel" name="phone" value="{{ resume_instance.personal_info.phone|default:'' }}"
+                            class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Professional Summary</label>
+                        <textarea name="summary" rows="4" required
+                            class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">{{ resume_instance.personal_info.summary|default:'' }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Work Experience -->
+            <div class="form-step hidden" data-step="2">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">Work Experience</h2>
+                    <button type="button" onclick="addExperience()"
+                        class="bg-emerald-500 text-white px-4 py-2 rounded-md hover:bg-emerald-600">
+                        Add Experience
+                    </button>
+                </div>
+                <div class="border-b-2 border-emerald-500 mb-6"></div>
+                <div id="experienceContainer" class="space-y-6">
+                    <!-- Experience entries will be added here -->
+                </div>
+            </div>
+
+            <!-- Step 3: Education -->
+            <div class="form-step hidden" data-step="3">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-gray-800">Education</h2>
+                    <button type="button" onclick="addEducation()"
+                        class="bg-emerald-500 text-white px-4 py-2 rounded-md hover:bg-emerald-600">
+                        Add Education
+                    </button>
+                </div>
+                <div class="border-b-2 border-emerald-500 mb-6"></div>
+                <div id="educationContainer" class="space-y-6">
+                    <!-- Education entries will be added here -->
+                </div>
+            </div>
+
+            <!-- Step 4: Skills -->
+            <div class="form-step hidden" data-step="4">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">Skills</h2>
+                <div class="border-b-2 border-emerald-500 mb-6"></div>
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Technical Skills</label>
+                        <input type="text" name="technicalSkills" placeholder="Separate skills with commas"
+                            value="{% if resume_instance.skills.technical %}{{ resume_instance.skills.technical|join:', ' }}{% endif %}"
+                            class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Soft Skills</label>
+                        <input type="text" name="softSkills" placeholder="Separate skills with commas"
+                            value="{% if resume_instance.skills.soft %}{{ resume_instance.skills.soft|join:', ' }}{% endif %}"
+                            class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Languages</label>
+                        <input type="text" name="languages" placeholder="Separate languages with commas"
+                            value="{% if resume_instance.skills.languages %}{{ resume_instance.skills.languages|join:', ' }}{% endif %}"
+                            class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 5: Additional Information -->
+            <div class="form-step hidden" data-step="5">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">Additional Information</h2>
+                <div class="border-b-2 border-emerald-500 mb-6"></div>
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Certifications</label>
+                        <textarea name="certifications" rows="3"
+                            class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">{% if resume_instance.additional.certifications %}{{ resume_instance.additional.certifications }}{% endif %}</textarea>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">Projects</label>
+                        <textarea name="projects" rows="3"
+                            class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">{% if resume_instance.additional.projects %}{{ resume_instance.additional.projects }}{% endif %}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Navigation Buttons -->
+            <div class="flex flex-wrap justify-center sm:justify-between items-center mt-8 gap-4">
+                <button type="button" id="prevBtn" onclick="prevStep()"
+                    class="bg-gray-600 text-white px-6 py-2 rounded-md hover:bg-gray-700 hidden">
+                    Previous
+                </button>
+                <div class="flex items-center flex-wrap gap-4 ml-auto justify-center sm:justify-end">
+                    <button type="button" id="saveStepBtn" onclick="saveAndExit()"
+                        class="bg-violet-600 text-white px-6 py-2 rounded-md hover:bg-violet-700 hidden">
+                        Save and Exit
+                    </button>
+                    <button type="button" id="nextBtn" onclick="nextStep()"
+                        class="bg-emerald-500 text-white px-6 py-2 rounded-md hover:bg-emerald-600">
+                        Next
+                    </button>
+                    <div id="finalButtons" class="hidden flex items-center flex-wrap justify-center sm:justify-end gap-4">
+                        <button type="button" id="saveBtn" onclick="finalizeResume('save')"
+                            class="bg-violet-600 text-white px-6 py-2 rounded-md hover:bg-violet-700 flex items-center space-x-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
+                            </svg>
+                            <span>Save Resume</span>
+                        </button>
+                        <button type="button" id="previewBtn" onclick="finalizeResume('preview')"
+                            class="bg-emerald-600 text-white px-6 py-2 rounded-md hover:bg-emerald-700 flex items-center space-x-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                            </svg>
+                            <span>Preview Resume</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Experience Template (Hidden) -->
+<template id="experienceTemplate">
+    <div class="experience-entry border border-gray-200 rounded-lg p-4 relative bg-gray-50">
+        <button type="button" onclick="removeEntry(this)" class="absolute top-2 right-2 text-red-600 hover:text-red-800">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Company Name</label>
+                <input type="text" name="experience[].company" required
+                    class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Position</label>
+                <input type="text" name="experience[].position" required
+                    class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Start Date</label>
+                <input type="month" name="experience[].startDate" required
+                    class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">End Date</label>
+                <input type="month" name="experience[].endDate"
+                    class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-sm font-bold text-gray-700 mb-2">Description</label>
+                <textarea name="experience[].description" rows="3" required
+                    class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10"></textarea>
+            </div>
+        </div>
+    </div>
+</template>
+
+<!-- Education Template (Hidden) -->
+<template id="educationTemplate">
+    <div class="education-entry border border-gray-200 rounded-lg p-4 relative bg-gray-50">
+        <button type="button" onclick="removeEntry(this)" class="absolute top-2 right-2 text-red-600 hover:text-red-800">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Institution</label>
+                <input type="text" name="education[].institution" required
+                    class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Degree</label>
+                <input type="text" name="education[].degree" required
+                    class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Start Date</label>
+                <input type="month" name="education[].startDate" required
+                    class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">End Date</label>
+                <input type="month" name="education[].endDate"
+                    class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+            </div>
+            <div class="md:col-span-2">
+                <label class="block text-sm font-bold text-gray-700 mb-2">Description</label>
+                <textarea name="education[].description" rows="3"
+                    class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10"></textarea>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script>
+    let currentStep = 1;
+    const totalSteps = 5;
+    let resumeId = document.getElementById('resumeId').value || null;
+
+    function updateProgressBar() {
+        const progress = (currentStep - 1) / (totalSteps - 1) * 100;
+        document.querySelector('.progress-bar').style.width = `${progress}%`;
+    }
+
+    function showStep(step) {
+        document.querySelectorAll('.form-step').forEach(el => el.classList.add('hidden'));
+        document.querySelector(`.form-step[data-step="${step}"]`).classList.remove('hidden');
+
+        // Update step indicators
+        document.querySelectorAll('.step').forEach(el => {
+            if (parseInt(el.dataset.step) <= step) {
+                el.classList.add('active');
+            } else {
+                el.classList.remove('active');
+            }
+        });
+
+        // Show/hide navigation buttons
+        document.getElementById('prevBtn').classList.toggle('hidden', step === 1);
+        document.getElementById('saveStepBtn').classList.toggle('hidden', step === totalSteps || !resumeId);
+        document.getElementById('nextBtn').classList.toggle('hidden', step === totalSteps);
+        document.getElementById('finalButtons').classList.toggle('hidden', step !== totalSteps);
+
+        updateProgressBar();
+    }
+
+    // Validation functions (return true for now, can be enhanced later)
+    function validatePersonalInfo() {
+        const requiredFields = ['resume_name', 'fullName', 'title', 'email', 'summary'];
+        for (let field of requiredFields) {
+            const value = document.querySelector(`[name="${field}"]`).value.trim();
+            if (!value) {
+                alert(`Please fill in the ${field.replace(/([A-Z])/g, ' $1').toLowerCase()} field.`);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    function validateExperience() {
+        const entries = document.querySelectorAll('.experience-entry');
+        if (entries.length === 0) {
+            alert('Please add at least one work experience entry.');
+            return false;
+        }
+        
+        for (let entry of entries) {
+            const requiredFields = ['company', 'position', 'startDate', 'description'];
+            for (let field of requiredFields) {
+                const value = entry.querySelector(`[name*="${field}"]`).value.trim();
+                if (!value) {
+                    alert(`Please fill in all required fields in the experience section.`);
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    function validateEducation() {
+        const entries = document.querySelectorAll('.education-entry');
+        if (entries.length === 0) {
+            alert('Please add at least one education entry.');
+            return false;
+        }
+        
+        for (let entry of entries) {
+            const requiredFields = ['institution', 'degree', 'startDate'];
+            for (let field of requiredFields) {
+                const value = entry.querySelector(`[name*="${field}"]`).value.trim();
+                if (!value) {
+                    alert(`Please fill in all required fields in the education section.`);
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    function validateSkills() {
+        // For now, skills are optional
+        return true;
+    }
+
+    function validateAdditional() {
+        // For now, additional info is optional
+        return true;
+    }
+
+    // Save functions for each step
+    async function savePersonalInfo(andExit = false) {
+        const formData = new FormData(document.getElementById('resumeForm'));
+        const data = {
+            resume_name: formData.get('resume_name'),
+            fullName: formData.get('fullName'),
+            title: formData.get('title'),
+            email: formData.get('email'),
+            phone: formData.get('phone'),
+            summary: formData.get('summary'),
+            is_editing_save: andExit
+        };
+        if (resumeId) {
+            data.resume_id = resumeId;
+        }
+
+        try {
+            const response = await fetch('{% url "resume_builder:save_personal_info" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                resumeId = result.resume_id;
+                document.getElementById('resumeId').value = resumeId;
+                
+                if (andExit && result.redirect_url) {
+                    window.location.href = result.redirect_url;
+                } else if (!andExit) {
+                    // Refresh button visibility after getting a resume ID
+                    showStep(currentStep);
+                }
+                return true;
+            } else {
+                alert(result.error || 'Failed to save personal information');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to save personal information');
+            return false;
+        }
+    }
+
+    async function saveExperience(andExit = false) {
+        const formData = new FormData(document.getElementById('resumeForm'));
+        const experience = [];
+        
+        // Collect experience data
+        const entries = document.querySelectorAll('.experience-entry');
+        for (let entry of entries) {
+            const entryData = {};
+            const inputs = entry.querySelectorAll('input, textarea');
+            for (let input of inputs) {
+                const name = input.name.replace('experience[].', '');
+                entryData[name] = input.value;
+            }
+            experience.push(entryData);
+        }
+
+        const data = {
+            resume_id: resumeId,
+            experience: experience,
+            is_editing_save: andExit
+        };
+
+        try {
+            const response = await fetch('{% url "resume_builder:save_experience" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                if (andExit && result.redirect_url) {
+                    window.location.href = result.redirect_url;
+                }
+                return true;
+            } else {
+                showToast(result.error || 'Failed to save experience', true);
+                return false;
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to save experience');
+            return false;
+        }
+    }
+
+    async function saveEducation(andExit = false) {
+        const formData = new FormData(document.getElementById('resumeForm'));
+        const education = [];
+        
+        // Collect education data
+        const entries = document.querySelectorAll('.education-entry');
+        for (let entry of entries) {
+            const entryData = {};
+            const inputs = entry.querySelectorAll('input, textarea');
+            for (let input of inputs) {
+                const name = input.name.replace('education[].', '');
+                entryData[name] = input.value;
+            }
+            education.push(entryData);
+        }
+
+        const data = {
+            resume_id: resumeId,
+            education: education,
+            is_editing_save: andExit
+        };
+
+        try {
+            const response = await fetch('{% url "resume_builder:save_education" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                if (andExit && result.redirect_url) {
+                    window.location.href = result.redirect_url;
+                }
+                return true;
+            } else {
+                showToast(result.error || 'Failed to save education', true);
+                return false;
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to save education');
+            return false;
+        }
+    }
+
+    async function saveSkills(andExit = false) {
+        const formData = new FormData(document.getElementById('resumeForm'));
+        const data = {
+            resume_id: resumeId,
+            technicalSkills: formData.get('technicalSkills'),
+            softSkills: formData.get('softSkills'),
+            languages: formData.get('languages'),
+            is_editing_save: andExit
+        };
+
+        try {
+            const response = await fetch('{% url "resume_builder:save_skills" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                if (andExit && result.redirect_url) {
+                    window.location.href = result.redirect_url;
+                }
+                return true;
+            } else {
+                showToast(result.error || 'Failed to save skills', true);
+                return false;
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to save skills');
+            return false;
+        }
+    }
+
+    async function saveAdditional(andExit = false) {
+        const formData = new FormData(document.getElementById('resumeForm'));
+        const data = {
+            resume_id: resumeId,
+            certifications: formData.get('certifications'),
+            projects: formData.get('projects'),
+            is_editing_save: andExit
+        };
+
+        try {
+            const response = await fetch('{% url "resume_builder:save_additional" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                if (andExit && result.redirect_url) {
+                    window.location.href = result.redirect_url;
+                }
+                return true;
+            } else {
+                showToast(result.error || 'Failed to save additional information', true);
+                return false;
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to save additional information');
+            return false;
+        }
+    }
+
+    async function saveAndExit() {
+        let isValid = false;
+        let isSaved = false;
+
+        switch (currentStep) {
+            case 1:
+                isValid = validatePersonalInfo();
+                if (isValid) await savePersonalInfo(true);
+                break;
+            case 2:
+                isValid = validateExperience();
+                if (isValid) await saveExperience(true);
+                break;
+            case 3:
+                isValid = validateEducation();
+                if (isValid) await saveEducation(true);
+                break;
+            case 4:
+                isValid = validateSkills();
+                if (isValid) await saveSkills(true);
+                break;
+            case 5:
+                isValid = validateAdditional();
+                if (isValid) await saveAdditional(true);
+                break;
+        }
+    }
+
+    async function nextStep() {
+        if (currentStep < totalSteps) {
+            // Validate and save current step before proceeding
+            let isValid = false;
+            let isSaved = false;
+
+            switch (currentStep) {
+                case 1:
+                    isValid = validatePersonalInfo();
+                    if (isValid) isSaved = await savePersonalInfo();
+                    break;
+                case 2:
+                    isValid = validateExperience();
+                    if (isValid) isSaved = await saveExperience();
+                    break;
+                case 3:
+                    isValid = validateEducation();
+                    if (isValid) isSaved = await saveEducation();
+                    break;
+                case 4:
+                    isValid = validateSkills();
+                    if (isValid) isSaved = await saveSkills();
+                    break;
+                case 5:
+                    isValid = validateAdditional();
+                    if (isValid) isSaved = await saveAdditional();
+                    break;
+            }
+
+            if (isValid && isSaved) {
+                currentStep++;
+                showStep(currentStep);
+            }
+        }
+    }
+
+    function prevStep() {
+        if (currentStep > 1) {
+            currentStep--;
+            showStep(currentStep);
+        }
+    }
+
+    async function finalizeResume(action) {
+        // First, validate and save the current (final) step's data to ensure it's not lost
+        if (!validateAdditional()) {
+            return;
+        }
+
+        const isSaved = await saveAdditional();
+        if (!isSaved) {
+            // saveAdditional will show its own error, so we can just exit.
+            return;
+        }
+        
+        // Get template selection
+        const selectedTemplate = document.querySelector('input[name="template_id"]:checked');
+        const templateId = selectedTemplate ? selectedTemplate.value : 'professional';
+
+        const data = {
+            resume_id: resumeId,
+            action: action,
+            template_id: templateId
+        };
+
+        try {
+            const response = await fetch('{% url "resume_builder:finalize_resume" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                if (action === 'save') {
+                    alert('Resume saved successfully!');
+                }
+                window.location.href = result.redirect_url;
+            } else {
+                alert(result.error || 'Failed to finalize resume');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to finalize resume');
+        }
+    }
+
+    function addExperience() {
+        const template = document.getElementById('experienceTemplate');
+        const container = document.getElementById('experienceContainer');
+        const clone = template.content.cloneNode(true);
+        container.appendChild(clone);
+    }
+
+    function addEducation() {
+        const template = document.getElementById('educationTemplate');
+        const container = document.getElementById('educationContainer');
+        const clone = template.content.cloneNode(true);
+        container.appendChild(clone);
+    }
+
+    function removeEntry(button) {
+        button.closest('.experience-entry, .education-entry').remove();
+    }
+
+    // Initialize first step
+    showStep(1);
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const resumeInstance = {{ resume_instance|safe_json }};
+        if (resumeInstance && resumeInstance.id) {
+            populateForm(resumeInstance);
+        }
+        showStep(1);
+    });
+
+    function populateForm(resume) {
+        resumeId = resume.id;
+        
+        // Populate static fields
+        if (resume.personal_info) {
+            document.querySelector('[name="resume_name"]').value = resume.name || '';
+            document.querySelector('[name="fullName"]').value = resume.personal_info.full_name || '';
+            document.querySelector('[name="title"]').value = resume.personal_info.title || '';
+            document.querySelector('[name="email"]').value = resume.personal_info.email || '';
+            document.querySelector('[name="phone"]').value = resume.personal_info.phone || '';
+            document.querySelector('[name="summary"]').value = resume.personal_info.summary || '';
+        }
+        
+        // Populate skills fields
+        if (resume.skills) {
+            document.querySelector('[name="technicalSkills"]').value = (resume.skills.technical || []).join(', ');
+            document.querySelector('[name="softSkills"]').value = (resume.skills.soft || []).join(', ');
+            document.querySelector('[name="languages"]').value = (resume.skills.languages || []).join(', ');
+        }
+        
+        // Populate additional fields
+        if (resume.additional) {
+            document.querySelector('[name="certifications"]').value = resume.additional.certifications || '';
+            document.querySelector('[name="projects"]').value = resume.additional.projects || '';
+        }
+        
+        // Populate experience entries
+        if (resume.experience && resume.experience.length > 0) {
+            resume.experience.forEach(exp => {
+                addExperienceWithData(exp);
+            });
+        }
+        
+        // Populate education entries
+        if (resume.education && resume.education.length > 0) {
+            resume.education.forEach(edu => {
+                addEducationWithData(edu);
+            });
+        }
+    }
+
+    function addExperienceWithData(data) {
+        const template = document.getElementById('experienceTemplate');
+        const container = document.getElementById('experienceContainer');
+        const clone = template.content.cloneNode(true);
+        
+        // Populate the fields with data
+        clone.querySelector('[name*="company"]').value = data.company || '';
+        clone.querySelector('[name*="position"]').value = data.position || '';
+        clone.querySelector('[name*="startDate"]').value = formatDateForInput(data.startDate);
+        clone.querySelector('[name*="endDate"]').value = formatDateForInput(data.endDate);
+        clone.querySelector('[name*="description"]').value = data.description || '';
+        
+        container.appendChild(clone);
+    }
+
+    function addEducationWithData(data) {
+        const template = document.getElementById('educationTemplate');
+        const container = document.getElementById('educationContainer');
+        const clone = template.content.cloneNode(true);
+        
+        // Populate the fields with data
+        clone.querySelector('[name*="institution"]').value = data.institution || '';
+        clone.querySelector('[name*="degree"]').value = data.degree || '';
+        clone.querySelector('[name*="startDate"]').value = formatDateForInput(data.startDate);
+        clone.querySelector('[name*="endDate"]').value = formatDateForInput(data.endDate);
+        clone.querySelector('[name*="description"]').value = data.description || '';
+        
+        container.appendChild(clone);
+    }
+
+    function formatDateForInput(dateString) {
+        if (!dateString) return '';
+        
+        // Handle different date formats
+        // If it's already in YYYY-MM format, return as is
+        if (/^\d{4}-\d{2}$/.test(dateString)) {
+            return dateString;
+        }
+        
+        // If it's in DD-MM-YYYY format, convert to YYYY-MM
+        if (/^\d{2}-\d{2}-\d{4}$/.test(dateString)) {
+            const parts = dateString.split('-');
+            return `${parts[2]}-${parts[1]}`;
+        }
+        
+        // If it's a full date string, extract year and month
+        try {
+            const date = new Date(dateString);
+            if (!isNaN(date.getTime())) {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                return `${year}-${month}`;
+            }
+        } catch (e) {
+            console.warn('Could not parse date:', dateString);
+        }
+        
+        return '';
+    }
+</script>
+
+<style>
+    .step {
+        @apply text-sm font-medium text-gray-500;
+    }
+
+    .step.active {
+        @apply text-emerald-500;
+    }
+
+    .form-step {
+        transition: all 0.3s ease-in-out;
+    }
+
+    .form-step.hidden {
+        display: none;
+    }
+</style>
+

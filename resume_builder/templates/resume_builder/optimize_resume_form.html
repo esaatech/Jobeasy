@@ -1,14 +1,18 @@
-<form method="POST" enctype="multipart/form-data" class="space-y-6" id="optimizeForm">
+<form method="POST" enctype="multipart/form-data" class="space-y-8 font-sans" id="optimizeForm">
     {% csrf_token %}
     
+    <!-- Template Selection Section -->
+   {% include 'partials/template_selection.html' %}
+
     <!-- Resume Upload Section -->
-    <div class="bg-white p-6 rounded-lg shadow-md">
-        <h2 class="text-xl font-semibold mb-4">Upload Your Resume</h2>
+    <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6">Upload Your Resume</h2>
+        <div class="border-b-2 border-emerald-500 mb-6"></div>
         <div class="space-y-4">
             <!-- Drag & Drop Zone -->
             <div class="drag-drop-zone">
                 <div id="drop-zone" 
-                     class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-blue-500 transition-colors duration-200 cursor-pointer">
+                     class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-emerald-500 transition-colors duration-200 cursor-pointer">
                     <input type="file" 
                            name="resume_file" 
                            id="resume-file" 
@@ -19,7 +23,7 @@
                             <path d="M28 8H12a4 4 0 00-4 4v20m0 0v4a4 4 0 004 4h20a4 4 0 004-4V28m-4-4h4a4 4 0 004-4V12a4 4 0 00-4-4h-4m-12 8v-4m0 4v4m0-4h12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
                         <div class="flex flex-col items-center text-sm text-gray-600">
-                            <label for="resume-file" class="font-medium text-blue-600 hover:text-blue-500 cursor-pointer">
+                            <label for="resume-file" class="font-medium text-emerald-600 hover:text-emerald-500 cursor-pointer">
                                 Click to upload
                             </label>
                             <span class="mt-1">or drag and drop</span>
@@ -47,34 +51,36 @@
             </div>
 
             <div>
-                <label class="block text-sm font-medium text-gray-700">Paste Resume Text</label>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Paste Resume Text</label>
                 <textarea name="resume_text" 
                           rows="6" 
-                          class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm"
+                          class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10"
                           placeholder="Copy and paste your resume content here..."></textarea>
             </div>
         </div>
     </div>
 
     <!-- Job Description Section -->
-    <div class="bg-white p-6 rounded-lg shadow-md">
-        <h2 class="text-xl font-semibold mb-4">Job Description</h2>
+    <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6">Job Description</h2>
+        <div class="border-b-2 border-emerald-500 mb-6"></div>
         <div>
-            <label class="block text-sm font-medium text-gray-700">Paste Job Description</label>
+            <label class="block text-sm font-bold text-gray-700 mb-2">Paste Job Description</label>
             <textarea name="job_description" rows="6" required
-                      class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm"
+                      class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10"
                       placeholder="Copy and paste the job description here..."></textarea>
             <p class="mt-1 text-sm text-gray-500">This will be used to optimize your resume for ATS systems</p>
         </div>
     </div>
 
     <!-- Options Section -->
-    <div class="bg-white p-6 rounded-lg shadow-md">
-        <h2 class="text-xl font-semibold mb-4">Optimization Options</h2>
+    <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6">Optimization Options</h2>
+        <div class="border-b-2 border-emerald-500 mb-6"></div>
         <div class="space-y-4">
             <div class="flex items-center">
                 <input type="checkbox" name="keyword_optimization" id="keyword_optimization" 
-                       class="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                       class="h-4 w-4 text-emerald-500 border-gray-300 rounded"
                        checked>
                 <label for="keyword_optimization" class="ml-2 block text-sm text-gray-700">
                     Keyword Optimization
@@ -82,7 +88,7 @@
             </div>
             <div class="flex items-center">
                 <input type="checkbox" name="format_optimization" id="format_optimization" 
-                       class="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                       class="h-4 w-4 text-emerald-500 border-gray-300 rounded"
                        checked>
                 <label for="format_optimization" class="ml-2 block text-sm text-gray-700">
                     Format Optimization
@@ -90,7 +96,7 @@
             </div>
             <div class="flex items-center">
                 <input type="checkbox" name="content_suggestions" id="content_suggestions" 
-                       class="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                       class="h-4 w-4 text-emerald-500 border-gray-300 rounded"
                        checked>
                 <label for="content_suggestions" class="ml-2 block text-sm text-gray-700">
                     Content Improvement Suggestions
@@ -102,7 +108,7 @@
     <!-- Submit Button -->
     <div class="flex justify-center">
         <button type="submit" 
-                class="px-6 py-3 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                class="px-8 py-3 bg-emerald-600 text-white font-bold rounded-full hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
             Optimize Resume
         </button>
     </div>
@@ -179,11 +185,11 @@ function preventDefaults (e) {
 });
 
 function highlight(e) {
-    dropZone.classList.add('border-blue-500', 'bg-blue-50');
+    dropZone.classList.add('border-emerald-500', 'bg-emerald-50');
 }
 
 function unhighlight(e) {
-    dropZone.classList.remove('border-blue-500', 'bg-blue-50');
+    dropZone.classList.remove('border-emerald-500', 'bg-emerald-50');
 }
 
 // Handle dropped files

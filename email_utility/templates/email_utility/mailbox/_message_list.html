@@ -1,0 +1,61 @@
+{% if messages %}
+    <div class="divide-y divide-gray-200">
+        {% for message in messages %}
+        <div 
+            class="p-4 hover:bg-gray-50 cursor-pointer border-b border-gray-200"
+            hx-get="{% url 'email_utility:message_detail' message.id %}"
+            hx-target="#message-detail"
+            hx-trigger="click"
+        >
+            <div class="flex items-center justify-between">
+                <div class="min-w-0 flex-1">
+                    <p class="text-sm font-medium text-gray-900 truncate">
+                        {{ message.from_header }}
+                    </p>
+                    <p class="text-sm text-gray-900 font-medium truncate">
+                        {{ message.subject }}
+                    </p>
+                    <p class="text-sm text-gray-500 truncate">
+                        {{ message.text|truncatechars:100 }}
+                    </p>
+                </div>
+                <div class="ml-4 flex-shrink-0">
+                    <p class="text-sm text-gray-500">
+                        {{ message.processed|date:"M d, Y" }}
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Pagination -->
+    {% if pagination.total_pages > 1 %}
+    <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+        <div class="flex-1 flex justify-between sm:hidden">
+            {% if pagination.has_previous %}
+            <button 
+                hx-get="{% url 'email_utility:mailbox' %}?folder={{ current_folder }}&page={{ pagination.current_page|add:'-1' }}"
+                hx-target="#message-list"
+                class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+            >
+                Previous
+            </button>
+            {% endif %}
+            {% if pagination.has_next %}
+            <button 
+                hx-get="{% url 'email_utility:mailbox' %}?folder={{ current_folder }}&page={{ pagination.current_page|add:'1' }}"
+                hx-target="#message-list"
+                class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+            >
+                Next
+            </button>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+{% else %}
+    <div class="p-4 text-center text-gray-500">
+        No messages in this folder
+    </div>
+{% endif %}

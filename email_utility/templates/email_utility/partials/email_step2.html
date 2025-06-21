@@ -1,0 +1,64 @@
+<!-- Credentials Step -->
+<div class="p-4">
+    <h3 class="text-lg font-medium text-gray-900 mb-4">Enter Credentials</h3>
+    <form hx-post="{% url 'email_utility:save_email_configuration' %}"
+          hx-target="#setup-dialog-content">
+
+        {% csrf_token %}
+        <input type="hidden" name="provider" value="{{ provider.id }}">
+        <input type="hidden" name="agent_id" value="{{ agent_id }}">
+        
+        <div class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Email Address</label>
+                <input type="email" name="email" required
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+            </div>
+            
+            <div>
+                <label class="block text-sm font-medium text-gray-700">App Password</label>
+                <input type="password" name="password" required
+                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+                <p class="mt-1 text-sm text-gray-500">Use an app-specific password from your provider</p>
+            </div>
+
+            <div class="flex justify-between">
+                <button type="button"
+                    class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                    hx-get="{% url 'email_utility:email_setup_step1' %}"
+                    hx-target="#setup-dialog-content"
+                    hx-include="[name='agent_id']">
+                    Back
+                </button>
+                <button type="submit"
+                    class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">
+                    Next
+                </button>
+            </div>
+        </div>
+
+        <div id="error-message" class="text-red-600 mt-2"></div>
+    </form>
+
+    <!-- Task Selection Section will be loaded here -->
+    <div id="task-selection-section"></div>
+</div>
+
+<script>
+function handleEmailSetup(event) {
+    const response = JSON.parse(event.detail.xhr.response);
+    if (response.success) {
+        // Now create agent integration
+        htmx.ajax('POST', "{% url 'agents:create_email_integration' %}", {
+            values: {
+                agent_id: document.querySelector('[name=agent_id]').value,
+                email_config_id: response.email_config_id,
+                //task_type: document.querySelector('[name=task_type]').value
+            }
+        });
+    } else {
+        // Handle error
+        document.getElementById('error-message').textContent = response.error;
+    }
+}
+</script>

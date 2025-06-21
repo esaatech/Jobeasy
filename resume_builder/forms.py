@@ -11,7 +11,7 @@ class ResumeForm(forms.ModelForm):
     # Professional Summary
     summary = forms.CharField(
         widget=forms.Textarea(attrs={
-            'rows': 4,
+            'rows': 5,
             'placeholder': 'Write a brief summary of your professional background and career objectives'
         }),
         required=False

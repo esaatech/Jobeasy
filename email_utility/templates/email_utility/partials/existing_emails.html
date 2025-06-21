@@ -1,0 +1,38 @@
+<div class="mb-6 border-b pb-6">
+    <h3 class="text-lg font-medium text-gray-900 mb-4">Your Email Accounts</h3>
+    
+    {% if email_configs %}
+        <div class="space-y-4">
+            {% for config in email_configs %}
+            <div class="flex items-center space-x-4">
+                <input type="radio" 
+                       id="email_{{ config.id }}" 
+                       name="email_selection" 
+                       value="{{ config.id }}"
+                       class="h-4 w-4 text-indigo-600"
+                       hx-post="{% url 'email_utility:email_setup_task_select' %}"
+                       hx-include="[data-agent-id]"
+                       hx-target="#setup-dialog-content"
+                       hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+                <label for="email_{{ config.id }}" class="flex-1">
+                    <div class="text-sm font-medium text-gray-900">{{ config.email }}</div>
+                    <div class="text-sm text-gray-500">{{ config.get_provider_type_display }}</div>
+                </label>
+            </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="text-sm text-gray-500">No email accounts configured yet.</p>
+    {% endif %}
+    
+    <div class="mt-6">
+        <div class="relative">
+            <div class="absolute inset-0 flex items-center" aria-hidden="true">
+                <div class="w-full border-t border-gray-300"></div>
+            </div>
+            <div class="relative flex justify-center">
+                <span class="px-2 bg-white text-sm text-gray-500">Or</span>
+            </div>
+        </div>
+    </div>
+</div> 
