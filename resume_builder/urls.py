@@ -27,5 +27,6 @@ urlpatterns = [
     path('save-resume/', views.save_resume, name='save_resume'),
     path('my-resumes/', views.my_resumes, name='my_resumes'),
     path('delete-resume/<int:resume_id>/', views.delete_resume, name='delete_resume'),
+    path('download/<int:resume_id>/<str:format_type>/', views.download_resume_file, name='download_resume_file'),
     path('switch-template/', views.switch_template, name='switch_template'),
 ]

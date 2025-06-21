@@ -47,7 +47,7 @@
 
         <!-- Action Buttons -->
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
-            {% if resume and resume.id %}
+            {% if resume %}
             <!-- For saved resumes -->
             <a href="{% url 'resume_builder:edit_resume' resume.id %}" 
                class="bg-blue-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 text-center">
@@ -57,13 +57,11 @@
                 Edit Resume
             </a>
             
-            <button onclick="downloadAsPDF()" 
-                    class="bg-red-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 flex items-center justify-center">
-                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
-                </svg>
+            <a href="{% url 'resume_builder:download_resume_file' resume.id 'pdf' %}"
+               class="bg-red-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 text-center flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
                 Download PDF
-            </button>
+            </a>
             
             <a href="{% url 'resume_builder:my_resumes' %}" 
                class="bg-gray-500 text-white px-8 py-3 rounded-lg font-medium hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 text-center">
@@ -140,76 +138,6 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.3/html2pdf.bundle.min.js"></script>
 <script>
-function toggleDownloadDropdown(event, button) {
-    event.stopPropagation();
-    const dropdown = button.nextElementSibling;
-
-    // Hide all other open dropdowns before showing the new one
-    document.querySelectorAll('.download-dropdown').forEach(d => {
-        if (d !== dropdown) {
-            d.classList.add('hidden');
-        }
-    });
-
-    // Toggle the current dropdown
-    dropdown.classList.toggle('hidden');
-}
-
-// Close dropdowns when clicking outside
-window.addEventListener('click', function(event) {
-    document.querySelectorAll('.download-dropdown:not(.hidden)').forEach(dropdown => {
-        const button = dropdown.previousElementSibling;
-        if (!button.contains(event.target) && !dropdown.contains(event.target)) {
-            dropdown.classList.add('hidden');
-        }
-    });
-});
-
-function downloadAsPDF() {
-    const element = document.querySelector('#resumeContent > div'); // Target the actual resume div
-    const resumeName = "{{ resume.name|default:'resume'|slugify }}";
-    
-    // Ensure the element exists before proceeding
-    if (!element) {
-        console.error("Resume content not found for PDF generation.");
-        alert("Could not generate PDF: content element is missing.");
-        return;
-    }
-    
-    const opt = {
-        margin: [0.5, 0.5],
-        filename: `${resumeName}.pdf`,
-        image: { type: 'png', quality: 1.0 },
-        html2canvas: {
-            scale: 3, // Higher scale for better resolution
-            useCORS: true,
-            letterRendering: true,
-            dpi: 300, // Set DPI for high quality
-            // Adding a delay to ensure all assets (like images, fonts) are loaded
-            async onrendered(canvas) {
-                const imgData = canvas.toDataURL('image/png');
-            }
-        },
-        jsPDF: {
-            unit: 'in',
-            format: 'letter',
-            orientation: 'portrait',
-            putOnlyUsedFonts: true, // Embed only used fonts
-            floatPrecision: 16 // Higher precision for element positioning
-        }
-    };
-
-    // Use a promise-based approach to handle potential rendering delays
-    html2pdf().from(element).set(opt).toPdf().get('pdf').then(function (pdf) {
-        // Optional: add headers/footers if needed in the future
-        // var totalPages = pdf.internal.getNumberOfPages();
-        // for (var i = 1; i <= totalPages; i++) {
-        //     pdf.setPage(i);
-        //     pdf.text('Page ' + i + ' of ' + totalPages, pdf.internal.pageSize.getWidth() - 1, pdf.internal.pageSize.getHeight() - 1);
-        // }
-    }).save();
-}
-
 // Legacy ResumeUtils class for optimization results (if needed)
 class ResumeUtils {
     constructor() {
@@ -248,12 +176,23 @@ class ResumeUtils {
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
         this.hideActionDialog();
     }
 
     downloadAsPDF() {
-        // Implementation for PDF download
-        this.hideActionDialog();
+        const element = document.getElementById('optimizedResumeContent');
+        const opt = {
+            margin: 1,
+            filename: 'resume.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+        
+        html2pdf().set(opt).from(element).save().then(() => {
+            this.hideActionDialog();
+        });
     }
 
     downloadAsWord() {
