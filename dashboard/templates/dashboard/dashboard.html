@@ -2,17 +2,48 @@
 {% load static %}
 
 {% block content %}
-<!-- Top Stats Cards -->
+<!-- Top Section: Stats Cards + Recent Job Applications -->
 <section class="py-8">
     <div class="max-w-7xl mx-auto px-4">
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 xl:grid-cols-5 gap-6">
+            <!-- Left Side: Compact Stats Cards -->
+            <div class="xl:col-span-2">
+                {% include 'dashboard/partials/stats.html' %}
+            </div>
             
-            {% include 'resume_builder/partials/dashboard_stats_card.html' %}
-            
-            {% include 'coverletter/partials/dashboard_stats_card.html' %}
-
-            {% include 'dashboard/partials/dashboard_stats_card.html' %}
-            
+            <!-- Right Side: Recent Job Applications -->
+            <div class="xl:col-span-3">
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-bold text-gray-900">Recent Job Applications</h2>
+                        <a href="{% url 'dashboard:job_applications_list' %}" 
+                           class="text-blue-600 hover:text-blue-700 font-medium text-sm">
+                            View All
+                        </a>
+                    </div>
+                    
+                    <div id="job-applications-container" class="space-y-4">
+                        {% if job_applications %}
+                            {% for job_application in job_applications|slice:":3" %}
+                                <div id="job-application-{{ job_application.id }}">
+                                    {% include 'dashboard/partials/job_application_item.html' with job_application=job_application %}
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <!-- Empty State -->
+                            <div class="bg-gray-50 rounded-lg p-8 text-center">
+                                <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2V6"></path>
+                                    </svg>
+                                </div>
+                                <h3 class="text-lg font-medium text-gray-900 mb-2">No job applications yet</h3>
+                                <p class="text-gray-500">Start by generating your first job application below</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </section>
@@ -109,119 +140,8 @@
         </div>
     </div>
 </section>
-
-<!-- Recent Job Applications Section -->
-<section class="py-8">
-    <div class="max-w-7xl mx-auto px-4">
-        <div class="flex items-center justify-between mb-6">
-            <h2 class="text-2xl font-bold text-gray-900">Recent Job Applications</h2>
-            <a href="{% url 'dashboard:job_applications_list' %}" 
-               class="text-blue-600 hover:text-blue-700 font-medium">
-                View All
-            </a>
-        </div>
-        
-        <div class="space-y-4">
-            {% if job_applications %}
-                {% for job_application in job_applications|slice:":3" %}
-                    {% include 'dashboard/partials/job_application_item.html' with job_application=job_application %}
-                {% endfor %}
-            {% else %}
-                <!-- Empty State -->
-                <div class="bg-white rounded-lg shadow-md p-8 text-center">
-                    <div class="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <svg class="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2V6"></path>
-                        </svg>
-                    </div>
-                    <h3 class="text-lg font-medium text-gray-900 mb-2">No job applications yet</h3>
-                    <p class="text-gray-500">Start by generating your first job application above</p>
-                </div>
-            {% endif %}
-        </div>
-    </div>
-</section>
 {% endblock %}
 
 {% block extra_scripts %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Resume selection functionality
-    const resumeCards = document.querySelectorAll('.resume-card');
-    const resumeRadios = document.querySelectorAll('.resume-radio');
-    
-    resumeCards.forEach((card, index) => {
-        card.addEventListener('click', function() {
-            // Remove active state from all cards
-            resumeCards.forEach(c => {
-                c.classList.remove('border-blue-500', 'bg-blue-50');
-                c.classList.add('border-transparent', 'bg-gray-50');
-            });
-            
-            // Uncheck all radios
-            resumeRadios.forEach(radio => radio.checked = false);
-            
-            // Add active state to clicked card
-            this.classList.remove('border-transparent', 'bg-gray-50');
-            this.classList.add('border-blue-500', 'bg-blue-50');
-            
-            // Check the corresponding radio
-            if (resumeRadios[index]) {
-                resumeRadios[index].checked = true;
-            }
-        });
-    });
-
-    // Carousel navigation
-    const carousel = document.getElementById('resume-carousel');
-    const prevBtn = document.getElementById('prev-btn');
-    const nextBtn = document.getElementById('next-btn');
-    
-    if (prevBtn && nextBtn && carousel) {
-        prevBtn.addEventListener('click', () => {
-            carousel.scrollBy({ left: -200, behavior: 'smooth' });
-        });
-        
-        nextBtn.addEventListener('click', () => {
-            carousel.scrollBy({ left: 200, behavior: 'smooth' });
-        });
-    }
-
-    // Generate button functionality
-    const generateBtn = document.getElementById('generate-btn');
-    const jobDescription = document.getElementById('job-description');
-    const optimizeResume = document.getElementById('optimize-resume');
-    const generateCoverLetter = document.getElementById('generate-cover-letter');
-    
-    generateBtn.addEventListener('click', function() {
-        const selectedResume = document.querySelector('input[name="selected_resume"]:checked');
-        
-        if (!selectedResume) {
-            alert('Please select a resume');
-            return;
-        }
-        
-        if (!jobDescription.value.trim()) {
-            alert('Please enter a job description');
-            return;
-        }
-        
-        if (!optimizeResume.checked && !generateCoverLetter.checked) {
-            alert('Please select at least one action (Optimize Resume or Generate Cover Letter)');
-            return;
-        }
-        
-        // TODO: Implement generation logic
-        console.log('Generating...', {
-            resumeId: selectedResume.value,
-            jobDescription: jobDescription.value,
-            optimizeResume: optimizeResume.checked,
-            generateCoverLetter: generateCoverLetter.checked
-        });
-        
-        // For now, just show a placeholder
-        alert('Generation functionality will be implemented next!');
-    });
-});
-</script>
+<script src="{% static 'dashboard/dashboard.js' %}"></script>
 {% endblock %} 
