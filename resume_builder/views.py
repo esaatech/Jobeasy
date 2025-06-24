@@ -24,6 +24,9 @@ from django.utils import timezone
 import PyPDF2
 from docx import Document
 
+# Import AI service for resume parsing
+from ai_service.open_ai import parse_resume_from_text
+
 # Load environment variables from .env file
 load_dotenv()
 
@@ -224,13 +227,131 @@ def optimize_resume(request):
 
 @login_required
 def upload_resume(request):
-    """Upload resume endpoint - placeholder for now"""
+    """Upload and parse resume from file"""
     if request.method == 'POST':
-        # TODO: Implement resume upload functionality
-        return JsonResponse({
-            'success': False,
-            'error': 'Upload resume functionality not yet implemented'
-        }, status=501)
+        try:
+            # Get the uploaded file
+            resume_file = request.FILES.get('resume_file')
+            template_id = request.POST.get('template_id', 'professional')
+            
+            if not resume_file:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Resume file is required.'
+                }, status=400)
+            
+            # Validate file type
+            file_extension = os.path.splitext(resume_file.name)[1].lower()
+            if file_extension not in ['.pdf', '.doc', '.docx']:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Unsupported file format. Please upload a PDF, DOC, or DOCX file.'
+                }, status=400)
+            
+            # Extract text from the file
+            resume_text = ""
+            
+            # Create a temporary file to handle the upload
+            with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+                for chunk in resume_file.chunks():
+                    temp_file.write(chunk)
+                
+                try:
+                    # Process different file types
+                    if file_extension == '.pdf':
+                        logger.info("Processing PDF file")
+                        try:
+                            import pdfplumber
+                            with pdfplumber.open(temp_file.name) as pdf:
+                                for page in pdf.pages:
+                                    resume_text += page.extract_text() or ""
+                        except ImportError:
+                            # Fallback to PyPDF2 if pdfplumber is not available
+                            with open(temp_file.name, 'rb') as file:
+                                pdf_reader = PyPDF2.PdfReader(file)
+                                for page in pdf_reader.pages:
+                                    resume_text += page.extract_text()
+                    elif file_extension in ['.doc', '.docx']:
+                        logger.info("Processing Word document")
+                        doc = Document(temp_file.name)
+                        resume_text = '\n'.join([paragraph.text for paragraph in doc.paragraphs])
+                except Exception as e:
+                    logger.error(f"File processing error: {str(e)}")
+                    return JsonResponse({
+                        'success': False,
+                        'error': f'Error processing file: {str(e)}'
+                    }, status=400)
+                finally:
+                    # Clean up the temporary file
+                    os.unlink(temp_file.name)
+            
+            if not resume_text.strip():
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Could not extract text from the uploaded file. Please ensure the file contains readable text.'
+                }, status=400)
+            
+            # Parse the resume text using AI
+            logger.info("Parsing resume with AI")
+            try:
+                parsed_data = parse_resume_from_text(resume_text)
+            except Exception as e:
+                logger.error(f"AI parsing error: {str(e)}")
+                return JsonResponse({
+                    'success': False,
+                    'error': f'Error parsing resume: {str(e)}'
+                }, status=500)
+            
+            personal_info = parsed_data.get('personal_info', {})
+            experience = parsed_data.get('experience', [])
+            skills = parsed_data.get('skills', {})
+            
+            # Always save as draft for user verification
+            should_be_draft = True
+            
+            # Create the resume object
+            resume_name = personal_info.get('full_name', 'Uploaded Resume')
+            if not resume_name or resume_name == 'Uploaded Resume':
+                resume_name = f"Resume from {resume_file.name}"
+            
+            resume = Resume.objects.create(
+                user=request.user,
+                name=resume_name,
+                draft=should_be_draft,
+                template_id=template_id,
+                original_content=resume_text,
+                personal_info=personal_info,
+                experience=experience,
+                education=parsed_data.get('education', []),
+                skills=skills,
+                additional=parsed_data.get('additional', {}),
+                is_optimized=False,  # This is not an optimized resume
+                # Set default values for optimization fields
+                keyword_matches=[],
+                improvement_suggestions=[],
+                ats_score=0
+            )
+            
+            logger.info(f"Resume created successfully. ID: {resume.id}, Draft: {should_be_draft}")
+            
+            # Always redirect to edit page for verification
+            redirect_url = reverse('resume_builder:edit_resume', args=[resume.id])
+            message = 'Resume uploaded and parsed. Please review and verify all information before marking as ready.'
+            
+            return JsonResponse({
+                'success': True,
+                'message': message,
+                'resume_id': resume.id,
+                'redirect_url': redirect_url,
+                'is_draft': should_be_draft
+            })
+            
+        except Exception as e:
+            logger.error(f"Unexpected error in upload_resume: {str(e)}", exc_info=True)
+            return JsonResponse({
+                'success': False,
+                'error': f'An unexpected error occurred: {str(e)}'
+            }, status=500)
     
     # GET request - render the upload form
     hero_content = {

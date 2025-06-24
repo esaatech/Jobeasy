@@ -347,9 +347,164 @@ def test_cover_letter():
     else:
         print("Error:", result['error'])
 
+def parse_resume_from_text(resume_text: str):
+    """
+    Parse raw resume text and extract structured data for creating a Resume object.
+    Input: Raw resume text from uploaded file
+    Output: Structured resume data that can be used to create a Resume model instance
+    """
+    system_msg = (
+        "You are an expert resume parser. Extract structured information from raw resume text. "
+        "Return ONLY valid JSON (no markdown) with exactly these keys and nothing else:\n\n"
+        "{\n"
+        '  "personal_info": { "full_name": "...", "email": "...", "phone": "...", "location": "...", "linkedin": "...", "summary": "..." },\n'
+        '  "experience": [ { "title": "...", "company": "...", "start_date": "YYYY-MM", "end_date": "YYYY-MM or Present", "description": "...", "achievements": ["..."] } ],\n'
+        '  "education": [ { "degree": "...", "institution": "...", "year": "...", "gpa": "..." } ],\n'
+        '  "skills": { "technical": ["Skill1", "Skill2"], "soft": ["Skill3", "Skill4"], "languages": ["English", "Spanish"] },\n'
+        '  "additional": { "certifications": "...", "projects": "..." },\n'
+        '  "is_complete": true\n'
+        "}"
+    )
+    
+    user_msg = f"""
+### RAW RESUME TEXT ###
+{resume_text}
+
+### TASK ###
+Extract and structure the resume information into the JSON format above:
+
+• personal_info: Extract name, email, phone, location, LinkedIn, and professional summary
+• experience: List all work experience with title, company, start_date (YYYY-MM), end_date (YYYY-MM or Present), description, and achievements
+• education: List all education with degree, institution, year, and GPA if available
+• skills: Categorize skills into technical, soft skills, and languages
+• additional: Extract certifications, projects, or other relevant information
+• is_complete: Set to true if you can extract most fields, false if data is incomplete
+
+Guidelines:
+- For each experience, always extract start_date and end_date if available. Use the format YYYY-MM (e.g., 2022-03). If only a year is present, use YYYY-01. If the job is current, set end_date to "Present". If a date is not found, use an empty string.
+- Only extract information that is clearly present in the text
+- Do not invent or assume information
+- If a field is not found, use empty string or empty array as appropriate
+- For skills, categorize them appropriately (technical vs soft skills)
+- Set is_complete to false if you cannot extract at least name, some experience, and some skills
+
+Respond with JSON ONLY, using exactly the keys shown above.
+"""
+    
+    try:
+        chat_resp = client.chat.completions.create(
+            model="gpt-4o",
+            temperature=0.1,  # Lower temperature for more consistent parsing
+            messages=[
+                {"role": "system", "content": system_msg},
+                {"role": "user", "content": user_msg}
+            ],
+            response_format={"type": "json_object"}
+        )
+        
+        data = json.loads(chat_resp.choices[0].message.content.strip())
+        
+        # Validate and clean the data
+        expected_keys = ["personal_info", "experience", "education", "skills", "additional", "is_complete"]
+        cleaned_data = {k: v for k, v in data.items() if k in expected_keys}
+        
+        # Ensure all required nested structures exist
+        if "personal_info" not in cleaned_data:
+            cleaned_data["personal_info"] = {}
+        if "experience" not in cleaned_data:
+            cleaned_data["experience"] = []
+        else:
+            # Ensure each experience entry has start_date and end_date
+            for exp in cleaned_data["experience"]:
+                exp.setdefault("start_date", "")
+                exp.setdefault("end_date", "")
+        if "education" not in cleaned_data:
+            cleaned_data["education"] = []
+        if "skills" not in cleaned_data:
+            cleaned_data["skills"] = {"technical": [], "soft": [], "languages": []}
+        if "additional" not in cleaned_data:
+            cleaned_data["additional"] = {}
+        if "is_complete" not in cleaned_data:
+            cleaned_data["is_complete"] = False
+            
+        return cleaned_data
+        
+    except (OpenAIError, json.JSONDecodeError) as err:
+        raise Exception(f"Resume parsing failed: {str(err)}")
+
+def test_parse_resume_from_text():
+    """Test function for parse_resume_from_text"""
+    sample_resume_text = """
+    JOHN DOE
+    Software Engineer
+    john.doe@email.com | (555) 123-4567 | New York, NY
+    linkedin.com/in/johndoe
+
+    PROFESSIONAL SUMMARY
+    Experienced software engineer with 5+ years developing web applications using Python, JavaScript, and React. Passionate about creating scalable solutions and leading development teams.
+
+    EXPERIENCE
+    Senior Software Engineer
+    Tech Corp | 2021 - Present
+    - Led development of microservices architecture serving 1M+ users
+    - Managed team of 5 developers and improved deployment efficiency by 40%
+    - Implemented CI/CD pipelines reducing deployment time by 60%
+
+    Software Engineer
+    Startup Inc | 2019 - 2021
+    - Developed REST APIs using Python Flask and Django
+    - Built responsive frontend using React and TypeScript
+    - Collaborated with cross-functional teams in agile environment
+
+    EDUCATION
+    Bachelor of Science in Computer Science
+    University of Technology | 2019 | GPA: 3.8
+
+    SKILLS
+    Technical: Python, JavaScript, React, Node.js, AWS, Docker, Kubernetes
+    Soft Skills: Leadership, Communication, Problem Solving, Team Collaboration
+    Languages: English (Native), Spanish (Conversational)
+
+    CERTIFICATIONS
+    AWS Certified Developer Associate
+    Google Cloud Professional Developer
+
+    PROJECTS
+    E-commerce Platform: Built full-stack application using React and Django
+    """
+
+    try:
+        result = parse_resume_from_text(sample_resume_text)
+        print("\n✅ Resume Parsing Output:")
+        print(json.dumps(result, indent=2))
+        
+        # Quick validation
+        expected_keys = {"personal_info", "experience", "education", "skills", "additional", "is_complete"}
+        actual_keys = set(result.keys())
+        
+        if expected_keys == actual_keys:
+            print("\n✅ All expected keys present!")
+        else:
+            print(f"\n⚠️ Key mismatch. Expected: {expected_keys}, Got: {actual_keys}")
+            
+        # Check if data was extracted properly
+        personal_info = result.get('personal_info', {})
+        experience = result.get('experience', [])
+        skills = result.get('skills', {})
+        
+        print(f"\n📊 Extraction Summary:")
+        print(f"- Name extracted: {bool(personal_info.get('full_name'))}")
+        print(f"- Experience entries: {len(experience)}")
+        print(f"- Technical skills: {len(skills.get('technical', []))}")
+        print(f"- Is complete: {result.get('is_complete')}")
+            
+    except Exception as e:
+        print(f"\n❌ Parsing failed: {str(e)}")
 
 if __name__ == "__main__":
     # Example usage:
     test_optimize_my_resume_for_job()
+    print("\n" + "="*50)
+    test_parse_resume_from_text()
 
 
