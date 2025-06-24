@@ -1,8 +1,12 @@
-from django.shortcuts import render
-from django.http import JsonResponse
+from django.shortcuts import render, get_object_or_404
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_http_methods
+from django.contrib.auth.decorators import login_required
 from .cover_letter import generate_cover_letter_from_fields, generate_cover_letter_from_raw_text
+from .models import CoverLetter
+from pdf_generator.core.generator import PDFGenerator
 import logging
+import json
 
 # Get the logger for this app
 logger = logging.getLogger('home')
@@ -11,9 +15,19 @@ logger = logging.getLogger('home')
 def index(request):
     return render(request, 'coverletter/index.html')   
 
-
-
-
+@login_required
+def cover_letter_view(request, cover_letter_id):
+    """View to display a specific cover letter"""
+    cover_letter = get_object_or_404(CoverLetter, id=cover_letter_id, user=request.user)
+    
+    context = {
+        'cover_letter': cover_letter,
+        'hero_content': {
+            'page_title': cover_letter.title,
+        }
+    }
+    
+    return render(request, 'coverletter/cover_letter_view.html', context)
 
 @require_http_methods(["GET", "POST"])
 def job_cover_letter(request):
@@ -140,3 +154,50 @@ def job_cover_letter(request):
             'success': False,
             'error': str(e)
         }, status=500)
+
+@login_required
+def download_cover_letter_pdf(request, cover_letter_id):
+    """Generates and serves a PDF version of the cover letter."""
+    cover_letter = get_object_or_404(CoverLetter, id=cover_letter_id, user=request.user)
+    
+    context = {'cover_letter': cover_letter}
+    
+    # Generate the PDF using the dedicated template
+    pdf_bytes = PDFGenerator.generate_from_template(
+        'coverletter/pdf_template.html',
+        context,
+        options={
+            'format': 'A4',
+            'filename': f'cover_letter_{cover_letter.id}.pdf'
+        }
+    )
+    
+    # Create the HTTP response
+    response = HttpResponse(pdf_bytes, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="cover_letter_{cover_letter.id}.pdf"'
+    
+    return response
+
+@login_required
+@require_http_methods(["POST"])
+def edit_cover_letter(request, cover_letter_id):
+    """API endpoint to edit and save a cover letter."""
+    try:
+        cover_letter = get_object_or_404(CoverLetter, id=cover_letter_id, user=request.user)
+        
+        data = json.loads(request.body)
+        new_content = data.get('content')
+
+        if new_content is None:
+            return JsonResponse({'status': 'failed', 'error': 'Content is missing.'}, status=400)
+            
+        cover_letter.content = new_content
+        cover_letter.save()
+        
+        return JsonResponse({'status': 'success', 'message': 'Cover letter updated successfully.'})
+
+    except json.JSONDecodeError:
+        return JsonResponse({'status': 'failed', 'error': 'Invalid JSON.'}, status=400)
+    except Exception as e:
+        logger.error(f"Error updating cover letter {cover_letter_id}: {str(e)}")
+        return JsonResponse({'status': 'failed', 'error': str(e)}, status=500)

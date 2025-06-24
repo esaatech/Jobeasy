@@ -43,8 +43,8 @@
         <div class="flex items-center space-x-2">
             {% if job_application.status == 'completed' %}
                 <!-- Open Resume -->
-                {% if job_application.resume_link %}
-                    <a href="{{ job_application.resume_link }}" target="_blank" 
+                {% if job_application.resume %}
+                    <a href="{% url 'resume_builder:view_resume_by_id' job_application.resume.id %}" target="_blank" 
                        class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" 
                        title="Open Resume">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -52,7 +52,7 @@
                         </svg>
                     </a>
                     <!-- Download Resume -->
-                    <a href="{{ job_application.resume_link }}" download
+                    <a href="{% url 'resume_builder:download_resume_file' job_application.resume.id 'pdf' %}"
                        class="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors" 
                        title="Download Resume">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -62,17 +62,17 @@
                 {% endif %}
                 
                 <!-- Open Cover Letter -->
-                {% if job_application.cover_letter_link %}
-                    <a href="{{ job_application.cover_letter_link }}" target="_blank" 
-                       class="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors" 
+                {% if job_application.cover_letter %}
+                    <a href="{% url 'coverletter:cover_letter_view' job_application.cover_letter.id %}" target="_blank"
+                       class="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
                        title="Open Cover Letter">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                         </svg>
                     </a>
                     <!-- Download Cover Letter -->
-                    <a href="{{ job_application.cover_letter_link }}" download
-                       class="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors" 
+                    <a href="{% url 'coverletter:download_cover_letter_pdf' job_application.cover_letter.id %}"
+                       class="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
                        title="Download Cover Letter">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>

@@ -1,0 +1,355 @@
+from openai import OpenAI, OpenAIError
+from datetime import datetime
+from dotenv import load_dotenv
+import os
+import json
+
+load_dotenv()
+# Initialize the client
+client = OpenAI()  # Make sure OPENAI_API_KEY is set in your environment
+
+def generate_cover_letter_from_raw_text(job_posting, resume_text, applicant_name):
+    """
+    Generate a cover letter from raw job posting and resume text.
+    For use with uploaded CV and/or unstructured job posting.
+    """
+    try:
+        cover_letter = client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are a professional cover letter writer who creates compelling, tailored cover letters."},
+                {"role": "user", "content": f"""
+                Create a professional cover letter based on the following resume and job posting:
+
+                RESUME:
+                {resume_text}
+
+                JOB POSTING:
+                {job_posting}
+
+                The cover letter should:
+                1. Start with "Dear Hiring Manager,"
+                2. Focus on the most relevant experiences from the resume
+                3. Demonstrate clear understanding of the company's needs
+                4. Show enthusiasm for the role and company
+                5. Include specific examples and achievements
+                6. Maintain a professional yet engaging tone
+                7. End with "Sincerely," followed by "{applicant_name}" on a new line
+                8. Do not include any dates or addresses
+
+                Keep the length to one page maximum.
+                """}
+            ],
+            temperature=0.7
+        )
+
+        return {
+            'success': True,
+            'cover_letter': cover_letter.choices[0].message.content
+        }
+
+    except Exception as e:
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+
+def optimize_resume_for_job(job_description: str, resume_text: str):
+    """
+    Given a job description and pre-formatted resume text, call ChatGPT to:
+    1. Rewrite / optimise the resume text to match the posting.
+    2. Return a JSON payload with the fields you need to re-populate the
+       structured columns of your Resume model.
+    """
+    system_msg = (
+        "You are an elite ATS-optimization assistant. "
+        "Your job is to transform a candidate's resume so it matches a "
+        "specific job description. You MUST respond with **valid JSON only**, "
+        "no markdown, using the exact schema shown:\n\n"
+        "{\n"
+        '  "optimized_content": str,\n'
+        '  "personal_info": { "full_name": "...", "email": "...", "phone": "...", "location": "...", "linkedin": "..." },\n'
+        '  "experience": [ { "title": "...", "company": "...", "duration": "...", "description": "...", "achievements": ["..."] } ],\n'
+        '  "education": [ { "degree": "...", "institution": "...", "year": "...", "gpa": "..." } ],\n'
+        '  "skills": { "Category 1": ["Skill A", "Skill B"] },\n'
+        '  "additional": { "Key": "Value" },\n'
+        '  "keyword_matches": [ "Keyword1", "Keyword2" ],\n'
+        '  "improvement_suggestions": [ "Suggestion 1" ],\n'
+        '  "ats_score": 85\n'
+        "}"
+    )
+
+    user_msg = f"""
+    ### JOB DESCRIPTION ###
+    {job_description}
+
+    ### CURRENT RESUME ###
+    {resume_text}
+
+    ### TASK ###
+    1. Rewrite the resume so it clearly reflects the most relevant skills,
+       achievements and keywords from the job posting.
+    2. Populate *all* fields in the JSON schema.
+       - Do not invent experience; only re-phrase or re-order what you see.
+       - The `optimized_content` should be a full, ATS-friendly, plain-text resume.
+    """
+
+    try:
+        chat_resp = client.chat.completions.create(
+            model="gpt-4o",
+            temperature=0.3,
+            messages=[
+                {"role": "system", "content": system_msg},
+                {"role": "user", "content": user_msg}
+            ],
+            response_format={"type": "json_object"}
+        )
+
+        raw_json = chat_resp.choices[0].message.content.strip()
+        data = json.loads(raw_json)
+        return {"success": True, "data": data}
+
+    except (OpenAIError, json.JSONDecodeError) as err:
+        return {"success": False, "error": str(err)}
+
+
+EXPECTED_KEYS = {
+    "optimized_summary",
+    "relevant_experience",
+    "reordered_skills",
+    "reordered_projects",
+    "keyword_matches",
+    "improvement_suggestions",
+    "ats_score",
+}
+
+def optimize_my_resume_for_job(job_description: str, resume_data: dict):
+    """
+    Optimise a structured resume dict for a given job posting.
+    Input (resume_data):
+        professional_summary : str
+        experience           : list[dict]
+        technical_skills     : list[str]
+        soft_skills          : list[str]
+        languages            : list[str]
+        projects             : list[dict]
+    Output:
+        {
+          "optimized_summary": str,
+          "relevant_experience": [ {...} ],
+          "reordered_technical_skills": [...],
+          "reordered_soft_skills": [...],
+          "reordered_languages": [...],
+          "reordered_projects": [ {...} ],
+          "keyword_matches": [ ... ],
+          "improvement_suggestions": [ ... ],
+          "ats_score": int
+        }
+    """
+    system_msg = (
+        "You are an elite resume-optimization assistant. "
+        "Return ONLY valid JSON (no markdown) with exactly these keys and nothing else:\n\n"
+        "{\n"
+        '  "optimized_summary": str,\n'
+        '  "relevant_experience": [ { "title": "...", "company": "...", '
+        '"duration": "...", "description": "...", "achievements": ["..."] } ],\n'
+        '  "reordered_technical_skills": ["Skill1", "Skill2"],\n'
+        '  "reordered_soft_skills": ["Skill3", "Skill4"],\n'
+        '  "reordered_languages": ["English", "Spanish"],\n'
+        '  "reordered_projects": [ { "name": "...", "description": "...", "impact": "..." } ],\n'
+        '  "keyword_matches": [ "Keyword1", "Keyword2" ],\n'
+        '  "improvement_suggestions": [ "Suggestion 1", "Suggestion 2" ],\n'
+        '  "ats_score": 0\n'
+        "}"
+    )
+    user_msg = f"""
+### JOB DESCRIPTION ###
+{job_description}
+
+### STRUCTURED RESUME INPUT ###
+Professional Summary: {resume_data.get('professional_summary', '')}
+
+Experience: {json.dumps(resume_data.get('experience', []), indent=2)}
+
+Technical Skills: {json.dumps(resume_data.get('technical_skills', []), indent=2)}
+
+Soft Skills: {json.dumps(resume_data.get('soft_skills', []), indent=2)}
+
+Languages: {json.dumps(resume_data.get('languages', []), indent=2)}
+
+Projects: {json.dumps(resume_data.get('projects', []), indent=2)}
+
+### TASK ###
+• Rewrite the professional summary → optimized_summary
+• Select and return ONLY experience entries relevant to the job → relevant_experience
+• Reorder technical skills so the most relevant are first → reordered_technical_skills
+• Reorder soft skills so the most relevant are first → reordered_soft_skills
+• Reorder languages so the most relevant are first → reordered_languages
+• Reorder / filter projects so the most relevant are first → reordered_projects
+• List the job-matching keywords you used → keyword_matches
+• Provide constructive improvement suggestions → improvement_suggestions
+• Estimate an ATS match score (0–100) → ats_score
+• Do NOT add education, personal info, or any other fields.
+• Respond with JSON ONLY, using exactly the keys shown above.
+"""
+    try:
+        chat_resp = client.chat.completions.create(
+            model="gpt-4o",
+            temperature=0.3,
+            messages=[
+                {"role": "system", "content": system_msg},
+                {"role": "user", "content": user_msg}
+            ],
+            response_format={"type": "json_object"}
+        )
+        data = json.loads(chat_resp.choices[0].message.content.strip())
+        # Filter to only expected keys and return directly
+        expected_keys = [
+            "optimized_summary", "relevant_experience",
+            "reordered_technical_skills", "reordered_soft_skills", "reordered_languages",
+            "reordered_projects", "keyword_matches", "improvement_suggestions", "ats_score"
+        ]
+        return {k: v for k, v in data.items() if k in expected_keys}
+    except (OpenAIError, json.JSONDecodeError) as err:
+        raise Exception(f"Resume optimization failed: {str(err)}")
+
+def test_optimize_my_resume_for_job():
+    # Sample job description
+    job_description = """
+    Shelter Cook – Part-Time
+    We need a reliable cook to plan and prepare daily meals for 60–80 individuals at our community shelter.
+    Must be able to work independently, manage food donations, and follow safety protocols.
+    Experience with large-batch cooking, sanitation, and meal planning is required.
+    """
+
+    # Sample structured resume input
+    resume_data = {
+        "professional_summary": (
+            "Hardworking and detail-oriented cook with experience in fast-paced kitchens. Skilled at preparing "
+            "meals efficiently and keeping workspaces clean and organized. Committed to food safety and "
+            "high-quality service."
+        ),
+        "experience": [
+            {
+                "title": "Line Cook",
+                "company": "Sunset Grill",
+                "duration": "2021 – Present",
+                "description": "Prepared meals in a busy restaurant setting and ensured compliance with health codes.",
+                "achievements": [
+                    "Reduced food waste by 15% through better portion control",
+                    "Trained 3 new kitchen assistants"
+                ]
+            },
+            {
+                "title": "Kitchen Assistant",
+                "company": "Downtown Shelter",
+                "duration": "2019 – 2021",
+                "description": "Helped prepare meals for up to 80 people and managed food donations.",
+                "achievements": [
+                    "Assisted in planning weekly menus using limited supplies",
+                    "Maintained perfect inspection scores from public health visits"
+                ]
+            }
+        ],
+        "technical_skills": ["Batch cooking", "Knife skills", "Inventory rotation"],
+        "soft_skills": ["Teamwork", "Time management", "Attention to detail"],
+        "languages": ["English", "Spanish"],
+        "projects": []
+    }
+
+    try:
+        result = optimize_my_resume_for_job(job_description, resume_data)
+        print("\n✅ Optimized Resume Output:")
+        print(json.dumps(result, indent=2))
+        
+        # Quick validation
+        expected_keys = {"optimized_summary", "relevant_experience", "reordered_technical_skills", 
+                        "reordered_soft_skills", "reordered_languages", "reordered_projects", "keyword_matches", "improvement_suggestions", "ats_score"}
+        actual_keys = set(result.keys())
+        
+        if expected_keys == actual_keys:
+            print("\n✅ All expected keys present!")
+        else:
+            print(f"\n⚠️ Key mismatch. Expected: {expected_keys}, Got: {actual_keys}")
+            
+    except Exception as e:
+        print(f"\n❌ Optimization failed: {str(e)}")
+
+# Don't forget to import json at the top if not already imported
+
+
+
+def test_cover_letter():
+    job_details = {
+        "position": "Senior Software Engineer",
+        "company": "Tech Corp",
+        "description": "Looking for experienced developer...",
+        "department": "Engineering"
+    }
+
+    candidate_details = {
+        "name": "Jane Smith",
+        "current_role": "Software Engineer",
+        "experience": "5 years",
+        "skills": "Python, JavaScript, AWS",
+        "achievements": "Led team of 5, increased efficiency by 40%"
+    }     
+
+    #cover_letter = generate_cover_letter_from_fields(job_details, candidate_details)       
+    #print(cover_letter)
+
+    
+    # Example usage with raw text
+    job_posting = """
+    Senior Software Engineer - AI/ML Team
+    
+    We're looking for a Senior Software Engineer to join our AI/ML team. The ideal candidate will have strong Python experience and a background in machine learning deployments. You'll be responsible for building and maintaining our ML infrastructure and working closely with data scientists.
+
+    Requirements:
+    - 5+ years of software development experience
+    - Strong Python programming skills
+    - Experience with ML frameworks (TensorFlow, PyTorch)
+    - Knowledge of cloud platforms (AWS preferred)
+    - Experience with containerization and orchestration
+    
+    About us:
+    Tech Corp is a leading AI company focused on building ethical AI solutions. We value innovation, collaboration, and continuous learning.
+    """
+
+    resume = """
+    JANE SMITH
+    Software Engineer
+    email@example.com | (555) 123-4567
+
+    EXPERIENCE
+    Senior Developer, AI Solutions Inc.
+    2020-Present
+    - Led team of 5 developers in building ML pipeline
+    - Reduced model deployment time by 40%
+    - Implemented automated testing for ML models
+
+    Software Engineer, Tech Startup
+    2018-2020
+    - Developed Python microservices
+    - Worked with AWS and Docker
+
+    SKILLS
+    Python, TensorFlow, PyTorch, AWS, Docker, Kubernetes
+    """
+
+    result = generate_cover_letter_from_raw_text(job_posting, resume, "Jane Smith")
+    
+    if result['success']:
+        print("COVER LETTER:")
+        print("-" * 50)
+        print(result['cover_letter'])
+    else:
+        print("Error:", result['error'])
+
+
+if __name__ == "__main__":
+    # Example usage:
+    test_optimize_my_resume_for_job()
+
+

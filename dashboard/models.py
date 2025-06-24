@@ -1,14 +1,15 @@
 from django.db import models
 from django.conf import settings
+from resume_builder.models import Resume
 
 # Create your models here.
 
 class JobApplication(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='dashboard_job_applications')
+    cover_letter = models.ForeignKey('coverletter.CoverLetter', on_delete=models.SET_NULL, null=True, blank=True, related_name='job_applications')
+    resume = models.ForeignKey(Resume, on_delete=models.SET_NULL, null=True, blank=True, related_name='job_applications')
     job_name = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
-    resume_link = models.URLField(blank=True, null=True)
-    cover_letter_link = models.URLField(blank=True, null=True)
     status = models.CharField(
         max_length=20,
         choices=[

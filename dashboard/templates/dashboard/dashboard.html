@@ -143,5 +143,10 @@
 {% endblock %}
 
 {% block extra_scripts %}
+<script>
+    // Create URL templates for JavaScript to use
+    window.resumeViewUrlTemplate = "{% url 'resume_builder:view_resume_by_id' 99999 %}".replace('99999', '{resume_id}');
+    window.resumeDownloadUrlTemplate = "{% url 'resume_builder:download_resume_file' 99999 'pdf' %}".replace('99999', '{resume_id}');
+</script>
 <script src="{% static 'dashboard/dashboard.js' %}"></script>
 {% endblock %} 

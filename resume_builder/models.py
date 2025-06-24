@@ -36,11 +36,13 @@ class Resume(models.Model):
     education = models.JSONField(default=list, blank=True)
     skills = models.JSONField(default=dict, blank=True)
     additional = models.JSONField(default=dict, blank=True)
+    relevant_experience = models.JSONField(default=list, blank=True, null=True)
     
     # Optimization results with default values
     keyword_matches = models.JSONField(default=list)
     improvement_suggestions = models.JSONField(default=list)
     ats_score = models.IntegerField(default=0)
+    is_optimized = models.BooleanField(default=False)
 
     class Meta:
         ordering = ['-created_at']

@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'pdf_generator',
     'coverletter',
     'dashboard',
+    'ai_service',
 ]
 
 MIDDLEWARE = [

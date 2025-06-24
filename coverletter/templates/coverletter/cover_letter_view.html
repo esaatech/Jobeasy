@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ cover_letter.title }}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #f3f4f6;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .document-container {
+            max-width: 8.5in;
+            min-height: 11in;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: white;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        }
+        .cover-letter-content {
+            white-space: pre-wrap;
+            font-size: 11pt;
+            line-height: 1.6;
+            color: #333;
+        }
+        #cover-letter-editor {
+            width: 100%;
+            height: 100%;
+            min-height: 10in;
+            font-size: 11pt;
+            line-height: 1.6;
+            color: #333;
+            border: 1px solid #d1d5db;
+            border-radius: 0.25rem;
+            padding: 1rem;
+            resize: vertical;
+        }
+        .actions {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 1rem;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 9999px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 1rem;
+        }
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border: 1px solid transparent;
+            border-radius: 9999px;
+            font-weight: 500;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+        .btn-print { background-color: #3b82f6; color: white; }
+        .btn-print:hover { background-color: #2563eb; }
+        .btn-download { background-color: #16a34a; color: white; }
+        .btn-download:hover { background-color: #15803d; }
+        .btn-edit { background-color: #f59e0b; color: white; }
+        .btn-edit:hover { background-color: #d97706; }
+        .btn-save { background-color: #10b981; color: white; }
+        .btn-save:hover { background-color: #059669; }
+        .btn-back { background-color: #6b7280; color: white; }
+        .btn-back:hover { background-color: #4b5563; }
+        .hidden { display: none; }
+
+        @media print {
+            @page {
+                size: auto;
+                margin: 0;
+            }
+            body {
+                margin: 0;
+                background-color: white;
+            }
+            .document-container {
+                margin: 0;
+                padding: 0.75in;
+                box-shadow: none;
+                width: 100%;
+                min-height: 0;
+            }
+            .actions, #cover-letter-editor {
+                display: none !important;
+            }
+            .cover-letter-content {
+                display: block !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="document-container">
+        <div id="cover-letter-display" class="cover-letter-content">{{ cover_letter.content }}</div>
+        <textarea id="cover-letter-editor" class="hidden">{{ cover_letter.content }}</textarea>
+    </div>
+
+    <div class="actions">
+        {% csrf_token %}
+        {% if cover_letter.content %}
+            <button id="edit-btn" class="btn btn-edit">
+                <span>Edit</span>
+            </button>
+            <button id="save-btn" class="btn btn-save hidden">
+                <span>Save</span>
+            </button>
+            <button onclick="window.print()" class="btn btn-print">
+                <span>Print</span>
+            </button>
+            <a href="{% url 'coverletter:download_cover_letter_pdf' cover_letter.id %}" class="btn btn-download">
+                <span>Download PDF</span>
+            </a>
+        {% endif %}
+        <a href="{% url 'dashboard:dashboard' %}" class="btn btn-back">
+            <span>Back to Dashboard</span>
+        </a>
+    </div>
+
+    <script>
+        const editBtn = document.getElementById('edit-btn');
+        const saveBtn = document.getElementById('save-btn');
+        const displayDiv = document.getElementById('cover-letter-display');
+        const editorTextarea = document.getElementById('cover-letter-editor');
+        const coverLetterId = {{ cover_letter.id }};
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        editBtn.addEventListener('click', () => {
+            displayDiv.classList.add('hidden');
+            editorTextarea.classList.remove('hidden');
+            editBtn.classList.add('hidden');
+            saveBtn.classList.remove('hidden');
+            editorTextarea.focus();
+        });
+
+        saveBtn.addEventListener('click', () => {
+            const updatedContent = editorTextarea.value;
+
+            fetch(`/coverletter/edit/${coverLetterId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({ content: updatedContent })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    displayDiv.innerText = updatedContent;
+                    displayDiv.classList.remove('hidden');
+                    editorTextarea.classList.add('hidden');
+                    saveBtn.classList.add('hidden');
+                    editBtn.classList.remove('hidden');
+                } else {
+                    alert('Error saving cover letter: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An unexpected error occurred. Please try again.');
+            });
+        });
+    </script>
+</body>
+</html> 
