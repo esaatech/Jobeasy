@@ -26,7 +26,7 @@ RUN poetry config virtualenvs.create false \
     && poetry install --no-interaction --no-ansi
 
 # Install Playwright browsers
-RUN poetry run playwright install --with-deps
+#RUN poetry run playwright install --with-deps
 
 # Copy project
 COPY . /app/
