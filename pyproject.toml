@@ -16,6 +16,8 @@ pypdf2 = "^3.0.1"
 python-docx = "^1.2.0"
 reportlab = "^4.4.2"
 playwright = "^1.52.0"
+gunicorn = "^21.2.0"
+whitenoise = "^6.6.0"
 
 [tool.poetry.scripts]
 test = "test_runner:main"
