@@ -198,13 +198,15 @@
             </div>
             <div>
                 <label class="block text-sm font-bold text-gray-700 mb-2">Start Date</label>
-                <input type="text" name="experience[].startDate" required placeholder="Select start date"
-                    class="date-picker-start w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+                <input type="text" name="experience[].startDate" required placeholder="YYYY-MM" pattern="\\d{4}-\\d{2}"
+                    class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+                <p class="text-xs text-gray-500 mt-1">Format: YYYY-MM (e.g., 2023-06)</p>
             </div>
             <div>
                 <label class="block text-sm font-bold text-gray-700 mb-2">End Date</label>
-                <input type="text" name="experience[].endDate" placeholder="Select end date (optional)"
-                    class="date-picker-end w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+                <input type="text" name="experience[].endDate" placeholder="YYYY-MM" pattern="\\d{4}-\\d{2}"
+                    class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+                <p class="text-xs text-gray-500 mt-1">Format: YYYY-MM (e.g., 2023-06)</p>
             </div>
             <div class="md:col-span-2">
                 <label class="block text-sm font-bold text-gray-700 mb-2">Description</label>
@@ -236,13 +238,15 @@
             </div>
             <div>
                 <label class="block text-sm font-bold text-gray-700 mb-2">Start Date</label>
-                <input type="text" name="education[].startDate" required placeholder="Select start date"
-                    class="date-picker-start w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+                <input type="text" name="education[].startDate" required placeholder="YYYY-MM" pattern="\\d{4}-\\d{2}"
+                    class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+                <p class="text-xs text-gray-500 mt-1">Format: YYYY-MM (e.g., 2023-06)</p>
             </div>
             <div>
                 <label class="block text-sm font-bold text-gray-700 mb-2">End Date</label>
-                <input type="text" name="education[].endDate" placeholder="Select end date (optional)"
-                    class="date-picker-end w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+                <input type="text" name="education[].endDate" placeholder="YYYY-MM" pattern="\\d{4}-\\d{2}"
+                    class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+                <p class="text-xs text-gray-500 mt-1">Format: YYYY-MM (e.g., 2023-06)</p>
             </div>
             <div class="md:col-span-2">
                 <label class="block text-sm font-bold text-gray-700 mb-2">Description</label>
@@ -324,13 +328,19 @@
             alert('Please add at least one education entry.');
             return false;
         }
-        
+        const datePattern = /^\d{4}-\d{2}$/;
         for (let entry of entries) {
-            const requiredFields = ['institution', 'degree', 'startDate'];
+            const requiredFields = ['institution', 'degree', 'startDate', 'endDate'];
             for (let field of requiredFields) {
                 const value = entry.querySelector(`[name*="${field}"]`).value.trim();
                 if (!value) {
-                    alert(`Please fill in all required fields in the education section.`);
+                    alert('Please fill in all required fields in the education section.');
+                    entry.querySelector(`[name*="${field}"]`).focus();
+                    return false;
+                }
+                if ((field === 'startDate' || field === 'endDate') && !datePattern.test(value)) {
+                    alert(`Please enter the education ${field === 'startDate' ? 'start' : 'end'} date in the format YYYY-MM (e.g., 2023-06).`);
+                    entry.querySelector(`[name*="${field}"]`).focus();
                     return false;
                 }
             }
@@ -597,6 +607,16 @@
     }
 
     async function saveAndExit() {
+        // Date format validation for all date fields
+        const dateInputs = document.querySelectorAll('input[name*="startDate"], input[name*="endDate"]');
+        const datePattern = /^\d{4}-\d{2}$/;
+        for (let input of dateInputs) {
+            if (input.value && !datePattern.test(input.value)) {
+                alert('Please enter all dates in the format YYYY-MM (e.g., 2023-06).');
+                input.focus();
+                return;
+            }
+        }
         let isValid = false;
         let isSaved = false;
 
@@ -629,6 +649,17 @@
             // Validate and save current step before proceeding
             let isValid = false;
             let isSaved = false;
+
+            // Date format validation for all date fields
+            const dateInputs = document.querySelectorAll('input[name*="startDate"], input[name*="endDate"]');
+            const datePattern = /^\d{4}-\d{2}$/;
+            for (let input of dateInputs) {
+                if (input.value && !datePattern.test(input.value)) {
+                    alert('Please enter all dates in the format YYYY-MM (e.g., 2023-06).');
+                    input.focus();
+                    return;
+                }
+            }
 
             switch (currentStep) {
                 case 1:
@@ -668,6 +699,16 @@
     }
 
     async function finalizeResume(action) {
+        // Date format validation for all date fields
+        const dateInputs = document.querySelectorAll('input[name*="startDate"], input[name*="endDate"]');
+        const datePattern = /^\d{4}-\d{2}$/;
+        for (let input of dateInputs) {
+            if (input.value && !datePattern.test(input.value)) {
+                alert('Please enter all dates in the format YYYY-MM (e.g., 2023-06).');
+                input.focus();
+                return;
+            }
+        }
         // First, validate and save the current (final) step's data to ensure it's not lost
         if (!validateAdditional()) {
             return;
@@ -983,6 +1024,19 @@
         // Handle other formats
         return formatDateForInput(dateString) + '-01';
     }
+
+    document.getElementById('resumeForm').addEventListener('submit', function(e) {
+        const dateInputs = this.querySelectorAll('input[name*="startDate"], input[name*="endDate"]');
+        const datePattern = /^\d{4}-\d{2}$/;
+        for (let input of dateInputs) {
+            if (input.value && !datePattern.test(input.value)) {
+                alert('Please enter all dates in the format YYYY-MM (e.g., 2023-06).');
+                input.focus();
+                e.preventDefault();
+                return false;
+            }
+        }
+    });
 </script>
 
 <style>
