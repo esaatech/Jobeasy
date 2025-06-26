@@ -31,6 +31,12 @@ DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 # Allow all hosts for now (not recommended for production)
 ALLOWED_HOSTS = ['*']
 
+# CSRF Trusted Origins for Cloud Run
+CSRF_TRUSTED_ORIGINS = [
+    'https://dev-578103433472.us-west1.run.app',
+    'https://*.run.app',  # Allow any Cloud Run domain
+]
+
 
 # Application definition
 
