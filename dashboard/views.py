@@ -270,7 +270,7 @@ def generate_job_application(request):
             user=request.user,
             job_name=job_name,
             cover_letter=cover_letter,
-            resume=optimized_resume if optimized_resume else resume,
+            resume=optimized_resume if optimize_resume and optimized_resume else None,
             status='completed' if not error_message else 'failed'
         )
         
