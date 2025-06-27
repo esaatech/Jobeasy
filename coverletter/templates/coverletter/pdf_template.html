@@ -20,13 +20,21 @@
         .cover-letter-content {
             white-space: pre-wrap; /* Use pre-wrap to respect newlines and wrap text */
             font-size: 11pt;
-            text-align: justify;
         }
     </style>
 </head>
 <body>
     <div class="cover-letter-content">
-        {{ cover_letter.content }}
+        {% with lines=cover_letter.content.splitlines %}
+            {% if lines|length > 1 %}
+                <span style="text-align: left; display: block; margin-bottom: 0;">{{ lines.0 }}</span>
+                <span style="text-align: justify; display: block; margin-top: 0;">
+                    {{ lines|slice:"1:"|join:"<br>"|safe }}
+                </span>
+            {% else %}
+                <span style="text-align: left; display: block;">{{ cover_letter.content }}</span>
+            {% endif %}
+        {% endwith %}
     </div>
 </body>
 </html> 
