@@ -89,8 +89,8 @@ def _format_resume_content(resume):
 @login_required
 def dashboard(request):
     """Main dashboard view"""
-    # Get user's resumes for the selection
-    resumes = request.user.resumes.all().order_by('-updated_at')
+    # Get user's resumes for the selection (excluding optimized resumes)
+    resumes = request.user.resumes.filter(is_optimized=False).order_by('-updated_at')
     cover_letters = CoverLetter.objects.filter(user=request.user)
     job_applications = request.user.dashboard_job_applications.all()
     
