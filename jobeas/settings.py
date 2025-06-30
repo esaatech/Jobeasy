@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'coverletter',
     'dashboard',
     'ai_service',
+    'utils',
 ]
 
 MIDDLEWARE = [

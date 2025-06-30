@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alert System Demo</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Alert System CSS -->
+    <link rel="stylesheet" href="css/alerts.css">
+</head>
+<body class="bg-gray-50 min-h-screen p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold text-gray-800 mb-8">Alert System Demo</h1>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Basic Alerts -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4">Basic Alerts</h2>
+                <div class="space-y-3">
+                    <button onclick="Alert.success('Operation completed successfully!')" 
+                            class="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                        Success Alert
+                    </button>
+                    <button onclick="Alert.error('Something went wrong. Please try again.')" 
+                            class="w-full bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                        Error Alert
+                    </button>
+                    <button onclick="Alert.warning('Please review your information before proceeding.')" 
+                            class="w-full bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">
+                        Warning Alert
+                    </button>
+                    <button onclick="Alert.info('Your session will expire in 5 minutes.')" 
+                            class="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                        Info Alert
+                    </button>
+                </div>
+            </div>
+
+            <!-- Alerts with Titles -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4">Alerts with Titles</h2>
+                <div class="space-y-3">
+                    <button onclick="Alert.success({title: 'Success!', message: 'Your profile has been updated successfully.'})" 
+                            class="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                        Success with Title
+                    </button>
+                    <button onclick="Alert.error({title: 'Error', message: 'Unable to connect to the server.'})" 
+                            class="w-full bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                        Error with Title
+                    </button>
+                </div>
+            </div>
+
+            <!-- Confirmation Dialogs -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4">Confirmation Dialogs</h2>
+                <div class="space-y-3">
+                    <button onclick="Alert.confirm('Are you sure you want to delete this item?', {onConfirm: () => console.log('Confirmed')})" 
+                            class="w-full bg-orange-500 text-white px-4 py-2 rounded hover:bg-orange-600">
+                        Basic Confirm
+                    </button>
+                    <button onclick="Alert.confirm({title: 'Delete Item', message: 'This action cannot be undone.', confirmText: 'Delete', cancelText: 'Cancel', onConfirm: () => console.log('Deleted')})" 
+                            class="w-full bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                        Custom Confirm
+                    </button>
+                </div>
+            </div>
+
+            <!-- Toast Notifications -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4">Toast Notifications</h2>
+                <div class="space-y-3">
+                    <button onclick="Alert.toast('Changes saved automatically')" 
+                            class="w-full bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                        Basic Toast
+                    </button>
+                    <button onclick="Alert.toast('File uploaded successfully', {type: 'success', autoCloseDelay: 5000})" 
+                            class="w-full bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                        Success Toast (5s)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Advanced Examples -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4">Advanced Examples</h2>
+                <div class="space-y-3">
+                    <button onclick="showLoadingAlert()" 
+                            class="w-full bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">
+                        Loading Alert
+                    </button>
+                    <button onclick="showMultipleAlerts()" 
+                            class="w-full bg-indigo-500 text-white px-4 py-2 rounded hover:bg-indigo-600">
+                        Multiple Alerts
+                    </button>
+                </div>
+            </div>
+
+            <!-- Form Validation -->
+            <div class="bg-white p-6 rounded-lg shadow-md">
+                <h2 class="text-xl font-semibold mb-4">Form Validation</h2>
+                <div class="space-y-3">
+                    <input type="email" id="demoEmail" placeholder="Enter email" 
+                           class="w-full p-2 border border-gray-300 rounded">
+                    <button onclick="validateDemoForm()" 
+                            class="w-full bg-teal-500 text-white px-4 py-2 rounded hover:bg-teal-600">
+                        Validate Form
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert System JavaScript -->
+    <script type="module" src="utils/dialog.js"></script>
+    <script type="module" src="utils/alert.js"></script>
+    
+    <script type="module">
+        import Alert from './utils/alert.js';
+        
+        // Make Alert available globally for demo
+        window.Alert = Alert;
+        
+        function showLoadingAlert() {
+            const loadingAlert = Alert.info({
+                title: 'Processing',
+                message: 'Please wait while we process your request...',
+                confirmText: 'Cancel',
+                autoClose: false,
+                onConfirm: () => {
+                    console.log('Operation cancelled');
+                }
+            });
+            
+            // Simulate async operation
+            setTimeout(() => {
+                loadingAlert.close();
+                Alert.success('Operation completed successfully!');
+            }, 3000);
+        }
+        
+        function showMultipleAlerts() {
+            Alert.toast('First notification', { type: 'info' });
+            
+            setTimeout(() => {
+                Alert.toast('Second notification', { type: 'success' });
+            }, 1000);
+            
+            setTimeout(() => {
+                Alert.toast('Third notification', { type: 'warning' });
+            }, 2000);
+        }
+        
+        function validateDemoForm() {
+            const email = document.getElementById('demoEmail').value;
+            
+            if (!email) {
+                Alert.error('Please enter your email address');
+                return;
+            }
+            
+            if (!email.includes('@')) {
+                Alert.warning('Please enter a valid email address');
+                return;
+            }
+            
+            Alert.success('Form validation passed!');
+        }
+        
+        // Make functions available globally
+        window.showLoadingAlert = showLoadingAlert;
+        window.showMultipleAlerts = showMultipleAlerts;
+        window.validateDemoForm = validateDemoForm;
+    </script>
+</body>
+</html> 

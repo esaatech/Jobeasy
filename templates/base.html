@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,6 +13,9 @@
     <!-- Flatpickr Date Picker -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    
+    <!-- Alert System CSS -->
+    <link rel="stylesheet" href="{% static 'utils/css/alerts.css' %}">
     
     <!-- Custom CSS -->
     {% block extra_css %}{% endblock %}
@@ -48,6 +52,10 @@
 
     <!-- Base JavaScript -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Alert System JavaScript -->
+    <script type="module" src="{% static 'utils/components/dialog.js' %}"></script>
+    <script type="module" src="{% static 'utils/components/alert.js' %}"></script>
     
     <!-- Extra JavaScript -->
     {% block extra_scripts %}{% endblock %}

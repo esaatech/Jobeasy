@@ -1,3 +1,4 @@
+{% load static %}
 {% load json_filters %}
 <div class="min-h-screen bg-gray-50 py-8 font-sans">
     <!-- Progress Bar -->
@@ -313,7 +314,10 @@
     </div>
 </template>
 
-<script>
+<script type="module">
+    // Import the Alert system
+    import Alert from '{% static "utils/components/alert.js" %}';
+    
     let currentStep = 1;
     const totalSteps = 5;
     let resumeId = document.getElementById('resumeId').value || null;
@@ -349,16 +353,25 @@
     function validateDateField(value, label = 'date') {
         const datePattern = /^\d{4}-\d{2}$/;
         if (!value || !datePattern.test(value)) {
-            alert(`Please enter the ${label} in the format YYYY-MM (e.g., 2023-06).`);
+            Alert.error(`Please enter the ${label} in the format YYYY-MM (e.g., 2023-06).`);
             return false;
         }
         return true;
     }
 
-    // Global month/year validator (single source of truth)
-    function validateMonthYear(entry, prefix) {
+    /**
+     * Validates that both month and year are selected for a given prefix in an entry.
+     * If a presentCheckbox is provided and checked, skips validation (returns true).
+     * This ensures correct validation for end dates with 'Present'.
+     */
+    function validateMonthYear(entry, prefix, presentCheckbox = null) {
+        if (presentCheckbox && presentCheckbox.checked) {
+            console.log('validateMonthYear: Present is checked for', prefix);
+            return true;
+        }
         const month = entry.querySelector(`[name*="${prefix}_month"]`);
         const year = entry.querySelector(`[name*="${prefix}_year"]`);
+        console.log('validateMonthYear:', prefix, 'month:', month ? month.value : 'NOT FOUND', 'year:', year ? year.value : 'NOT FOUND');
         if (!month || !month.value || !year || !year.value) {
             return false;
         }
@@ -393,7 +406,7 @@
         for (let field of requiredFields) {
             const value = document.querySelector(`[name="${field}"]`).value.trim();
             if (!value) {
-                alert(`Please fill in the ${field.replace(/([A-Z])/g, ' $1').toLowerCase()} field.`);
+                Alert.error(`Please fill in the ${field.replace(/([A-Z])/g, ' $1').toLowerCase()} field.`);
                 return false;
             }
         }
@@ -401,12 +414,10 @@
     }
 
     function validateExperience() {
-        console.log('--- validateExperience called ---');
         const entries = document.querySelectorAll('.experience-entry');
         console.log('Validating experience entries:', entries.length);
         if (entries.length === 0) {
-            alert('Please add at least one work experience entry.');
-            console.log('--- validateExperience returned false (no entries) ---');
+            Alert.warning('Please add at least one work experience entry.');
             return false;
         }
         for (let i = 0; i < entries.length; i++) {
@@ -416,51 +427,43 @@
             const company = entry.querySelector('[name*="company"]');
             console.log('company:', company ? company.value : 'NOT FOUND');
             if (!company || !company.value.trim()) {
-                alert('Please fill in the company name in the experience section.');
+                Alert.error('Please fill in the company name in the experience section.');
                 company && company.focus();
-                console.log('--- validateExperience returned false (company) ---');
                 return false;
             }
             // Check position
             const position = entry.querySelector('[name*="position"]');
             console.log('position:', position ? position.value : 'NOT FOUND');
             if (!position || !position.value.trim()) {
-                alert('Please fill in the position in the experience section.');
+                Alert.error('Please fill in the position in the experience section.');
                 position && position.focus();
-                console.log('--- validateExperience returned false (position) ---');
                 return false;
             }
             // Check description
             const description = entry.querySelector('[name*="description"]');
             console.log('description:', description ? description.value : 'NOT FOUND');
             if (!description || !description.value.trim()) {
-                alert('Please fill in the description in the experience section.');
+                Alert.error('Please fill in the description in the experience section.');
                 description && description.focus();
-                console.log('--- validateExperience returned false (description) ---');
                 return false;
             }
             // Check start date (month and year)
             const startMonthValid = validateMonthYear(entry, 'startDate');
             console.log('startDate valid:', startMonthValid);
             if (!startMonthValid) {
-                alert('Please select both month and year for the start date in the experience section.');
-                console.log('--- validateExperience returned false (startDate) ---');
+                Alert.error('Please select both month and year for the start date in the experience section.');
                 return false;
             }
             // Check end date (month and year), unless "Present" is checked
             const endPresent = entry.querySelector('[name*="endDate_present"]');
             console.log('endPresent checked:', endPresent ? endPresent.checked : 'NOT FOUND');
-            if (!endPresent || !endPresent.checked) {
-                const endMonthValid = validateMonthYear(entry, 'endDate');
-                console.log('endDate valid:', endMonthValid);
-                if (!endMonthValid) {
-                    alert('Please select both month and year for the end date in the experience section, or check Present.');
-                    console.log('--- validateExperience returned false (endDate) ---');
-                    return false;
-                }
+            const endMonthValid = validateMonthYear(entry, 'endDate', endPresent);
+            console.log('endDate valid:', endMonthValid);
+            if (!endMonthValid) {
+                Alert.error('Please select both month and year for the end date in the experience section, or check Present.');
+                return false;
             }
         }
-        console.log('--- validateExperience returned true ---');
         return true;
     }
 
@@ -469,7 +472,7 @@
         const entries = document.querySelectorAll('.education-entry');
         console.log('Validating education entries:', entries.length);
         if (entries.length === 0) {
-            alert('Please add at least one education entry.');
+            Alert.warning('Please add at least one education entry.');
             console.log('--- validateEducation returned false (no entries) ---');
             return false;
         }
@@ -479,20 +482,21 @@
             for (let field of requiredFields) {
                 const value = entry.querySelector(`[name*="${field}"]`).value.trim();
                 if (!value) {
-                    alert('Please fill in all required fields in the education section.');
+                    Alert.error('Please fill in all required fields in the education section.');
                     entry.querySelector(`[name*="${field}"]`).focus();
                     console.log('--- validateEducation returned false (', field, ') ---');
                     return false;
                 }
             }
             if (!validateMonthYear(entry, 'startDate')) {
-                alert('Please select both month and year for the education start date.');
+                Alert.error('Please select both month and year for the education start date.');
                 console.log('--- validateEducation returned false (startDate) ---');
                 return false;
             }
-            if (!validateMonthYear(entry, 'endDate')) {
-                alert('Please select both month and year for the education end date.');
-                console.log('--- validateEducation returned false (endDate) ---');
+            const endPresent = entry.querySelector('[name*="endDate_present"]');
+            const endMonthValid = validateMonthYear(entry, 'endDate', endPresent);
+            if (!endMonthValid) {
+                Alert.error('Please select both month and year for the education end date, or check Present.');
                 return false;
             }
         }
@@ -555,12 +559,12 @@
                 }
                 return true;
             } else {
-                alert(result.error || 'Failed to save personal information');
+                Alert.error(result.error || 'Failed to save personal information');
                 return false;
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('Failed to save personal information');
+            Alert.error('Failed to save personal information');
             return false;
         }
     }
@@ -591,7 +595,7 @@
             // Handle endDate from dropdowns
             const endPresentCheckbox = entry.querySelector('[name*="endDate_present"]');
             if (endPresentCheckbox && endPresentCheckbox.checked) {
-                entryData['end_date'] = endPresentCheckbox.value;
+                entryData['end_date'] = endPresentCheckbox.value; // 'Present'
             } else {
                 const endMonthSelect = entry.querySelector('[name*="endDate_month"]');
                 const endYearSelect = entry.querySelector('[name*="endDate_year"]');
@@ -612,13 +616,12 @@
             experience.push(mappedEntryData);
         }
 
-        // Debug: log the experience array before validation
-        console.log('saveExperience: experience array', experience);
-
         // On Next: require all fields to be filled and valid
         if (!andExit) {
             for (let i = 0; i < experience.length; i++) {
                 const exp = experience[i];
+                console.log('saveExperience: entry', i, exp);
+                console.log('saveExperience: exp.end_date value:', exp.end_date);
                 if (!exp.company) {
                     console.log('saveExperience: missing company at index', i, exp);
                 }
@@ -635,10 +638,19 @@
                     console.log('saveExperience: missing description at index', i, exp);
                 }
                 if (!exp.company || !exp.title || !exp.start_date || !exp.end_date || !exp.description) {
-                    showToast('Please fill in all required fields in the experience section.', true);
+                    Alert.warning('Please fill in all required fields in the experience section.');
                     return false;
                 }
-                if (!validateDateField(exp.start_date, 'experience start date') || !validateDateField(exp.end_date, 'experience end date')) {
+                const shouldValidateEndDate = exp.end_date !== 'Present';
+                console.log('saveExperience: shouldValidateEndDate:', shouldValidateEndDate, 'for end_date:', exp.end_date);
+                const startDateValid = validateDateField(exp.start_date, 'experience start date');
+                console.log('saveExperience: validateDateField start_date returned:', startDateValid);
+                let endDateValid = true;
+                if (shouldValidateEndDate) {
+                    endDateValid = validateDateField(exp.end_date, 'experience end date');
+                    console.log('saveExperience: validateDateField end_date returned:', endDateValid);
+                }
+                if (!startDateValid || !endDateValid) {
                     return false;
                 }
             }
@@ -679,12 +691,12 @@
                 }
                 return true;
             } else {
-                showToast(result.error || 'Failed to save experience', true);
+                Alert.error(result.error || 'Failed to save experience');
                 return false;
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('Failed to save experience');
+            Alert.error('Failed to save experience');
             return false;
         }
     }
@@ -715,7 +727,7 @@
             // Handle endDate from dropdowns
             const endPresentCheckbox = entry.querySelector('[name*="endDate_present"]');
             if (endPresentCheckbox && endPresentCheckbox.checked) {
-                entryData['end_date'] = endPresentCheckbox.value;
+                entryData['end_date'] = endPresentCheckbox.value; // 'Present'
             } else {
                 const endMonthSelect = entry.querySelector('[name*="endDate_month"]');
                 const endYearSelect = entry.querySelector('[name*="endDate_year"]');
@@ -765,12 +777,12 @@
                 }
                 return true;
             } else {
-                showToast(result.error || 'Failed to save education', true);
+                Alert.error(result.error || 'Failed to save education');
                 return false;
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('Failed to save education');
+            Alert.error('Failed to save education');
             return false;
         }
     }
@@ -808,12 +820,12 @@
                 }
                 return true;
             } else {
-                showToast(result.error || 'Failed to save skills', true);
+                Alert.error(result.error || 'Failed to save skills');
                 return false;
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('Failed to save skills');
+            Alert.error('Failed to save skills');
             return false;
         }
     }
@@ -850,12 +862,12 @@
                 }
                 return true;
             } else {
-                showToast(result.error || 'Failed to save additional information', true);
+                Alert.error(result.error || 'Failed to save additional information');
                 return false;
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('Failed to save additional information');
+            Alert.error('Failed to save additional information');
             return false;
         }
     }
@@ -890,8 +902,14 @@
 
     async function nextStep() {
         if (currentStep < totalSteps) {
+            // Ensure all present end date fields are up to date before validation
+            updateAllPresentEndDates();
+
             let isValid = false;
             let isSaved = false;
+
+            console.log('--- nextStep called ---');
+            console.log('Current step:', currentStep);
 
             switch (currentStep) {
                 case 1:
@@ -910,6 +928,8 @@
                     isValid = validateAdditional();
                     break;
             }
+
+            console.log('Validation result for step', currentStep, ':', isValid);
 
             // Only call save function if validation passes
             if (!isValid) return;
@@ -931,6 +951,8 @@
                     isSaved = await saveAdditional();
                     break;
             }
+
+            console.log('Save result for step', currentStep, ':', isSaved);
 
             if (isSaved) {
                 currentStep++;
@@ -981,15 +1003,15 @@
             const result = await response.json();
             if (result.success) {
                 if (action === 'save') {
-                    alert('Resume saved successfully!');
+                    Alert.success('Resume saved successfully!');
                 }
                 window.location.href = result.redirect_url;
             } else {
-                alert(result.error || 'Failed to finalize resume');
+                Alert.error(result.error || 'Failed to finalize resume');
             }
         } catch (error) {
             console.error('Error:', error);
-            alert('Failed to finalize resume');
+            Alert.error('Failed to finalize resume');
         }
     }
 
@@ -1006,7 +1028,7 @@
         const presentCheckbox = clone.querySelector('input[name*="_present"]');
         if (presentCheckbox) {
             presentCheckbox.addEventListener('change', function() {
-                handlePresentCheckbox(this);
+                handlePresentEndDate(this);
             });
         }
     }
@@ -1024,7 +1046,7 @@
         const presentCheckbox = clone.querySelector('input[name*="_present"]');
         if (presentCheckbox) {
             presentCheckbox.addEventListener('change', function() {
-                handlePresentCheckbox(this);
+                handlePresentEndDate(this);
             });
         }
     }
@@ -1113,59 +1135,62 @@
         button.closest('.experience-entry, .education-entry').remove();
     }
 
-    // Handle Present checkbox functionality
-    function handlePresentCheckbox(checkbox) {
+    /**
+     * Global handler for 'Present' checkbox on end date fields.
+     * - When checked: sets selects to today's date, disables them, and ensures value sent to backend is 'Present'.
+     * - When unchecked: enables selects and allows user input.
+     * This ensures a single source of truth for all end date fields using 'Present'.
+     */
+    function handlePresentEndDate(checkbox) {
         const entry = checkbox.closest('.experience-entry, .education-entry');
-        const monthSelect = entry.querySelector('select[name*="month"]');
-        const yearSelect = entry.querySelector('select[name*="year"]');
-        
+        const monthSelect = entry.querySelector('select[name*="endDate_month"]');
+        const yearSelect = entry.querySelector('select[name*="endDate_year"]');
+        // Get current month/year
+        const now = new Date();
+        const currentMonth = String(now.getMonth() + 1).padStart(2, '0');
+        const currentYear = String(now.getFullYear());
+
         if (checkbox.checked) {
-            monthSelect.disabled = true;
-            yearSelect.disabled = true;
+            // Set selects to today and disable
+            if (monthSelect) {
+                monthSelect.value = currentMonth;
+                monthSelect.disabled = true;
+            }
+            if (yearSelect) {
+                yearSelect.value = currentYear;
+                yearSelect.disabled = true;
+            }
         } else {
-            monthSelect.disabled = false;
-            yearSelect.disabled = false;
+            // Enable selects for user input
+            if (monthSelect) monthSelect.disabled = false;
+            if (yearSelect) yearSelect.disabled = false;
         }
     }
 
-    // Add event listeners for Present checkboxes
-    function addPresentCheckboxListeners() {
-        const presentCheckboxes = document.querySelectorAll('input[name*="_present"]');
+    // Add event listeners for Present checkboxes (global, for all end dates)
+    function addPresentEndDateListeners() {
+        const presentCheckboxes = document.querySelectorAll('input[name*="endDate_present"]');
         presentCheckboxes.forEach(checkbox => {
             checkbox.addEventListener('change', function() {
-                handlePresentCheckbox(this);
+                handlePresentEndDate(this);
             });
+            // Call on page load to set initial state
+            handlePresentEndDate(checkbox);
         });
+    }
+
+    /**
+     * Update all end date fields for 'Present' checkboxes before validation.
+     * This ensures the UI and data are in sync, especially when the user quickly checks 'Present' and clicks Next.
+     * Should be called before validation in nextStep().
+     */
+    function updateAllPresentEndDates() {
+        const presentCheckboxes = document.querySelectorAll('input[name*="endDate_present"]');
+        presentCheckboxes.forEach(checkbox => handlePresentEndDate(checkbox));
     }
 
     // Initialize first step
     showStep(1);
-
-    // Toast notification function
-    function showToast(message, isError = false) {
-        // Create toast element
-        const toast = document.createElement('div');
-        toast.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg transition-all duration-300 transform translate-x-full ${
-            isError ? 'bg-red-500 text-white' : 'bg-green-500 text-white'
-        }`;
-        toast.textContent = message;
-        
-        // Add to page
-        document.body.appendChild(toast);
-        
-        // Animate in
-        setTimeout(() => {
-            toast.classList.remove('translate-x-full');
-        }, 100);
-        
-        // Remove after 3 seconds
-        setTimeout(() => {
-            toast.classList.add('translate-x-full');
-            setTimeout(() => {
-                document.body.removeChild(toast);
-            }, 300);
-        }, 3000);
-    }
 
     document.addEventListener('DOMContentLoaded', function() {
         // REMOVE JS-based population of experience and education entries
@@ -1178,7 +1203,7 @@
         initializeAllDatePickers();
         
         // Add event listeners for Present checkboxes
-        addPresentCheckboxListeners();
+        addPresentEndDateListeners();
         
         showStep(1);
     });
@@ -1188,13 +1213,22 @@
         const datePattern = /^\d{4}-\d{2}$/;
         for (let input of dateInputs) {
             if (input.value && !datePattern.test(input.value)) {
-                alert('Please enter all dates in the format YYYY-MM (e.g., 2023-06).');
+                Alert.error('Please enter all dates in the format YYYY-MM (e.g., 2023-06).');
                 input.focus();
                 e.preventDefault();
                 return false;
             }
         }
     });
+
+    // Make functions available globally for onclick handlers
+    window.nextStep = nextStep;
+    window.prevStep = prevStep;
+    window.saveAndExit = saveAndExit;
+    window.finalizeResume = finalizeResume;
+    window.addExperience = addExperience;
+    window.addEducation = addEducation;
+    window.removeEntry = removeEntry;
 </script>
 
 <style>

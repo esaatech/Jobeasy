@@ -28,6 +28,7 @@ urlpatterns = [
     path('coverletter/', include('coverletter.urls')),
     path('dashboard/', include('dashboard.urls')),
     path('ai-service/', include('ai_service.urls')),
+    path('utils/', include('utils.urls')),
 ]
 
 # Serve media files in development
