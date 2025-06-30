@@ -359,7 +359,7 @@ def parse_resume_from_text(resume_text: str):
         "{\n"
         '  "personal_info": { "full_name": "...", "email": "...", "phone": "...", "location": "...", "linkedin": "...", "summary": "..." },\n'
         '  "experience": [ { "title": "...", "company": "...", "start_date": "YYYY-MM", "end_date": "YYYY-MM or Present", "description": "...", "achievements": ["..."] } ],\n'
-        '  "education": [ { "degree": "...", "institution": "...", "year": "...", "gpa": "..." } ],\n'
+        '  "education": [ { "degree": "...", "institution": "...", "start_date": "YYYY-MM", "end_date": "YYYY-MM or Present", "gpa": "...", "description": "..." } ],\n'
         '  "skills": { "technical": ["Skill1", "Skill2"], "soft": ["Skill3", "Skill4"], "languages": ["English", "Spanish"] },\n'
         '  "additional": { "certifications": "...", "projects": "..." },\n'
         '  "is_complete": true\n'
@@ -375,13 +375,13 @@ Extract and structure the resume information into the JSON format above:
 
 • personal_info: Extract name, email, phone, location, LinkedIn, and professional summary
 • experience: List all work experience with title, company, start_date (YYYY-MM), end_date (YYYY-MM or Present), description, and achievements
-• education: List all education with degree, institution, year, and GPA if available
+• education: List all education with degree, institution, start_date (YYYY-MM), end_date (YYYY-MM or Present), GPA if available, and description if available
 • skills: Categorize skills into technical, soft skills, and languages
 • additional: Extract certifications, projects, or other relevant information
 • is_complete: Set to true if you can extract most fields, false if data is incomplete
 
 Guidelines:
-- For each experience, always extract start_date and end_date if available. Use the format YYYY-MM (e.g., 2022-03). If only a year is present, use YYYY-01. If the job is current, set end_date to "Present". If a date is not found, use an empty string.
+- For each experience and education entry, always extract start_date and end_date if available. Use the format YYYY-MM (e.g., 2022-03). If only a year is present, use YYYY-01. If the entry is current, set end_date to "Present". If a date is not found, use an empty string.
 - Only extract information that is clearly present in the text
 - Do not invent or assume information
 - If a field is not found, use empty string or empty array as appropriate

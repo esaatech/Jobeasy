@@ -78,9 +78,9 @@
                 {% for exp in resume_data.experience %}
                 <div class="mb-6 relative pl-6 border-l-2 border-blue-200">
                     <div class="absolute w-3 h-3 bg-blue-400 rounded-full -left-[7px] top-2"></div>
-                    <h3 class="font-semibold text-gray-900">{{ exp.position }}</h3>
+                    <h3 class="font-semibold text-gray-900">{{ exp.title }}</h3>
                     <p class="text-blue-600 mb-2">{{ exp.company }}</p>
-                    <p class="text-sm text-gray-500 mb-2">{{ exp.startDate }} - {{ exp.endDate|default:"Present" }}</p>
+                    <p class="text-sm text-gray-500 mb-2">{{ exp.start_date }} - {{ exp.end_date|default:"Present" }}</p>
                     <p class="text-gray-700">{{ exp.description }}</p>
                 </div>
                 {% endfor %}
@@ -94,7 +94,7 @@
                     <div class="absolute w-3 h-3 bg-purple-400 rounded-full -left-[7px] top-2"></div>
                     <h3 class="font-semibold text-gray-900">{{ edu.degree }}</h3>
                     <p class="text-purple-600 mb-2">{{ edu.institution }}</p>
-                    <p class="text-sm text-gray-500 mb-2">{{ edu.startDate }} - {{ edu.endDate|default:"Present" }}</p>
+                    <p class="text-sm text-gray-500 mb-2">{{ edu.start_date }} - {{ edu.end_date|default:"Present" }}</p>
                     {% if edu.description %}
                     <p class="text-gray-700">{{ edu.description }}</p>
                     {% endif %}

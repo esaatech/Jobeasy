@@ -67,10 +67,10 @@
             <div class="bg-white p-6 rounded-xl shadow-sm">
                 <div class="flex justify-between items-start mb-4">
                     <div>
-                        <h3 class="text-xl font-semibold text-gray-900">{{ exp.position }}</h3>
+                        <h3 class="text-xl font-semibold text-gray-900">{{ exp.title }}</h3>
                         <p class="text-purple-600">{{ exp.company }}</p>
                     </div>
-                    <span class="text-sm text-gray-500">{{ exp.startDate }} - {{ exp.endDate|default:"Present" }}</span>
+                    <span class="text-sm text-gray-500">{{ exp.start_date }} - {{ exp.end_date|default:"Present" }}</span>
                 </div>
                 <p class="text-gray-700">{{ exp.description }}</p>
             </div>
@@ -86,7 +86,7 @@
             <div class="bg-white p-6 rounded-xl shadow-sm">
                 <h3 class="text-xl font-semibold text-gray-900 mb-2">{{ edu.degree }}</h3>
                 <p class="text-indigo-600 mb-2">{{ edu.institution }}</p>
-                <p class="text-sm text-gray-500 mb-2">{{ edu.startDate }} - {{ edu.endDate|default:"Present" }}</p>
+                <p class="text-sm text-gray-500 mb-2">{{ edu.start_date }} - {{ edu.end_date|default:"Present" }}</p>
                 {% if edu.description %}
                 <p class="text-gray-700">{{ edu.description }}</p>
                 {% endif %}

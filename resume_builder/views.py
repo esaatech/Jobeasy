@@ -27,6 +27,12 @@ from docx import Document
 # Import AI service for resume parsing
 from ai_service.open_ai import parse_resume_from_text
 
+# Import utils for date options
+from utils.date_utils import get_month_year_options
+
+# Import utils for error handling
+from utils.error import get_network_timeout_dialog, get_network_connection_dialog, get_network_generic_dialog
+
 # Load environment variables from .env file
 load_dotenv()
 
@@ -117,6 +123,9 @@ def create_resume(request, resume_id=None):
         'credits_text': ''
     }
 
+    # Get month/year options for date dropdowns
+    date_options = get_month_year_options()
+
     context = {
         'form': ResumeForm(),
         'hero_content': hero_content,
@@ -124,7 +133,8 @@ def create_resume(request, resume_id=None):
             'builder_cost': 10  # or whatever the cost is
         },
         'default_resume_name': default_name,
-        'resume_instance': resume_instance
+        'resume_instance': resume_instance,
+        'date_options': date_options,
     }
 
     return render(request, 'resume_builder/resume.html', context)
@@ -295,12 +305,35 @@ def upload_resume(request):
             logger.info("Parsing resume with AI")
             try:
                 parsed_data = parse_resume_from_text(resume_text)
-            except Exception as e:
-                logger.error(f"AI parsing error: {str(e)}")
+            except TimeoutError:
+                logger.error("AI parsing timeout error")
+                error_dialog = get_network_timeout_dialog()
                 return JsonResponse({
                     'success': False,
-                    'error': f'Error parsing resume: {str(e)}'
-                }, status=500)
+                    'error': error_dialog
+                }, status=504)
+            except ConnectionError:
+                logger.error("AI parsing connection error")
+                error_dialog = get_network_connection_dialog()
+                return JsonResponse({
+                    'success': False,
+                    'error': error_dialog
+                }, status=503)
+            except Exception as e:
+                logger.error(f"AI parsing error: {str(e)}")
+                # Check if it's a timeout-related error
+                if "timed out" in str(e).lower() or "timeout" in str(e).lower():
+                    error_dialog = get_network_timeout_dialog()
+                    return JsonResponse({
+                        'success': False,
+                        'error': error_dialog
+                    }, status=504)
+                else:
+                    error_dialog = get_network_generic_dialog()
+                    return JsonResponse({
+                        'success': False,
+                        'error': error_dialog
+                    }, status=500)
             
             personal_info = parsed_data.get('personal_info', {})
             experience = parsed_data.get('experience', [])
@@ -348,9 +381,10 @@ def upload_resume(request):
             
         except Exception as e:
             logger.error(f"Unexpected error in upload_resume: {str(e)}", exc_info=True)
+            error_dialog = get_network_generic_dialog()
             return JsonResponse({
                 'success': False,
-                'error': f'An unexpected error occurred: {str(e)}'
+                'error': error_dialog
             }, status=500)
     
     # GET request - render the upload form

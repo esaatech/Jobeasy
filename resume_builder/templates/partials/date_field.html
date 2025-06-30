@@ -1,0 +1,18 @@
+<div class="flex space-x-2">
+  <select name="{{ name_prefix }}_month" class="p-2 border rounded" {% if date_value == present_label %}disabled{% endif %}>
+    {% for month_num, month_name in months %}
+      <option value="{{ month_num }}" {% if date_value and date_value != present_label and date_value|slice:'5:7' == month_num|stringformat:'02d' %}selected{% elif not date_value and month_num == current_month %}selected{% endif %}>{{ month_name }}</option>
+    {% endfor %}
+  </select>
+  <select name="{{ name_prefix }}_year" class="p-2 border rounded" {% if date_value == present_label %}disabled{% endif %}>
+    {% for year in years %}
+      <option value="{{ year }}" {% if date_value and date_value != present_label and date_value|slice:':4' == year|stringformat:'d' %}selected{% elif not date_value and year == current_year %}selected{% endif %}>{{ year }}</option>
+    {% endfor %}
+  </select>
+  {% if is_end_date %}
+    <label class="flex items-center space-x-1 ml-2">
+      <input type="checkbox" name="{{ name_prefix }}_present" value="{{ present_label }}" {% if date_value == present_label %}checked{% endif %}>
+      <span>{{ present_label }}</span>
+    </label>
+  {% endif %}
+</div>
