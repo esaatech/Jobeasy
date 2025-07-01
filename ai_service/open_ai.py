@@ -364,6 +364,8 @@ def parse_resume_from_text(resume_text: str):
         '  "additional": { "certifications": "...", "projects": "..." },\n'
         '  "is_complete": true\n'
         "}"
+        ")\n\n"
+        "If the resume does not contain a professional summary, generate a concise and relevant professional summary for the candidate based on their experience, education, and skills."
     )
     
     user_msg = f"""
