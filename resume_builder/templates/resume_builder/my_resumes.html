@@ -48,7 +48,7 @@
                             </p>
                         {% elif resume.personal_info.summary %}
                             <p class="text-sm text-gray-600 line-clamp-3">
-                                {{ resume.personal_info.summary|truncatewords:20 }}
+                                {{ resume.personal_info.summary|truncatewords:20|safe }}
                             </p>
                         {% else %}
                             <p class="text-sm text-gray-400 italic">No summary available.</p>

@@ -398,7 +398,12 @@
     function validatePersonalInfo() {
         const requiredFields = ['resume_name', 'fullName', 'title', 'email', 'summary'];
         for (let field of requiredFields) {
-            const value = document.querySelector(`[name="${field}"]`).value.trim();
+            let value;
+            if (field === 'summary' && window.ckeditor5Instances['summary-editor']) {
+                value = window.ckeditor5Instances['summary-editor'].getData().trim();
+            } else {
+                value = document.querySelector(`[name="${field}"]`).value.trim();
+            }
             if (!value) {
                 window.Alert.error(`Please fill in the ${field.replace(/([A-Z])/g, ' $1').toLowerCase()} field.`);
                 return false;
@@ -434,11 +439,17 @@
                 return false;
             }
             // Check description
-            const description = entry.querySelector('[name*="description"]');
-            console.log('description:', description ? description.value : 'NOT FOUND');
-            if (!description || !description.value.trim()) {
+            const descriptionField = entry.querySelector('[name*="description"]');
+            let descriptionValue = '';
+            if (descriptionField && descriptionField.id && window.ckeditor5Instances[descriptionField.id]) {
+                descriptionValue = window.ckeditor5Instances[descriptionField.id].getData().trim();
+            } else if (descriptionField) {
+                descriptionValue = descriptionField.value.trim();
+            }
+            console.log('description:', descriptionValue);
+            if (!descriptionValue) {
                 window.Alert.error('Please fill in the description in the experience section.');
-                description && description.focus();
+                descriptionField && descriptionField.focus();
                 return false;
             }
             // Check start date (month and year)
@@ -472,7 +483,8 @@
         }
         const datePattern = /^\d{4}-\d{2}$/;
         for (let entry of entries) {
-            const requiredFields = ['institution', 'degree', 'description'];
+            // Only require institution and degree, not description
+            const requiredFields = ['institution', 'degree'];
             for (let field of requiredFields) {
                 const value = entry.querySelector(`[name*="${field}"]`).value.trim();
                 if (!value) {
