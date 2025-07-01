@@ -1,0 +1,36 @@
+<!-- Contact Section -->
+<div class="w-full flex flex-col items-center justify-center py-12 px-4 bg-white">
+    <h2 class="text-3xl md:text-4xl font-bold mb-8" style="font-family: 'Inter', sans-serif; color: #111827;">Contact Us</h2>
+    <div class="w-full max-w-4xl bg-gray-50 rounded-xl shadow p-8 flex flex-col md:flex-row gap-8">
+        <!-- Contact Form -->
+        <div class="flex-1">
+            <form method="post" action="#">
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-semibold mb-2" for="name">Name</label>
+                    <input class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400" type="text" id="name" name="name" required>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 font-semibold mb-2" for="email">Email</label>
+                    <input class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400" type="email" id="email" name="email" required>
+                </div>
+                <div class="mb-6">
+                    <label class="block text-gray-700 font-semibold mb-2" for="message">Message</label>
+                    <textarea class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400" id="message" name="message" rows="4" required></textarea>
+                </div>
+                <button type="submit" class="bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold px-6 py-2 rounded-lg shadow hover:from-cyan-500 hover:to-blue-500 transition">Send Message</button>
+            </form>
+            <div class="text-gray-500 text-sm mt-6 text-center md:text-left">
+                Or email us at <a href="mailto:support@jobeas.com" class="text-blue-500 underline">support@jobeas.com</a>
+            </div>
+        </div>
+        <!-- Newsletter Signup -->
+        <div class="flex-1 flex flex-col justify-center items-center md:items-start bg-white rounded-lg p-6 shadow-sm">
+            <h3 class="text-xl font-bold mb-2 text-gray-800">Register for Newsletter</h3>
+            <p class="text-gray-500 mb-4">Get the latest job search tips, product updates, and exclusive offers straight to your inbox.</p>
+            <form method="post" action="#" class="w-full flex flex-col sm:flex-row gap-3">
+                <input type="email" name="newsletter_email" placeholder="Your email address" required class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400">
+                <button type="submit" class="bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-semibold px-6 py-2 rounded-lg shadow hover:from-cyan-500 hover:to-blue-500 transition">Subscribe</button>
+            </form>
+        </div>
+    </div>
+</div>
