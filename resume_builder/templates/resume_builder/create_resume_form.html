@@ -60,7 +60,7 @@
                     </div>
                     <div class="md:col-span-2">
                         <label class="block text-sm font-bold text-gray-700 mb-2">Professional Summary</label>
-                        <textarea name="summary" rows="4" required
+                        <textarea name="summary" id="summary-editor" rows="4" required
                             class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">{{ resume_instance.personal_info.summary|default:'' }}</textarea>
                     </div>
                 </div>
@@ -104,7 +104,7 @@
                                 </div>
                                 <div class="md:col-span-2">
                                     <label class="block text-sm font-bold text-gray-700 mb-2">Description</label>
-                                    <textarea name="experience[{{ forloop.counter0 }}].description" rows="3" required class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">{{ exp.description }}</textarea>
+                                    <textarea name="experience[{{ forloop.counter0 }}].description" id="exp-desc-{{ forloop.counter0 }}" rows="3" required class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">{{ exp.description }}</textarea>
                                 </div>
                             </div>
                         </div>
@@ -151,7 +151,7 @@
                                 </div>
                                 <div class="md:col-span-2">
                                     <label class="block text-sm font-bold text-gray-700 mb-2">Description</label>
-                                    <textarea name="education[{{ forloop.counter0 }}].description" rows="3" class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">{{ edu.description }}</textarea>
+                                    <textarea name="education[{{ forloop.counter0 }}].description" id="edu-desc-{{ forloop.counter0 }}" rows="3" class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">{{ edu.description }}</textarea>
                                 </div>
                             </div>
                         </div>
@@ -193,13 +193,11 @@
                 <div class="space-y-6">
                     <div>
                         <label class="block text-sm font-bold text-gray-700 mb-2">Certifications</label>
-                        <textarea name="certifications" rows="3"
-                            class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">{% if resume_instance.additional.certifications %}{{ resume_instance.additional.certifications }}{% endif %}</textarea>
+                        <textarea name="certifications" id="certifications-editor" rows="3" class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">{% if resume_instance.additional.certifications %}{{ resume_instance.additional.certifications }}{% endif %}</textarea>
                     </div>
                     <div>
                         <label class="block text-sm font-bold text-gray-700 mb-2">Projects</label>
-                        <textarea name="projects" rows="3"
-                            class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">{% if resume_instance.additional.projects %}{{ resume_instance.additional.projects }}{% endif %}</textarea>
+                        <textarea name="projects" id="projects-editor" rows="3" class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">{% if resume_instance.additional.projects %}{{ resume_instance.additional.projects }}{% endif %}</textarea>
                     </div>
                 </div>
             </div>
@@ -271,8 +269,7 @@
             </div>
             <div class="md:col-span-2">
                 <label class="block text-sm font-bold text-gray-700 mb-2">Description</label>
-                <textarea name="experience[].description" rows="3" required
-                    class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10"></textarea>
+                <textarea name="experience[].description" id="exp-desc-template" rows="3" required class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10"></textarea>
             </div>
         </div>
     </div>
@@ -307,8 +304,7 @@
             </div>
             <div class="md:col-span-2">
                 <label class="block text-sm font-bold text-gray-700 mb-2">Description</label>
-                <textarea name="education[].description" rows="3"
-                    class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10"></textarea>
+                <textarea name="education[].description" id="edu-desc-template" rows="3" class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10"></textarea>
             </div>
         </div>
     </div>
@@ -1227,6 +1223,66 @@
     window.addExperience = addExperience;
     window.addEducation = addEducation;
     window.removeEntry = removeEntry;
+
+    // CKEditor 5 integration
+    window.ckeditor5Instances = {};
+    function initializeCKEditor5(id) {
+        if (!document.getElementById(id)) return;
+        if (window.ckeditor5Instances[id]) return; // Prevent double init
+        ClassicEditor.create(document.getElementById(id), {
+            toolbar: ['bold', 'bulletedList', 'numberedList']
+        }).then(editor => {
+            window.ckeditor5Instances[id] = editor;
+        }).catch(error => {
+            console.error('CKEditor5 error for', id, error);
+        });
+    }
+    // Initialize static editors on DOMContentLoaded
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeCKEditor5('summary-editor');
+        initializeCKEditor5('certifications-editor');
+        initializeCKEditor5('projects-editor');
+        // For pre-existing experience/education entries
+        document.querySelectorAll('textarea[id^="exp-desc-"]').forEach(el => initializeCKEditor5(el.id));
+        document.querySelectorAll('textarea[id^="edu-desc-"]').forEach(el => initializeCKEditor5(el.id));
+    });
+    // For dynamic experience/education entries
+    function addExperience() {
+        const template = document.getElementById('experienceTemplate');
+        const container = document.getElementById('experienceContainer');
+        const clone = template.content.cloneNode(true);
+        // Assign a unique id to the new textarea
+        const newId = 'exp-desc-' + Date.now();
+        clone.querySelector('textarea').id = newId;
+        container.appendChild(clone);
+        // Initialize CKEditor 5 for the new textarea
+        initializeCKEditor5(newId);
+        // ... existing code for Flatpickr and Present checkbox ...
+        const presentCheckbox = container.lastElementChild.querySelector('input[name*="_present"]');
+        if (presentCheckbox) {
+            presentCheckbox.addEventListener('change', function() {
+                handlePresentEndDate(this);
+            });
+        }
+    }
+    function addEducation() {
+        const template = document.getElementById('educationTemplate');
+        const container = document.getElementById('educationContainer');
+        const clone = template.content.cloneNode(true);
+        // Assign a unique id to the new textarea
+        const newId = 'edu-desc-' + Date.now();
+        clone.querySelector('textarea').id = newId;
+        container.appendChild(clone);
+        // Initialize CKEditor 5 for the new textarea
+        initializeCKEditor5(newId);
+        // ... existing code for Flatpickr and Present checkbox ...
+        const presentCheckbox = container.lastElementChild.querySelector('input[name*="_present"]');
+        if (presentCheckbox) {
+            presentCheckbox.addEventListener('change', function() {
+                handlePresentEndDate(this);
+            });
+        }
+    }
 </script>
 
 <style>
@@ -1245,5 +1301,109 @@
     .form-step.hidden {
         display: none;
     }
+
+    /* CKEditor 5 List Styling Fixes */
+    .ck-editor__editable ul {
+        list-style-type: disc;
+        margin-left: 20px;
+        padding-left: 20px;
+    }
+
+    .ck-editor__editable ol {
+        list-style-type: decimal;
+        margin-left: 20px;
+        padding-left: 20px;
+    }
+
+    .ck-editor__editable li {
+        margin-bottom: 5px;
+    }
+
+    /* Ensure proper spacing for nested lists */
+    .ck-editor__editable ul ul {
+        list-style-type: circle;
+        margin-top: 5px;
+    }
+
+    .ck-editor__editable ol ol {
+        list-style-type: lower-alpha;
+        margin-top: 5px;
+    }
+
+    /* CKEditor 5 Heading Styling */
+    .ck-editor__editable h1,
+    .ck.ck-editor__editable h1 {
+        font-size: 2em !important;
+        font-weight: bold !important;
+        margin: 0.67em 0 !important;
+        color: #1f2937 !important;
+        display: block !important;
+    }
+
+    .ck-editor__editable h2,
+    .ck.ck-editor__editable h2 {
+        font-size: 1.5em !important;
+        font-weight: bold !important;
+        margin: 0.83em 0 !important;
+        color: #1f2937 !important;
+        display: block !important;
+    }
+
+    .ck-editor__editable h3,
+    .ck.ck-editor__editable h3 {
+        font-size: 1.17em !important;
+        font-weight: bold !important;
+        margin: 1em 0 !important;
+        color: #374151 !important;
+        display: block !important;
+    }
+
+    .ck-editor__editable h4,
+    .ck.ck-editor__editable h4 {
+        font-size: 1em !important;
+        font-weight: bold !important;
+        margin: 1.33em 0 !important;
+        color: #374151 !important;
+        display: block !important;
+    }
+
+    .ck-editor__editable h5,
+    .ck.ck-editor__editable h5 {
+        font-size: 0.83em !important;
+        font-weight: bold !important;
+        margin: 1.67em 0 !important;
+        color: #6b7280 !important;
+        display: block !important;
+    }
+
+    .ck-editor__editable h6,
+    .ck.ck-editor__editable h6 {
+        font-size: 0.67em !important;
+        font-weight: bold !important;
+        margin: 2.33em 0 !important;
+        color: #6b7280 !important;
+        display: block !important;
+    }
+
+    /* Additional targeting for CKEditor content */
+    .ck-content h1,
+    .ck-content h2,
+    .ck-content h3,
+    .ck-content h4,
+    .ck-content h5,
+    .ck-content h6 {
+        font-weight: bold !important;
+        display: block !important;
+    }
+
+    .ck-content h1 { font-size: 2em !important; margin: 0.67em 0 !important; }
+    .ck-content h2 { font-size: 1.5em !important; margin: 0.83em 0 !important; }
+    .ck-content h3 { font-size: 1.17em !important; margin: 1em 0 !important; }
+    .ck-content h4 { font-size: 1em !important; margin: 1.33em 0 !important; }
+    .ck-content h5 { font-size: 0.83em !important; margin: 1.67em 0 !important; }
+    .ck-content h6 { font-size: 0.67em !important; margin: 2.33em 0 !important; }
 </style>
+
+<!-- CKEditor 5 Local Build -->
+<script src="{% static 'ckeditor5/ckeditor.js' %}"></script>
 

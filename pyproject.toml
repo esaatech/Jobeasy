@@ -18,6 +18,7 @@ reportlab = "^4.4.2"
 playwright = "^1.52.0"
 gunicorn = "^21.2.0"
 whitenoise = "^6.6.0"
+django-ckeditor-5 = "^0.2.18"
 
 [tool.poetry.scripts]
 test = "test_runner:main"

@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'dashboard',
     'ai_service',
     'utils',
+    'django_ckeditor_5',
 ]
 
 MIDDLEWARE = [
@@ -197,3 +198,14 @@ ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'admin@localhost')
 SITE_URL = os.environ.get('SITE_URL', 'http://localhost:8000')
 
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+CKEDITOR_5_CONFIGS = {
+    'default': {
+        'toolbar': [
+            'heading', '|',
+            'bold', 'italic', '|',
+            'bulletedList', 'numberedList', '|',
+            'blockQuote'
+        ],
+    },
+}

@@ -339,6 +339,24 @@ argon2 = ["argon2-cffi (>=19.1.0)"]
 bcrypt = ["bcrypt"]
 
 [[package]]
+name = "django-ckeditor-5"
+version = "0.2.18"
+description = "CKEditor 5 for Django."
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "django_ckeditor_5-0.2.18-py3-none-any.whl", hash = "sha256:155d14bed6688791026486c191dd82dbc2937d6a588079989d5bd89708de8463"},
+    {file = "django_ckeditor_5-0.2.18.tar.gz", hash = "sha256:08270b1dd8d1b5c27c5a2023ec8f920e2ec0c7d2afa0113af765f0de53947d35"},
+]
+
+[package.dependencies]
+Django = ">=2.2"
+Pillow = "*"
+
+[package.extras]
+dev = ["bandit[toml] (==1.8.2)", "black (==25.1.0)", "codespell (==2.4.1)", "coverage (==7.6.10)", "mypy (==1.15.0)", "mypy-extensions (==1.0.0)", "pytest (==8.3.4)", "pytest-cov (==6.0.0)", "pytest-django (==4.9.0)", "pytest-mock (==3.14.0)", "safety (==3.2.14)", "types-setuptools (==75.8.0.20250110)", "typing_extensions (==4.12.2)"]
+
+[[package]]
 name = "django-mailbox"
 version = "4.10.1"
 description = "Import mail from POP3, IMAP, local mailboxes or directly from Postfix or Exim4 into your Django application automatically."
@@ -1300,4 +1318,4 @@ brotli = ["brotli"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "20496b5e58f8c20cdbce401c92e0736a9fc96ab3028c29ca065c3785d154374e"
+content-hash = "4a67caa2c33f7554acc48c8d1a1a8caaf04bad7a916463cc30b6ca8cb6448f28"
