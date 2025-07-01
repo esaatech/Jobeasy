@@ -1,6 +1,41 @@
 {% load resume_filters %}
 
 <!-- Professional Template -->
+<style>
+    /* CKEditor HTML Content Styling */
+    .professional-template ul {
+        list-style-type: disc;
+        margin-left: 20px;
+        padding-left: 20px;
+        margin-bottom: 10px;
+    }
+
+    .professional-template ol {
+        list-style-type: decimal;
+        margin-left: 20px;
+        padding-left: 20px;
+        margin-bottom: 10px;
+    }
+
+    .professional-template li {
+        margin-bottom: 5px;
+    }
+
+    .professional-template ul ul {
+        list-style-type: circle;
+        margin-top: 5px;
+    }
+
+    .professional-template ol ol {
+        list-style-type: lower-alpha;
+        margin-top: 5px;
+    }
+
+    .professional-template p {
+        margin-bottom: 10px;
+    }
+</style>
+
 <div class="professional-template">
     <!-- Header -->
     <div class="text-center mb-8">
@@ -15,7 +50,7 @@
     <!-- Professional Summary -->
     <div class="mb-8">
         <h2 class="text-xl font-semibold text-gray-900 border-b border-gray-300 pb-2 mb-4">Professional Summary</h2>
-        <p class="text-gray-700">{{ resume_data.personal_info.summary }}</p>
+        <div class="text-gray-700">{{ resume_data.personal_info.summary|safe }}</div>
     </div>
 
     <!-- Experience -->
@@ -30,7 +65,7 @@
                 </div>
                 <p class="text-gray-600">{{ exp.start_date }} - {{ exp.end_date|default:"Present" }}</p>
             </div>
-            <p class="mt-2 text-gray-700">{{ exp.description }}</p>
+            <p class="mt-2 text-gray-700">{{ exp.description|safe }}</p>
         </div>
         {% endfor %}
     </div>
@@ -48,7 +83,7 @@
                 <p class="text-gray-600">{{ edu.start_date }} - {{ edu.end_date|default:"Present" }}</p>
             </div>
             {% if edu.description %}
-            <p class="mt-2 text-gray-700">{{ edu.description }}</p>
+            <div class="mt-2 text-gray-700">{{ edu.description|safe }}</div>
             {% endif %}
         </div>
         {% endfor %}
@@ -84,13 +119,13 @@
         {% if resume_data.additional.certifications %}
         <div class="mb-4">
             <h3 class="font-semibold text-gray-900 mb-2">Certifications</h3>
-            <p class="text-gray-700">{{ resume_data.additional.certifications }}</p>
+            <div class="text-gray-700">{{ resume_data.additional.certifications|safe }}</div>
         </div>
         {% endif %}
         {% if resume_data.additional.projects %}
         <div>
             <h3 class="font-semibold text-gray-900 mb-2">Projects</h3>
-            <p class="text-gray-700">{{ resume_data.additional.projects }}</p>
+            <div class="text-gray-700">{{ resume_data.additional.projects|safe }}</div>
         </div>
         {% endif %}
     </div>

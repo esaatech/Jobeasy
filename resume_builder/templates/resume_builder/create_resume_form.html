@@ -516,13 +516,19 @@
         const selectedTemplate = document.querySelector('input[name="template_id"]:checked');
         const templateId = selectedTemplate ? selectedTemplate.value : 'professional';
         
+        // Get summary content from CKEditor instance if it exists, otherwise from form data
+        let summaryContent = formData.get('summary');
+        if (window.ckeditor5Instances['summary-editor']) {
+            summaryContent = window.ckeditor5Instances['summary-editor'].getData();
+        }
+        
         const data = {
             resume_name: formData.get('resume_name'),
             fullName: formData.get('fullName'),
             title: formData.get('title'),
             email: formData.get('email'),
             phone: formData.get('phone'),
-            summary: formData.get('summary'),
+            summary: summaryContent,
             template_id: templateId,
             is_editing_save: andExit
         };
@@ -576,7 +582,13 @@
                 // Extract the field name after the last dot (works for experience[0].company, experience[1].position, etc.)
                 const nameParts = input.name.split('.');
                 const name = nameParts[nameParts.length - 1];
-                entryData[name] = input.value;
+                
+                // Check if this is a textarea with CKEditor instance
+                if (input.tagName === 'TEXTAREA' && input.id && window.ckeditor5Instances[input.id]) {
+                    entryData[name] = window.ckeditor5Instances[input.id].getData();
+                } else {
+                    entryData[name] = input.value;
+                }
             }
             // Handle startDate from dropdowns
             const startMonthSelect = entry.querySelector('[name*="startDate_month"]');
@@ -708,7 +720,13 @@
                 // Extract the field name after the last dot (works for education[0].institution, etc.)
                 const nameParts = input.name.split('.');
                 const name = nameParts[nameParts.length - 1];
-                entryData[name] = input.value;
+                
+                // Check if this is a textarea with CKEditor instance
+                if (input.tagName === 'TEXTAREA' && input.id && window.ckeditor5Instances[input.id]) {
+                    entryData[name] = window.ckeditor5Instances[input.id].getData();
+                } else {
+                    entryData[name] = input.value;
+                }
             }
             // Handle startDate from dropdowns
             const startMonthSelect = entry.querySelector('[name*="startDate_month"]');
@@ -831,10 +849,22 @@
         const selectedTemplate = document.querySelector('input[name="template_id"]:checked');
         const templateId = selectedTemplate ? selectedTemplate.value : 'professional';
         
+        // Get certifications content from CKEditor instance if it exists, otherwise from form data
+        let certificationsContent = formData.get('certifications');
+        if (window.ckeditor5Instances['certifications-editor']) {
+            certificationsContent = window.ckeditor5Instances['certifications-editor'].getData();
+        }
+        
+        // Get projects content from CKEditor instance if it exists, otherwise from form data
+        let projectsContent = formData.get('projects');
+        if (window.ckeditor5Instances['projects-editor']) {
+            projectsContent = window.ckeditor5Instances['projects-editor'].getData();
+        }
+        
         const data = {
             resume_id: resumeId,
-            certifications: formData.get('certifications'),
-            projects: formData.get('projects'),
+            certifications: certificationsContent,
+            projects: projectsContent,
             template_id: templateId,
             is_editing_save: andExit
         };
