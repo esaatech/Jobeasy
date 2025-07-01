@@ -155,7 +155,4 @@ class Dialog {
     destroy() {
         this.element.remove();
     }
-}
-
-// Export the Dialog class
-export default Dialog; 
+} 

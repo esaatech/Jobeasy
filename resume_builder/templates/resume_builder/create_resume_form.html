@@ -314,10 +314,8 @@
     </div>
 </template>
 
-<script type="module">
-    // Import the Alert system
-    import Alert from '{% static "utils/components/alert.js" %}';
-    
+<script>
+    // No import needed. Use window.Alert globally.
     let currentStep = 1;
     const totalSteps = 5;
     let resumeId = document.getElementById('resumeId').value || null;
@@ -353,7 +351,7 @@
     function validateDateField(value, label = 'date') {
         const datePattern = /^\d{4}-\d{2}$/;
         if (!value || !datePattern.test(value)) {
-            Alert.error(`Please enter the ${label} in the format YYYY-MM (e.g., 2023-06).`);
+            window.Alert.error(`Please enter the ${label} in the format YYYY-MM (e.g., 2023-06).`);
             return false;
         }
         return true;
@@ -406,7 +404,7 @@
         for (let field of requiredFields) {
             const value = document.querySelector(`[name="${field}"]`).value.trim();
             if (!value) {
-                Alert.error(`Please fill in the ${field.replace(/([A-Z])/g, ' $1').toLowerCase()} field.`);
+                window.Alert.error(`Please fill in the ${field.replace(/([A-Z])/g, ' $1').toLowerCase()} field.`);
                 return false;
             }
         }
@@ -417,7 +415,7 @@
         const entries = document.querySelectorAll('.experience-entry');
         console.log('Validating experience entries:', entries.length);
         if (entries.length === 0) {
-            Alert.warning('Please add at least one work experience entry.');
+            window.Alert.warning('Please add at least one work experience entry.');
             return false;
         }
         for (let i = 0; i < entries.length; i++) {
@@ -427,7 +425,7 @@
             const company = entry.querySelector('[name*="company"]');
             console.log('company:', company ? company.value : 'NOT FOUND');
             if (!company || !company.value.trim()) {
-                Alert.error('Please fill in the company name in the experience section.');
+                window.Alert.error('Please fill in the company name in the experience section.');
                 company && company.focus();
                 return false;
             }
@@ -435,7 +433,7 @@
             const position = entry.querySelector('[name*="position"]');
             console.log('position:', position ? position.value : 'NOT FOUND');
             if (!position || !position.value.trim()) {
-                Alert.error('Please fill in the position in the experience section.');
+                window.Alert.error('Please fill in the position in the experience section.');
                 position && position.focus();
                 return false;
             }
@@ -443,7 +441,7 @@
             const description = entry.querySelector('[name*="description"]');
             console.log('description:', description ? description.value : 'NOT FOUND');
             if (!description || !description.value.trim()) {
-                Alert.error('Please fill in the description in the experience section.');
+                window.Alert.error('Please fill in the description in the experience section.');
                 description && description.focus();
                 return false;
             }
@@ -451,7 +449,7 @@
             const startMonthValid = validateMonthYear(entry, 'startDate');
             console.log('startDate valid:', startMonthValid);
             if (!startMonthValid) {
-                Alert.error('Please select both month and year for the start date in the experience section.');
+                window.Alert.error('Please select both month and year for the start date in the experience section.');
                 return false;
             }
             // Check end date (month and year), unless "Present" is checked
@@ -460,7 +458,7 @@
             const endMonthValid = validateMonthYear(entry, 'endDate', endPresent);
             console.log('endDate valid:', endMonthValid);
             if (!endMonthValid) {
-                Alert.error('Please select both month and year for the end date in the experience section, or check Present.');
+                window.Alert.error('Please select both month and year for the end date in the experience section, or check Present.');
                 return false;
             }
         }
@@ -472,7 +470,7 @@
         const entries = document.querySelectorAll('.education-entry');
         console.log('Validating education entries:', entries.length);
         if (entries.length === 0) {
-            Alert.warning('Please add at least one education entry.');
+            window.Alert.warning('Please add at least one education entry.');
             console.log('--- validateEducation returned false (no entries) ---');
             return false;
         }
@@ -482,21 +480,21 @@
             for (let field of requiredFields) {
                 const value = entry.querySelector(`[name*="${field}"]`).value.trim();
                 if (!value) {
-                    Alert.error('Please fill in all required fields in the education section.');
+                    window.Alert.error('Please fill in all required fields in the education section.');
                     entry.querySelector(`[name*="${field}"]`).focus();
                     console.log('--- validateEducation returned false (', field, ') ---');
                     return false;
                 }
             }
             if (!validateMonthYear(entry, 'startDate')) {
-                Alert.error('Please select both month and year for the education start date.');
+                window.Alert.error('Please select both month and year for the education start date.');
                 console.log('--- validateEducation returned false (startDate) ---');
                 return false;
             }
             const endPresent = entry.querySelector('[name*="endDate_present"]');
             const endMonthValid = validateMonthYear(entry, 'endDate', endPresent);
             if (!endMonthValid) {
-                Alert.error('Please select both month and year for the education end date, or check Present.');
+                window.Alert.error('Please select both month and year for the education end date, or check Present.');
                 return false;
             }
         }
@@ -559,12 +557,12 @@
                 }
                 return true;
             } else {
-                Alert.error(result.error || 'Failed to save personal information');
+                window.Alert.error(result.error || 'Failed to save personal information');
                 return false;
             }
         } catch (error) {
             console.error('Error:', error);
-            Alert.error('Failed to save personal information');
+            window.Alert.error('Failed to save personal information');
             return false;
         }
     }
@@ -638,7 +636,7 @@
                     console.log('saveExperience: missing description at index', i, exp);
                 }
                 if (!exp.company || !exp.title || !exp.start_date || !exp.end_date || !exp.description) {
-                    Alert.warning('Please fill in all required fields in the experience section.');
+                    window.Alert.warning('Please fill in all required fields in the experience section.');
                     return false;
                 }
                 const shouldValidateEndDate = exp.end_date !== 'Present';
@@ -691,12 +689,12 @@
                 }
                 return true;
             } else {
-                Alert.error(result.error || 'Failed to save experience');
+                window.Alert.error(result.error || 'Failed to save experience');
                 return false;
             }
         } catch (error) {
             console.error('Error:', error);
-            Alert.error('Failed to save experience');
+            window.Alert.error('Failed to save experience');
             return false;
         }
     }
@@ -777,12 +775,12 @@
                 }
                 return true;
             } else {
-                Alert.error(result.error || 'Failed to save education');
+                window.Alert.error(result.error || 'Failed to save education');
                 return false;
             }
         } catch (error) {
             console.error('Error:', error);
-            Alert.error('Failed to save education');
+            window.Alert.error('Failed to save education');
             return false;
         }
     }
@@ -820,12 +818,12 @@
                 }
                 return true;
             } else {
-                Alert.error(result.error || 'Failed to save skills');
+                window.Alert.error(result.error || 'Failed to save skills');
                 return false;
             }
         } catch (error) {
             console.error('Error:', error);
-            Alert.error('Failed to save skills');
+            window.Alert.error('Failed to save skills');
             return false;
         }
     }
@@ -862,12 +860,12 @@
                 }
                 return true;
             } else {
-                Alert.error(result.error || 'Failed to save additional information');
+                window.Alert.error(result.error || 'Failed to save additional information');
                 return false;
             }
         } catch (error) {
             console.error('Error:', error);
-            Alert.error('Failed to save additional information');
+            window.Alert.error('Failed to save additional information');
             return false;
         }
     }
@@ -1003,15 +1001,15 @@
             const result = await response.json();
             if (result.success) {
                 if (action === 'save') {
-                    Alert.success('Resume saved successfully!');
+                    window.Alert.success('Resume saved successfully!');
                 }
                 window.location.href = result.redirect_url;
             } else {
-                Alert.error(result.error || 'Failed to finalize resume');
+                window.Alert.error(result.error || 'Failed to finalize resume');
             }
         } catch (error) {
             console.error('Error:', error);
-            Alert.error('Failed to finalize resume');
+            window.Alert.error('Failed to finalize resume');
         }
     }
 
@@ -1213,7 +1211,7 @@
         const datePattern = /^\d{4}-\d{2}$/;
         for (let input of dateInputs) {
             if (input.value && !datePattern.test(input.value)) {
-                Alert.error('Please enter all dates in the format YYYY-MM (e.g., 2023-06).');
+                window.Alert.error('Please enter all dates in the format YYYY-MM (e.g., 2023-06).');
                 input.focus();
                 e.preventDefault();
                 return false;

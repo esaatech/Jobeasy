@@ -51,17 +51,17 @@ document.addEventListener('DOMContentLoaded', function() {
         const generateCoverLetter = document.getElementById('generate-cover-letter').checked;
         
         if (!selectedResume) {
-            alert('Please select a resume');
+            window.Alert.warning('Please select a resume');
             return;
         }
         
         if (!jobDescription.trim()) {
-            alert('Please enter a job description');
+            window.Alert.warning('Please enter a job description');
             return;
         }
         
         if (!optimizeResume && !generateCoverLetter) {
-            alert('Please select at least one action');
+            window.Alert.warning('Please select at least one action');
             return;
         }
         
@@ -308,10 +308,10 @@ async function deleteJobApplication(jobId) {
                 `;
             }
         } else {
-            alert('Failed to delete job application. Please try again.');
+            window.Alert.warning('Failed to delete job application. Please try again.');
         }
     } catch (error) {
         console.error('Error deleting job application:', error);
-        alert('An error occurred while deleting the job application.');
+        window.Alert.warning('An error occurred while deleting the job application.');
     }
 }

@@ -4,8 +4,6 @@
  * Built on top of the Dialog component for consistency
  */
 
-import Dialog from './dialog.js';
-
 class AlertDialog {
     /**
      * Initialize the alert dialog
@@ -317,6 +315,4 @@ class Alert {
     }
 }
 
-// Export both classes
-export { AlertDialog, Alert };
-export default Alert; 
+window.Alert = Alert; // Expose Alert globally

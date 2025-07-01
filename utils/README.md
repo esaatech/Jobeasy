@@ -17,12 +17,9 @@ utils/
 │   └── utils/
 │       ├── css/
 │       │   └── alerts.css          # Alert system styling
-│       ├── js/
-│       │   ├── alert-examples.js   # Usage examples
-│       │   └── alert-demo.html     # Demo page
-│       └── components/
-│           ├── alert.js            # Main alert system
-│           └── dialog.js           # Base dialog component
+│       ├── components/
+│       │   ├── alert.js            # Main alert system (regular script)
+│       │   └── dialog.js           # Base dialog component (regular script)
 ├── templates/
 │   └── utils/
 │       └── alert_demo.html         # Django template for demo
@@ -50,21 +47,21 @@ The alert system provides a comprehensive, reusable alert dialog system with the
 #### Basic Alerts
 ```javascript
 // Success alert
-Alert.success('Your resume has been saved successfully!');
+window.Alert.success('Your resume has been saved successfully!');
 
 // Error alert
-Alert.error('Failed to save resume. Please try again.');
+window.Alert.error('Failed to save resume. Please try again.');
 
 // Warning alert
-Alert.warning('You have unsaved changes.');
+window.Alert.warning('You have unsaved changes.');
 
 // Info alert
-Alert.info('Your session will expire in 5 minutes.');
+window.Alert.info('Your session will expire in 5 minutes.');
 ```
 
 #### Confirmation Dialogs
 ```javascript
-Alert.confirm('Are you sure you want to delete this resume?', {
+window.Alert.confirm('Are you sure you want to delete this resume?', {
     onConfirm: () => {
         deleteResume();
     }
@@ -73,7 +70,7 @@ Alert.confirm('Are you sure you want to delete this resume?', {
 
 #### Toast Notifications
 ```javascript
-Alert.toast('Changes saved automatically');
+window.Alert.toast('Changes saved automatically');
 ```
 
 ### Integration
@@ -82,13 +79,13 @@ Alert.toast('Changes saved automatically');
 ```html
 {% load static %}
 <link rel="stylesheet" href="{% static 'utils/css/alerts.css' %}">
-<script type="module" src="{% static 'utils/components/alert.js' %}"></script>
+<script src="{% static 'utils/components/dialog.js' %}"></script>
+<script src="{% static 'utils/components/alert.js' %}"></script>
 ```
 
-2. **Import in JavaScript**:
-```javascript
-import Alert from '{% static "utils/components/alert.js" %}';
-```
+2. **No import needed in JavaScript**:
+- Just use `window.Alert` in your inline or external scripts.
+- No need for `import` or `type="module"` anywhere.
 
 3. **Demo Page**: Visit `/utils/alert-demo/` to see all features in action
 
