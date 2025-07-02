@@ -55,53 +55,43 @@
 </style>
 <div class="w-full flex flex-col items-center justify-center py-16 px-4 bg-gradient-to-b from-white to-blue-50">
     <h2 class="text-3xl md:text-4xl font-bold mb-10" style="font-family: 'Inter', sans-serif; color: #111827;">Frequently Asked Questions</h2>
-    <div class="faq-accordion">
-        <div class="faq-item">
-            <button class="faq-question" type="button">
-                Is my data secure and private?
-                <span class="faq-icon">&#43;</span>
-            </button>
-            <div class="faq-answer">Yes, your data is encrypted and never shared with third parties. You have full control over your information.</div>
-        </div>
-        <div class="faq-item">
-            <button class="faq-question" type="button">
-                Can I use the app for free?
-                <span class="faq-icon">&#43;</span>
-            </button>
-            <div class="faq-answer">Absolutely! You can start for free and upgrade for advanced features when you're ready.</div>
-        </div>
-        <div class="faq-item">
-            <button class="faq-question" type="button">
-                How does the AI generate my resume and cover letter?
-                <span class="faq-icon">&#43;</span>
-            </button>
-            <div class="faq-answer">Our AI analyzes your input and job description to craft tailored, professional documents that match your target role.</div>
-        </div>
-        <div class="faq-item">
-            <button class="faq-question" type="button">
-                Can I edit my documents after generation?
-                <span class="faq-icon">&#43;</span>
-            </button>
-            <div class="faq-answer">Yes, you can fully edit and customize your resume and cover letter before downloading or applying.</div>
-        </div>
-        <div class="faq-item">
-            <button class="faq-question" type="button">
-                What formats can I download my resume in?
-                <span class="faq-icon">&#43;</span>
-            </button>
-            <div class="faq-answer">You can download your resume and cover letter in PDF and Word formats.</div>
-        </div>
+    <div class="faq-accordion" id="faq-accordion">
+        <!-- FAQ items will be injected here by JS -->
     </div>
 </div>
 <script>
-document.querySelectorAll('.faq-question').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const item = this.closest('.faq-item');
-        item.classList.toggle('open');
-        // Close others
-        document.querySelectorAll('.faq-item').forEach(other => {
-            if (other !== item) other.classList.remove('open');
+function renderFAQs(faqs) {
+    const container = document.getElementById('faq-accordion');
+    container.innerHTML = '';
+    faqs.forEach(faq => {
+        const item = document.createElement('div');
+        item.className = 'faq-item';
+        item.innerHTML = `
+            <button class="faq-question" type="button">
+                ${faq.question}
+                <span class="faq-icon">&#43;</span>
+            </button>
+            <div class="faq-answer">${faq.answer}</div>
+        `;
+        container.appendChild(item);
+    });
+    // Add accordion behavior
+    container.querySelectorAll('.faq-question').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const item = this.closest('.faq-item');
+            item.classList.toggle('open');
+            container.querySelectorAll('.faq-item').forEach(other => {
+                if (other !== item) other.classList.remove('open');
+            });
         });
     });
-});
+}
+
+// Fetch FAQs from backend API (default to English)
+fetch('/api/faqs/?language=en')
+    .then(res => res.json())
+    .then(data => renderFAQs(data))
+    .catch(() => {
+        document.getElementById('faq-accordion').innerHTML = '<div class="text-red-500">Failed to load FAQs.</div>';
+    });
 </script> 

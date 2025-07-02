@@ -1,21 +1,29 @@
 <!-- Testimonials Section -->
 <div class="w-full flex flex-col items-center justify-center py-12 px-4 bg-gray-50">
     <h2 class="text-3xl md:text-4xl font-bold mb-8" style="font-family: 'Inter', sans-serif; color: #111827;">What Our Users Say</h2>
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-4xl">
-        <div class="testimonial-card bg-white rounded-xl shadow p-6 flex flex-col items-center text-center">
-            <div class="w-14 h-14 rounded-full bg-gradient-to-br from-blue-400 to-cyan-400 flex items-center justify-center text-white text-2xl font-bold mb-4">JD</div>
-            <div class="text-lg font-medium mb-2">“This app made my job search so much easier. The AI-generated resume landed me interviews within days!”</div>
-            <div class="text-gray-500 font-semibold mt-2">— Jamie D.</div>
-        </div>
-        <div class="testimonial-card bg-white rounded-xl shadow p-6 flex flex-col items-center text-center">
-            <div class="w-14 h-14 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center text-white text-2xl font-bold mb-4">AS</div>
-            <div class="text-lg font-medium mb-2">“I loved how fast and easy it was to create a tailored cover letter. Highly recommend!”</div>
-            <div class="text-gray-500 font-semibold mt-2">— Alex S.</div>
-        </div>
-        <div class="testimonial-card bg-white rounded-xl shadow p-6 flex flex-col items-center text-center">
-            <div class="w-14 h-14 rounded-full bg-gradient-to-br from-emerald-400 to-teal-400 flex items-center justify-center text-white text-2xl font-bold mb-4">MR</div>
-            <div class="text-lg font-medium mb-2">“The daily job matches and interview prep features are game changers. I feel so much more confident!”</div>
-            <div class="text-gray-500 font-semibold mt-2">— Morgan R.</div>
-        </div>
-    </div>
-</div> 
+    <div id="testimonial-list" class="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-4xl"></div>
+</div>
+<script>
+function renderTestimonials(testimonials) {
+    const container = document.getElementById('testimonial-list');
+    container.innerHTML = '';
+    testimonials.forEach(t => {
+        const card = document.createElement('div');
+        card.className = 'testimonial-card bg-white rounded-xl shadow p-6 flex flex-col items-center text-center';
+        card.innerHTML = `
+            <div class="w-14 h-14 rounded-full bg-gradient-to-br from-blue-400 to-cyan-400 flex items-center justify-center text-white text-2xl font-bold mb-4">
+                ${t.name.split(' ').map(n => n[0]).join('').toUpperCase()}
+            </div>
+            <div class="text-lg font-medium mb-2">“${t.quote}”</div>
+            <div class="text-gray-500 font-semibold mt-2">— ${t.name}</div>
+        `;
+        container.appendChild(card);
+    });
+}
+fetch('/api/testimonials/')
+    .then(res => res.json())
+    .then(data => renderTestimonials(data))
+    .catch(() => {
+        document.getElementById('testimonial-list').innerHTML = '<div class="text-red-500">Failed to load testimonials.</div>';
+    });
+</script>

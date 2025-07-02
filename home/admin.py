@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import CoverLetterInstruction
+from .models import CoverLetterInstruction, FAQ, Testimonial, NewsletterSignup, ContactMessage
 
 @admin.register(CoverLetterInstruction)
 class CoverLetterInstructionAdmin(admin.ModelAdmin):
@@ -24,3 +24,28 @@ class CoverLetterInstructionAdmin(admin.ModelAdmin):
             )
         }),
     )
+
+@admin.register(FAQ)
+class FAQAdmin(admin.ModelAdmin):
+    list_display = ('question', 'order', 'published')
+    search_fields = ('question', 'answer')
+    list_filter = ('published',)
+    ordering = ('order',)
+
+@admin.register(Testimonial)
+class TestimonialAdmin(admin.ModelAdmin):
+    list_display = ('name', 'quote', 'published')
+    search_fields = ('name', 'quote')
+    list_filter = ('published',)
+
+@admin.register(NewsletterSignup)
+class NewsletterSignupAdmin(admin.ModelAdmin):
+    list_display = ('email', 'date')
+    search_fields = ('email',)
+    ordering = ('-date',)
+
+@admin.register(ContactMessage)
+class ContactMessageAdmin(admin.ModelAdmin):
+    list_display = ('name', 'email', 'date')
+    search_fields = ('name', 'email', 'message')
+    ordering = ('-date',)

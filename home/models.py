@@ -17,3 +17,41 @@ class CoverLetterInstruction(models.Model):
 
     def __str__(self):
         return self.title
+
+class FAQ(models.Model):
+    question = models.CharField(max_length=300)
+    answer = models.TextField()
+    order = models.PositiveIntegerField(default=0)
+    published = models.BooleanField(default=True)
+    language = models.CharField(max_length=10, default='en', help_text='Language code, e.g., en, es')
+
+    class Meta:
+        ordering = ['order']
+
+    def __str__(self):
+        return self.question
+
+class Testimonial(models.Model):
+    name = models.CharField(max_length=100)
+    quote = models.TextField()
+    avatar = models.ImageField(upload_to='testimonials/', blank=True, null=True)
+    published = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.name}: {self.quote[:30]}..."
+
+class NewsletterSignup(models.Model):
+    email = models.EmailField(unique=True)
+    date = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.email
+
+class ContactMessage(models.Model):
+    name = models.CharField(max_length=100)
+    email = models.EmailField()
+    message = models.TextField()
+    date = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} <{self.email}>"

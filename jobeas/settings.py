@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'ai_service',
     'utils',
     'django_ckeditor_5',
+    'rest_framework',
 ]
 
 MIDDLEWARE = [
