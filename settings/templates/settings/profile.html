@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto mt-10 bg-white shadow rounded-lg p-8">
+    <h2 class="text-2xl font-bold mb-6">Profile</h2>
+    <div class="flex items-center space-x-6 mb-8">
+        <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center text-3xl text-blue-600 font-bold">
+            {{ user.username|slice:':1'|upper }}
+        </div>
+        <div>
+            <div class="text-lg font-semibold text-gray-900">{{ user.get_full_name|default:user.username }}</div>
+            <div class="text-gray-600">{{ user.email }}</div>
+        </div>
+    </div>
+    <div class="mb-8">
+        <h3 class="text-lg font-medium text-gray-800 mb-2">Teams</h3>
+        {% if teams %}
+            <ul class="space-y-2">
+                {% for team in teams %}
+                <li class="flex items-center justify-between bg-gray-50 rounded px-4 py-2">
+                    <span class="font-medium text-gray-900">{{ team.name }}</span>
+                    {% if team.role %}
+                    <span class="text-xs px-2 py-1 rounded bg-blue-100 text-blue-800">{{ team.role }}</span>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <div class="text-gray-500">You are not a member of any teams.</div>
+        {% endif %}
+    </div>
+    <div class="flex justify-end">
+        <a href="#" class="text-blue-600 hover:underline">Edit Profile</a>
+    </div>
+</div>
+{% endblock %} 

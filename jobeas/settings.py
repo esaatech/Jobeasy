@@ -189,7 +189,7 @@ LOGGING = {
 
 # Authentication Settings
 LOGIN_URL = '/auth/login/'
-LOGIN_REDIRECT_URL = '/'
+LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/'
 
 # Email settings for password reset (for development)

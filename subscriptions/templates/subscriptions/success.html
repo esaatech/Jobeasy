@@ -1,0 +1,80 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+    <!-- Success Card -->
+    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+        <!-- Success Icon -->
+        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+            <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+        </div>
+
+        <!-- Success Message -->
+        <h2 class="text-2xl font-bold text-gray-900 mb-2">
+            Payment Successful!
+        </h2>
+        <p class="text-gray-600 mb-6">
+            Thank you for your subscription to {{ subscription.plan.name }}
+        </p>
+
+        <!-- Subscription Details -->
+        <div class="bg-gray-50 rounded-lg p-6 mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Subscription Details</h3>
+            <div class="space-y-3">
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Plan:</span>
+                    <span class="font-medium text-gray-900">{{ subscription.plan.name }}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Duration:</span>
+                    <span class="font-medium text-gray-900">{{ subscription.plan_duration.get_duration_type_display }}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Amount:</span>
+                    <span class="font-medium text-gray-900">${{ subscription.plan_duration.price }}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Status:</span>
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Active
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Next Steps -->
+        <div class="text-left bg-blue-50 rounded-lg p-6 mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Next Steps</h3>
+            <ul class="space-y-2">
+                {% if subscription.plan.features.all %}
+                    {% for feature in subscription.plan.features.all %}
+                        <li class="flex items-center text-gray-600">
+                            <svg class="h-5 w-5 text-blue-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            {{ feature.name }}
+                        </li>
+                    {% endfor %}
+                {% endif %}
+            </ul>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex flex-col sm:flex-row justify-center gap-4">
+            <a href="{% url 'dashboard:dashboard' %}" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-[#1980e6] hover:bg-[#1980e6]/90">
+                Go to Dashboard
+            </a>
+            {% if subscription.invoice_url %}
+                <a href="{{ subscription.invoice_url }}" target="_blank" class="inline-flex items-center px-6 py-3 border border-gray-300 shadow-sm text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                    View Invoice
+                    <svg class="ml-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

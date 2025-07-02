@@ -1,0 +1,72 @@
+{% load static %}
+
+<div class="bg-white overflow-hidden shadow rounded-lg">
+    <div class="p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-medium text-gray-900">Settings & Preferences</h3>
+            <a href="{% url 'settings:dashboard' %}" class="text-sm text-blue-600 hover:text-blue-800">View All →</a>
+        </div>
+
+        <!-- Quick Settings -->
+        <div class="space-y-4">
+            <!-- Theme Setting -->
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    </svg>
+                    <span class="ml-3 text-sm text-gray-700">Theme</span>
+                </div>
+                <span class="text-sm text-gray-500">{{ user.preferences.theme|default:"Light" }}</span>
+            </div>
+
+            <!-- Language Setting -->
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                    </svg>
+                    <span class="ml-3 text-sm text-gray-700">Language</span>
+                </div>
+                <span class="text-sm text-gray-500">{{ user.preferences.get_language_display|default:"English" }}</span>
+            </div>
+
+            <!-- Notification Setting -->
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                    <span class="ml-3 text-sm text-gray-700">Notifications</span>
+                </div>
+                <span class="text-sm text-gray-500">
+                    {% if user.preferences.email_notifications %}Email{% endif %}
+                    {% if user.preferences.desktop_notifications %}Desktop{% endif %}
+                </span>
+            </div>
+
+            <!-- Timezone Setting -->
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span class="ml-3 text-sm text-gray-700">Time Zone</span>
+                </div>
+                <span class="text-sm text-gray-500">{{ user.preferences.timezone|default:"UTC" }}</span>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="mt-6 grid grid-cols-2 gap-3">
+            <a href="{% url 'settings:profile' %}" 
+               class="flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                Edit Profile
+            </a>
+            <a href="{% url 'settings:security' %}" 
+               class="flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+                Security
+            </a>
+        </div>
+    </div>
+</div> 
