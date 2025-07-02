@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>
+    .pricing-headline {
+        font-family: 'Playfair Display', serif;
+        font-size: 2.5rem;
+        font-weight: 700;
+        background: linear-gradient(90deg, #6366f1 0%, #06b6d4 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-fill-color: transparent;
+        margin-bottom: 0.5rem;
+    }
+    .pricing-subheadline {
+        font-family: 'Inter', sans-serif;
+        font-size: 1.2rem;
+        color: #64748b;
+        margin-bottom: 2.5rem;
+    }
+    .plan-card {
+        background: #fff;
+        border-radius: 1.5rem;
+        box-shadow: 0 2px 16px rgba(99,102,241,0.08);
+        padding: 2.5rem 2rem 2rem 2rem;
+        text-align: left;
+        font-family: 'Inter', sans-serif;
+        border: 1.5px solid #e0e7ef;
+        transition: box-shadow 0.2s, border 0.2s;
+        position: relative;
+    }
+    .plan-card:hover {
+        box-shadow: 0 8px 32px rgba(99,102,241,0.13);
+        border: 1.5px solid #6366f1;
+    }
+    .plan-card.current-plan {
+        border: 2px solid #06b6d4;
+        box-shadow: 0 4px 20px rgba(6,182,212,0.15);
+    }
+    .plan-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        background: linear-gradient(90deg, #6366f1 0%, #06b6d4 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-fill-color: transparent;
+    }
+    .plan-desc {
+        color: #64748b;
+        font-size: 1.05rem;
+        margin-bottom: 1.5rem;
+    }
+    .plan-price {
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: #6366f1;
+        margin-bottom: 0.5rem;
+    }
+    .plan-duration {
+        font-size: 1rem;
+        color: #64748b;
+        margin-bottom: 1.5rem;
+    }
+    .feature-list {
+        margin-bottom: 1.5rem;
+        padding-left: 0;
+        list-style: none;
+    }
+    .feature-list li {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.5rem;
+        font-size: 1rem;
+        color: #334155;
+    }
+    .feature-list svg {
+        margin-right: 0.5rem;
+        color: #06b6d4;
+        flex-shrink: 0;
+    }
+    .plan-btn {
+        background: linear-gradient(90deg, #6366f1 0%, #06b6d4 100%);
+        color: #fff;
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        border-radius: 0.5rem;
+        padding: 0.75rem 2rem;
+        font-size: 1rem;
+        box-shadow: 0 2px 8px rgba(99,102,241,0.08);
+        transition: background 0.2s;
+        border: none;
+        cursor: pointer;
+        margin-top: 1rem;
+        text-decoration: none;
+        display: inline-block;
+    }
+    .plan-btn:hover {
+        background: linear-gradient(90deg, #06b6d4 0%, #6366f1 100%);
+        color: #fff;
+        text-decoration: none;
+    }
+    .plan-btn.current-plan-btn {
+        background: #9ca3af;
+        cursor: not-allowed;
+    }
+    .plan-btn.current-plan-btn:hover {
+        background: #9ca3af;
+    }
+    .plan-badge {
+        position: absolute;
+        top: 1.5rem;
+        right: 1.5rem;
+        background: #06b6d4;
+        color: #fff;
+        font-size: 0.9rem;
+        font-weight: 600;
+        padding: 0.3rem 1rem;
+        border-radius: 1rem;
+        letter-spacing: 0.03em;
+        box-shadow: 0 2px 8px rgba(6,182,212,0.08);
+    }
+    .current-plan-badge {
+        background: #06b6d4;
+    }
+    @media (max-width: 900px) {
+        .pricing-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+<div class="w-full flex flex-col items-center justify-center py-16 px-4 bg-white rounded-2xl shadow-xl">
+    <div class="text-center mb-12">
+        <h1 class="pricing-headline">Choose Your Plan</h1>
+        <div class="pricing-subheadline">Flexible pricing for every job seeker. Start for free, upgrade anytime.</div>
+    </div>
+    <div class="grid pricing-grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-6xl">
+        {% for plan in plans %}
+        <div class="plan-card {% if current_subscription and current_subscription.plan.id == plan.id %}current-plan{% endif %}">
+            {% if plan.name|lower == 'plus' %}
+                <div class="plan-badge">Most Popular</div>
+            {% elif plan.name|lower == 'ultimate' %}
+                <div class="plan-badge" style="background:#6366f1;">Best Value</div>
+            {% endif %}
+            {% if current_subscription and current_subscription.plan.id == plan.id %}
+                <div class="plan-badge current-plan-badge">Current Plan</div>
+            {% endif %}
+            <div class="plan-title">{{ plan.name }}</div>
+            <div class="plan-desc">{{ plan.description }}</div>
+            {% if plan.durations.all %}
+                <div class="plan-price">
+                    {% for duration in plan.durations.all %}
+                        ${{ duration.price|floatformat:0 }}<span class="plan-duration">/{{ duration.get_duration_type_display|lower }}</span>{% if not forloop.last %} <span style="color:#cbd5e1;">|</span> {% endif %}
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="plan-price">Free</div>
+            {% endif %}
+            <ul class="feature-list">
+                {% for feature in plan.features.all %}
+                <li>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    {{ feature.name }}
+                </li>
+                {% endfor %}
+            </ul>
+            <!-- Debug info (remove in production) -->
+            {% if current_subscription %}
+                <!-- Current sub: {{ current_subscription.plan.name }} (ID: {{ current_subscription.plan.id }}) vs {{ plan.name }} (ID: {{ plan.id }}) -->
+            {% endif %}
+            {% if current_subscription and current_subscription.plan.id == plan.id %}
+                <button class="plan-btn current-plan-btn" disabled>Current Plan</button>
+            {% elif plan.name|lower == 'free' %}
+                <a href="{% url 'dashboard:dashboard' %}" class="plan-btn">Go to Dashboard</a>
+            {% else %}
+                <a href="{% url 'subscriptions:plan_purchase' plan.id %}" class="plan-btn">Choose {{ plan.name }}</a>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

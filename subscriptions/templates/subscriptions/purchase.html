@@ -4,7 +4,17 @@
 {% block extra_head %}
 <script src="https://js.stripe.com/v3/"></script>
 <script>
-    const stripe = Stripe('{{ STRIPE_PUBLIC_KEY }}');
+    let stripe = null;
+    {% if STRIPE_PUBLIC_KEY %}
+    try {
+        stripe = Stripe('{{ STRIPE_PUBLIC_KEY }}');
+    } catch (error) {
+        console.error('Failed to initialize Stripe:', error);
+        stripe = null;
+    }
+    {% else %}
+    console.error('Stripe public key is not configured. Please check your environment variables.');
+    {% endif %}
 </script>
 {% endblock %}
 
@@ -28,7 +38,7 @@
                 </div>
             </div>
             <div class="flex items-center space-x-2">
-                <img src="{% static 'images/credits/visa-master-paypal.png' %}" alt="Payment Methods" class="h-8">
+                <img src="{% static 'subscriptions/images/visa-master-paypal.png' %}" alt="Payment Methods" class="h-8">
             </div>
         </div>
     </div>
@@ -107,6 +117,25 @@
         <div class="md:col-span-1">
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sticky top-6">
                 <h2 class="text-lg font-semibold text-gray-900 mb-6">Payment Details</h2>
+                
+                {% if not STRIPE_PUBLIC_KEY %}
+                <div class="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-6">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-yellow-800">Payment System Temporarily Unavailable</h3>
+                            <div class="mt-2 text-sm text-yellow-700">
+                                <p>We're experiencing technical difficulties with our payment system. Please try again later or contact support.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
                 <form id="payment-form" class="space-y-6">
                     {% csrf_token %}
                     <input type="hidden" id="selected-duration" name="duration_id" value="">
@@ -260,7 +289,7 @@
                     <!-- Submit Button -->
                     <button type="submit" 
                             id="submit-button"
-                            disabled
+                            {% if not STRIPE_PUBLIC_KEY %}disabled{% endif %}
                             class="w-full bg-[#1980e6] text-white py-3 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center">
                         <span id="spinner" class="hidden mr-2">
                             <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -268,7 +297,11 @@
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
                         </span>
+                        {% if STRIPE_PUBLIC_KEY %}
                         Pay <span id="payment-amount-button">$0.00</span>
+                        {% else %}
+                        Payment Unavailable
+                        {% endif %}
                     </button>
                 </form>
             </div>
@@ -280,28 +313,68 @@
 {% block extra_scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize Stripe Elements
-    const elements = stripe.elements();
-    const cardNumber = elements.create('cardNumber');
-    const cardExpiry = elements.create('cardExpiry');
-    const cardCvc = elements.create('cardCvc');
+    // Check if Stripe is properly initialized
+    if (!stripe) {
+        console.error('Stripe is not properly initialized. Please check your configuration.');
+        const errorElement = document.getElementById('card-errors');
+        if (errorElement) {
+            errorElement.textContent = 'Payment system is not available. Please contact support.';
+        }
+        return;
+    }
 
-    // Mount the elements
-    cardNumber.mount('#card-number-element');
-    cardExpiry.mount('#card-expiry-element');
-    cardCvc.mount('#card-cvc-element');
+    // Stripe Elements style
+    const style = {
+      base: {
+        fontSize: '1rem',
+        color: '#334155',
+        fontFamily: 'Inter, sans-serif',
+        '::placeholder': { color: '#94a3b8' },
+        backgroundColor: '#f9fafb',
+        padding: '12px 16px',
+        borderRadius: '8px',
+      },
+      invalid: {
+        color: '#e53e3e',
+      }
+    };
+    
+    try {
+        const elements = stripe.elements();
+        const cardNumber = elements.create('cardNumber', { style });
+        const cardExpiry = elements.create('cardExpiry', { style });
+        const cardCvc = elements.create('cardCvc', { style });
+        
+        // Only mount elements if the containers exist
+        const cardNumberElement = document.getElementById('card-number-element');
+        const cardExpiryElement = document.getElementById('card-expiry-element');
+        const cardCvcElement = document.getElementById('card-cvc-element');
+        
+        if (cardNumberElement) cardNumber.mount('#card-number-element');
+        if (cardExpiryElement) cardExpiry.mount('#card-expiry-element');
+        if (cardCvcElement) cardCvc.mount('#card-cvc-element');
 
-    // Handle real-time validation errors
-    [cardNumber, cardExpiry, cardCvc].forEach(element => {
-        element.addEventListener('change', function(event) {
-            const errorElement = document.getElementById('card-errors');
-            if (event.error) {
-                errorElement.textContent = event.error.message;
-            } else {
-                errorElement.textContent = '';
-            }
+        // Handle real-time validation errors
+        [cardNumber, cardExpiry, cardCvc].forEach(element => {
+            element.addEventListener('change', function(event) {
+                const errorElement = document.getElementById('card-errors');
+                if (errorElement) {
+                    if (event.error) {
+                        errorElement.textContent = event.error.message;
+                    } else {
+                        errorElement.textContent = '';
+                    }
+                }
+            });
         });
-    });
+    } catch (error) {
+        console.error('Failed to create Stripe elements:', error);
+        const errorElement = document.getElementById('card-errors');
+        if (errorElement) {
+            errorElement.textContent = 'Failed to initialize payment form. Please refresh the page.';
+        }
+        return;
+    }
 
     // Duration selection handling
     const durations = document.querySelectorAll('.duration-select');
@@ -340,8 +413,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 Pay ${formattedPrice}
             `;
             
-            // Enable submit button
-            submitButton.disabled = false;
+            // Enable submit button only if Stripe is configured
+            if (stripe) {
+                submitButton.disabled = false;
+            }
         });
     });
 
@@ -352,13 +427,25 @@ document.addEventListener('DOMContentLoaded', function() {
     form.addEventListener('submit', async function(event) {
         event.preventDefault();
         
+        // Check if Stripe is available
+        if (!stripe) {
+            const errorElement = document.getElementById('card-errors');
+            if (errorElement) {
+                errorElement.textContent = 'Payment system is not available. Please contact support.';
+            }
+            return;
+        }
+        
         if (!selectedDurationId) {
             alert('Please select a duration');
             return;
         }
 
         submitButton.disabled = true;
-        spinner.classList.remove('hidden');
+        const spinnerElement = document.getElementById('spinner');
+        if (spinnerElement) {
+            spinnerElement.classList.remove('hidden');
+        }
 
         try {
             // Create payment method
@@ -407,17 +494,20 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
         } catch (error) {
-            document.getElementById('card-errors').textContent = error.message;
-            submitButton.disabled = false;
-            spinner.classList.add('hidden');
+            handleError(error);
         }
     });
 
     function handleError(error) {
         const errorElement = document.getElementById('card-errors');
-        errorElement.textContent = error.message;
+        if (errorElement) {
+            errorElement.textContent = error.message;
+        }
         submitButton.disabled = false;
-        spinner.classList.add('hidden');
+        const spinnerElement = document.getElementById('spinner');
+        if (spinnerElement) {
+            spinnerElement.classList.add('hidden');
+        }
     }
 
     // Handle duration selection and amount updates
@@ -451,8 +541,10 @@ document.addEventListener('DOMContentLoaded', function() {
             Pay ${formattedPrice}
         `;
 
-        // Enable submit button
-        document.getElementById('submit-button').disabled = false;
+        // Enable submit button only if Stripe is configured
+        if (stripe) {
+            submitButton.disabled = false;
+        }
     }
 });
 </script>

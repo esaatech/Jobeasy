@@ -1,0 +1,280 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<style>
+    .about-headline {
+        font-family: 'Playfair Display', serif;
+        font-size: 2.8rem;
+        font-weight: 700;
+        background: linear-gradient(90deg, #6366f1 0%, #06b6d4 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        text-fill-color: transparent;
+    }
+    .about-subheadline {
+        font-family: 'Inter', sans-serif;
+        font-size: 1.25rem;
+        color: #64748b;
+        margin-bottom: 2rem;
+    }
+    .about-section-title {
+        font-family: 'Playfair Display', serif;
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #1e293b;
+        margin-bottom: 1.5rem;
+    }
+    .about-body-text {
+        font-family: 'Inter', sans-serif;
+        font-size: 1.125rem;
+        color: #64748b;
+        line-height: 1.7;
+    }
+    .about-card-title {
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        font-size: 1.25rem;
+        color: #1e293b;
+        margin-bottom: 0.75rem;
+    }
+    .about-card-text {
+        font-family: 'Inter', sans-serif;
+        font-size: 1rem;
+        color: #64748b;
+        line-height: 1.6;
+    }
+    .about-feature-title {
+        font-family: 'Inter', sans-serif;
+        font-weight: 600;
+        font-size: 1.125rem;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+    }
+    .about-feature-text {
+        font-family: 'Inter', sans-serif;
+        font-size: 1rem;
+        color: #64748b;
+        line-height: 1.6;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="bg-gradient-to-br from-blue-50 to-indigo-100 py-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center">
+            <h1 class="about-headline mb-6">
+                About AI Cover Letter
+            </h1>
+            <p class="about-subheadline max-w-3xl mx-auto">
+                We're revolutionizing the job application process by combining cutting-edge AI technology with human expertise to help you land your dream job.
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Mission Section -->
+<div class="py-16 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+                <h2 class="about-section-title">Our Mission</h2>
+                <p class="about-body-text mb-6">
+                    At AI Cover Letter, we believe that everyone deserves the opportunity to present their best self to potential employers. The traditional job application process is often overwhelming and time-consuming, leaving many qualified candidates behind.
+                </p>
+                <p class="about-body-text">
+                    Our mission is to democratize access to professional resume and cover letter creation by leveraging artificial intelligence to generate personalized, ATS-optimized documents that help you stand out in today's competitive job market.
+                </p>
+            </div>
+            <div class="bg-blue-50 p-8 rounded-lg">
+                <div class="text-center">
+                    <svg class="w-16 h-16 text-blue-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                    </svg>
+                    <h3 class="about-card-title">Innovation at Heart</h3>
+                    <p class="about-card-text">We continuously innovate to provide the most advanced AI-powered tools for job seekers.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- What We Do Section -->
+<div class="py-16 bg-gray-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12">
+            <h2 class="about-section-title">What We Do</h2>
+            <p class="about-body-text max-w-3xl mx-auto">
+                We provide comprehensive tools and services to help you create professional, compelling job application materials that get results.
+            </p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- AI Resume Builder -->
+            <div class="bg-white p-6 rounded-lg shadow-sm">
+                <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mb-4">
+                    <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                </div>
+                <h3 class="about-card-title">AI Resume Builder</h3>
+                <p class="about-card-text">
+                    Create professional, ATS-optimized resumes with our intelligent builder that adapts to your experience and target job.
+                </p>
+            </div>
+
+            <!-- Cover Letter Generator -->
+            <div class="bg-white p-6 rounded-lg shadow-sm">
+                <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mb-4">
+                    <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                    </svg>
+                </div>
+                <h3 class="about-card-title">Cover Letter Generator</h3>
+                <p class="about-card-text">
+                    Generate personalized cover letters that highlight your unique qualifications and match specific job requirements.
+                </p>
+            </div>
+
+            <!-- Job Application Service -->
+            <div class="bg-white p-6 rounded-lg shadow-sm">
+                <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mb-4">
+                    <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2V6"></path>
+                    </svg>
+                </div>
+                <h3 class="about-card-title">Job Application Service</h3>
+                <p class="about-card-text">
+                    Streamline your job search with our comprehensive application tracking and management system.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Why Choose Us Section -->
+<div class="py-16 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center mb-12">
+            <h2 class="about-section-title">Why Choose AI Cover Letter?</h2>
+            <p class="about-body-text max-w-3xl mx-auto">
+                We combine the power of artificial intelligence with human expertise to deliver results that matter.
+            </p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div class="space-y-6">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                            <svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="about-feature-title">AI-Powered Optimization</h3>
+                        <p class="about-feature-text">Our AI analyzes job descriptions and optimizes your documents for maximum impact.</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                            <svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="about-feature-title">ATS-Friendly Templates</h3>
+                        <p class="about-feature-text">All our templates are designed to pass through Applicant Tracking Systems.</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                            <svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="about-feature-title">Professional Quality</h3>
+                        <p class="about-feature-text">Industry-standard formatting and content that impresses hiring managers.</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="space-y-6">
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                            <svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="about-feature-title">Time-Saving</h3>
+                        <p class="about-feature-text">Generate professional documents in minutes, not hours or days.</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                            <svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="about-feature-title">Personalized Content</h3>
+                        <p class="about-feature-text">AI-generated content tailored to your experience and target position.</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                            <svg class="w-4 h-4 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"></path>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="about-feature-title">24/7 Availability</h3>
+                        <p class="about-feature-text">Access our tools anytime, anywhere to work on your applications.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CTA Section -->
+<div class="py-16 bg-blue-600">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <h2 class="text-3xl font-bold text-white mb-4">Ready to Transform Your Job Search?</h2>
+        <p class="text-xl text-blue-100 mb-8 max-w-3xl mx-auto">
+            Join thousands of job seekers who have successfully landed their dream jobs with our AI-powered tools.
+        </p>
+        <div class="space-x-4">
+            <a href="{% url 'authentication:register' %}" class="inline-block bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                Get Started Free
+            </a>
+            <a href="{% url 'home:index' %}" class="inline-block border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors">
+                Learn More
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %} 

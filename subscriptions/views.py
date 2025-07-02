@@ -56,7 +56,14 @@ class PlanPurchaseView(LoginRequiredMixin, DetailView):
         )
         
         # Load Stripe publishable key directly
-        context['STRIPE_PUBLIC_KEY'] = os.getenv('STRIPE_PUBLISHABLE_KEY')
+        stripe_public_key = os.getenv('STRIPE_PUBLISHABLE_KEY')
+        if not stripe_public_key:
+            # Log warning but don't crash the page
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning('STRIPE_PUBLISHABLE_KEY is not configured in environment variables')
+        
+        context['STRIPE_PUBLIC_KEY'] = stripe_public_key
         
         # Add return_url if provided
         context['return_url'] = self.request.GET.get('return_url')
@@ -261,5 +268,66 @@ def checkout_success(request, subscription_id):
 
 # Create your views here.
 
+@login_required
 def pricing(request):
-    return render(request, 'subscriptions/pricing.html')
+    plans = SubscriptionPlan.objects.filter(is_active=True).prefetch_related('features', 'durations')
+    
+    # Get user's current subscription if logged in
+    current_subscription = None
+    if request.user.is_authenticated:
+        current_subscription = UserSubscription.objects.filter(
+            user=request.user,
+            status='ACTIVE'
+        ).select_related('plan', 'plan_duration').first()
+        
+        # If user has no active subscription, they're on the Free plan
+        if not current_subscription:
+            free_plan = SubscriptionPlan.objects.filter(name='Free', is_active=True).first()
+            if free_plan:
+                # Create a virtual current subscription for Free plan users
+                current_subscription = type('obj', (object,), {
+                    'plan': free_plan,
+                    'plan_duration': None,
+                    'status': 'ACTIVE'
+                })()
+    
+    context = {
+        'plans': plans,
+        'current_subscription': current_subscription,
+    }
+    return render(request, 'subscriptions/pricing.html', context)
+
+@login_required
+def cancel_subscription(request):
+    """Cancel a user's subscription."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Invalid request method'}, status=400)
+    
+    try:
+        # Get the user's active subscription
+        subscription = UserSubscription.objects.filter(
+            user=request.user,
+            status='ACTIVE'
+        ).first()
+        
+        if not subscription:
+            return JsonResponse({
+                'success': False,
+                'error': 'No active subscription found.'
+            }, status=404)
+        
+        # Cancel the subscription
+        subscription.status = 'CANCELED'
+        subscription.canceled_at = timezone.now()
+        subscription.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Subscription canceled successfully.'
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)

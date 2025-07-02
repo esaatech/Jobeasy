@@ -16,9 +16,13 @@ logger = logging.getLogger('home')
 def index(request):
     return render(request, 'home/home.html')   
 
-
-
-
+def about(request):
+    context = {
+        'page_title': 'About Us - AI Cover Letter',
+        'page_description': 'Learn about our mission to revolutionize job applications with AI',
+        'meta_description': 'Discover how AI Cover Letter is transforming the job application process with intelligent resume and cover letter generation.',
+    }
+    return render(request, 'home/about.html', context)
 
 @require_http_methods(["GET", "POST"])
 def job_cover_letter(request):
