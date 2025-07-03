@@ -2,8 +2,22 @@
 {% load static %}
 
 {% block content %}
+{% if current_subscription and current_subscription.plan.name|lower == 'free' %}
+<div class="w-full flex justify-end mt-4">
+    <div class="bg-white rounded-lg shadow border border-gray-200 px-4 py-2 inline-flex items-center space-x-2 max-w-md">
+        <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8V7a4 4 0 00-8 0v4h8z" />
+        </svg>
+        <span class="font-semibold text-gray-800 text-sm">Current Plan:</span>
+        <span class="headline-primary text-base">{{ current_subscription.plan.name }}</span>
+        {% if current_subscription.plan.name|lower == 'free' %}
+            <a href="{% url 'subscriptions:pricing' %}" class="px-3 py-1 rounded bg-gradient-to-r from-indigo-500 to-cyan-400 text-white font-semibold text-sm shadow hover:from-cyan-400 hover:to-indigo-500 transition whitespace-nowrap">Upgrade Plan</a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
 <!-- Top Section: Stats Cards + Recent Job Applications -->
-<section class="py-8">
+<section class="pt-0 pb-8">
     <div class="max-w-7xl mx-auto px-4">
         <div class="grid grid-cols-1 xl:grid-cols-5 gap-6">
             <!-- Left Side: Compact Stats Cards -->
@@ -162,6 +176,8 @@
          -->
     </div>
 </section>
+
+
 {% endblock %}
 
 {% block extra_scripts %}

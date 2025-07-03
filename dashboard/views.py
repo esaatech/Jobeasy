@@ -10,6 +10,7 @@ from resume_builder.models import Resume
 from coverletter.models import CoverLetter
 from ai_service.open_ai import generate_cover_letter_from_raw_text, optimize_my_resume_for_job
 from .models import JobApplication
+from subscriptions.models import UserSubscription, SubscriptionPlan
 
 def _format_resume_content(resume):
     """Format resume's structured data into readable text for generating cover letter"""
@@ -93,11 +94,26 @@ def dashboard(request):
     resumes = request.user.resumes.filter(is_optimized=False).order_by('-updated_at')
     cover_letters = CoverLetter.objects.filter(user=request.user)
     job_applications = request.user.dashboard_job_applications.all()
-    
+
+    # Get user's current subscription (active)
+    current_subscription = UserSubscription.objects.filter(
+        user=request.user,
+        status='ACTIVE'
+    ).select_related('plan', 'plan_duration').first()
+    if not current_subscription:
+        free_plan = SubscriptionPlan.objects.filter(name='Free', is_active=True).first()
+        if free_plan:
+            current_subscription = type('obj', (object,), {
+                'plan': free_plan,
+                'plan_duration': None,
+                'status': 'ACTIVE'
+            })()
+
     context = {
         'resumes': resumes,
         'cover_letters': cover_letters,
         'job_applications': job_applications,
+        'current_subscription': current_subscription,
         'hero_content': {
             'page_title': 'Dashboard',
         }
