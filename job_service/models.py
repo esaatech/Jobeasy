@@ -170,3 +170,33 @@ class UserSubscription(models.Model):
     
     def __str__(self):
         return f"{self.user.username} - {self.package.name}"
+
+class InterviewPrepSession(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='interview_sessions')
+    job_role = models.CharField(max_length=100, blank=True)
+    job_description = models.TextField(blank=True)
+    started_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    total_score = models.FloatField(default=0)
+    max_score = models.FloatField(default=0)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.job_role or 'Custom'} ({self.started_at.date()})"
+
+class InterviewQuestion(models.Model):
+    session = models.ForeignKey(InterviewPrepSession, on_delete=models.CASCADE, related_name='questions')
+    question_text = models.TextField()
+    order = models.PositiveIntegerField(default=1)
+
+    def __str__(self):
+        return f"Q{self.order} for {self.session}"
+
+class InterviewAnswer(models.Model):
+    question = models.ForeignKey(InterviewQuestion, on_delete=models.CASCADE, related_name='answers')
+    user_answer = models.TextField()
+    ai_feedback = models.TextField(blank=True)
+    score = models.FloatField(default=0)
+    answered_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Answer to {self.question} (Score: {self.score})"

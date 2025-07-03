@@ -30,7 +30,8 @@ urlpatterns = [
     path('ai-service/', include('ai_service.urls')),
     path('utils/', include('utils.urls')),
     path('subscriptions/', include('subscriptions.urls')),
-    path('settings/', include('settings.urls')),    
+    path('settings/', include('settings.urls')),
+    path('qa/', include('question_answer.urls')),
 ]
 
 # Serve media files in development

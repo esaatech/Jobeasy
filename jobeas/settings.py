@@ -61,6 +61,8 @@ INSTALLED_APPS = [
     'rest_framework',
     'subscriptions',
     'settings',
+    'question_answer',
+
 ]
 
 MIDDLEWARE = [

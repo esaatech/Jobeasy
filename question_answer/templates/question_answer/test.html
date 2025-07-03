@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="max-w-xl mx-auto py-10 px-4">
+  <h1 class="headline-primary mb-4">Question Type Test</h1>
+
+  <form id="qa-test-form">
+    <div id="qa-question-container">
+      <!-- Question will be rendered here by JS -->
+    </div>
+    <div class="flex justify-between mt-4">
+      <button type="button" id="qa-prev-btn" class="btn btn-secondary" style="display:none;">Previous</button>
+      <button type="button" id="qa-next-btn" class="btn btn-primary">Next</button>
+      <button type="submit" id="qa-submit-btn" class="btn btn-primary" style="display:none;">Submit</button>
+    </div>
+  </form>
+</div>
+<script>
+  window.qaQuestions = {{ questions|safe }};
+  window.qaTotalQuestions = {{ total_questions }};
+</script>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{% static 'question_answer/js/question_render.js' %}"></script>
+{% endblock %} 
