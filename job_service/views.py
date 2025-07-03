@@ -334,3 +334,8 @@ def get_recommended_jobs(user, limit=6):
     except UserJobPreferences.DoesNotExist:
         # Return featured jobs if no preferences set
         return Job.objects.filter(is_featured=True, is_active=True)[:limit]
+
+@login_required
+def interview_prep(request):
+    """Render the interview prep page."""
+    return render(request, 'job_service/interview_prep.html')

@@ -19,4 +19,5 @@ urlpatterns = [
     path('jobs/<uuid:job_id>/apply/', views.apply_to_job, name='apply_to_job'),
     path('applications/', views.application_tracking, name='application_tracking'),
     path('applications/<int:application_id>/update/', views.update_application_status, name='update_application_status'),
+    path('interview-prep/', views.interview_prep, name='interview_prep'),
 ] 

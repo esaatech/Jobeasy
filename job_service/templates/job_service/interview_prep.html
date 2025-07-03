@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto py-10 px-4">
+  <h1 class="headline-primary mb-2">Interview Prep</h1>
+  <p class="subheadline mb-6">Practice common interview questions and get instant AI feedback.</p>
+
+  <!-- Input Section -->
+  <div id="input-section" class="bg-white rounded-lg shadow p-6 mb-6">
+    <label class="block text-sm font-medium text-gray-700 mb-2">Job Role or Description</label>
+    <select class="w-full mb-3 p-2 border rounded" id="job-role">
+      <option value="">Select a role...</option>
+      <!-- More options can be added here -->
+    </select>
+    <textarea class="w-full p-2 border rounded mb-3" rows="3" placeholder="Or paste a job description..." id="job-description"></textarea>
+    <button class="btn btn-primary w-full" id="start-practice-btn">Start Practice</button>
+  </div>
+
+  <!-- Interview Session Area (populated by AI) -->
+  <div id="interview-session" class="bg-white rounded-lg shadow p-6 mb-6" style="display:none;">
+    <div class="mb-2 text-sm text-gray-500" id="progress-indicator">
+      <!-- e.g., Question 1 of 10 -->
+    </div>
+    <div class="font-semibold mb-4" id="question-area">
+      <!-- AI-generated question goes here -->
+    </div>
+    <textarea class="w-full p-2 border rounded mb-3" rows="4" placeholder="Type your answer..." id="answer-input"></textarea>
+    <div class="flex space-x-2">
+      <button class="btn btn-primary" id="submit-answer-btn">Submit Answer</button>
+      <button class="btn btn-secondary" id="skip-question-btn">Skip</button>
+    </div>
+    <div class="mt-4 bg-blue-50 p-3 rounded text-sm text-blue-700" id="ai-feedback" style="display:none;">
+      <!-- AI feedback will be injected here -->
+    </div>
+  </div>
+
+  <!-- Completion Section -->
+  <div id="completion-section" class="text-center mt-8" style="display:none;">
+    <h2 class="headline-secondary mb-2">Great job!</h2>
+    <p class="mb-4">You've completed your interview practice session.</p>
+    <button class="btn btn-primary" id="restart-btn">Restart</button>
+  </div>
+</div>
+{% endblock %} 

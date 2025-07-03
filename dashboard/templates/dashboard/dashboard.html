@@ -30,10 +30,13 @@
                 <div class="bg-white rounded-lg shadow-lg p-6">
                     <div class="flex items-center justify-between mb-6">
                         <h2 class="headline-secondary">Recent Job Applications</h2>
-                        <a href="{% url 'dashboard:job_applications_list' %}" 
-                           class="text-blue-600 hover:text-blue-700 font-medium text-sm">
-                            View All
-                        </a>
+                        <div class="flex items-center space-x-4">
+                            <a href="{% url 'dashboard:job_applications_list' %}" 
+                               class="text-blue-600 hover:text-blue-700 font-medium text-sm">
+                                View All
+                            </a>
+                            <a href="{% url 'job_service:interview_prep' %}" class="btn btn-primary text-sm">Interview Prep</a>
+                        </div>
                     </div>
                     
                     <div id="job-applications-container" class="space-y-4">
