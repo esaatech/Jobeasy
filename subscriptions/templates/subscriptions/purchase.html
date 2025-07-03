@@ -18,24 +18,34 @@
 {% block content %}
 <div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
     <!-- Security Banner -->
-    <div class="mb-8 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+    <div class="mb-8 bg-gradient-to-r from-green-100 to-blue-100 rounded-lg shadow-lg border-2 border-green-400 p-5">
         <div class="flex items-center justify-between">
             <div class="flex items-center space-x-6">
                 <div class="flex items-center">
-                    <svg class="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    <svg class="h-7 w-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c1.104 0 2-.896 2-2V7a2 2 0 10-4 0v2c0 1.104.896 2 2 2zm0 0v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" />
                     </svg>
-                    <span class="ml-2 text-sm text-gray-600">Secure Payment</span>
+                    <span class="ml-2 text-base font-semibold text-green-700">Your payment is secure and encrypted</span>
                 </div>
                 <div class="flex items-center">
-                    <svg class="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg class="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8V7a4 4 0 00-8 0v4h8z" />
                     </svg>
-                    <span class="ml-2 text-sm text-gray-600">256-bit Encryption</span>
+                    <span class="ml-2 text-base font-semibold text-blue-700">256-bit SSL Encryption</span>
                 </div>
             </div>
-            <div class="flex items-center space-x-2">
-                <img src="{% static 'subscriptions/images/visa-master-paypal.png' %}" alt="Payment Methods" class="h-8">
+            <div class="flex flex-col items-start space-y-2 md:flex-row md:items-center md:space-y-0 md:space-x-4">
+                <!-- Visa SVG (blue rectangle with white text) -->
+                <svg class="h-8 w-auto" viewBox="0 0 48 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <rect x="0" y="2" width="48" height="20" rx="4" fill="#1A1F71"/>
+                  <text x="8" y="17" font-size="13" font-family="Arial, Helvetica, sans-serif" fill="#fff" font-weight="bold">VISA</text>
+                </svg>
+                <!-- MasterCard SVG (wider, text not cut off) -->
+                <svg class="h-8 w-auto" viewBox="0 0 90 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="18" cy="12" r="8" fill="#EB001B"/>
+                  <circle cx="28" cy="12" r="8" fill="#F79E1B"/>
+                  <text x="40" y="17" font-size="13" font-family="Arial, Helvetica, sans-serif" fill="#222">MasterCard</text>
+                </svg>
             </div>
         </div>
     </div>
@@ -45,13 +55,13 @@
         <div class="md:col-span-2 space-y-6">
             <!-- Plan Header -->
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h2 class="text-2xl font-bold text-gray-900">{{ plan.name }}</h2>
+                <h2 class="headline-primary">{{ plan.name }}</h2>
                 <p class="mt-2 text-gray-600">{{ plan.description }}</p>
             </div>
 
             <!-- Features -->
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Included Features</h3>
+                <h3 class="headline-secondary">Included Features</h3>
                 
                 {% if tools %}
                 <div class="mb-6">
@@ -112,8 +122,13 @@
 
         <!-- Payment Form -->
         <div class="md:col-span-1">
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 sticky top-6">
-                <h2 class="text-lg font-semibold text-gray-900 mb-6">Payment Details</h2>
+            <div class="bg-white rounded-lg shadow-lg border-2 border-green-400 p-6 sticky top-6">
+                <div class="flex items-center mb-6">
+                    <svg class="h-6 w-6 text-green-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c1.104 0 2-.896 2-2V7a2 2 0 10-4 0v2c0 1.104.896 2 2 2zm0 0v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" />
+                    </svg>
+                    <h2 class="text-lg font-semibold text-gray-900">Secure Payment</h2>
+                </div>
                 
                 {% if not STRIPE_PUBLIC_KEY %}
                 <div class="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-6">
@@ -190,8 +205,8 @@
                         </div>
 
                         <!-- City, State, ZIP -->
-                        <div class="grid grid-cols-6 gap-4">
-                            <div class="col-span-2">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">
                                     City
                                 </label>
@@ -201,7 +216,7 @@
                                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#1980e6] focus:border-[#1980e6]"
                                        placeholder="City">
                             </div>
-                            <div class="col-span-2">
+                            <div>
                                 <label class="block text-sm font-medium text-gray-700 mb-1">
                                     State
                                 </label>
@@ -211,16 +226,16 @@
                                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#1980e6] focus:border-[#1980e6]"
                                        placeholder="State">
                             </div>
-                            <div class="col-span-2">
-                                <label class="block text-sm font-medium text-gray-700 mb-1">
-                                    ZIP
-                                </label>
-                                <input type="text" 
-                                       id="zip" 
-                                       required
-                                       class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#1980e6] focus:border-[#1980e6]"
-                                       placeholder="12345">
-                            </div>
+                        </div>
+                        <div class="mt-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                ZIP
+                            </label>
+                            <input type="text" 
+                                   id="zip" 
+                                   required
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-[#1980e6] focus:border-[#1980e6]"
+                                   placeholder="12345">
                         </div>
                     </div>
 
@@ -301,6 +316,12 @@
                         {% endif %}
                     </button>
                 </form>
+                <div class="mt-6 flex items-center space-x-2 text-xs text-gray-500">
+                    <svg class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c1.104 0 2-.896 2-2V7a2 2 0 10-4 0v2c0 1.104.896 2 2 2zm0 0v2m0 4h.01M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" />
+                    </svg>
+                    <span>Payments are securely processed by <span class="font-semibold text-blue-700">Stripe</span>. We do not store your card details.</span>
+                </div>
             </div>
         </div>
     </div>
