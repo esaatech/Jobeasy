@@ -37,5 +37,8 @@ EXPOSE 8009
 # Set environment variables for Django
 ENV DJANGO_SETTINGS_MODULE=jobeas.settings
 
-# Run migrations, collect static files, and start server
-CMD ["sh", "-c", "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn jobeas.wsgi:application --bind 0.0.0.0:${PORT:-8009} --workers 1 --timeout 120 --keep-alive 5 --max-requests 1000 --max-requests-jitter 100"] 
+COPY entrypoint.sh /app/entrypoint.sh
+ENTRYPOINT ["/app/entrypoint.sh"]
+
+# Remove or comment out the old CMD line
+# CMD ["sh", "-c", "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn jobeas.wsgi:application --bind 0.0.0.0:${PORT:-8009} --workers 1 --timeout 120 --keep-alive 5 --max-r"] 
