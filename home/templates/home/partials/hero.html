@@ -1,22 +1,53 @@
 <!-- Hero Section Partial -->
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<div class="w-full flex flex-col items-center justify-center py-16 px-4 bg-white rounded-2xl shadow-xl">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between w-full max-w-4xl mb-12">
+        <div class="flex-1 mb-8 md:mb-0">
+            <h1 class="headline-primary mb-4">Land the Job –<br>With AI on Your Side</h1>
+            <div class="subheadline mb-8">
+                Generate your resume, cover letter, and interview prep in seconds. Search jobs or upload your resume – we'll handle the rest.
+            </div>
+            <div class="flex flex-wrap items-center mb-4">
+                <a href="#" class="hero-btn-primary">Start for Free</a>
+                <a href="#" class="hero-btn-secondary">Upload Resume</a>
+            </div>
+        </div>
+        <div class="flex-1 flex items-center justify-center">
+            {% include 'home/partials/resume_cover_hero_svg.html' %}
+        </div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl mt-8">
+        <div class="feature-card">
+            <div class="headline-tertiary flex items-center mb-2">
+                <svg class="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                Resume Generator
+            </div>
+            <div class="body-text-small">Build a professional, ATS-compliant resume from scratch or by uploading your existing one.</div>
+        </div>
+        <div class="feature-card">
+            <div class="headline-tertiary flex items-center mb-2">
+                <svg class="w-5 h-5 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V4a2 2 0 012-2h4a2 2 0 012 2v3"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h8"></path></svg>
+                Cover Letter Writer
+            </div>
+            <div class="body-text-small">Instantly create and optimize your cover letter to match specific job description.</div>
+        </div>
+        <div class="feature-card">
+            <div class="headline-tertiary flex items-center mb-2">
+                <svg class="w-5 h-5 mr-2 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h2l1 2h13l1-2h2"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16h10"></path></svg>
+                Smart Job Search
+            </div>
+            <div class="body-text-small">Tell us the role you want – we'll curate matching jobs for you every day.</div>
+        </div>
+        <div class="feature-card">
+            <div class="headline-tertiary flex items-center mb-2">
+                <svg class="w-5 h-5 mr-2 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                One-Click Interview Prep
+            </div>
+            <div class="body-text-small">When you select a job, generate targeted interview questions based on the role.</div>
+        </div>
+    </div>
+</div>
+
 <style>
-    .hero-headline {
-        font-family: 'Playfair Display', serif;
-        font-size: 2.8rem;
-        font-weight: 700;
-        background: linear-gradient(90deg, #6366f1 0%, #06b6d4 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        text-fill-color: transparent;
-    }
-    .hero-subheadline {
-        font-family: 'Inter', sans-serif;
-        font-size: 1.25rem;
-        color: #64748b;
-        margin-bottom: 2rem;
-    }
     .hero-btn-primary {
         background: linear-gradient(90deg, #6366f1 0%, #06b6d4 100%);
         color: #fff;
@@ -48,9 +79,6 @@
         background: #6366f1;
         color: #fff;
     }
-    .hero-btn-primary:hover {
-        background: linear-gradient(90deg, #06b6d4 0%, #6366f1 100%);
-    }
     .feature-card {
         background: #f8fafc;
         border-radius: 1rem;
@@ -63,20 +91,6 @@
     }
     .feature-card:hover {
         box-shadow: 0 6px 24px rgba(99,102,241,0.10);
-    }
-    .feature-title {
-        font-weight: 600;
-        font-size: 1.1rem;
-        margin-bottom: 0.5rem;
-        background: linear-gradient(90deg, #a78bfa 0%, #06d6a0 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        text-fill-color: transparent;
-    }
-    .feature-desc {
-        color: #64748b;
-        font-size: 1rem;
     }
     @media (max-width: 640px) {
         .hero-btn-primary {
@@ -92,51 +106,4 @@
             align-items: stretch;
         }
     }
-</style>
-<div class="w-full flex flex-col items-center justify-center py-16 px-4 bg-white rounded-2xl shadow-xl">
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between w-full max-w-4xl mb-12">
-        <div class="flex-1 mb-8 md:mb-0">
-            <h1 class="hero-headline mb-4">Land the Job –<br>With AI on Your Side</h1>
-            <div class="hero-subheadline mb-8">
-                Generate your resume, cover letter, and interview prep in seconds. Search jobs or upload your resume – we'll handle the rest.
-            </div>
-            <div class="flex flex-wrap items-center mb-4">
-                <a href="#" class="hero-btn-primary">Start for Free</a>
-                <a href="#" class="hero-btn-secondary">Upload Resume</a>
-            </div>
-        </div>
-        <div class="flex-1 flex items-center justify-center">
-            {% include 'home/partials/resume_cover_hero_svg.html' %}
-        </div>
-    </div>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-4xl mt-8">
-        <div class="feature-card">
-            <div class="feature-title flex items-center mb-2">
-                <svg class="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                Resume Generator
-            </div>
-            <div class="feature-desc">Build a professional, ATS-compliant resume from scratch or by uploading your existing one.</div>
-        </div>
-        <div class="feature-card">
-            <div class="feature-title flex items-center mb-2">
-                <svg class="w-5 h-5 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V4a2 2 0 012-2h4a2 2 0 012 2v3"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h8"></path></svg>
-                Cover Letter Writer
-            </div>
-            <div class="feature-desc">Instantly create and optimize your cover letter to match specific job description.</div>
-        </div>
-        <div class="feature-card">
-            <div class="feature-title flex items-center mb-2">
-                <svg class="w-5 h-5 mr-2 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h2l1 2h13l1-2h2"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16h10"></path></svg>
-                Smart Job Search
-            </div>
-            <div class="feature-desc">Tell us the role you want – we'll curate matching jobs for you every day.</div>
-        </div>
-        <div class="feature-card">
-            <div class="feature-title flex items-center mb-2">
-                <svg class="w-5 h-5 mr-2 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                One-Click Interview Prep
-            </div>
-            <div class="feature-desc">When you select a job, generate targeted interview questions based on the role.</div>
-        </div>
-    </div>
-</div> 
+</style> 

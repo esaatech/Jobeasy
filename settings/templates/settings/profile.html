@@ -3,7 +3,7 @@
 
 {% block content %}
 <div class="max-w-2xl mx-auto mt-10 bg-white shadow rounded-lg p-8">
-    <h2 class="text-2xl font-bold mb-6">Profile</h2>
+    <h2 class="headline-primary mb-6">Profile</h2>
     <div class="flex items-center space-x-6 mb-8">
         <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center text-3xl text-blue-600 font-bold">
             {{ user.username|slice:':1'|upper }}
@@ -14,7 +14,7 @@
         </div>
     </div>
     <div class="mb-8">
-        <h3 class="text-lg font-medium text-gray-800 mb-2">Teams</h3>
+        <h3 class="headline-tertiary mb-2">Teams</h3>
         {% if teams %}
             <ul class="space-y-2">
                 {% for team in teams %}

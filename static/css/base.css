@@ -1,0 +1,413 @@
+/* ========================================
+   FONT HIERARCHY SYSTEM
+   ======================================== */
+
+/* Google Fonts Import */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;600&display=swap');
+
+/* ========================================
+   PRIMARY HEADINGS (Gradient)
+   ======================================== */
+.headline-primary {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.8rem;
+    font-weight: 700;
+    background: linear-gradient(90deg, #6366f1 0%, #06b6d4 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-fill-color: transparent;
+}
+
+/* ========================================
+   SECONDARY HEADINGS (Purple)
+   ======================================== */
+.headline-secondary {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #7c3aed; /* Purple */
+    margin-bottom: 1.5rem;
+}
+
+/* ========================================
+   TERTIARY HEADINGS (Charcoal Black)
+   ======================================== */
+.headline-tertiary {
+    font-family: 'Playfair Display', serif;
+    font-weight: 700;
+    font-size: 1.25rem;
+    color: #374151; /* Charcoal black */
+    margin-bottom: 0.75rem;
+}
+
+/* ========================================
+   BODY TEXT (Inter Font)
+   ======================================== */
+.body-text {
+    font-family: 'Inter', sans-serif;
+    font-size: 1.125rem;
+    color: #64748b;
+    line-height: 1.7;
+}
+
+.body-text-small {
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    color: #64748b;
+    line-height: 1.6;
+}
+
+/* ========================================
+   SUBHEADLINES
+   ======================================== */
+.subheadline {
+    font-family: 'Inter', sans-serif;
+    font-size: 1.25rem;
+    color: #64748b;
+    margin-bottom: 2rem;
+}
+
+/* ========================================
+   BUTTON SYSTEM
+   ======================================== */
+
+/* Base Button Styles */
+.btn {
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    border-radius: 0.5rem;
+    padding: 0.75rem 2rem;
+    font-size: 1rem;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease-in-out;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(99,102,241,0.08);
+}
+
+.btn:focus {
+    outline: none;
+    ring: 2px;
+    ring-offset: 2px;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Button Sizes */
+.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+}
+
+.btn-lg {
+    padding: 1rem 2.5rem;
+    font-size: 1.125rem;
+}
+
+.btn-xl {
+    padding: 1.25rem 3rem;
+    font-size: 1.25rem;
+}
+
+/* Primary Button (Gradient) */
+.btn-primary {
+    background: linear-gradient(90deg, #6366f1 0%, #06b6d4 100%);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(99,102,241,0.15);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(90deg, #06b6d4 0%, #6366f1 100%);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99,102,241,0.25);
+}
+
+.btn-primary:focus {
+    ring-color: #6366f1;
+}
+
+/* Secondary Button (Outline) */
+.btn-secondary {
+    background: #fff;
+    color: #6366f1;
+    border: 2px solid #6366f1;
+    box-shadow: 0 2px 8px rgba(99,102,241,0.08);
+}
+
+.btn-secondary:hover {
+    background: #6366f1;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99,102,241,0.15);
+}
+
+.btn-secondary:focus {
+    ring-color: #6366f1;
+}
+
+/* Success Button */
+.btn-success {
+    background: #10b981;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(16,185,129,0.15);
+}
+
+.btn-success:hover {
+    background: #059669;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16,185,129,0.25);
+}
+
+.btn-success:focus {
+    ring-color: #10b981;
+}
+
+/* Danger Button */
+.btn-danger {
+    background: #ef4444;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(239,68,68,0.15);
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(239,68,68,0.25);
+}
+
+.btn-danger:focus {
+    ring-color: #ef4444;
+}
+
+/* Warning Button */
+.btn-warning {
+    background: #f59e0b;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(245,158,11,0.15);
+}
+
+.btn-warning:hover {
+    background: #d97706;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(245,158,11,0.25);
+}
+
+.btn-warning:focus {
+    ring-color: #f59e0b;
+}
+
+/* Info Button */
+.btn-info {
+    background: #3b82f6;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(59,130,246,0.15);
+}
+
+.btn-info:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(59,130,246,0.25);
+}
+
+.btn-info:focus {
+    ring-color: #3b82f6;
+}
+
+/* Gray Button */
+.btn-gray {
+    background: #6b7280;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(107,114,128,0.15);
+}
+
+.btn-gray:hover {
+    background: #4b5563;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(107,114,128,0.25);
+}
+
+.btn-gray:focus {
+    ring-color: #6b7280;
+}
+
+/* Violet Button */
+.btn-violet {
+    background: #8b5cf6;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(139,92,246,0.15);
+}
+
+.btn-violet:hover {
+    background: #7c3aed;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(139,92,246,0.25);
+}
+
+.btn-violet:focus {
+    ring-color: #8b5cf6;
+}
+
+/* Emerald Button */
+.btn-emerald {
+    background: #10b981;
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(16,185,129,0.15);
+}
+
+.btn-emerald:hover {
+    background: #059669;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16,185,129,0.25);
+}
+
+.btn-emerald:focus {
+    ring-color: #10b981;
+}
+
+/* Outline Button Variants */
+.btn-outline-primary {
+    background: transparent;
+    color: #6366f1;
+    border: 2px solid #6366f1;
+    box-shadow: none;
+}
+
+.btn-outline-primary:hover {
+    background: #6366f1;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(99,102,241,0.15);
+}
+
+.btn-outline-success {
+    background: transparent;
+    color: #10b981;
+    border: 2px solid #10b981;
+    box-shadow: none;
+}
+
+.btn-outline-success:hover {
+    background: #10b981;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16,185,129,0.15);
+}
+
+.btn-outline-danger {
+    background: transparent;
+    color: #ef4444;
+    border: 2px solid #ef4444;
+    box-shadow: none;
+}
+
+.btn-outline-danger:hover {
+    background: #ef4444;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(239,68,68,0.15);
+}
+
+/* Ghost Button (Minimal) */
+.btn-ghost {
+    background: transparent;
+    color: #6366f1;
+    border: none;
+    box-shadow: none;
+}
+
+.btn-ghost:hover {
+    background: rgba(99,102,241,0.1);
+    transform: none;
+    box-shadow: none;
+}
+
+/* Full Width Button */
+.btn-full {
+    width: 100%;
+}
+
+/* Button with Icon */
+.btn-icon {
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+}
+
+.btn-icon.btn-sm {
+    padding: 0.5rem;
+}
+
+.btn-icon.btn-lg {
+    padding: 1rem;
+}
+
+/* ========================================
+   RESPONSIVE ADJUSTMENTS
+   ======================================== */
+@media (max-width: 768px) {
+    .headline-primary {
+        font-size: 2.2rem;
+    }
+    
+    .headline-secondary {
+        font-size: 2rem;
+    }
+    
+    .headline-tertiary {
+        font-size: 1.125rem;
+    }
+    
+    .body-text {
+        font-size: 1rem;
+    }
+    
+    .subheadline {
+        font-size: 1.125rem;
+    }
+    
+    /* Mobile button adjustments */
+    .btn {
+        padding: 0.75rem 1.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .btn-lg {
+        padding: 1rem 2rem;
+        font-size: 1rem;
+    }
+    
+    .btn-xl {
+        padding: 1.25rem 2.5rem;
+        font-size: 1.125rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .headline-primary {
+        font-size: 1.8rem;
+    }
+    
+    .headline-secondary {
+        font-size: 1.75rem;
+    }
+    
+    .headline-tertiary {
+        font-size: 1rem;
+    }
+    
+    /* Small mobile button adjustments */
+    .btn {
+        padding: 0.625rem 1.25rem;
+        font-size: 0.875rem;
+    }
+    
+    .btn-full {
+        margin-bottom: 0.5rem;
+    }
+} 

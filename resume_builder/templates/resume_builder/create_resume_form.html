@@ -2,7 +2,7 @@
 {% load json_filters %}
 <div class="min-h-screen bg-gray-50 py-8 font-sans">
     <!-- Progress Bar -->
-    <div class="max-w-3xl mx-auto mb-8 px-4">
+    <div class="max-w-4xl mx-auto mb-8 px-4">
         <div class="flex justify-between">
             <div class="step active" data-step="1">Personal Info</div>
             <div class="step" data-step="2">Experience</div>
@@ -16,17 +16,17 @@
     </div>
 
     <!-- Form Container -->
-    <div class="max-w-3xl mx-auto bg-white rounded-xl shadow-lg border border-gray-200">
+    <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg border border-gray-200">
         <form id="resumeForm" class="p-8 space-y-8">
             {% csrf_token %}
 
             <!-- Resume Name Field -->
             <div class="bg-gray-50 p-6 rounded-lg border border-gray-200">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">Resume Name</h3>
+                <h3 class="headline-tertiary mb-4">Resume Name</h3>
                 <input type="text" name="resume_name" id="resumeName" 
                        value="{% if resume_instance %}{{ resume_instance.name }}{% else %}{{ default_resume_name }}{% endif %}" required
                        class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
-                <p class="text-sm text-gray-600 mt-2">Give your resume a name to help you identify it later.</p>
+                <p class="body-text-small mt-2">Give your resume a name to help you identify it later.</p>
             </div>
             <input type="hidden" name="resume_id" id="resumeId" value="{{ resume_instance.id|default:'' }}">
 
@@ -35,7 +35,7 @@
 
             <!-- Step 1: Personal Information -->
             <div class="form-step" data-step="1">
-                <h2 class="text-2xl font-bold text-gray-800 mb-6">Personal Information</h2>
+                <h2 class="headline-secondary mb-6">Personal Information</h2>
                 <div class="border-b-2 border-emerald-500 mb-6"></div>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -69,9 +69,9 @@
             <!-- Step 2: Work Experience -->
             <div class="form-step hidden" data-step="2">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800">Work Experience</h2>
+                    <h2 class="headline-secondary">Work Experience</h2>
                     <button type="button" onclick="addExperience()"
-                        class="bg-emerald-500 text-white px-4 py-2 rounded-md hover:bg-emerald-600">
+                        class="btn btn-success">
                         Add Experience
                     </button>
                 </div>
@@ -116,9 +116,9 @@
             <!-- Step 3: Education -->
             <div class="form-step hidden" data-step="3">
                 <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold text-gray-800">Education</h2>
+                    <h2 class="headline-secondary">Education</h2>
                     <button type="button" onclick="addEducation()"
-                        class="bg-emerald-500 text-white px-4 py-2 rounded-md hover:bg-emerald-600">
+                        class="btn btn-success">
                         Add Education
                     </button>
                 </div>
@@ -162,7 +162,7 @@
 
             <!-- Step 4: Skills -->
             <div class="form-step hidden" data-step="4">
-                <h2 class="text-2xl font-bold text-gray-800 mb-6">Skills</h2>
+                <h2 class="headline-secondary mb-6">Skills</h2>
                 <div class="border-b-2 border-emerald-500 mb-6"></div>
                 <div class="space-y-6">
                     <div>
@@ -188,7 +188,7 @@
 
             <!-- Step 5: Additional Information -->
             <div class="form-step hidden" data-step="5">
-                <h2 class="text-2xl font-bold text-gray-800 mb-6">Additional Information</h2>
+                <h2 class="headline-secondary mb-6">Additional Information</h2>
                 <div class="border-b-2 border-emerald-500 mb-6"></div>
                 <div class="space-y-6">
                     <div>
@@ -205,33 +205,33 @@
             <!-- Navigation Buttons -->
             <div class="flex flex-wrap justify-center sm:justify-between items-center mt-8 gap-4">
                 <button type="button" id="prevBtn" onclick="prevStep()"
-                    class="bg-gray-600 text-white px-6 py-2 rounded-md hover:bg-gray-700 hidden">
+                    class="btn btn-gray hidden">
                     Previous
                 </button>
                 <div class="flex items-center flex-wrap gap-4 ml-auto justify-center sm:justify-end">
                     <button type="button" id="saveStepBtn" onclick="saveAndExit()"
-                        class="bg-violet-600 text-white px-6 py-2 rounded-md hover:bg-violet-700 hidden">
+                        class="btn btn-violet hidden">
                         Save and Exit
                     </button>
                     <button type="button" id="nextBtn" onclick="nextStep()"
-                        class="bg-emerald-500 text-white px-6 py-2 rounded-md hover:bg-emerald-600">
+                        class="btn btn-success">
                         Next
                     </button>
                     <div id="finalButtons" class="hidden flex items-center flex-wrap justify-center sm:justify-end gap-4">
                         <button type="button" id="saveBtn" onclick="finalizeResume('save')"
-                            class="bg-violet-600 text-white px-6 py-2 rounded-md hover:bg-violet-700 flex items-center space-x-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            class="btn btn-violet">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path>
                             </svg>
-                            <span>Save Resume</span>
+                            Save Resume
                         </button>
                         <button type="button" id="previewBtn" onclick="finalizeResume('preview')"
-                            class="bg-emerald-600 text-white px-6 py-2 rounded-md hover:bg-emerald-700 flex items-center space-x-2">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            class="btn btn-success">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                             </svg>
-                            <span>Preview Resume</span>
+                            Preview Resume
                         </button>
                     </div>
                 </div>

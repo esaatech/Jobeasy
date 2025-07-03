@@ -1,6 +1,6 @@
 <!-- Testimonials Section -->
 <div class="w-full flex flex-col items-center justify-center py-12 px-4 bg-gray-50">
-    <h2 class="text-3xl md:text-4xl font-bold mb-8" style="font-family: 'Inter', sans-serif; color: #111827;">What Our Users Say</h2>
+    <h2 class="headline-secondary text-center">What Our Users Say</h2>
     <div id="testimonial-list" class="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-4xl"></div>
 </div>
 <script>
@@ -14,8 +14,8 @@ function renderTestimonials(testimonials) {
             <div class="w-14 h-14 rounded-full bg-gradient-to-br from-blue-400 to-cyan-400 flex items-center justify-center text-white text-2xl font-bold mb-4">
                 ${t.name.split(' ').map(n => n[0]).join('').toUpperCase()}
             </div>
-            <div class="text-lg font-medium mb-2">“${t.quote}”</div>
-            <div class="text-gray-500 font-semibold mt-2">— ${t.name}</div>
+            <div class="body-text mb-2">"${t.quote}"</div>
+            <div class="headline-tertiary mt-2">— ${t.name}</div>
         `;
         container.appendChild(card);
     });

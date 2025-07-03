@@ -15,7 +15,7 @@
             <div class="xl:col-span-3">
                 <div class="bg-white rounded-lg shadow-lg p-6">
                     <div class="flex items-center justify-between mb-6">
-                        <h2 class="text-xl font-bold text-gray-900">Recent Job Applications</h2>
+                        <h2 class="headline-secondary">Recent Job Applications</h2>
                         <a href="{% url 'dashboard:job_applications_list' %}" 
                            class="text-blue-600 hover:text-blue-700 font-medium text-sm">
                             View All
@@ -37,7 +37,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2V6"></path>
                                     </svg>
                                 </div>
-                                <h3 class="text-lg font-medium text-gray-900 mb-2">No job applications yet</h3>
+                                <h3 class="headline-tertiary mb-2">No job applications yet</h3>
                                 <p class="text-gray-500">Start by generating your first job application below</p>
                             </div>
                         {% endif %}
@@ -53,13 +53,13 @@
     <div class="max-w-7xl mx-auto px-4">
         <!-- AI Job Assistant Title -->
         <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-gray-900 mb-2">AI Job Assistant</h1>
-            <p class="text-gray-600">Optimize your resume and generate cover letters with AI</p>
+            <h1 class="headline-primary mb-2">AI Job Assistant</h1>
+            <p class="subheadline">Optimize your resume and generate cover letters with AI</p>
         </div>
 
         <!-- Resume Selection -->
         <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
-            <h2 class="text-xl font-bold mb-4">Select Resume</h2>
+            <h2 class="headline-secondary mb-4">Select Resume</h2>
             <div class="relative">
                 <div class="flex space-x-4 overflow-x-auto pb-4" id="resume-carousel">
                     {% for resume in resumes %}
@@ -133,11 +133,33 @@
             <div class="text-center">
                 <button 
                     id="generate-btn" 
-                    class="bg-blue-600 text-white px-8 py-4 rounded-lg hover:bg-blue-700 transition-colors font-medium text-lg disabled:opacity-50 disabled:cursor-not-allowed">
+                    class="btn btn-primary btn-lg">
                     Generate
                 </button>
             </div>
         </div>
+
+        <!-- Action Buttons
+        <div class="flex flex-col sm:flex-row gap-4 mt-6">
+            <button type="button" 
+                    onclick="generateCoverLetter()"
+                    class="btn btn-primary">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+                Generate Cover Letter
+            </button>
+            <button type="button" 
+                    onclick="optimizeResume()"
+                    class="btn btn-secondary">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                </svg>
+                Optimize Resume
+            </button>
+        </div>
+         -->
     </div>
 </section>
 {% endblock %}

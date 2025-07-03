@@ -8,8 +8,8 @@
     <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Header -->
         <div class="text-center mb-8">
-            <h1 class="text-3xl font-bold text-gray-900 mb-4">{{ hero_content.page_title }}</h1>
-            <p class="text-lg text-gray-600">{{ hero_content.page_description }}</p>
+            <h1 class="headline-primary mb-4">{{ hero_content.page_title }}</h1>
+            <p class="subheadline">{{ hero_content.page_description }}</p>
         </div>
 
         <!-- Resume Display -->
@@ -38,7 +38,7 @@
         {% else %}
         <!-- Legacy optimization results display -->
         <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
-            <h2 class="text-2xl font-bold text-gray-900 mb-4">Optimized Resume</h2>
+            <h2 class="headline-secondary mb-4">Optimized Resume</h2>
             <div class="bg-gray-50 rounded-lg p-6">
                 <pre class="whitespace-pre-wrap text-gray-800 font-sans">{{ resume_data.optimized_content }}</pre>
             </div>
