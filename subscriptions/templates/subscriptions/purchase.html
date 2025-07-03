@@ -9,11 +9,8 @@
     try {
         stripe = Stripe('{{ STRIPE_PUBLIC_KEY }}');
     } catch (error) {
-        console.error('Failed to initialize Stripe:', error);
         stripe = null;
     }
-    {% else %}
-    console.error('Stripe public key is not configured. Please check your environment variables.');
     {% endif %}
 </script>
 {% endblock %}
@@ -313,9 +310,7 @@
 {% block extra_scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Check if Stripe is properly initialized
     if (!stripe) {
-        console.error('Stripe is not properly initialized. Please check your configuration.');
         const errorElement = document.getElementById('card-errors');
         if (errorElement) {
             errorElement.textContent = 'Payment system is not available. Please contact support.';
@@ -326,13 +321,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Stripe Elements style
     const style = {
       base: {
-        fontSize: '1rem',
+        fontSize: '16px',
         color: '#334155',
         fontFamily: 'Inter, sans-serif',
         '::placeholder': { color: '#94a3b8' },
-        backgroundColor: '#f9fafb',
-        padding: '12px 16px',
-        borderRadius: '8px',
+        backgroundColor: '#f9fafb'
       },
       invalid: {
         color: '#e53e3e',
@@ -349,7 +342,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const cardNumberElement = document.getElementById('card-number-element');
         const cardExpiryElement = document.getElementById('card-expiry-element');
         const cardCvcElement = document.getElementById('card-cvc-element');
-        
+
         if (cardNumberElement) cardNumber.mount('#card-number-element');
         if (cardExpiryElement) cardExpiry.mount('#card-expiry-element');
         if (cardCvcElement) cardCvc.mount('#card-cvc-element');
@@ -368,7 +361,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     } catch (error) {
-        console.error('Failed to create Stripe elements:', error);
         const errorElement = document.getElementById('card-errors');
         if (errorElement) {
             errorElement.textContent = 'Failed to initialize payment form. Please refresh the page.';
