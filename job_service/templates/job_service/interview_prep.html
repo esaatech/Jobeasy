@@ -93,7 +93,7 @@
     </div>
     
     <div class="category-filter">
-        <select id="categorySelect" hx-get="{% url 'qa:load_questions' %}" hx-target="#qaContent" hx-trigger="change" hx-indicator="#loadingSpinner">
+        <select id="categorySelect" name="category" hx-get="{% url 'qa:load_questions' %}" hx-target="#qaContent" hx-trigger="change" hx-indicator="#loadingSpinner">
             <option value="">Select a category...</option>
             <option value="General">General Questions</option>
             <option value="Leadership">Leadership</option>

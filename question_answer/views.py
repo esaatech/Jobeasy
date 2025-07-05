@@ -42,8 +42,8 @@ def test_view(request):
 @require_http_methods(["GET"])
 def load_questions_by_category(request):
     """HTMX endpoint to load questions by category"""
-    category_name = request.GET.get('category', 'General')
-    
+    category_name = request.GET.get('category') or request.GET.get('categorySelect') or 'General'
+    print(f"[DEBUG] Loading questions for category: {category_name}")
     try:
         # Get questions for the selected category
         questions = Question.objects.filter(

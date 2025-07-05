@@ -20,12 +20,17 @@
                     <a href="{% url 'dashboard:dashboard' %}" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
                         Dashboard
                     </a>
-                    <a href="{% url 'resume_builder:create_resume' %}" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
-                        Resume
-                    </a>
-                    <a href="{% url 'resume_builder:my_resumes' %}" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
-                        My Resumes
-                    </a>
+                    <!-- Resume Dropdown -->
+                    <div class="relative group inline-block">
+                        <button tabindex="0" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium flex items-center focus:outline-none">
+                            Resume
+                            <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                        </button>
+                        <div class="absolute left-0 pt-2 w-40 bg-white border border-gray-200 rounded-md shadow-lg z-50 hidden group-hover:block group-focus-within:block">
+                            <a href="{% url 'resume_builder:create_resume' %}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">Resume</a>
+                            <a href="{% url 'resume_builder:my_resumes' %}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">My Resumes</a>
+                        </div>
+                    </div>
                     <a href="{% url 'subscriptions:pricing' %}" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
                         Pricing
                     </a>
@@ -83,12 +88,17 @@
                 <a href="{% url 'dashboard:dashboard' %}" class="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
                     Dashboard
                 </a>
-                <a href="{% url 'resume_builder:create_resume' %}" class="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
-                    Resume
-                </a>
-                <a href="{% url 'resume_builder:my_resumes' %}" class="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
-                    My Resumes
-                </a>
+                <!-- Resume Dropdown for Mobile -->
+                <div class="block">
+                    <button type="button" class="w-full text-left text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium flex items-center focus:outline-none" onclick="this.nextElementSibling.classList.toggle('hidden')">
+                        Resume
+                        <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                    </button>
+                    <div class="hidden ml-4">
+                        <a href="{% url 'resume_builder:create_resume' %}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">Resume</a>
+                        <a href="{% url 'resume_builder:my_resumes' %}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">My Resumes</a>
+                    </div>
+                </div>
                 <a href="{% url 'subscriptions:pricing' %}" class="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
                     Pricing
                 </a>
