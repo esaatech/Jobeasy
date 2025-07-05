@@ -1,6 +1,10 @@
 from django.urls import path
 from . import views
 
+app_name = 'qa'
+
 urlpatterns = [
-    path('test/', views.test_questions, name='qa_test'),
+    path('test/', views.test_view, name='test'),
+    path('load-questions/', views.load_questions_by_category, name='load_questions'),
+    path('submit/', views.submit_answers, name='submit_answers'),
 ] 

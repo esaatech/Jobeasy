@@ -12,6 +12,9 @@ python manage.py setup_subscription_plans
 python manage.py bulk_add_testimonials
 python manage.py bulk_add_faq
 
+# Populate interview prep questions
+python manage.py import_interview_prep
+
 # Start the server with full Gunicorn options
 exec gunicorn jobeas.wsgi:application \
   --bind 0.0.0.0:${PORT:-8009} \
