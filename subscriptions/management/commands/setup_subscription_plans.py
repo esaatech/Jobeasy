@@ -236,8 +236,8 @@ class Command(BaseCommand):
         # Free Plan Features
         free_features = [
             'basic_resume_creation',
-            'cover_letter_generation',
             'professional_templates',
+            'interview_preparation',
         ]
         
         # Plus Plan Features (includes all Free features plus:)

@@ -268,7 +268,6 @@ def checkout_success(request, subscription_id):
 
 # Create your views here.
 
-@login_required
 def pricing(request):
     plans = SubscriptionPlan.objects.filter(is_active=True).prefetch_related('features', 'durations')
     
