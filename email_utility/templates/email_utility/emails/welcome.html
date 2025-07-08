@@ -1,59 +1,187 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Jobeas</title>
     <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background-color: #2563EB; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
-        .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; 
+            line-height: 1.6; 
+            color: #374151; 
+            margin: 0; 
+            padding: 0; 
+            background-color: #f9fafb;
+        }
+        .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .header { 
+            background: #ffffff;
+            color: #1f2937; 
+            padding: 40px 30px; 
+            text-align: center; 
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .logo {
+            width: 120px;
+            height: auto;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .content { 
+            padding: 40px 30px; 
+            background-color: #ffffff;
+        }
+        .welcome-text {
+            font-size: 18px;
+            color: #1f2937;
+            margin-bottom: 30px;
+            font-weight: 500;
+        }
+        .features { 
+            background-color: #f8fafc; 
+            padding: 30px; 
+            border-radius: 12px; 
+            margin: 30px 0; 
+            border: 1px solid #e2e8f0;
+        }
+        .features h3 {
+            color: #1f2937;
+            font-size: 20px;
+            font-weight: 600;
+            margin: 0 0 20px 0;
+        }
+        .feature-item { 
+            margin: 12px 0; 
+            padding-left: 28px; 
+            position: relative; 
+            color: #4b5563;
+            font-size: 16px;
+        }
+        .feature-item:before { 
+            content: "✓"; 
+            color: #10b981; 
+            font-weight: bold; 
+            position: absolute; 
+            left: 0;
+            font-size: 18px;
+        }
         .button {
             display: inline-block;
-            padding: 12px 24px;
-            background-color: #2563EB;
+            padding: 16px 32px;
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
             color: white;
             text-decoration: none;
-            border-radius: 6px;
-            margin: 20px 0;
+            border-radius: 8px;
+            margin: 30px 0;
+            font-weight: 600;
+            font-size: 16px;
+            text-align: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
+        }
+        .button:hover { 
+            transform: translateY(-1px);
+            box-shadow: 0 8px 15px -3px rgba(37, 99, 235, 0.4);
+        }
+        .footer { 
+            margin-top: 40px; 
+            padding-top: 30px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 14px; 
+            color: #6b7280; 
+            text-align: center; 
+        }
+        .footer p {
+            margin: 8px 0;
+        }
+        .support-info {
+            background-color: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 30px 0;
+        }
+        .support-info h4 {
+            color: #0369a1;
+            margin: 0 0 10px 0;
+            font-size: 16px;
             font-weight: 600;
         }
-        .button:hover { background-color: #1d4ed8; }
-        .footer { margin-top: 30px; font-size: 0.9em; color: #666; text-align: center; }
-        .features { background-color: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
-        .feature-item { margin: 10px 0; padding-left: 20px; position: relative; }
-        .feature-item:before { content: "✓"; color: #10b981; font-weight: bold; position: absolute; left: 0; }
+        .support-info p {
+            margin: 0;
+            color: #0c4a6e;
+            font-size: 14px;
+        }
+        @media only screen and (max-width: 600px) {
+            .container {
+                margin: 10px;
+                border-radius: 8px;
+            }
+            .header, .content {
+                padding: 30px 20px;
+            }
+            .header h1 {
+                font-size: 24px;
+            }
+            .features {
+                padding: 20px;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>Welcome to AI Cover Letter!</h1>
+            <img src="https://jobeas.com/static/img/logo.png" alt="Jobeas Logo" class="logo" />
+            <h1>Welcome to Jobeas!</h1>
         </div>
         
         <div class="content">
-            <p>Hello {{ user.get_full_name|default:user.username }},</p>
+            <p class="welcome-text">Hello {{ user.get_full_name|default:user.username }},</p>
             
-            <p>Thank you for joining AI Cover Letter! We're excited to help you create professional resumes and cover letters that stand out to employers.</p>
+            <p>Thank you for joining Jobeas! We're excited to help you create professional resumes, cover letters, and manage your job applications with our comprehensive career platform.</p>
             
             <div class="features">
-                <h3>What you can do with AI Cover Letter:</h3>
+                <h3>What you can do with Jobeas:</h3>
                 <div class="feature-item">Create ATS-friendly resumes with professional templates</div>
                 <div class="feature-item">Generate personalized cover letters tailored to job descriptions</div>
-                <div class="feature-item">Optimize your resume for Applicant Tracking Systems</div>
                 <div class="feature-item">Access our comprehensive job application service</div>
                 <div class="feature-item">Track your job applications and manage your career</div>
+                <div class="feature-item">Prepare for interviews with our Q&A system</div>
+                <div class="feature-item">Optimize your resume for Applicant Tracking Systems</div>
             </div>
             
-            <p>To get started, click the button below to access your account:</p>
+            <p>To get started, click the button below to access your dashboard:</p>
             
             <div style="text-align: center;">
                 <a href="{{ login_url }}" class="button">Get Started</a>
             </div>
             
-            <p>If you have any questions or need assistance, don't hesitate to contact our support team.</p>
+            <div class="support-info">
+                <h4>Need Help?</h4>
+                <p>If you have any questions or need assistance, don't hesitate to contact our support team at support@jobeas.com</p>
+            </div>
             
             <div class="footer">
-                <p>Best regards,<br>The AI Cover Letter Team</p>
+                <p><strong>Best regards,</strong><br>The Jobeas Team</p>
                 <p><small>This email was sent to {{ user.email }}</small></p>
+                <p><small>© 2024 Jobeas. All rights reserved.</small></p>
             </div>
         </div>
     </div>

@@ -2,6 +2,7 @@ from django.core.mail import send_mail, EmailMultiAlternatives
 from django.conf import settings
 from django.template.loader import render_to_string
 from typing import List, Optional
+import os
 
 class NotificationService:
     """
@@ -12,6 +13,11 @@ class NotificationService:
     - Email verification
     - System notifications
     """
+    
+    # Global branding variables - change these in one place
+    COMPANY_NAME = "Jobeas"
+    DEFAULT_FROM_EMAIL_FALLBACK = "noreply@jobeas.com"
+    SUPPORT_EMAIL = "support@jobeas.com"
     
     @staticmethod
     def send_email(
@@ -45,8 +51,10 @@ class NotificationService:
             
             # Get sender email from settings if not provided
             if not from_email:
-                from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@247csa.com')
+                from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', NotificationService.DEFAULT_FROM_EMAIL_FALLBACK)
             print(f"From: {from_email}")
+            print(f"Settings DEFAULT_FROM_EMAIL: {getattr(settings, 'DEFAULT_FROM_EMAIL', 'NOT SET')}")
+            print(f"Environment DEFAULT_FROM_EMAIL: {os.environ.get('DEFAULT_FROM_EMAIL', 'NOT SET')}")
             
             # Render HTML content
             print(f"Rendering template: {template_name}.html")
@@ -88,7 +96,7 @@ class NotificationService:
         
         return cls.send_email(
             to_email=user.email,
-            subject="Welcome to AI Cover Letter!",
+            subject=f"Welcome to {cls.COMPANY_NAME}!",
             template_name="email_utility/emails/welcome",
             context=context
         )
@@ -115,7 +123,7 @@ class NotificationService:
             print("About to call send_email method...")
             result = cls.send_email(
                 to_email=invitation.email,
-                subject=f"Invitation to join {invitation.team.name} on 247CSA",
+                subject=f"Invitation to join {invitation.team.name} on {cls.COMPANY_NAME}",
                 template_name="team/emails/invitation_body",
                 context=context
             )
@@ -138,7 +146,7 @@ class NotificationService:
         
         return cls.send_email(
             to_email=user.email,
-            subject="Reset Your 247CSA Password",
+            subject=f"Reset Your {cls.COMPANY_NAME} Password",
             template_name="email_utility/emails/password_reset",
             context=context
         )
@@ -178,7 +186,7 @@ class NotificationService:
         """Send notification when a user deletes their account"""
         context = {
             'user_name': user_name,
-            'support_email': settings.ADMIN_EMAIL,
+            'support_email': cls.SUPPORT_EMAIL,
         }
         
         return cls.send_email(
