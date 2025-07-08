@@ -35,6 +35,8 @@ ALLOWED_HOSTS = ['*']
 CSRF_TRUSTED_ORIGINS = [
     'https://dev-578103433472.us-west1.run.app',
     'https://*.run.app',  # Allow any Cloud Run domain
+    'https://jobeas.com',
+    'https://www.jobeas.com',
 ]
 
 
