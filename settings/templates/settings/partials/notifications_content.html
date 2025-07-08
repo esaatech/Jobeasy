@@ -1,0 +1,121 @@
+<div class="px-6 py-4 border-b border-gray-200">
+    <h2 class="headline-secondary">Notification Preferences</h2>
+</div>
+<div class="p-6">
+    <div class="space-y-6">
+        <!-- Email Notifications -->
+        <div class="bg-white shadow sm:rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="headline-tertiary">Email Notifications</h3>
+                <div class="mt-4 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-700">Account Updates</p>
+                            <p class="text-sm text-gray-500">Receive emails about account changes and security updates</p>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" 
+                                   id="email-account" 
+                                   name="email-account" 
+                                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                   checked>
+                            <label for="email-account" class="sr-only">Email account updates</label>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-700">Marketing Communications</p>
+                            <p class="text-sm text-gray-500">Receive emails about new features and promotions</p>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" 
+                                   id="email-marketing" 
+                                   name="email-marketing" 
+                                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                   checked>
+                            <label for="email-marketing" class="sr-only">Email marketing communications</label>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-700">Weekly Digest</p>
+                            <p class="text-sm text-gray-500">Receive a weekly summary of your activity</p>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" 
+                                   id="email-digest" 
+                                   name="email-digest" 
+                                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                   checked>
+                            <label for="email-digest" class="sr-only">Email weekly digest</label>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-700">Newsletter</p>
+                            <p class="text-sm text-gray-500">Get our monthly newsletter with tips and updates</p>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" 
+                                   id="email-newsletter" 
+                                   name="email-newsletter" 
+                                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                   checked>
+                            <label for="email-newsletter" class="sr-only">Email newsletter</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-5">
+                    <button type="button" class="btn btn-secondary">
+                        Save Email Preferences
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Desktop Notifications -->
+        <div class="bg-white shadow sm:rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="headline-tertiary">Desktop Notifications</h3>
+                <div class="mt-4 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-700">Browser Notifications</p>
+                            <p class="text-sm text-gray-500">Show notifications in your browser</p>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" 
+                                   id="desktop-notifications" 
+                                   name="desktop-notifications" 
+                                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                   {% if user.preferences.desktop_notifications %}checked{% endif %}>
+                            <label for="desktop-notifications" class="sr-only">Desktop notifications</label>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-700">Sound Alerts</p>
+                            <p class="text-sm text-gray-500">Play sound when notifications arrive</p>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" 
+                                   id="sound-alerts" 
+                                   name="sound-alerts" 
+                                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                            <label for="sound-alerts" class="sr-only">Sound alerts</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-5">
+                    <button type="button" class="btn btn-secondary">
+                        Save Desktop Preferences
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 

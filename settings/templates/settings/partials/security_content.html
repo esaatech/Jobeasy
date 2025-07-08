@@ -1,0 +1,115 @@
+<div class="px-6 py-4 border-b border-gray-200">
+    <h2 class="headline-secondary">Security Settings</h2>
+</div>
+<div class="p-6">
+    <div class="space-y-6">
+        <!-- Password -->
+        <div class="bg-white shadow sm:rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="headline-tertiary">Password</h3>
+                <div class="mt-2 max-w-xl text-sm text-gray-500">
+                    <p>Update your password to keep your account secure.</p>
+                </div>
+                <div class="mt-5">
+                    <button type="button" class="btn btn-secondary">
+                        Change Password
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Two-Factor Authentication -->
+        <div class="bg-white shadow sm:rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="headline-tertiary">Two-Factor Authentication</h3>
+                <div class="mt-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-700">Status</p>
+                            <p class="text-sm text-gray-500">Not enabled</p>
+                        </div>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            Disabled
+                        </span>
+                    </div>
+                </div>
+                <div class="mt-2 max-w-xl text-sm text-gray-500">
+                    <p>Add an extra layer of security to your account by enabling two-factor authentication.</p>
+                </div>
+                <div class="mt-5">
+                    <button type="button" class="btn btn-secondary">
+                        Enable 2FA
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Login Sessions -->
+        <div class="bg-white shadow sm:rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="headline-tertiary">Active Sessions</h3>
+                <div class="mt-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-700">Current Session</p>
+                            <p class="text-sm text-gray-500">This device - {{ request.META.HTTP_USER_AGENT|truncatechars:50 }}</p>
+                        </div>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Active
+                        </span>
+                    </div>
+                </div>
+                <div class="mt-2 max-w-xl text-sm text-gray-500">
+                    <p>Manage your active login sessions across different devices.</p>
+                </div>
+                <div class="mt-5">
+                    <button type="button" class="btn btn-secondary">
+                        View All Sessions
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Account Recovery -->
+        <div class="bg-white shadow sm:rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="headline-tertiary">Account Recovery</h3>
+                <div class="mt-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-700">Recovery Email</p>
+                            <p class="text-sm text-gray-500">{{ user.email }}</p>
+                        </div>
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Verified
+                        </span>
+                    </div>
+                </div>
+                <div class="mt-2 max-w-xl text-sm text-gray-500">
+                    <p>Set up account recovery options to regain access if you're locked out.</p>
+                </div>
+                <div class="mt-5">
+                    <button type="button" class="btn btn-secondary">
+                        Update Recovery Options
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete Account -->
+        <div class="bg-white shadow sm:rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="headline-tertiary">Delete Account</h3>
+                <div class="mt-2 max-w-xl text-sm text-gray-500">
+                    <p>Once you delete your account, you will lose all data associated with it.</p>
+                </div>
+                <div class="mt-5">
+                    <a href="{% url 'settings:delete_account' %}" 
+                       class="btn btn-danger">
+                        Delete Account
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 

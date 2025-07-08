@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div class="flex flex-col md:flex-row gap-8">
+        <!-- Settings Navigation -->
+        <div class="w-full md:w-64 flex-shrink-0">
+            <nav class="space-y-1">
+                <button hx-get="{% url 'settings:profile' %}" 
+                        hx-target="#settings-content"
+                        hx-push-url="true"
+                        class="{% if active_section == 'profile' %}bg-gray-100 text-gray-900{% else %}text-gray-600 hover:bg-gray-50 hover:text-gray-900{% endif %} group flex items-center px-3 py-2 text-sm font-medium rounded-md w-full text-left">
+                    <svg class="text-gray-500 mr-3 h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    Profile
+                </button>
+
+                <button hx-get="{% url 'settings:notifications' %}" 
+                        hx-target="#settings-content"
+                        hx-push-url="true"
+                        class="{% if active_section == 'notifications' %}bg-gray-100 text-gray-900{% else %}text-gray-600 hover:bg-gray-50 hover:text-gray-900{% endif %} group flex items-center px-3 py-2 text-sm font-medium rounded-md w-full text-left">
+                    <svg class="text-gray-500 mr-3 h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                    Notifications
+                </button>
+
+                <button hx-get="{% url 'settings:integrations' %}" 
+                        hx-target="#settings-content"
+                        hx-push-url="true"
+                        class="{% if active_section == 'integrations' %}bg-gray-100 text-gray-900{% else %}text-gray-600 hover:bg-gray-50 hover:text-gray-900{% endif %} group flex items-center px-3 py-2 text-sm font-medium rounded-md w-full text-left">
+                    <svg class="text-gray-500 mr-3 h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Integrations
+                </button>
+
+                <button hx-get="{% url 'settings:billing' %}" 
+                        hx-target="#settings-content"
+                        hx-push-url="true"
+                        class="{% if active_section == 'billing' %}bg-gray-100 text-gray-900{% else %}text-gray-600 hover:bg-gray-50 hover:text-gray-900{% endif %} group flex items-center px-3 py-2 text-sm font-medium rounded-md w-full text-left">
+                    <svg class="text-gray-500 mr-3 h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                    Billing
+                </button>
+
+                <button hx-get="{% url 'settings:security' %}" 
+                        hx-target="#settings-content"
+                        hx-push-url="true"
+                        class="{% if active_section == 'security' %}bg-gray-100 text-gray-900{% else %}text-gray-600 hover:bg-gray-50 hover:text-gray-900{% endif %} group flex items-center px-3 py-2 text-sm font-medium rounded-md w-full text-left">
+                    <svg class="text-gray-500 mr-3 h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    Security
+                </button>
+            </nav>
+        </div>
+
+        <!-- Settings Content Area -->
+        <div class="flex-1 bg-white shadow rounded-lg">
+            <div id="settings-content">
+                <!-- Content will be loaded here via HTMX -->
+                {% include 'settings/partials/profile_content.html' %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Update active navigation item when content loads
+    document.body.addEventListener('htmx:afterSwap', function(event) {
+        // Remove active class from all nav items
+        document.querySelectorAll('nav button').forEach(btn => {
+            btn.classList.remove('bg-gray-100', 'text-gray-900');
+            btn.classList.add('text-gray-600', 'hover:bg-gray-50', 'hover:text-gray-900');
+        });
+        
+        // Add active class to clicked item
+        if (event.detail.xhr.responseURL) {
+            const url = new URL(event.detail.xhr.responseURL);
+            const path = url.pathname;
+            
+            // Find the button that matches this path
+            document.querySelectorAll('nav button').forEach(btn => {
+                const hxGet = btn.getAttribute('hx-get');
+                if (hxGet) {
+                    const buttonPath = hxGet.split('/').pop();
+                    const currentPath = path.split('/').pop();
+                    if (buttonPath === currentPath || (buttonPath === '' && currentPath === '')) {
+                        btn.classList.remove('text-gray-600', 'hover:bg-gray-50', 'hover:text-gray-900');
+                        btn.classList.add('bg-gray-100', 'text-gray-900');
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %} 

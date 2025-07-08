@@ -1,20 +1,23 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.contrib.auth import authenticate, logout
+from django.contrib.auth import authenticate, logout, update_session_auth_hash
 from django.urls import reverse
 from email_utility.services.notification_service import NotificationService
 from django.db import transaction
+from django.http import HttpResponseRedirect
+from django.contrib.auth.forms import PasswordChangeForm
+from django import forms
+from django.contrib.auth import get_user_model
+from django.db import IntegrityError
+from django.core.exceptions import ValidationError
 
 # Create your views here.
 
 @login_required
-def settings_dashboard(request):
-    context = {
-        'active_section': 'dashboard',
-        'page_title': 'Settings Dashboard'
-    }
-    return render(request, 'settings/dashboard.html', context)
+def settings_root(request):
+    # Redirect root settings to profile
+    return HttpResponseRedirect(reverse('settings:profile'))
 
 @login_required
 def profile_settings(request):
@@ -27,7 +30,12 @@ def profile_settings(request):
         'user': user,
         'teams': team_roles,
     }
-    return render(request, 'settings/profile.html', context)
+    
+    # Check if this is an HTMX request
+    if request.headers.get('HX-Request'):
+        return render(request, 'settings/partials/profile_content.html', context)
+    
+    return render(request, 'settings/settings.html', context)
 
 @login_required
 def notification_settings(request):
@@ -35,7 +43,12 @@ def notification_settings(request):
         'active_section': 'notifications',
         'page_title': 'Notification Preferences'
     }
-    return render(request, 'settings/notifications.html', context)
+    
+    # Check if this is an HTMX request
+    if request.headers.get('HX-Request'):
+        return render(request, 'settings/partials/notifications_content.html', context)
+    
+    return render(request, 'settings/settings.html', context)
 
 @login_required
 def integration_settings(request):
@@ -43,7 +56,12 @@ def integration_settings(request):
         'active_section': 'integrations',
         'page_title': 'Platform Integrations'
     }
-    return render(request, 'settings/integrations.html', context)
+    
+    # Check if this is an HTMX request
+    if request.headers.get('HX-Request'):
+        return render(request, 'settings/partials/integrations_content.html', context)
+    
+    return render(request, 'settings/settings.html', context)
 
 @login_required
 def billing_settings(request):
@@ -51,7 +69,12 @@ def billing_settings(request):
         'active_section': 'billing',
         'page_title': 'Billing & Subscription'
     }
-    return render(request, 'settings/billing.html', context)
+    
+    # Check if this is an HTMX request
+    if request.headers.get('HX-Request'):
+        return render(request, 'settings/partials/billing_content.html', context)
+    
+    return render(request, 'settings/settings.html', context)
 
 @login_required
 def security_settings(request):
@@ -59,7 +82,12 @@ def security_settings(request):
         'active_section': 'security',
         'page_title': 'Security Settings'
     }
-    return render(request, 'settings/security.html', context)
+    
+    # Check if this is an HTMX request
+    if request.headers.get('HX-Request'):
+        return render(request, 'settings/partials/security_content.html', context)
+    
+    return render(request, 'settings/settings.html', context)
 
 @login_required
 def delete_account(request):
@@ -105,3 +133,86 @@ def delete_account(request):
         'page_title': 'Delete Account',
         'owned_teams': owned_teams
     })
+
+class EditProfileForm(forms.ModelForm):
+    class Meta:
+        model = get_user_model()
+        fields = ['username', 'email']
+
+@login_required
+def edit_profile(request):
+    user = request.user
+    if request.method == 'POST':
+        form = EditProfileForm(request.POST, instance=user)
+        password_form = PasswordChangeForm(user, request.POST)
+        try:
+            # Validate username/email
+            if not form.is_valid():
+                # Unique username/email error or other validation
+                error_msg = form.errors.as_text().replace('* ', '').replace('\n', '<br>')
+                return render(request, 'settings/partials/edit_profile_form.html', {
+                    'form': form,
+                    'password_form': password_form,
+                    'active_section': 'profile',
+                    'page_title': 'Edit Profile',
+                    'user': user,
+                    'alert_error': error_msg,
+                })
+            # Validate password only if user is changing it
+            if request.POST.get('new_password1'):
+                if not password_form.is_valid():
+                    error_msg = password_form.errors.as_text().replace('* ', '').replace('\n', '<br>')
+                    return render(request, 'settings/partials/edit_profile_form.html', {
+                        'form': form,
+                        'password_form': password_form,
+                        'active_section': 'profile',
+                        'page_title': 'Edit Profile',
+                        'user': user,
+                        'alert_error': error_msg,
+                    })
+            # Save profile
+            try:
+                form.save()
+            except IntegrityError:
+                error_msg = 'This username or email is already taken.'
+                return render(request, 'settings/partials/edit_profile_form.html', {
+                    'form': form,
+                    'password_form': password_form,
+                    'active_section': 'profile',
+                    'page_title': 'Edit Profile',
+                    'user': user,
+                    'alert_error': error_msg,
+                })
+            # Save password if changed
+            if request.POST.get('new_password1'):
+                user = password_form.save()
+                update_session_auth_hash(request, user)
+            # Success: return updated profile
+            context = {
+                'active_section': 'profile',
+                'page_title': 'Profile Settings',
+                'user': user,
+                'teams': [],
+            }
+            return render(request, 'settings/partials/profile_content.html', context)
+        except ValidationError as e:
+            error_msg = str(e)
+            return render(request, 'settings/partials/edit_profile_form.html', {
+                'form': form,
+                'password_form': password_form,
+                'active_section': 'profile',
+                'page_title': 'Edit Profile',
+                'user': user,
+                'alert_error': error_msg,
+            })
+    else:
+        form = EditProfileForm(instance=user)
+        password_form = PasswordChangeForm(user)
+    context = {
+        'form': form,
+        'password_form': password_form,
+        'active_section': 'profile',
+        'page_title': 'Edit Profile',
+        'user': user,
+    }
+    return render(request, 'settings/partials/edit_profile_form.html', context)

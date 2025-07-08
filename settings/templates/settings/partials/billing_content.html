@@ -1,0 +1,90 @@
+<div class="px-6 py-4 border-b border-gray-200">
+    <h2 class="headline-secondary">Billing & Subscription</h2>
+</div>
+<div class="p-6">
+    <div class="space-y-6">
+        <!-- Current Subscription -->
+        <div class="bg-white shadow sm:rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="headline-tertiary">Current Subscription</h3>
+                <div class="mt-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-700">Plan</p>
+                            <p class="text-sm text-gray-500">Free Plan</p>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-gray-700">Status</p>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                Active
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-5">
+                    <a href="{% url 'subscriptions:pricing' %}" class="btn btn-secondary">
+                        View Plans
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payment Method -->
+        <div class="bg-white shadow sm:rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="headline-tertiary">Payment Method</h3>
+                <div class="mt-4">
+                    <p class="text-sm text-gray-500">No payment method on file</p>
+                </div>
+                <div class="mt-5">
+                    <button type="button" class="btn btn-secondary">
+                        Add Payment Method
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Billing History -->
+        <div class="bg-white shadow sm:rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="headline-tertiary">Billing History</h3>
+                <div class="mt-4">
+                    <p class="text-sm text-gray-500">No billing history available</p>
+                </div>
+                <div class="mt-5">
+                    <button type="button" class="btn btn-secondary" disabled>
+                        Download Invoices
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Subscription Management -->
+        <div class="bg-white shadow sm:rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="headline-tertiary">Subscription Management</h3>
+                <div class="mt-4 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-gray-700">Auto-renewal</p>
+                            <p class="text-sm text-gray-500">Automatically renew your subscription</p>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" 
+                                   id="auto-renewal" 
+                                   name="auto-renewal" 
+                                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                   disabled>
+                            <label for="auto-renewal" class="sr-only">Auto-renewal</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-5">
+                    <button type="button" class="btn btn-secondary" disabled>
+                        Cancel Subscription
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> 

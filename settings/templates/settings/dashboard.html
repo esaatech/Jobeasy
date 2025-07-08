@@ -23,6 +23,7 @@
                     Profile
                 </a>
 
+                {% comment %}
                 <a href="{% url 'settings:notifications' %}" 
                    class="{% if active_section == 'notifications' %}bg-gray-100 text-gray-900{% else %}text-gray-600 hover:bg-gray-50 hover:text-gray-900{% endif %} group flex items-center px-3 py-2 text-sm font-medium rounded-md">
                     <svg class="text-gray-500 mr-3 h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -30,14 +31,9 @@
                     </svg>
                     Notifications
                 </a>
+                {% endcomment %}
 
-                <a href="{% url 'settings:integrations' %}" 
-                   class="{% if active_section == 'integrations' %}bg-gray-100 text-gray-900{% else %}text-gray-600 hover:bg-gray-50 hover:text-gray-900{% endif %} group flex items-center px-3 py-2 text-sm font-medium rounded-md">
-                    <svg class="text-gray-500 mr-3 h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 4a2 2 0 114 0v1a1 1 0 001 1h3a1 1 0 011 1v3a1 1 0 01-1 1h-1a2 2 0 100 4h1a1 1 0 011 1v3a1 1 0 01-1 1h-3a1 1 0 01-1-1v-1a2 2 0 10-4 0v1a1 1 0 01-1 1H7a1 1 0 01-1-1v-3a1 1 0 00-1-1H4a2 2 0 110-4h1a1 1 0 001-1V7a1 1 0 011-1h3a1 1 0 001-1V4z" />
-                    </svg>
-                    Integrations
-                </a>
+              
 
                 <a href="{% url 'settings:billing' %}" 
                    class="{% if active_section == 'billing' %}bg-gray-100 text-gray-900{% else %}text-gray-600 hover:bg-gray-50 hover:text-gray-900{% endif %} group flex items-center px-3 py-2 text-sm font-medium rounded-md">
