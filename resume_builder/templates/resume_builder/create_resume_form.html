@@ -1060,23 +1060,56 @@ console.log('isAuthenticated:', window.isAuthenticated);
                 window.Alert.error('Failed to finalize resume');
             }
         } else {
-            // Anonymous user: use ResumeBuilder and preview-anonymous endpoint
+            // Anonymous user: handle save vs preview differently
             if (!window.resumeBuilder.finalizeStep()) {
                 return;
             }
-            const resumeData = window.resumeBuilder.getResumeData();
-            try {
-                const response = await fetch('/resume/preview-anonymous/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(resumeData)
-                });
-                const html = await response.text();
-                const previewWindow = window.open('', '_blank');
-                previewWindow.document.write(html);
-                previewWindow.document.close();
-            } catch (err) {
-                window.Alert && window.Alert.error ? window.Alert.error('Failed to preview resume.') : alert('Failed to preview resume.');
+            
+            if (action === 'save') {
+                // Show registration dialog for anonymous users trying to save
+                showRegistrationDialog();
+            } else {
+                // Preview action: open preview window
+                const resumeData = window.resumeBuilder.getResumeData();
+                try {
+                    const response = await fetch('/resume/preview-anonymous/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(resumeData)
+                    });
+                    const html = await response.text();
+                    const previewWindow = window.open('', '_blank');
+                    previewWindow.document.write(html);
+                    previewWindow.document.close();
+                } catch (err) {
+                    window.Alert && window.Alert.error ? window.Alert.error('Failed to preview resume.') : alert('Failed to preview resume.');
+                }
+            }
+        }
+    }
+
+    function showRegistrationDialog() {
+        // Check if Alert is available (from utils)
+        if (typeof window.Alert !== 'undefined' && window.Alert.confirm) {
+            window.Alert.confirm({
+                title: 'Create an Account',
+                message: 'To save your resume and access it later, you need to create a free account. This will allow you to save multiple resumes and edit them anytime.',
+                confirmText: 'Sign Up',
+                cancelText: 'Login',
+                onConfirm: () => {
+                    window.location.href = '/auth/register/';
+                },
+                onCancel: () => {
+                    window.location.href = '/auth/login/';
+                }
+            });
+        } else {
+            // Fallback if Alert is not available
+            const shouldRegister = confirm('To save your resume, you need to create an account. Click OK to sign up or Cancel to login.');
+            if (shouldRegister) {
+                window.location.href = '/auth/register/';
+            } else {
+                window.location.href = '/auth/login/';
             }
         }
     }
