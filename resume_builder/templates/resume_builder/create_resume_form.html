@@ -1050,8 +1050,11 @@ console.log('isAuthenticated:', window.isAuthenticated);
                 if (result.success) {
                     if (action === 'save') {
                         window.Alert.success('Resume saved successfully!');
+                        window.location.href = result.redirect_url;
+                    } else if (action === 'preview') {
+                        // Open preview in new tab for authenticated users
+                        window.open(result.redirect_url, '_blank');
                     }
-                    window.location.href = result.redirect_url;
                 } else {
                     window.Alert.error(result.error || 'Failed to finalize resume');
                 }
