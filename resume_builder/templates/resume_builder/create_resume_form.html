@@ -3,12 +3,18 @@
 <div class="min-h-screen bg-gray-50 py-8 font-sans">
     <!-- Progress Bar -->
     <div class="max-w-4xl mx-auto mb-8 px-4">
-        <div class="flex justify-between">
-            <div class="step active" data-step="1">Personal Info</div>
-            <div class="step" data-step="2">Experience</div>
-            <div class="step" data-step="3">Education</div>
-            <div class="step" data-step="4">Skills</div>
-            <div class="step" data-step="5">Additional</div>
+        <div class="relative">
+            <div class="flex flex-nowrap gap-4 overflow-x-auto scrollbar-hide pb-2">
+                <div class="step active min-w-[120px] text-center" data-step="1">Personal Info</div>
+                <div class="step min-w-[120px] text-center" data-step="2">Experience</div>
+                <div class="step min-w-[120px] text-center" data-step="3">Education</div>
+                <div class="step min-w-[120px] text-center" data-step="4">Skills</div>
+                <div class="step min-w-[120px] text-center" data-step="5">Additional</div>
+            </div>
+            <!-- Left fade -->
+            <div class="pointer-events-none absolute left-0 top-0 h-full w-8 bg-gradient-to-r from-gray-50 to-transparent"></div>
+            <!-- Right fade -->
+            <div class="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-gray-50 to-transparent"></div>
         </div>
         <div class="mt-4 h-2 bg-gray-200 rounded-full">
             <div class="progress-bar h-full w-1/5 bg-emerald-500 rounded-full transition-all duration-300"></div>
