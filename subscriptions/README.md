@@ -8,33 +8,41 @@ A reusable Django app for handling subscription plans and payments using Stripe.
 - Customizable features for each plan
 - Reusable across different types of subscriptions
 - Success/failure handling with custom return URLs
+- **Centralized feature management** with admin interface
+- **Dynamic subscription dialogs** that pull features from database
 
 ## Models
 
 ### SubscriptionPlan
 Base model for defining subscription plans.
-python
+```python
 class SubscriptionPlan(BaseModel):
-name = models.CharField(max_length=100)
-description = models.TextField()
-is_active = models.BooleanField(default=True)
-features = models.ManyToManyField('Feature', through='PlanFeature')
-python
-class SubscriptionPlan(BaseModel):
-name = models.CharField(max_length=100)
-description = models.TextField()
-is_active = models.BooleanField(default=True)
-features = models.ManyToManyField('Feature', through='PlanFeature')
+    name = models.CharField(max_length=100)
+    description = models.TextField()
+    is_active = models.BooleanField(default=True)
+    features = models.ManyToManyField('Feature', through='PlanFeature')
+```
 
-python
-class PlanDuration(BaseModel):
-plan = models.ForeignKey(SubscriptionPlan, related_name='durations')
-duration_type = models.CharField(choices=DURATION_TYPES)
-price = models.DecimalField(max_digits=10, decimal_places=2)
-stripe_price_id = models.CharField(max_length=100)
-
-### Feature
+### FeatureCatalog
 Defines features that can be included in subscription plans.
+```python
+class FeatureCatalog(BaseModel):
+    name = models.CharField(max_length=255)
+    identifier = models.CharField(max_length=100, unique=True)
+    description = models.TextField()
+    type = models.CharField(choices=[('TOOL', 'Tool'), ('SERVICE', 'Service')])
+    is_active = models.BooleanField(default=True)
+```
+
+### PlanDuration
+Defines available durations and prices for subscription plans.
+```python
+class PlanDuration(BaseModel):
+    plan = models.ForeignKey(SubscriptionPlan, related_name='durations')
+    duration_type = models.CharField(choices=DURATION_TYPES)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    stripe_price_id = models.CharField(max_length=100)
+```
 
 ## Usage
 
@@ -48,29 +56,101 @@ INSTALLED_APPS = [
 
 # Run migrations
 python manage.py migrate subscriptions
-```
 
-
-bash:subscriptions/README.md
-Add to INSTALLED_APPS in settings.py
-INSTALLED_APPS = [
-...
-'subscriptions',
-]
-Run migrations
-python manage.py migrate subscriptions
+# Set up default subscription plans and features
+python manage.py setup_subscription_plans
 ```
 
 ### 2. Admin Configuration
-```python
-# Create subscription plans in admin
-- Create features (tools/services)
-- Create subscription plan
-- Add durations with prices
-- Link features to plan
+The app provides a comprehensive admin interface for managing:
+
+#### Features (FeatureCatalog)
+- Create and manage features/tools
+- Set feature types (Tool/Service)
+- Enable/disable features
+- Auto-generate identifiers from names
+
+#### Subscription Plans
+- Create subscription plans
+- Assign features to plans
+- Set full access flags
+- Manage plan durations and pricing
+
+#### Plan Durations
+- Set up multiple pricing tiers (monthly, yearly, etc.)
+- Configure Stripe price IDs
+- Enable/disable specific durations
+
+#### User Subscriptions
+- View all user subscriptions
+- Monitor subscription status
+- Track payment history
+
+### 3. Centralized Feature Management
+
+#### Admin Interface
+Access the admin at `/admin/subscriptions/` to:
+- **Features**: Add/edit features like "AI Resume Conversion", "ATS Optimization", etc.
+- **Plans**: Configure Plus/Ultimate plans with their features
+- **Durations**: Set pricing for monthly/yearly subscriptions
+
+#### Management Command
+```bash
+# Set up default subscription plans and features
+python manage.py setup_subscription_plans
 ```
 
-### 3. Integration in Your App
+This command creates:
+- **Free Plan**: Basic features
+- **Plus Plan**: Enhanced features including AI resume conversion
+- **Ultimate Plan**: Advanced features with interview preparation
+
+#### Default Features Created
+The setup command creates these features:
+
+**Free Features:**
+- Basic Resume Creation
+- Professional Templates
+- Cover Letter Generation
+
+**Plus Features:**
+- Resume Saving
+- Resume Upload (AI conversion to ATS format)
+- ATS Optimization
+- All Resume Templates
+- Enhanced Cover Letters
+
+**Ultimate Features:**
+- Interview Preparation
+- Priority Support
+- Advanced Analytics
+
+### 4. Dynamic Subscription Dialogs
+
+The subscription dialog system now pulls features directly from the database:
+
+#### API Endpoint
+- **URL**: `/subscriptions/api/dialog-data/`
+- **Method**: GET
+- **Returns**: JSON with Plus/Ultimate plan features
+
+#### Frontend Integration
+The dialog automatically loads features from the database:
+```javascript
+// Features are loaded automatically when the script loads
+loadSubscriptionDialogData();
+
+// Fallback to default features if API fails
+setDefaultDialogData();
+```
+
+#### Consistency Across the App
+- **Subscription Dialog**: Uses database features
+- **Pricing Page**: Uses database features  
+- **Purchase Page**: Uses database features
+- **Admin Interface**: Single source of truth
+
+### 5. Integration in Your App
 
 #### URLs Configuration
 ```python
@@ -174,6 +254,9 @@ class StudyAbroadSubscriptionView(View):
 3. Each plan can have multiple durations with different prices
 4. Features can be reused across different plans
 5. Return URLs can be customized per implementation
+6. **Features are now managed centrally through admin**
+7. **Subscription dialogs automatically use database features**
+8. **Management command runs automatically in entrypoint.sh**
 
 # Subscriptions App
 
@@ -198,6 +281,7 @@ The subscription dialog system provides a consistent, professional way to restri
 - **`static/subscriptions/js/subscription_dialog.js`**: Main dialog system
 - **`decorators.py`**: Backend decorators for view protection
 - **`utils.py`**: Backend utilities for subscription checking
+- **`views.py`**: API endpoint for dialog data (`get_subscription_dialog_data`)
 
 ### Frontend Usage
 
@@ -262,8 +346,8 @@ from subscriptions.decorators import require_plus_subscription
 
 @require_plus_subscription(feature_identifier='resume_update')
 def upload_resume(request):
-    # This view requires Plus subscription
-    # If user doesn't have access, they'll be redirected to subscription page
+    // This view requires Plus subscription
+    // If user doesn't have access, they'll be redirected to subscription page
     pass
 ```
 
@@ -280,33 +364,37 @@ def some_view(request):
     )
     
     if not access_info['has_access']:
-        # Handle access denied
+        // Handle access denied
         return JsonResponse({'error': 'Subscription required'})
     
-    # Proceed with protected functionality
+    // Proceed with protected functionality
     pass
 ```
 
-### Dialog Configuration
+### Dynamic Dialog Configuration
 
-The dialog content is configured in `subscription_dialog.js`:
+The dialog content is now loaded from the database via API:
 
 ```javascript
-const SUBSCRIPTION_DIALOGS = {
-    plus: {
-        title: "Upgrade to Plus",
-        message: "This feature is available with our Plus plan...",
-        features: [
-            "Save unlimited resumes",
-            "Multiple professional templates",
-            // ... more features
-        ],
-        upgrade_url: "/subscriptions/pricing/?plan=plus"
-    },
-    ultimate: {
-        // Similar structure for Ultimate plan
+// Automatically loads features from database
+loadSubscriptionDialogData();
+
+// API endpoint: /subscriptions/api/dialog-data/
+// Returns:
+{
+    "success": true,
+    "dialog_data": {
+        "plus": {
+            "title": "Upgrade to Plus",
+            "message": "This feature is available with our Plus plan...",
+            "features": ["AI-powered resume conversion", "Save unlimited resumes", ...],
+            "upgrade_url": "/subscriptions/pricing/?plan=plus"
+        },
+        "ultimate": {
+            // Similar structure for Ultimate plan
+        }
     }
-};
+}
 ```
 
 ### Available Functions
@@ -318,6 +406,7 @@ const SUBSCRIPTION_DIALOGS = {
 | `hasSubscriptionAccess(plan)` | Pure access check without dialog | Boolean |
 | `showSubscriptionDialog(plan)` | Show dialog for specific plan | void |
 | `closeSubscriptionDialog()` | Close the dialog | void |
+| `loadSubscriptionDialogData()` | Load features from database | Promise |
 
 ### Integration
 
@@ -380,10 +469,13 @@ document.getElementById('resume-form').addEventListener('submit',
 
 #### 1. Update Dialog Content
 
-Edit the `SUBSCRIPTION_DIALOGS` object in `subscription_dialog.js` to change:
-- Dialog titles and messages
-- Feature lists
-- Upgrade URLs
+**Via Admin Interface (Recommended):**
+- Go to `/admin/subscriptions/featurecatalog/`
+- Add/edit features for each plan
+- Changes automatically appear in dialogs
+
+**Via Code:**
+Edit the `setDefaultDialogData()` function in `subscription_dialog.js` as fallback.
 
 #### 2. Styling
 
@@ -406,6 +498,7 @@ Customize dialog behavior by modifying:
 3. **Consistent Messaging**: Use the same dialog across the app
 4. **Graceful Degradation**: Provide alternatives for free users
 5. **Testing**: Test with different subscription levels
+6. **Feature Management**: Use admin interface to manage features centrally
 
 ### Troubleshooting
 
@@ -413,6 +506,7 @@ Customize dialog behavior by modifying:
 - Check if `subscription_dialog.js` is loaded
 - Verify `window.userSubscriptionPlan` is set
 - Check browser console for errors
+- Verify API endpoint `/subscriptions/api/dialog-data/` is accessible
 
 #### Function Not Protected
 - Ensure `withSubscriptionCheck()` is called correctly
@@ -424,6 +518,11 @@ Customize dialog behavior by modifying:
 - Ensure user is authenticated
 - Check subscription model relationships
 
+#### Features Not Loading
+- Check if management command ran: `python manage.py setup_subscription_plans`
+- Verify features exist in admin interface
+- Check API endpoint response in browser console
+
 ### Moving to Another App
 
 To move the subscription system to another Django project:
@@ -433,5 +532,6 @@ To move the subscription system to another Django project:
 3. Update the base template to load `subscription_dialog.js`
 4. Set `window.userSubscriptionPlan` in your templates
 5. Update dialog URLs to match your new project structure
+6. Run `python manage.py setup_subscription_plans` to create default features
 
 The system is designed to be self-contained and portable!

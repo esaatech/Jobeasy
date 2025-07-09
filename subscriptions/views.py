@@ -166,119 +166,95 @@ def process_payment(request, plan_id, duration_id):
             subscription.stripe_invoice_id = paid_invoice.id
             subscription.invoice_url = paid_invoice.hosted_invoice_url
             subscription.save()
-            
+
             return JsonResponse({
                 'success': True,
+                'subscription_id': subscription.id,
                 'redirect_url': success_url
             })
+
         elif payment_intent.status == 'requires_action':
-            # 3D Secure authentication needed
-            subscription.status = 'PENDING'
-            subscription.save()
+            # Handle 3D Secure or other authentication
             return JsonResponse({
+                'success': False,
                 'requires_action': True,
-                'payment_intent_client_secret': payment_intent.client_secret,
-                'subscription_id': subscription.id
+                'payment_intent_client_secret': payment_intent.client_secret
             })
-            
-        elif payment_intent.status == 'requires_payment_method':
-            # The payment failed - request new payment method
-            subscription.status = 'FAILED'
-            subscription.save()
-            return JsonResponse({
-                'success': False,
-                'error': 'Your card was declined. Please try a different payment method.'
-            }, status=400)
-            
-        elif payment_intent.status == 'processing':
-            # Payment is still processing
-            subscription.status = 'PENDING'
-            subscription.save()
-            return JsonResponse({
-                'success': False,
-                'error': 'Payment is processing. Please wait a moment and refresh the page.'
-            }, status=202)  # 202 Accepted
-            
-        elif payment_intent.status == 'canceled':
-            subscription.status = 'CANCELED'
-            subscription.save()
-            return JsonResponse({
-                'success': False,
-                'error': 'Payment was canceled. Please try again.'
-            }, status=400)
-            
+
         else:
-            # Unknown or unexpected status
-            subscription.status = 'FAILED'
+            # Payment failed
+            subscription.status = 'CANCELLED'
             subscription.save()
+            
             return JsonResponse({
                 'success': False,
-                'error': f'Payment status: {payment_intent.status}. Please contact support.'
+                'error': f'Payment failed: {payment_intent.status}'
             }, status=400)
 
     except stripe.error.CardError as e:
-        if 'subscription' in locals():
-            subscription.status = 'FAILED'
-            subscription.save()
+        # Card was declined
         return JsonResponse({
             'success': False,
-            'error': e.user_message
+            'error': f'Card error: {e.error.message}'
         }, status=400)
-
-    except Exception as e:
-        if 'subscription' in locals():
-            subscription.status = 'FAILED'
-            subscription.save()
+    except stripe.error.InvalidRequestError as e:
+        # Invalid parameters were supplied to Stripe's API
         return JsonResponse({
             'success': False,
-            'error': str(e)
-        }, status=500)
+            'error': f'Invalid request: {e.error.message}'
+        }, status=400)
+    except stripe.error.AuthenticationError as e:
+        # Authentication with Stripe's API failed
+        return JsonResponse({
+            'success': False,
+            'error': f'Authentication error: {e.error.message}'
+        }, status=400)
+    except stripe.error.APIConnectionError as e:
+        # Network communication with Stripe failed
+        return JsonResponse({
+            'success': False,
+            'error': f'Network error: {e.error.message}'
+        }, status=400)
+    except stripe.error.StripeError as e:
+        # Generic error, something else happened
+        return JsonResponse({
+            'success': False,
+            'error': f'Stripe error: {e.error.message}'
+        }, status=400)
+    except Exception as e:
+        # Something else happened, completely unrelated to Stripe
+        return JsonResponse({
+            'success': False,
+            'error': f'Unexpected error: {str(e)}'
+        }, status=400)
 
 @login_required
 def checkout_success(request, subscription_id):
-    """Generic success page for subscription checkout."""
-    subscription = get_object_or_404(
-        UserSubscription.objects.select_related(
-            'plan',
-            'plan_duration',
-            'user'
-        ).prefetch_related(
-            'plan__features'
-        ),
-        id=subscription_id,
-        user=request.user
-    )
-
-    context = {
-        'subscription': subscription,
-        'plan': subscription.plan,
-        'duration': subscription.plan_duration,
-        'features': subscription.plan.features.filter(is_active=True),
-        'amount': subscription.plan_duration.price,
-        'status': subscription.status,
-        # Add any return URLs from your specific implementation
-        'dashboard_url': reverse('dashboard:dashboard'),  # Change this line
-        'invoice_url': reverse('subscriptions:invoice', args=[subscription.id]) if hasattr(subscription, 'invoice') else None,
-        'next_billing_date': subscription.created_at + timezone.timedelta(
-            days=30 if subscription.plan_duration.duration_type == 'MONTHLY' else 90
-        ) if subscription.plan_duration.duration_type in ['MONTHLY', 'QUARTERLY'] else None
-    }
-
-    return render(request, 'subscriptions/success.html', context)
-
-# Create your views here.
-
-def test_subscription_dialogs(request):
-    """Test view to demonstrate subscription dialogs"""
-    from utils.subscription import get_plus_upgrade_dialog, get_ultimate_upgrade_dialog, get_subscription_javascript
-    
-    context = {
-        'plus_dialog': get_plus_upgrade_dialog(),
-        'ultimate_dialog': get_ultimate_upgrade_dialog(),
-        'subscription_js': get_subscription_javascript(),
-    }
-    
-    return render(request, 'subscriptions/test_dialogs.html', context)
+    """Handle successful checkout and subscription activation."""
+    try:
+        subscription = get_object_or_404(UserSubscription, id=subscription_id, user=request.user)
+        
+        # Get return URL from subscription metadata or use default
+        return_url = request.GET.get('return_url') or reverse('subscriptions:pricing')
+        
+        context = {
+            'subscription': subscription,
+            'return_url': return_url,
+        }
+        
+        return render(request, 'subscriptions/checkout_success.html', context)
+        
+    except Exception as e:
+        # Log the error and show a generic success page
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f'Error in checkout_success: {str(e)}')
+        
+        return render(request, 'subscriptions/checkout_success.html', {
+            'subscription': None,
+            'return_url': reverse('subscriptions:pricing'),
+            'error': 'There was an issue processing your subscription, but your payment was successful. Please contact support.'
+        })
 
 def pricing(request):
     plans = SubscriptionPlan.objects.filter(is_active=True).prefetch_related('features', 'durations')
@@ -307,6 +283,63 @@ def pricing(request):
         'current_subscription': current_subscription,
     }
     return render(request, 'subscriptions/pricing.html', context)
+
+def get_subscription_dialog_data(request):
+    """API endpoint to get subscription dialog data for frontend"""
+    try:
+        # Get Plus and Ultimate plans with their features
+        plus_plan = SubscriptionPlan.objects.filter(
+            name='Plus', 
+            is_active=True
+        ).prefetch_related('features').first()
+        
+        ultimate_plan = SubscriptionPlan.objects.filter(
+            name='Ultimate', 
+            is_active=True
+        ).prefetch_related('features').first()
+        
+        dialog_data = {}
+        
+        if plus_plan:
+            dialog_data['plus'] = {
+                'title': f"Upgrade to {plus_plan.name}",
+                'message': f"This feature is available with our {plus_plan.name} plan. Upgrade to unlock premium features and enhance your experience.",
+                'features': list(plus_plan.features.filter(is_active=True).values_list('name', flat=True)),
+                'upgrade_url': f"/subscriptions/pricing/?plan={plus_plan.name.lower()}"
+            }
+        
+        if ultimate_plan:
+            dialog_data['ultimate'] = {
+                'title': f"Upgrade to {ultimate_plan.name}",
+                'message': f"Advanced features and AI-powered tools are available with our {ultimate_plan.name} plan. Get the best tools for your success.",
+                'features': list(ultimate_plan.features.filter(is_active=True).values_list('name', flat=True)),
+                'upgrade_url': f"/subscriptions/pricing/?plan={ultimate_plan.name.lower()}"
+            }
+        
+        return JsonResponse({
+            'success': True,
+            'dialog_data': dialog_data
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+# Create your views here.
+
+def test_subscription_dialogs(request):
+    """Test view to demonstrate subscription dialogs"""
+    from utils.subscription import get_plus_upgrade_dialog, get_ultimate_upgrade_dialog, get_subscription_javascript
+    
+    context = {
+        'plus_dialog': get_plus_upgrade_dialog(),
+        'ultimate_dialog': get_ultimate_upgrade_dialog(),
+        'subscription_js': get_subscription_javascript(),
+    }
+    
+    return render(request, 'subscriptions/test_dialogs.html', context)
 
 @login_required
 def cancel_subscription(request):

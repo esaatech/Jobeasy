@@ -26,5 +26,8 @@ urlpatterns = [
     # pricing page
     path('pricing/', views.pricing, name='pricing'),
 
+    # API endpoint for subscription dialog data
+    path('api/dialog-data/', views.get_subscription_dialog_data, name='dialog_data'),
+
     path('test-dialogs/', views.test_subscription_dialogs, name='test_dialogs'),
 ] 

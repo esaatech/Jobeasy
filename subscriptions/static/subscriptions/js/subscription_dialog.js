@@ -4,38 +4,73 @@
  * Self-contained within the subscriptions app for portability
  */
 
-// Subscription Dialog Configuration
-const SUBSCRIPTION_DIALOGS = {
-    plus: {
-        title: "Upgrade to Plus",
-        message: "This feature is available with our Plus plan. Upgrade to unlock premium features and enhance your experience.",
-        features: [
-            "AI-powered resume conversion to ATS format",
-            "Save unlimited resumes",
-            "Multiple professional templates", 
-            "Export to PDF and Word",
-            "Resume optimization tools",
-            "Priority customer support"
-        ],
-        upgrade_url: "/subscriptions/pricing/?plan=plus"
-    },
-    ultimate: {
-        title: "Upgrade to Ultimate",
-        message: "Advanced features and AI-powered tools are available with our Ultimate plan. Get the best tools for your success.",
-        features: [
-            "Everything in Plus",
-            "AI-powered resume optimization",
-            "ATS compatibility scoring",
-            "Interview preparation tools",
-            "Advanced analytics",
-            "Priority support"
-        ],
-        upgrade_url: "/subscriptions/pricing/?plan=ultimate"
-    }
-};
+// Subscription Dialog Configuration - will be loaded from database
+let SUBSCRIPTION_DIALOGS = {};
 
 // Store escape handler reference globally
 let currentEscapeHandler = null;
+
+/**
+ * Load subscription dialog data from the server
+ */
+async function loadSubscriptionDialogData() {
+    try {
+        const response = await fetch('/subscriptions/api/dialog-data/');
+        if (response.ok) {
+            const data = await response.json();
+            if (data.success) {
+                SUBSCRIPTION_DIALOGS = data.dialog_data;
+                console.log('Subscription dialog data loaded successfully');
+            } else {
+                console.error('Failed to load subscription dialog data:', data.error);
+                // Fallback to default data
+                setDefaultDialogData();
+            }
+        } else {
+            console.error('Failed to load subscription dialog data');
+            // Fallback to default data
+            setDefaultDialogData();
+        }
+    } catch (error) {
+        console.error('Error loading subscription dialog data:', error);
+        // Fallback to default data
+        setDefaultDialogData();
+    }
+}
+
+/**
+ * Set default dialog data as fallback
+ */
+function setDefaultDialogData() {
+    SUBSCRIPTION_DIALOGS = {
+        plus: {
+            title: "Upgrade to Plus",
+            message: "This feature is available with our Plus plan. Upgrade to unlock premium features and enhance your experience.",
+            features: [
+                "AI-powered resume conversion to ATS format",
+                "Save unlimited resumes",
+                "Multiple professional templates", 
+                "Export to PDF and Word",
+                "Resume optimization tools",
+                "Priority customer support"
+            ],
+            upgrade_url: "/subscriptions/pricing/?plan=plus"
+        },
+        ultimate: {
+            title: "Upgrade to Ultimate",
+            message: "Advanced features and AI-powered tools are available with our Ultimate plan. Get the best tools for your success.",
+            features: [
+                "Everything in Plus",
+                "AI-powered resume optimization",
+                "ATS compatibility scoring",
+                "Interview preparation tools",
+                "Advanced analytics",
+                "Priority support"
+            ],
+            upgrade_url: "/subscriptions/pricing/?plan=ultimate"
+        }
+    };
+}
 
 /**
  * Show subscription dialog for the specified plan
@@ -186,6 +221,9 @@ window.closeSubscriptionDialog = closeSubscriptionDialog;
 window.hasSubscriptionAccess = hasSubscriptionAccess;
 window.withSubscriptionCheck = withSubscriptionCheck;
 window.checkSubscriptionAccess = checkSubscriptionAccess;
+
+// Load subscription dialog data when the script loads
+loadSubscriptionDialogData();
 
 // Log that subscription utilities are loaded
 console.log('Subscription dialog system loaded successfully'); 
