@@ -1383,8 +1383,15 @@ def preview_anonymous_resume(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            # Extract all fields from the posted data
-            personal_info = data.get('personalInfo', {})
+            # Extract all fields from the posted data and map field names
+            raw_personal_info = data.get('personalInfo', {})
+            personal_info = {
+                'full_name': raw_personal_info.get('fullName', ''),
+                'title': raw_personal_info.get('title', ''),
+                'email': raw_personal_info.get('email', ''),
+                'phone': raw_personal_info.get('phone', ''),
+                'summary': raw_personal_info.get('summary', '')
+            }
             experience = data.get('experience', [])
             education = data.get('education', [])
             skills = data.get('skills', {})
@@ -1417,3 +1424,74 @@ def preview_anonymous_resume(request):
             logger.error(f"Anonymous preview error: {str(e)}")
             return JsonResponse({'success': False, 'error': str(e)}, status=400)
     return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+
+@login_required
+def create_resume_from_data(request):
+    """Create a resume from JSON data for users returning from authentication"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            
+            # Extract resume data from the request and map field names
+            raw_personal_info = data.get('personalInfo', {})
+            personal_info = {
+                'full_name': raw_personal_info.get('fullName', ''),
+                'title': raw_personal_info.get('title', ''),
+                'email': raw_personal_info.get('email', ''),
+                'phone': raw_personal_info.get('phone', ''),
+                'summary': raw_personal_info.get('summary', '')
+            }
+            
+            experience = data.get('experience', [])
+            education = data.get('education', [])
+            skills = data.get('skills', {})
+            additional = data.get('additional', {})
+            template_id = data.get('templateId', 'professional')
+            resume_name = data.get('resume_name', 'My Resume')
+            
+            # Create the resume object
+            resume = Resume.objects.create(
+                user=request.user,
+                name=resume_name,
+                draft=False,  # Mark as complete since user finished it
+                template_id=template_id,
+                personal_info=personal_info,
+                experience=experience,
+                education=education,
+                skills=skills,
+                additional=additional
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'Resume created successfully from your saved progress!',
+                'resume_id': resume.id,
+                'redirect_url': reverse('resume_builder:my_resumes')
+            })
+            
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'success': False,
+                'error': 'Invalid JSON data'
+            }, status=400)
+        except Exception as e:
+            logger.error(f"Error creating resume from data: {str(e)}")
+            return JsonResponse({
+                'success': False,
+                'error': 'Failed to create resume'
+            }, status=500)
+    
+    return JsonResponse({
+        'success': False,
+        'error': 'Method not allowed'
+    }, status=405)
+
+@login_required
+def create_resume_after_auth(request):
+    """Handle resume creation after authentication and redirect to my-resumes"""
+    if request.method == 'GET':
+        # This view will be called after authentication
+        # The actual resume creation will be handled by JavaScript
+        return render(request, 'resume_builder/create_resume_after_auth.html')
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)

@@ -1089,6 +1089,12 @@ console.log('isAuthenticated:', window.isAuthenticated);
     }
 
     function showRegistrationDialog() {
+        // Get current resume data
+        const resumeData = window.resumeBuilder.getResumeData();
+        
+        // Store resume data in sessionStorage for retrieval after authentication
+        sessionStorage.setItem('pendingResumeData', JSON.stringify(resumeData));
+        
         // Check if Alert is available (from utils)
         if (typeof window.Alert !== 'undefined' && window.Alert.confirm) {
             window.Alert.confirm({
@@ -1097,15 +1103,18 @@ console.log('isAuthenticated:', window.isAuthenticated);
                 confirmText: 'Sign Up',
                 cancelText: 'Login',
                 onConfirm: () => {
+                    // Redirect to registration page
                     window.location.href = '/auth/register/';
                 },
                 onCancel: () => {
+                    // Redirect to login page
                     window.location.href = '/auth/login/';
                 }
             });
         } else {
             // Fallback if Alert is not available
             const shouldRegister = confirm('To save your resume, you need to create an account. Click OK to sign up or Cancel to login.');
+            
             if (shouldRegister) {
                 window.location.href = '/auth/register/';
             } else {

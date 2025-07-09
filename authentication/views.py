@@ -21,6 +21,7 @@ class CustomLoginView(View):
     def get(self, request):
         if request.user.is_authenticated:
             return redirect('dashboard:dashboard')
+        
         return render(request, self.template_name)
 
     def post(self, request):
@@ -47,20 +48,24 @@ class CustomLoginView(View):
             if not remember_me:
                 request.session.set_expiry(0)
             
-            # Redirect to next_url if provided and valid, otherwise to dashboard
+            # Redirect to next_url if provided and valid, otherwise to resume creation endpoint
             if next_url and next_url.startswith('/'):
                 return redirect(next_url)
             else:
-                return redirect('dashboard:dashboard')
+                return redirect('resume_builder:create_resume_after_auth')
         else:
             messages.error(request, "Invalid username/email or password.")
         
         return render(request, self.template_name)
 
 class RegisterView(CreateView):
-    success_url = reverse_lazy('dashboard:dashboard')
+    success_url = reverse_lazy('resume_builder:create_resume_after_auth')
     template_name = 'authentication/register.html'
     form_class = CustomUserCreationForm
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        return context
     
     def form_valid(self, form):
         # First save the form normally
@@ -83,7 +88,7 @@ class RegisterView(CreateView):
         return response
 
     def get_success_url(self):
-        return reverse_lazy('dashboard:dashboard')
+        return reverse_lazy('resume_builder:create_resume_after_auth')
         
     def dispatch(self, request, *args, **kwargs):
         if request.user.is_authenticated:

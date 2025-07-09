@@ -7,6 +7,25 @@ class ResumeBuilder {
         this.skills = {};
         this.additional = {};
         this.templateId = 'professional';
+        
+        // Add event listeners for template selection
+        this.initializeTemplateListeners();
+    }
+
+    // Initialize template selection listeners
+    initializeTemplateListeners() {
+        const templateRadios = document.querySelectorAll('input[name="template_id"]');
+        templateRadios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                this.updateTemplate(e.target.value);
+            });
+        });
+    }
+
+    // Update template selection
+    updateTemplate(templateId) {
+        this.templateId = templateId;
+        console.log('Template updated to:', templateId);
     }
 
     // Step 1: Personal Info
@@ -270,13 +289,17 @@ class ResumeBuilder {
 
     // Utility
     getResumeData() {
+        // Always get the current template selection from the form
+        const currentTemplate = document.querySelector('input[name="template_id"]:checked')?.value || 'professional';
+        
         return {
             personalInfo: this.personalInfo,
             experience: this.experience,
             education: this.education,
             skills: this.skills,
             additional: this.additional,
-            templateId: this.templateId
+            templateId: currentTemplate,
+            resume_name: this.personalInfo.resume_name || 'My Resume'
         };
     }
 

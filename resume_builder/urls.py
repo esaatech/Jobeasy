@@ -31,4 +31,6 @@ urlpatterns = [
     re_path(r'^download/(?P<resume_id>[0-9]+|anonymous)/(?P<format_type>[^/]+)/$', views.download_resume_file, name='download_resume_file'),
     path('switch-template/', views.switch_template, name='switch_template'),
     path('preview-anonymous/', views.preview_anonymous_resume, name='preview_anonymous_resume'),
+    path('create-from-data/', views.create_resume_from_data, name='create_resume_from_data'),
+    path('create-after-auth/', views.create_resume_after_auth, name='create_resume_after_auth'),
 ]
