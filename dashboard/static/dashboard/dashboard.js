@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Job application generation functionality
     const generateBtn = document.getElementById('generate-btn');
     
-    generateBtn.addEventListener('click', async function() {
+    generateBtn.addEventListener('click', withSubscriptionCheck('Plus', async function() {
         // Validation
         const selectedResume = document.querySelector('input[name="selected_resume"]:checked');
         const jobDescription = document.getElementById('job-description').value;
@@ -105,7 +105,7 @@ document.addEventListener('DOMContentLoaded', function() {
             console.error('Error:', error);
             updateJobApplicationItem(jobId, { status: 'failed', error: 'Network error' });
         }
-    });
+    }));
 });
 
 function createProcessingItem(jobId) {

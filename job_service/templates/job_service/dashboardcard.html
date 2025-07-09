@@ -1,0 +1,16 @@
+{% comment %}
+Dashboard Card Partial for Job Service
+Shows a call-to-action button if the user is not on the Ultimate plan.
+{% endcomment %}
+
+{% if not user.is_authenticated or user.subscription.plan.name != 'Ultimate' %}
+<div class="bg-gradient-to-r from-blue-50 to-purple-100 rounded-xl shadow-lg p-6 flex flex-col items-center justify-center mb-8">
+    <h3 class="text-2xl font-bold text-gray-800 mb-2">AI Job Assistant</h3>
+    <p class="text-gray-600 mb-4 text-center max-w-md">
+        Unlock full automation for your job search. Optimize your resume, generate cover letters, and track applications with AI.
+    </p>
+    <a href="{% url 'job_service:job_application_service' %}" class="btn btn-gradient px-8 py-3 text-lg font-semibold rounded-lg shadow hover:shadow-lg transition-all">
+        Register for Job Service
+    </a>
+</div>
+{% endif %} 
