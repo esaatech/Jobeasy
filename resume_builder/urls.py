@@ -15,6 +15,9 @@ urlpatterns = [
     path('download/', views.download_resume, name='download_resume'),
     path('preview/<str:template_id>/', views.preview_template, name='preview_template'),
     
+    # Subscription check
+    path('check-access/', views.check_resume_update_access, name='check_resume_update_access'),
+    
     # Step-specific save endpoints
     path('save-personal-info/', views.save_personal_info, name='save_personal_info'),
     path('save-experience/', views.save_experience, name='save_experience'),

@@ -58,9 +58,18 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     
     <!-- Alert System JavaScript -->
-  <script src="{% static 'utils/components/dialog.js' %}"></script>
-<script src="{% static 'utils/components/alert.js' %}"></script>
-<!-- Now your app scripts -->
+    <script src="{% static 'utils/components/dialog.js' %}"></script>
+    <script src="{% static 'utils/components/alert.js' %}"></script>
+
+    <!-- Subscription Frontend Utilities -->
+    <script>
+        // Set user subscription plan from backend context
+        window.userSubscriptionPlan = '{{ user.subscription.plan.name|default:"Free" }}';
+        console.log('User subscription plan set to:', window.userSubscriptionPlan);
+    </script>
+    
+    <!-- Subscription Dialog System -->
+    <script src="{% static 'subscriptions/js/subscription_dialog.js' %}"></script>
 
     <!-- Extra JavaScript -->
     {% block extra_scripts %}{% endblock %}

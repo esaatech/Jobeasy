@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_head %}
+<style>
+    .test-section {
+        margin: 2rem 0;
+        padding: 1rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+    }
+    .dialog-data {
+        background: #f9fafb;
+        padding: 1rem;
+        border-radius: 0.25rem;
+        font-family: monospace;
+        font-size: 0.875rem;
+        white-space: pre-wrap;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto py-8 px-4">
+    <h1 class="text-3xl font-bold text-gray-900 mb-8">Subscription Dialog Test</h1>
+    
+    <div class="test-section">
+        <h2 class="text-xl font-semibold mb-4">Test Plus Dialog</h2>
+        <button onclick="showSubscriptionDialog('plus_upgrade')" 
+                class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+            Show Plus Upgrade Dialog
+        </button>
+        
+        <div class="mt-4">
+            <h3 class="text-lg font-medium mb-2">Plus Dialog Data:</h3>
+            <div class="dialog-data">{{ plus_dialog|pprint }}</div>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2 class="text-xl font-semibold mb-4">Test Ultimate Dialog</h2>
+        <button onclick="showSubscriptionDialog('ultimate_upgrade')" 
+                class="bg-purple-600 text-white px-4 py-2 rounded hover:bg-purple-700">
+            Show Ultimate Upgrade Dialog
+        </button>
+        
+        <div class="mt-4">
+            <h3 class="text-lg font-medium mb-2">Ultimate Dialog Data:</h3>
+            <div class="dialog-data">{{ ultimate_dialog|pprint }}</div>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2 class="text-xl font-semibold mb-4">Generated JavaScript</h2>
+        <div class="dialog-data">{{ subscription_js }}</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+{{ subscription_js|safe }}
+</script>
+{% endblock %} 

@@ -268,6 +268,18 @@ def checkout_success(request, subscription_id):
 
 # Create your views here.
 
+def test_subscription_dialogs(request):
+    """Test view to demonstrate subscription dialogs"""
+    from utils.subscription import get_plus_upgrade_dialog, get_ultimate_upgrade_dialog, get_subscription_javascript
+    
+    context = {
+        'plus_dialog': get_plus_upgrade_dialog(),
+        'ultimate_dialog': get_ultimate_upgrade_dialog(),
+        'subscription_js': get_subscription_javascript(),
+    }
+    
+    return render(request, 'subscriptions/test_dialogs.html', context)
+
 def pricing(request):
     plans = SubscriptionPlan.objects.filter(is_active=True).prefetch_related('features', 'durations')
     

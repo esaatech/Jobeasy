@@ -34,6 +34,10 @@ from utils.date_utils import get_month_year_options
 # Import utils for error handling
 from utils.error import get_network_timeout_dialog, get_network_connection_dialog, get_network_generic_dialog
 
+# Import subscription utilities
+from subscriptions.decorators import require_plus_subscription, check_subscription_access
+from utils.subscription import get_resume_update_plus_dialog, get_resume_update_ultimate_dialog
+
 # Load environment variables from .env file
 load_dotenv()
 
@@ -236,7 +240,7 @@ def optimize_resume(request):
     }
     return render(request, 'resume_builder/optimize_resume.html', {'hero_content': hero_content})
 
-@login_required
+@require_plus_subscription(feature_identifier='resume_update')
 def upload_resume(request):
     """Upload and parse resume from file"""
     if request.method == 'POST':
@@ -1101,6 +1105,17 @@ def download_resume_file(request, resume_id, format_type='html'):
     except Exception as e:
         logger.error(f"Download resume error: {str(e)}")
         return JsonResponse({'error': 'Failed to download resume'}, status=500)
+
+@login_required
+def check_resume_update_access(request):
+    """Check if user has access to resume update functionality"""
+    access_info = check_subscription_access(
+        user=request.user,
+        feature_identifier='resume_update',
+        required_plan='Plus'
+    )
+    
+    return JsonResponse(access_info)
 
 @login_required
 def save_personal_info(request):

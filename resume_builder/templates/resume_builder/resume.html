@@ -99,7 +99,27 @@
 
 {% block extra_scripts %}
 <script>
+// Use the centralized subscription decorator from subscriptions app
 function switchTab(tabName) {
+    console.log('switchTab called with:', tabName);
+    
+    // For the optimize tab, use subscription check
+    if (tabName === 'optimize') {
+        console.log('Checking subscription for optimize tab...');
+        return withSubscriptionCheck('Plus', function() {
+            console.log('Subscription check passed, switching to optimize tab');
+            performTabSwitch(tabName);
+            return true;
+        })();
+    }
+    
+    // For other tabs, proceed normally
+    console.log('No subscription check needed, switching tab');
+    return performTabSwitch(tabName);
+}
+
+// Actual tab switching logic
+function performTabSwitch(tabName) {
     // Hide all tab contents
     document.querySelectorAll('.tab-content').forEach(content => {
         content.classList.add('hidden');
@@ -119,6 +139,8 @@ function switchTab(tabName) {
     const selectedTab = document.getElementById(tabName + 'Tab');
     selectedTab.classList.remove('btn-secondary');
     selectedTab.classList.add('btn-primary');
+    
+    return true;
 }
 
 // Template Preview Modal Logic

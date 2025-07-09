@@ -25,4 +25,6 @@ urlpatterns = [
 
     # pricing page
     path('pricing/', views.pricing, name='pricing'),
+
+    path('test-dialogs/', views.test_subscription_dialogs, name='test_dialogs'),
 ] 
