@@ -237,7 +237,7 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
                             </svg>
-                            Preview Resume
+                            Preview/Download 
                         </button>
                     </div>
                 </div>
@@ -315,8 +315,16 @@
         </div>
     </div>
 </template>
+<script src="{% static 'resume_builder/resume_builder.js' %}"></script>
 
 <script>
+window.isAuthenticated = {{ user.is_authenticated|yesno:"true,false" }};
+window.resumeBuilder = new ResumeBuilder(window.isAuthenticated);
+console.log('ResumeBuilder instance created:', window.resumeBuilder);
+console.log('isAuthenticated:', window.isAuthenticated);
+
+
+
     // No import needed. Use window.Alert globally.
     let currentStep = 1;
     const totalSteps = 5;
@@ -943,60 +951,61 @@
     }
 
     async function nextStep() {
-        if (currentStep < totalSteps) {
-            // Ensure all present end date fields are up to date before validation
-            updateAllPresentEndDates();
-
-            let isValid = false;
-            let isSaved = false;
-
-            console.log('--- nextStep called ---');
-            console.log('Current step:', currentStep);
-
-            switch (currentStep) {
-                case 1:
-                    isValid = validatePersonalInfo();
-                    break;
-                case 2:
-                    isValid = validateExperience();
-                    break;
-                case 3:
-                    isValid = validateEducation();
-                    break;
-                case 4:
-                    isValid = validateSkills();
-                    break;
-                case 5:
-                    isValid = validateAdditional();
-                    break;
+        if (window.isAuthenticated) {
+            // Existing authenticated user flow
+            if (currentStep < totalSteps) {
+                updateAllPresentEndDates();
+                let isValid = false;
+                let isSaved = false;
+                switch (currentStep) {
+                    case 1:
+                        isValid = validatePersonalInfo();
+                        break;
+                    case 2:
+                        isValid = validateExperience();
+                        break;
+                    case 3:
+                        isValid = validateEducation();
+                        break;
+                    case 4:
+                        isValid = validateSkills();
+                        break;
+                    case 5:
+                        isValid = validateAdditional();
+                        break;
+                }
+                if (!isValid) return;
+                switch (currentStep) {
+                    case 1:
+                        isSaved = await savePersonalInfo();
+                        break;
+                    case 2:
+                        isSaved = await saveExperience();
+                        break;
+                    case 3:
+                        isSaved = await saveEducation();
+                        break;
+                    case 4:
+                        isSaved = await saveSkills();
+                        break;
+                    case 5:
+                        isSaved = await saveAdditional();
+                        break;
+                }
+                if (isSaved) {
+                    currentStep++;
+                    showStep(currentStep);
+                }
             }
-
-            console.log('Validation result for step', currentStep, ':', isValid);
-
-            // Only call save function if validation passes
-            if (!isValid) return;
-
-            switch (currentStep) {
-                case 1:
-                    isSaved = await savePersonalInfo();
-                    break;
-                case 2:
-                    isSaved = await saveExperience();
-                    break;
-                case 3:
-                    isSaved = await saveEducation();
-                    break;
-                case 4:
-                    isSaved = await saveSkills();
-                    break;
-                case 5:
-                    isSaved = await saveAdditional();
-                    break;
-            }
-
-            console.log('Save result for step', currentStep, ':', isSaved);
-
-            if (isSaved) {
+        } else {
+            // Anonymous user flow: use ResumeBuilder class
+            let valid = false;
+            if (currentStep === 1) valid = window.resumeBuilder.nextToExperience();
+            if (currentStep === 2) valid = window.resumeBuilder.nextToEducation();
+            if (currentStep === 3) valid = window.resumeBuilder.nextToSkills();
+            if (currentStep === 4) valid = window.resumeBuilder.nextToAdditional();
+            if (currentStep === 5) valid = window.resumeBuilder.finalizeStep();
+            if (valid) {
                 currentStep++;
                 showStep(currentStep);
             }
@@ -1011,49 +1020,64 @@
     }
 
     async function finalizeResume(action) {
-        // Only validate additional info (certifications and projects) on final save
-        if (!validateAdditional()) {
-            return;
-        }
-
-        const isSaved = await saveAdditional();
-        if (!isSaved) {
-            // saveAdditional will show its own error, so we can just exit.
-            return;
-        }
-        
-        // Get template selection
-        const selectedTemplate = document.querySelector('input[name="template_id"]:checked');
-        const templateId = selectedTemplate ? selectedTemplate.value : 'professional';
-
-        const data = {
-            resume_id: resumeId,
-            action: action,
-            template_id: templateId
-        };
-
-        try {
-            const response = await fetch('{% url "resume_builder:finalize_resume" %}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                },
-                body: JSON.stringify(data)
-            });
-
-            const result = await response.json();
-            if (result.success) {
-                if (action === 'save') {
-                    window.Alert.success('Resume saved successfully!');
-                }
-                window.location.href = result.redirect_url;
-            } else {
-                window.Alert.error(result.error || 'Failed to finalize resume');
+        if (window.isAuthenticated) {
+            // Authenticated user: existing backend flow
+            if (!validateAdditional()) {
+                return;
             }
-        } catch (error) {
-            console.error('Error:', error);
-            window.Alert.error('Failed to finalize resume');
+            const isSaved = await saveAdditional();
+            if (!isSaved) {
+                return;
+            }
+            // Get template selection
+            const selectedTemplate = document.querySelector('input[name="template_id"]:checked');
+            const templateId = selectedTemplate ? selectedTemplate.value : 'professional';
+            const data = {
+                resume_id: resumeId,
+                action: action,
+                template_id: templateId
+            };
+            try {
+                const response = await fetch('{% url "resume_builder:finalize_resume" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                if (result.success) {
+                    if (action === 'save') {
+                        window.Alert.success('Resume saved successfully!');
+                    }
+                    window.location.href = result.redirect_url;
+                } else {
+                    window.Alert.error(result.error || 'Failed to finalize resume');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                window.Alert.error('Failed to finalize resume');
+            }
+        } else {
+            // Anonymous user: use ResumeBuilder and preview-anonymous endpoint
+            if (!window.resumeBuilder.finalizeStep()) {
+                return;
+            }
+            const resumeData = window.resumeBuilder.getResumeData();
+            try {
+                const response = await fetch('/resume/preview-anonymous/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(resumeData)
+                });
+                const html = await response.text();
+                const previewWindow = window.open('', '_blank');
+                previewWindow.document.write(html);
+                previewWindow.document.close();
+            } catch (err) {
+                window.Alert && window.Alert.error ? window.Alert.error('Failed to preview resume.') : alert('Failed to preview resume.');
+            }
         }
     }
 

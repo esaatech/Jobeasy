@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 
-{% block title %}{{ hero_content.page_title }} - AI Cover Letter{% endblock %}
+{% block title %}{{ hero_content.page_title }} - Resume Template{% endblock %}
 
 {% block content %}
 {% csrf_token %}
@@ -68,10 +68,10 @@
                 Back to My Resumes
             </a>
             {% else %}
-            <!-- For legacy optimization results -->
-            <button onclick="resumeUtils.showActionDialog()" 
-                    class="bg-emerald-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
-                Save or Download Resume
+            <!-- For anonymous/legacy/optimized resumes: Only show Download PDF -->
+            <button onclick="downloadAnonymousResume()" class="bg-red-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 text-center flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                Download PDF
             </button>
             {% endif %}
         </div>
@@ -213,5 +213,48 @@ class ResumeUtils {
 
 // Initialize ResumeUtils if needed
 const resumeUtils = new ResumeUtils();
+
+function downloadAnonymousResume() {
+    // Get resume data from the context
+    const resumeData = {
+        personalInfo: {{ resume_data.personal_info|safe }},
+        experience: {{ resume_data.experience|safe }},
+        education: {{ resume_data.education|safe }},
+        skills: {{ resume_data.skills|safe }},
+        additional: {{ resume_data.additional|safe }},
+        templateId: '{{ resume_data.template_id|default:"professional" }}'
+    };
+    
+    // Send POST request to download endpoint
+    fetch('{% url "resume_builder:download_resume_file" "anonymous" "pdf" %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(resumeData)
+    })
+    .then(response => {
+        if (response.ok) {
+            return response.blob();
+        } else {
+            throw new Error('Download failed');
+        }
+    })
+    .then(blob => {
+        // Create download link
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'resume.pdf';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to download resume. Please try again.');
+    });
+}
 </script>
 {% endblock %} 

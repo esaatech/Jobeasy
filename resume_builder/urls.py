@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, re_path
 from . import views
 
 app_name = 'resume_builder'
@@ -28,6 +28,7 @@ urlpatterns = [
     path('save-resume/', views.save_resume, name='save_resume'),
     path('my-resumes/', views.my_resumes, name='my_resumes'),
     path('delete-resume/<int:resume_id>/', views.delete_resume, name='delete_resume'),
-    path('download/<int:resume_id>/<str:format_type>/', views.download_resume_file, name='download_resume_file'),
+    re_path(r'^download/(?P<resume_id>[0-9]+|anonymous)/(?P<format_type>[^/]+)/$', views.download_resume_file, name='download_resume_file'),
     path('switch-template/', views.switch_template, name='switch_template'),
+    path('preview-anonymous/', views.preview_anonymous_resume, name='preview_anonymous_resume'),
 ]

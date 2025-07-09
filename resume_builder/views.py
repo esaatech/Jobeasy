@@ -19,6 +19,7 @@ from django.conf import settings
 import uuid
 from django.template.loader import render_to_string
 from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 
 # Import libraries for file processing
 import PyPDF2
@@ -940,38 +941,57 @@ def delete_resume(request, resume_id):
         'error': 'Method not allowed'
     }, status=405)
 
-@login_required
+@csrf_exempt
 def download_resume_file(request, resume_id, format_type='html'):
-    """Download a resume in the specified format - generates files on-the-fly from database data"""
+    """Download a resume in the specified format - supports both authenticated and anonymous users"""
     try:
-        # Get the resume and ensure it belongs to the current user
-        resume = get_object_or_404(Resume, id=resume_id, user=request.user)
-        
-        # Prepare resume data for template rendering
-        resume_data = {
-            'personal_info': resume.personal_info or {},
-            'experience': resume.experience or [],
-            'education': resume.education or [],
-            'skills': resume.skills or {},
-            'additional': resume.additional or {}
-        }
-        
-        # Get the template ID (default to professional if not set)
-        template_id = resume.template_id or 'professional'
-        
+        if str(resume_id) == 'anonymous':
+            # Anonymous download: expect POSTed JSON data
+            if request.method != 'POST':
+                return JsonResponse({'error': 'Anonymous download requires POST'}, status=405)
+            try:
+                data = json.loads(request.body)
+            except Exception as e:
+                return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+            personal_info = data.get('personalInfo', {})
+            experience = data.get('experience', [])
+            education = data.get('education', [])
+            skills = data.get('skills', {})
+            additional = data.get('additional', {})
+            template_id = data.get('templateId', 'professional')
+            resume_data = {
+                'personal_info': personal_info,
+                'experience': experience,
+                'education': education,
+                'skills': skills,
+                'additional': additional
+            }
+        else:
+            # Authenticated user: existing logic
+            from django.contrib.auth.decorators import login_required
+            if not request.user.is_authenticated:
+                return JsonResponse({'error': 'Authentication required'}, status=403)
+            resume = get_object_or_404(Resume, id=resume_id, user=request.user)
+            resume_data = {
+                'personal_info': resume.personal_info or {},
+                'experience': resume.experience or [],
+                'education': resume.education or [],
+                'skills': resume.skills or {},
+                'additional': resume.additional or {}
+            }
+            template_id = resume.template_id or 'professional'
+
+        # Now render and return in the requested format (reuse existing logic)
         if format_type == 'html':
-            # Render the resume with the chosen template
             html_content = render_to_string(f'resume_templates/{template_id}.html', {'resume_data': resume_data})
-            
-            # Create full HTML document
             full_html = f"""
 <!DOCTYPE html>
-<html lang="en">
+<html lang=\"en\">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{resume.personal_info.get('full_name', 'Resume')} - Resume</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset=\"UTF-8\">
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+    <title>{resume_data['personal_info'].get('full_name', 'Resume')} - Resume</title>
+    <script src=\"https://cdn.tailwindcss.com\"></script>
     <style>
         @media print {{
             body {{{{ margin: 0; padding: 20px; }}}}
@@ -981,29 +1001,22 @@ def download_resume_file(request, resume_id, format_type='html'):
         }}
     </style>
 </head>
-<body class="bg-white">
+<body class=\"bg-white\">
     {html_content}
 </body>
 </html>
 """
-            # Return HTML directly
             response = HttpResponse(full_html, content_type='text/html')
             response['Content-Disposition'] = f'attachment; filename="resume_{resume_id}.html"'
             return response
-                
         elif format_type == 'pdf':
-            # Use the new standalone PDF Generator app
             try:
                 from pdf_generator.core.generator import PDFGenerator
-                
-                # Create context for the resume template
                 context = {
                     'resume_data': resume_data,
-                    'resume_name': resume.name,
+                    'resume_name': resume_data['personal_info'].get('full_name', 'Resume'),
                     'generated_date': timezone.now().strftime('%B %d, %Y')
                 }
-                
-                # Generate PDF using the standalone PDF generator
                 pdf_bytes = PDFGenerator.generate_from_template(
                     template_name=f'resume_templates/{template_id}.html',
                     context=context,
@@ -1018,28 +1031,21 @@ def download_resume_file(request, resume_id, format_type='html'):
                         }
                     }
                 )
-                
                 response = HttpResponse(pdf_bytes, content_type='application/pdf')
                 response['Content-Disposition'] = f'attachment; filename="resume_{resume_id}.pdf"'
                 return response
-                
             except ImportError:
-                # Fallback to xhtml2pdf if PDF generator is not available
                 logger.warning("PDF Generator app not available, falling back to xhtml2pdf")
                 from xhtml2pdf import pisa
-                
-                # Render the resume with the chosen template
                 html_content = render_to_string(f'resume_templates/{template_id}.html', {'resume_data': resume_data})
-                
-                # Create full HTML document
                 full_html = f"""
 <!DOCTYPE html>
-<html lang="en">
+<html lang=\"en\">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{resume.personal_info.get('full_name', 'Resume')} - Resume</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset=\"UTF-8\">
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+    <title>{resume_data['personal_info'].get('full_name', 'Resume')} - Resume</title>
+    <script src=\"https://cdn.tailwindcss.com\"></script>
     <style>
         @media print {{
             body {{{{ margin: 0; padding: 20px; }}}}
@@ -1049,66 +1055,49 @@ def download_resume_file(request, resume_id, format_type='html'):
         }}
     </style>
 </head>
-<body class="bg-white">
+<body class=\"bg-white\">
     {html_content}
 </body>
 </html>
 """
                 pdf_buffer = BytesIO()
-                
-                pisa_status = pisa.CreatePDF(
-                    full_html,
-                    dest=pdf_buffer
-                )
-                
+                pisa_status = pisa.CreatePDF(full_html, dest=pdf_buffer)
                 if pisa_status.err:
                     return HttpResponse(f'We had some errors <pre>{full_html}</pre>')
-
                 pdf_buffer.seek(0)
-                
                 response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
                 response['Content-Disposition'] = f'attachment; filename="resume_{resume_id}.pdf"'
                 return response
-                
         elif format_type == 'word':
-            # Convert HTML to Word document using html2docx
             try:
                 from html2docx import html2docx
-                
-                # Render the resume with the chosen template
                 html_content = render_to_string(f'resume_templates/{template_id}.html', {'resume_data': resume_data})
-                
-                # Create full HTML document
                 full_html = f"""
 <!DOCTYPE html>
-<html lang="en">
+<html lang=\"en\">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{resume.personal_info.get('full_name', 'Resume')} - Resume</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset=\"UTF-8\">
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+    <title>{resume_data['personal_info'].get('full_name', 'Resume')} - Resume</title>
+    <script src=\"https://cdn.tailwindcss.com\"></script>
 </head>
-<body class="bg-white">
+<body class=\"bg-white\">
     {html_content}
 </body>
 </html>
 """
-                docx_buffer = html2docx(full_html, title=f"Resume - {resume.name}")
-
+                docx_buffer = html2docx(full_html, title=f"Resume - {resume_data['personal_info'].get('full_name', 'Resume')}")
                 response = HttpResponse(
-                    docx_buffer.getvalue(), 
+                    docx_buffer.getvalue(),
                     content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
                 )
                 response['Content-Disposition'] = f'attachment; filename="resume_{resume_id}.docx"'
                 return response
-                
             except ImportError:
                 logger.error("html2docx not available for Word document generation")
                 return JsonResponse({'error': 'Word document generation not available'}, status=500)
-        
         else:
             return JsonResponse({'error': 'Invalid format'}, status=400)
-            
     except Exception as e:
         logger.error(f"Download resume error: {str(e)}")
         return JsonResponse({'error': 'Failed to download resume'}, status=500)
@@ -1384,3 +1373,47 @@ def finalize_resume(request):
         'success': False,
         'error': 'Method not allowed'
     }, status=405)
+
+@csrf_exempt
+def preview_anonymous_resume(request):
+    """
+    Accepts POSTed JSON data for an anonymous resume preview, renders the selected template,
+    and returns the view_resume.html page with the rendered resume.
+    """
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            # Extract all fields from the posted data
+            personal_info = data.get('personalInfo', {})
+            experience = data.get('experience', [])
+            education = data.get('education', [])
+            skills = data.get('skills', {})
+            additional = data.get('additional', {})
+            template_id = data.get('templateId', 'professional')
+
+            # Prepare resume data for template rendering
+            resume_data = {
+                'personal_info': personal_info,
+                'experience': experience,
+                'education': education,
+                'skills': skills,
+                'additional': additional
+            }
+
+            # Render the resume template
+            html_content = render_to_string(f'resume_templates/{template_id}.html', {'resume_data': resume_data})
+
+            context = {
+                'resume': None,  # No saved resume object
+                'resume_html': html_content,
+                'resume_data': resume_data,
+                'hero_content': {
+                    'page_title': 'Preview Resume',
+                    'page_description': 'Review your generated resume below. You can download it or sign up to save it.'
+                }
+            }
+            return render(request, 'resume_builder/view_resume.html', context)
+        except Exception as e:
+            logger.error(f"Anonymous preview error: {str(e)}")
+            return JsonResponse({'success': False, 'error': str(e)}, status=400)
+    return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
