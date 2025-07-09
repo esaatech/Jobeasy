@@ -2,48 +2,54 @@
     <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
         <h2 class="text-2xl font-bold text-gray-800 mb-6">Choose Resume Template</h2>
         <div class="border-b-2 border-emerald-500 mb-6"></div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- Professional Card -->
-            <label class="block cursor-pointer group">
-                <input type="radio" name="template_id" value="professional" class="hidden peer" {% if selected_template == 'professional' or not selected_template %}checked{% endif %}>
-                <div class="rounded-xl border-2 border-gray-200 peer-checked:border-emerald-500 bg-gray-50 p-4 flex flex-col items-center transition-all group-hover:shadow-lg">
-                    <div class="w-full h-20 bg-gradient-to-r from-gray-200 to-gray-100 rounded mb-3 flex items-center justify-center">
-                        <span class="text-lg font-bold text-gray-700">Professional</span>
+        <div class="relative">
+            <div class="flex flex-nowrap gap-6 overflow-x-auto scrollbar-hide pb-2 md:grid md:grid-cols-3 md:gap-6 md:overflow-visible">
+                <!-- Professional Card -->
+                <label class="block cursor-pointer group min-w-[260px] md:min-w-0">
+                    <input type="radio" name="template_id" value="professional" class="hidden peer" {% if selected_template == 'professional' or not selected_template %}checked{% endif %}>
+                    <div class="rounded-xl border-2 border-gray-200 peer-checked:border-emerald-500 bg-gray-50 p-4 flex flex-col items-center transition-all group-hover:shadow-lg">
+                        <div class="w-full h-20 bg-gradient-to-r from-gray-200 to-gray-100 rounded mb-3 flex items-center justify-center">
+                            <span class="text-lg font-bold text-gray-700">Professional</span>
+                        </div>
+                        <span class="text-gray-600 text-center mb-3">Classic, clean layout</span>
+                        <button type="button" onclick="showTemplatePreview('professional')" 
+                                class="text-sm text-emerald-600 hover:text-emerald-700 font-medium">
+                            Preview Template
+                        </button>
                     </div>
-                    <span class="text-gray-600 text-center mb-3">Classic, clean layout</span>
-                    <button type="button" onclick="showTemplatePreview('professional')" 
-                            class="text-sm text-emerald-600 hover:text-emerald-700 font-medium">
-                        Preview Template
-                    </button>
-                </div>
-            </label>
-            <!-- Modern Card -->
-            <label class="block cursor-pointer group">
-                <input type="radio" name="template_id" value="modern" class="hidden peer" {% if selected_template == 'modern' %}checked{% endif %}>
-                <div class="rounded-xl border-2 border-gray-200 peer-checked:border-emerald-500 bg-gray-50 p-4 flex flex-col items-center transition-all group-hover:shadow-lg">
-                    <div class="w-full h-20 bg-gradient-to-r from-blue-200 to-blue-100 rounded mb-3 flex items-center justify-center">
-                        <span class="text-lg font-bold text-blue-700">Modern</span>
+                </label>
+                <!-- Modern Card -->
+                <label class="block cursor-pointer group min-w-[260px] md:min-w-0">
+                    <input type="radio" name="template_id" value="modern" class="hidden peer" {% if selected_template == 'modern' %}checked{% endif %}>
+                    <div class="rounded-xl border-2 border-gray-200 peer-checked:border-emerald-500 bg-gray-50 p-4 flex flex-col items-center transition-all group-hover:shadow-lg">
+                        <div class="w-full h-20 bg-gradient-to-r from-blue-200 to-blue-100 rounded mb-3 flex items-center justify-center">
+                            <span class="text-lg font-bold text-blue-700">Modern</span>
+                        </div>
+                        <span class="text-gray-600 text-center mb-3">Contemporary, bold headings</span>
+                        <button type="button" onclick="showTemplatePreview('modern')" 
+                                class="text-sm text-emerald-600 hover:text-emerald-700 font-medium">
+                            Preview Template
+                        </button>
                     </div>
-                    <span class="text-gray-600 text-center mb-3">Contemporary, bold headings</span>
-                    <button type="button" onclick="showTemplatePreview('modern')" 
-                            class="text-sm text-emerald-600 hover:text-emerald-700 font-medium">
-                        Preview Template
-                    </button>
-                </div>
-            </label>
-            <!-- Creative Card -->
-            <label class="block cursor-pointer group">
-                <input type="radio" name="template_id" value="creative" class="hidden peer" {% if selected_template == 'creative' %}checked{% endif %}>
-                <div class="rounded-xl border-2 border-gray-200 peer-checked:border-emerald-500 bg-gray-50 p-4 flex flex-col items-center transition-all group-hover:shadow-lg">
-                    <div class="w-full h-20 bg-gradient-to-r from-purple-200 to-indigo-100 rounded mb-3 flex items-center justify-center">
-                        <span class="text-lg font-bold text-purple-700">Creative</span>
+                </label>
+                <!-- Creative Card -->
+                <label class="block cursor-pointer group min-w-[260px] md:min-w-0">
+                    <input type="radio" name="template_id" value="creative" class="hidden peer" {% if selected_template == 'creative' %}checked{% endif %}>
+                    <div class="rounded-xl border-2 border-gray-200 peer-checked:border-emerald-500 bg-gray-50 p-4 flex flex-col items-center transition-all group-hover:shadow-lg">
+                        <div class="w-full h-20 bg-gradient-to-r from-purple-200 to-indigo-100 rounded mb-3 flex items-center justify-center">
+                            <span class="text-lg font-bold text-purple-700">Creative</span>
+                        </div>
+                        <span class="text-gray-600 text-center mb-3">Colorful, eye-catching</span>
+                        <button type="button" onclick="showTemplatePreview('creative')" 
+                                class="text-sm text-emerald-600 hover:text-emerald-700 font-medium">
+                            Preview Template
+                        </button>
                     </div>
-                    <span class="text-gray-600 text-center mb-3">Colorful, eye-catching</span>
-                    <button type="button" onclick="showTemplatePreview('creative')" 
-                            class="text-sm text-emerald-600 hover:text-emerald-700 font-medium">
-                        Preview Template
-                    </button>
-                </div>
-            </label>
+                </label>
+            </div>
+            <!-- Left fade -->
+            <div class="pointer-events-none absolute left-0 top-0 h-full w-8 bg-gradient-to-r from-white to-transparent md:hidden"></div>
+            <!-- Right fade -->
+            <div class="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-white to-transparent md:hidden"></div>
         </div>
     </div>
