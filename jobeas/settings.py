@@ -208,11 +208,6 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
-        'file': {
-            'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'logs' / 'django.log',
-            'formatter': 'verbose',
-        },
     },
     'loggers': {
         'django': {
@@ -226,12 +221,29 @@ LOGGING = {
             'propagate': True,
         },
         'authentication': {  # Authentication-specific logging
-            'handlers': ['console', 'file'],
+            'handlers': ['console'],
             'level': 'DEBUG',
             'propagate': True,
         },
     },
 }
+
+# Add file logging only in development
+if ENV == "development":
+    import os
+    logs_dir = BASE_DIR / 'logs'
+    if not logs_dir.exists():
+        logs_dir.mkdir(exist_ok=True)
+    
+    LOGGING['handlers']['file'] = {
+        'class': 'logging.FileHandler',
+        'filename': logs_dir / 'django.log',
+        'formatter': 'verbose',
+    }
+    
+    # Add file handler to loggers
+    for logger_name in ['django', 'home', 'authentication']:
+        LOGGING['loggers'][logger_name]['handlers'].append('file')
 
 # Authentication Settings
 LOGIN_URL = '/auth/login/'

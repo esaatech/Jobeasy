@@ -141,6 +141,10 @@ def logout_view(request):
 
 def debug_auth_view(request):
     """Debug view to help identify authentication issues"""
+    # Only allow in development mode
+    if not settings.DEBUG:
+        return redirect('authentication:login')
+        
     if request.method == 'POST':
         username_or_email = request.POST.get('username_or_email', '').strip()
         password = request.POST.get('password', '')
