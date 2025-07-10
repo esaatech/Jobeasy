@@ -353,11 +353,12 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     };
     
+    let cardNumber, cardExpiry, cardCvc;
     try {
         const elements = stripe.elements();
-        const cardNumber = elements.create('cardNumber', { style });
-        const cardExpiry = elements.create('cardExpiry', { style });
-        const cardCvc = elements.create('cardCvc', { style });
+        cardNumber = elements.create('cardNumber', { style });
+        cardExpiry = elements.create('cardExpiry', { style });
+        cardCvc = elements.create('cardCvc', { style });
         
         // Only mount elements if the containers exist
         const cardNumberElement = document.getElementById('card-number-element');
@@ -381,7 +382,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         });
-    } catch (error) {
+    } catch (e) {
         const errorElement = document.getElementById('card-errors');
         if (errorElement) {
             errorElement.textContent = 'Failed to initialize payment form. Please refresh the page.';

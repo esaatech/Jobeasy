@@ -14,7 +14,9 @@ from dotenv import load_dotenv
 from django.utils import timezone
 load_dotenv()
 # Initialize Stripe with SECRET key (not publishable key)
-stripe.api_key = os.getenv('STRIPE_SECRET_KEY')  # Make sure this is the secret key
+import os
+print('DEBUG: STRIPE_SECRET_KEY at runtime:', os.getenv('MYAPP_STRIPE_SECRET_KEY'))
+stripe.api_key = os.getenv('MYAPP_STRIPE_SECRET_KEY')  # Make sure this is the secret key
 
 class PlanPurchaseView(LoginRequiredMixin, DetailView):
     """
@@ -56,12 +58,12 @@ class PlanPurchaseView(LoginRequiredMixin, DetailView):
         )
         
         # Load Stripe publishable key directly
-        stripe_public_key = os.getenv('STRIPE_PUBLISHABLE_KEY')
+        stripe_public_key = os.getenv('MYAPP_STRIPE_PUBLISHABLE_KEY')
         if not stripe_public_key:
             # Log warning but don't crash the page
             import logging
             logger = logging.getLogger(__name__)
-            logger.warning('STRIPE_PUBLISHABLE_KEY is not configured in environment variables')
+            logger.warning('MYAPP_STRIPE_PUBLISHABLE_KEY is not configured in environment variables')
         
         context['STRIPE_PUBLIC_KEY'] = stripe_public_key
         
@@ -242,7 +244,7 @@ def checkout_success(request, subscription_id):
             'return_url': return_url,
         }
         
-        return render(request, 'subscriptions/checkout_success.html', context)
+        return render(request, 'subscriptions/success.html', context)
         
     except Exception as e:
         # Log the error and show a generic success page
@@ -250,7 +252,7 @@ def checkout_success(request, subscription_id):
         logger = logging.getLogger(__name__)
         logger.error(f'Error in checkout_success: {str(e)}')
         
-        return render(request, 'subscriptions/checkout_success.html', {
+        return render(request, 'subscriptions/success.html', {
             'subscription': None,
             'return_url': reverse('subscriptions:pricing'),
             'error': 'There was an issue processing your subscription, but your payment was successful. Please contact support.'

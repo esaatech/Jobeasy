@@ -535,3 +535,29 @@ To move the subscription system to another Django project:
 6. Run `python manage.py setup_subscription_plans` to create default features
 
 The system is designed to be self-contained and portable!
+
+## Recent Improvements (July 2024)
+
+### Stripe Payment Flow & Subscription Success
+- Stripe Elements integration was fixed to ensure cardNumber and related variables are always defined and accessible in the payment form JavaScript.
+- The payment form now uses Stripe's secure Elements for card number, expiry, and CVC, and handles errors gracefully.
+- After a successful payment, the user is redirected to `/subscriptions/success/<subscription_id>/`, which now uses the detailed `success.html` template.
+- The `success.html` template displays:
+  - Plan name, duration, amount, and status
+  - Features included in the plan
+  - A link to view the invoice (if available)
+  - A button to go to the dashboard
+- The old `checkout_success.html` template is no longer used.
+- Several Stripe test card scenarios were verified (declined, insufficient funds, incorrect CVC, expired card, etc.) and all work as expected.
+
+### How to Update or Customize
+- To further customize the success page, edit `subscriptions/templates/subscriptions/success.html`.
+- The view responsible is `checkout_success` in `subscriptions/views.py`.
+- For new payment/test scenarios, refer to Stripe's documentation for more test card numbers.
+
+## Troubleshooting Stripe Live/Test Mode Errors
+
+### Error: No such customer: 'cus_xxx'; a similar object exists in test mode, but a live mode key was used
+- This error occurs if your database contains references to Stripe objects (like customers or subscriptions) created in test mode, but you are now using live keys.
+- **Solution:** Delete all Stripe-related user profiles and subscriptions from your database before switching to live mode. This ensures your app creates new live-mode Stripe customers and subscriptions.
+- You do not need to register a new user; after cleanup, existing users will be treated as new Stripe customers in live mode.
