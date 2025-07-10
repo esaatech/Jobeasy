@@ -1,12 +1,13 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
-from .views import CustomLoginView, RegisterView, logout_view
+from .views import CustomLoginView, RegisterView, logout_view, debug_auth_view
 
 app_name = 'authentication'
 
 urlpatterns = [
     path('login/', CustomLoginView.as_view(), name='login'),
     path('register/', RegisterView.as_view(), name='register'),
+    path('debug-auth/', debug_auth_view, name='debug_auth'),
     
     # Password Reset URLs
     path('password-reset/', 

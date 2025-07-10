@@ -208,6 +208,11 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
+        'file': {
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'logs' / 'django.log',
+            'formatter': 'verbose',
+        },
     },
     'loggers': {
         'django': {
@@ -217,6 +222,11 @@ LOGGING = {
         },
         'home': {  # This is for your home app
             'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'authentication': {  # Authentication-specific logging
+            'handlers': ['console', 'file'],
             'level': 'DEBUG',
             'propagate': True,
         },

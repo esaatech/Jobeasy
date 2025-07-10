@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Debug Authentication - AI Cover Letter{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-4xl w-full space-y-8">
+        <div class="bg-white rounded-lg shadow-lg p-6">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">Authentication Debug Tool</h2>
+            
+            <form method="POST" class="space-y-6">
+                {% csrf_token %}
+                
+                <div>
+                    <label for="username_or_email" class="block text-sm font-medium text-gray-700">Username or Email</label>
+                    <input id="username_or_email" name="username_or_email" type="text" required 
+                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                    <input id="password" name="password" type="password" required 
+                           class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                
+                <button type="submit" class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700">
+                    Debug Authentication
+                </button>
+            </form>
+            
+            {% if debug_info %}
+            <div class="mt-8 border-t pt-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Debug Information</h3>
+                
+                <div class="bg-gray-50 rounded-lg p-4 space-y-3">
+                    <div><strong>Raw Input:</strong> <code>{{ debug_info.raw_username_or_email }}</code></div>
+                    <div><strong>Stripped Input:</strong> <code>{{ debug_info.stripped_username_or_email }}</code></div>
+                    <div><strong>Input Length:</strong> {{ debug_info.username_or_email_length }}</div>
+                    <div><strong>Password Length:</strong> {{ debug_info.password_length }}</div>
+                    <div><strong>User Agent:</strong> <code class="text-xs">{{ debug_info.user_agent }}</code></div>
+                    <div><strong>Remote Address:</strong> {{ debug_info.remote_addr }}</div>
+                    <div><strong>Content Type:</strong> {{ debug_info.content_type }}</div>
+                    <div><strong>Encoding:</strong> {{ debug_info.encoding }}</div>
+                    
+                    <hr class="my-4">
+                    
+                    <div><strong>Exact Username Match:</strong> {{ debug_info.exact_username_match }}</div>
+                    <div><strong>Exact Email Match:</strong> {{ debug_info.exact_email_match }}</div>
+                    <div><strong>User Found by Username:</strong> {{ debug_info.user_found_by_username }}</div>
+                    <div><strong>User Found by Email:</strong> {{ debug_info.user_found_by_email }}</div>
+                    <div><strong>Auth with Username:</strong> {{ debug_info.auth_with_username }}</div>
+                    <div><strong>Auth with Email:</strong> {{ debug_info.auth_with_email }}</div>
+                    
+                    {% if debug_info.error %}
+                    <div class="text-red-600"><strong>Error:</strong> {{ debug_info.error }}</div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 
