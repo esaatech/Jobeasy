@@ -38,6 +38,35 @@
             margin-top: 1.25em;
             margin-bottom: 1.25em;
         }
+        
+        /* Password toggle button styles */
+        .password-toggle-btn {
+            position: absolute;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            padding-right: 0.75rem;
+            display: flex;
+            align-items: center;
+            color: #9CA3AF;
+            transition: color 0.2s ease-in-out;
+            z-index: 20;
+            pointer-events: auto;
+        }
+        
+        .password-toggle-btn:hover {
+            color: #4B5563;
+        }
+        
+        .password-toggle-btn:focus {
+            outline: none;
+            color: #4B5563;
+        }
+        
+        /* Ensure password fields have proper padding for the toggle button */
+        input[type="password"], input[type="text"] {
+            padding-right: 2.5rem !important;
+        }
     </style>
     
     <link rel="icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">

@@ -71,8 +71,36 @@
                 <div class="rounded-md shadow-sm -space-y-px">
                     {{ form.username }}
                     {{ form.email }}
-                    {{ form.password1 }}
-                    {{ form.password2 }}
+                    <div class="relative">
+                        {{ form.password1 }}
+                        <button type="button" id="password1-toggle" 
+                                class="password-toggle-btn">
+                            <!-- Eye icon (hidden) -->
+                            <svg id="eye-icon-1" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                            </svg>
+                            <!-- Eye slash icon (visible) -->
+                            <svg id="eye-slash-icon-1" class="h-5 w-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="relative">
+                        {{ form.password2 }}
+                        <button type="button" id="password2-toggle" 
+                                class="password-toggle-btn">
+                            <!-- Eye icon (hidden) -->
+                            <svg id="eye-icon-2" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                            </svg>
+                            <!-- Eye slash icon (visible) -->
+                            <svg id="eye-slash-icon-2" class="h-5 w-5 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"></path>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
 
                 <div>
@@ -107,6 +135,46 @@ document.addEventListener('DOMContentLoaded', function() {
     const button = document.getElementById('register-btn');
     const buttonText = document.getElementById('register-text');
     const spinner = document.getElementById('register-spinner');
+    
+    // Password visibility toggle functionality
+    const password1Field = document.getElementById('password1');
+    const password2Field = document.getElementById('password2');
+    const password1Toggle = document.getElementById('password1-toggle');
+    const password2Toggle = document.getElementById('password2-toggle');
+    const eyeIcon1 = document.getElementById('eye-icon-1');
+    const eyeSlashIcon1 = document.getElementById('eye-slash-icon-1');
+    const eyeIcon2 = document.getElementById('eye-icon-2');
+    const eyeSlashIcon2 = document.getElementById('eye-slash-icon-2');
+    
+    // Password 1 toggle
+    password1Toggle.addEventListener('click', function() {
+        const type = password1Field.getAttribute('type') === 'password' ? 'text' : 'password';
+        password1Field.setAttribute('type', type);
+        
+        // Toggle icon visibility
+        if (type === 'text') {
+            eyeIcon1.classList.add('hidden');
+            eyeSlashIcon1.classList.remove('hidden');
+        } else {
+            eyeIcon1.classList.remove('hidden');
+            eyeSlashIcon1.classList.add('hidden');
+        }
+    });
+    
+    // Password 2 toggle
+    password2Toggle.addEventListener('click', function() {
+        const type = password2Field.getAttribute('type') === 'password' ? 'text' : 'password';
+        password2Field.setAttribute('type', type);
+        
+        // Toggle icon visibility
+        if (type === 'text') {
+            eyeIcon2.classList.add('hidden');
+            eyeSlashIcon2.classList.remove('hidden');
+        } else {
+            eyeIcon2.classList.remove('hidden');
+            eyeSlashIcon2.classList.add('hidden');
+        }
+    });
     
     form.addEventListener('submit', function(e) {
         // Prevent double submission

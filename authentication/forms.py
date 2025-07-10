@@ -19,15 +19,17 @@ class CustomUserCreationForm(UserCreationForm):
     
     password1 = forms.CharField(
         widget=forms.PasswordInput(attrs={
-            'class': 'appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm',
-            'placeholder': 'Password'
+            'class': 'appearance-none rounded-none relative block w-full px-3 py-2 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm',
+            'placeholder': 'Password',
+            'id': 'password1'
         })
     )
     
     password2 = forms.CharField(
         widget=forms.PasswordInput(attrs={
-            'class': 'appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm',
-            'placeholder': 'Confirm password'
+            'class': 'appearance-none rounded-none relative block w-full px-3 py-2 pr-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm',
+            'placeholder': 'Confirm password',
+            'id': 'password2'
         })
     )
 
