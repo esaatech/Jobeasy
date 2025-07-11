@@ -1,0 +1,92 @@
+<div id="step3" class="step-content hidden">
+    <h2 class="headline-secondary mb-6" data-i18n="contact_info"></h2>
+    <div class="space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2" data-i18n="email_address"></label>
+                {{ form.email }}
+                {% if form.email.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.email.errors.0 }}</p>
+                {% endif %}
+            </div>
+            <div>
+                <label for="{{ form.phone.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2" data-i18n="phone_number"></label>
+                {{ form.phone }}
+                {% if form.phone.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.phone.errors.0 }}</p>
+                {% endif %}
+            </div>
+        </div>
+        <div>
+            <label class="block text-sm font-medium text-gray-700 mb-4" data-i18n="preferred_contact"></label>
+            <div class="space-y-3">
+                {% for choice in form.preferred_contact_method %}
+                <div class="flex items-center">
+                    {{ choice.tag }}
+                    <label for="{{ choice.id_for_label }}" class="ml-3 text-sm font-medium text-gray-700 cursor-pointer">{{ choice.choice_label }}</label>
+                </div>
+                {% endfor %}
+            </div>
+            {% if form.preferred_contact_method.errors %}
+            <p class="mt-2 text-sm text-red-600">{{ form.preferred_contact_method.errors.0 }}</p>
+            {% endif %}
+        </div>
+        <div class="border-t pt-6">
+            <h3 class="headline-tertiary mb-4" data-i18n="additional_preferences"></h3>
+            <div class="space-y-6">
+                <div>
+                    <label for="{{ form.salary_expectations.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2" data-i18n="salary_expectations"></label>
+                    {{ form.salary_expectations }}
+                    {% if form.salary_expectations.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.salary_expectations.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                <div id="salaryRangeFields" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="{{ form.salary_min.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2" data-i18n="min_salary"></label>
+                        {{ form.salary_min }}
+                        {% if form.salary_min.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.salary_min.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label for="{{ form.salary_max.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2" data-i18n="max_salary"></label>
+                        {{ form.salary_max }}
+                        {% if form.salary_max.errors %}
+                        <p class="mt-1 text-sm text-red-600">{{ form.salary_max.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div>
+                    <label for="{{ form.start_date.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2" data-i18n="when_start"></label>
+                    {{ form.start_date }}
+                    {% if form.start_date.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.start_date.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                <div>
+                    <label for="{{ form.additional_notes.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2" data-i18n="additional_notes"></label>
+                    {{ form.additional_notes }}
+                    {% if form.additional_notes.errors %}
+                    <p class="mt-1 text-sm text-red-600">{{ form.additional_notes.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+    window.initContactStep = function() {
+        var salaryExpect = document.getElementById('id_salary_expectations');
+        if (salaryExpect) {
+            salaryExpect.addEventListener('change', function() {
+                var salaryRangeFields = document.getElementById('salaryRangeFields');
+                if (this.value === 'specific_range') {
+                    salaryRangeFields.classList.remove('hidden');
+                } else {
+                    salaryRangeFields.classList.add('hidden');
+                }
+            });
+        }
+    }
+    </script>
+</div> 

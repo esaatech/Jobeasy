@@ -1,0 +1,46 @@
+<div id="step1" class="step-content">
+    <h2 class="headline-secondary mb-6" data-i18n="what_job"></h2>
+    <div class="space-y-6">
+        <div>
+            <label for="{{ form.job_title.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2" data-i18n="job_title"></label>
+            {{ form.job_title }}
+            {% if form.job_title.help_text %}
+            <p class="mt-1 text-sm text-gray-500" data-i18n="job_title_help"></p>
+            {% endif %}
+            {% if form.job_title.errors %}
+            <p class="mt-1 text-sm text-red-600">{{ form.job_title.errors.0 }}</p>
+            {% endif %}
+        </div>
+        <div>
+            {{ form.application_reason }}
+            {% if form.application_reason.help_text %}
+            <p class="mt-1 text-sm text-gray-500" data-i18n="why_applying_help"></p>
+            {% endif %}
+            {% if form.application_reason.errors %}
+            <p class="mt-1 text-sm text-red-600">{{ form.application_reason.errors.0 }}</p>
+            {% endif %}
+        </div>
+        <div id="otherReasonField" class="hidden">
+            <label for="{{ form.other_reason.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2" data-i18n="other_reason"></label>
+            {{ form.other_reason }}
+            {% if form.other_reason.errors %}
+            <p class="mt-1 text-sm text-red-600">{{ form.other_reason.errors.0 }}</p>
+            {% endif %}
+        </div>
+    </div>
+    <script>
+    window.initJobDetailsStep = function() {
+        var reason = document.getElementById('id_application_reason');
+        if (reason) {
+            reason.addEventListener('change', function() {
+                var otherReasonField = document.getElementById('otherReasonField');
+                if (this.value === 'other') {
+                    otherReasonField.classList.remove('hidden');
+                } else {
+                    otherReasonField.classList.add('hidden');
+                }
+            });
+        }
+    }
+    </script>
+</div> 

@@ -1,0 +1,57 @@
+<div id="step2" class="step-content hidden">
+    <h2 class="headline-secondary mb-6" data-i18n="where_work"></h2>
+    <div class="space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label for="{{ form.country.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2" data-i18n="country"></label>
+                {{ form.country }}
+                {% if form.country.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.country.errors.0 }}</p>
+                {% endif %}
+            </div>
+            <div>
+                <label for="{{ form.state_province.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2" data-i18n="state_province"></label>
+                {{ form.state_province }}
+                {% if form.state_province.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.state_province.errors.0 }}</p>
+                {% endif %}
+            </div>
+        </div>
+        <div>
+            <label for="{{ form.city_preference.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2" data-i18n="city_preference"></label>
+            {{ form.city_preference }}
+            {% if form.city_preference.errors %}
+            <p class="mt-1 text-sm text-red-600">{{ form.city_preference.errors.0 }}</p>
+            {% endif %}
+        </div>
+        <div id="specificCityField" class="hidden">
+            <label for="{{ form.specific_city.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2" data-i18n="specific_city"></label>
+            {{ form.specific_city }}
+            {% if form.specific_city.errors %}
+            <p class="mt-1 text-sm text-red-600">{{ form.specific_city.errors.0 }}</p>
+            {% endif %}
+        </div>
+        <div>
+            <label for="{{ form.distance_preference.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2" data-i18n="distance_preference"></label>
+            {{ form.distance_preference }}
+            {% if form.distance_preference.errors %}
+            <p class="mt-1 text-sm text-red-600">{{ form.distance_preference.errors.0 }}</p>
+            {% endif %}
+        </div>
+    </div>
+    <script>
+    window.initLocationStep = function() {
+        var cityPref = document.getElementById('id_city_preference');
+        if (cityPref) {
+            cityPref.addEventListener('change', function() {
+                var specificCityField = document.getElementById('specificCityField');
+                if (this.value === 'specific_city') {
+                    specificCityField.classList.remove('hidden');
+                } else {
+                    specificCityField.classList.add('hidden');
+                }
+            });
+        }
+    }
+    </script>
+</div> 

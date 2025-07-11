@@ -6,312 +6,26 @@
     <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Header -->
         <div class="text-center mb-8">
-            <h1 class="headline-primary mb-2">Start Your Job Search</h1>
-            <p class="subheadline">Tell us about your dream job and we'll handle the rest</p>
+            <h1 class="headline-primary mb-2" data-i18n="start_job_search"></h1>
+            <p class="subheadline" data-i18n="start_job_search_sub"></p>
         </div>
 
         <!-- Progress Steps -->
-        <div class="mb-8">
-            <div class="flex items-center justify-center">
-                <div class="flex items-center">
-                    <div class="bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">
-                        1
-                    </div>
-                    <div class="ml-2 text-sm font-medium text-blue-600">Job Details</div>
-                </div>
-                <div class="flex-1 h-0.5 bg-gray-300 mx-4"></div>
-                <div class="flex items-center">
-                    <div class="bg-gray-300 text-gray-500 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">
-                        2
-                    </div>
-                    <div class="ml-2 text-sm font-medium text-gray-500">Location</div>
-                </div>
-                <div class="flex-1 h-0.5 bg-gray-300 mx-4"></div>
-                <div class="flex items-center">
-                    <div class="bg-gray-300 text-gray-500 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold">
-                        3
-                    </div>
-                    <div class="ml-2 text-sm font-medium text-gray-500">Contact</div>
-                </div>
-            </div>
-        </div>
+        {% include 'job_service/partials/progress_steps.html' %}
 
         <!-- Resume Status -->
         <div class="mb-6">
-            {% if has_resumes %}
-            <div class="bg-green-50 border border-green-200 rounded-lg p-4">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <h3 class="text-sm font-medium text-green-800">Resume Ready</h3>
-                        <p class="text-sm text-green-700 mt-1">
-                            We'll use your most recent resume: <strong>{{ user_resumes.0.name }}</strong>
-                            {% if user_resumes.count > 1 %}
-                            <br><span class="text-xs">You have {{ user_resumes.count }} resumes available</span>
-                            {% endif %}
-                        </p>
-                    </div>
-                    <div class="ml-auto">
-                        <a href="{% url 'resume_builder:my_resumes' %}" class="text-sm text-green-600 hover:text-green-500 font-medium">
-                            Manage Resumes →
-                        </a>
-                    </div>
-                </div>
-            </div>
-            {% else %}
-            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <div class="flex items-center">
-                    <div class="flex-shrink-0">
-                        <svg class="h-5 w-5 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                        </svg>
-                    </div>
-                    <div class="ml-3">
-                        <h3 class="text-sm font-medium text-yellow-800">Resume Required</h3>
-                        <p class="text-sm text-yellow-700 mt-1">
-                            You need to create a resume before we can start your job search.
-                        </p>
-                    </div>
-                    <div class="ml-auto">
-                        <a href="{% url 'resume_builder:create_resume' %}" class="bg-yellow-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-yellow-700 transition-colors">
-                            Create Resume
-                        </a>
-                    </div>
-                </div>
-            </div>
-            {% endif %}
+            {% include 'job_service/partials/resume_status.html' %}
         </div>
 
         <!-- Form -->
         <div class="bg-white rounded-lg shadow-md p-8">
             <form method="post" enctype="multipart/form-data" id="jobApplicationForm">
                 {% csrf_token %}
-                
-                <!-- Step 1: Job Details -->
-                <div id="step1" class="step-content">
-                    <h2 class="headline-secondary mb-6">What job are you looking for?</h2>
-                    
-                    <div class="space-y-6">
-                        <div>
-                            <label for="{{ form.job_title.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                                Job Title
-                            </label>
-                            {{ form.job_title }}
-                            {% if form.job_title.help_text %}
-                            <p class="mt-1 text-sm text-gray-500">{{ form.job_title.help_text }}</p>
-                            {% endif %}
-                            {% if form.job_title.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.job_title.errors.0 }}</p>
-                            {% endif %}
-                        </div>
-
-                        <div>
-                            <label for="{{ form.application_reason.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                                Why are you applying for this job?
-                            </label>
-                            {{ form.application_reason }}
-                            {% if form.application_reason.help_text %}
-                            <p class="mt-1 text-sm text-gray-500">{{ form.application_reason.help_text }}</p>
-                            {% endif %}
-                            {% if form.application_reason.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.application_reason.errors.0 }}</p>
-                            {% endif %}
-                        </div>
-
-                        <div id="otherReasonField" class="hidden">
-                            <label for="{{ form.other_reason.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                                Please specify your reason
-                            </label>
-                            {{ form.other_reason }}
-                            {% if form.other_reason.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.other_reason.errors.0 }}</p>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Step 2: Location Preferences -->
-                <div id="step2" class="step-content hidden">
-                    <h2 class="headline-secondary mb-6">Where do you want to work?</h2>
-                    
-                    <div class="space-y-6">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label for="{{ form.country.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                                    Country
-                                </label>
-                                {{ form.country }}
-                                {% if form.country.errors %}
-                                <p class="mt-1 text-sm text-red-600">{{ form.country.errors.0 }}</p>
-                                {% endif %}
-                            </div>
-
-                            <div>
-                                <label for="{{ form.state_province.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                                    State/Province
-                                </label>
-                                {{ form.state_province }}
-                                {% if form.state_province.errors %}
-                                <p class="mt-1 text-sm text-red-600">{{ form.state_province.errors.0 }}</p>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <div>
-                            <label for="{{ form.city_preference.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                                City Preference
-                            </label>
-                            {{ form.city_preference }}
-                            {% if form.city_preference.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.city_preference.errors.0 }}</p>
-                            {% endif %}
-                        </div>
-
-                        <div id="specificCityField" class="hidden">
-                            <label for="{{ form.specific_city.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                                Specific City
-                            </label>
-                            {{ form.specific_city }}
-                            {% if form.specific_city.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.specific_city.errors.0 }}</p>
-                            {% endif %}
-                        </div>
-
-                        <div>
-                            <label for="{{ form.distance_preference.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                                Distance Preference
-                            </label>
-                            {{ form.distance_preference }}
-                            {% if form.distance_preference.errors %}
-                            <p class="mt-1 text-sm text-red-600">{{ form.distance_preference.errors.0 }}</p>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Step 3: Contact Information -->
-                <div id="step3" class="step-content hidden">
-                    <h2 class="headline-secondary mb-6">Contact Information</h2>
-                    
-                    <div class="space-y-6">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label for="{{ form.email.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                                    Email Address
-                                </label>
-                                {{ form.email }}
-                                {% if form.email.errors %}
-                                <p class="mt-1 text-sm text-red-600">{{ form.email.errors.0 }}</p>
-                                {% endif %}
-                            </div>
-
-                            <div>
-                                <label for="{{ form.phone.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                                    Phone Number
-                                </label>
-                                {{ form.phone }}
-                                {% if form.phone.errors %}
-                                <p class="mt-1 text-sm text-red-600">{{ form.phone.errors.0 }}</p>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-4">
-                                Preferred Contact Method
-                            </label>
-                            <div class="space-y-3">
-                                {% for choice in form.preferred_contact_method %}
-                                <div class="flex items-center">
-                                    {{ choice.tag }}
-                                    <label for="{{ choice.id_for_label }}" class="ml-3 text-sm font-medium text-gray-700 cursor-pointer">
-                                        {{ choice.choice_label }}
-                                    </label>
-                                </div>
-                                {% endfor %}
-                            </div>
-                            {% if form.preferred_contact_method.errors %}
-                            <p class="mt-2 text-sm text-red-600">{{ form.preferred_contact_method.errors.0 }}</p>
-                            {% endif %}
-                        </div>
-
-                        <!-- Additional Preferences -->
-                        <div class="border-t pt-6">
-                            <h3 class="headline-tertiary mb-4">Additional Preferences</h3>
-                            
-                            <div class="space-y-6">
-                                <div>
-                                    <label for="{{ form.salary_expectations.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                                        Salary Expectations
-                                    </label>
-                                    {{ form.salary_expectations }}
-                                    {% if form.salary_expectations.errors %}
-                                    <p class="mt-1 text-sm text-red-600">{{ form.salary_expectations.errors.0 }}</p>
-                                    {% endif %}
-                                </div>
-
-                                <div id="salaryRangeFields" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label for="{{ form.salary_min.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                                            Minimum Salary
-                                        </label>
-                                        {{ form.salary_min }}
-                                        {% if form.salary_min.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ form.salary_min.errors.0 }}</p>
-                                        {% endif %}
-                                    </div>
-
-                                    <div>
-                                        <label for="{{ form.salary_max.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                                            Maximum Salary
-                                        </label>
-                                        {{ form.salary_max }}
-                                        {% if form.salary_max.errors %}
-                                        <p class="mt-1 text-sm text-red-600">{{ form.salary_max.errors.0 }}</p>
-                                        {% endif %}
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label for="{{ form.start_date.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                                        When can you start?
-                                    </label>
-                                    {{ form.start_date }}
-                                    {% if form.start_date.errors %}
-                                    <p class="mt-1 text-sm text-red-600">{{ form.start_date.errors.0 }}</p>
-                                    {% endif %}
-                                </div>
-
-                                <div>
-                                    <label for="{{ form.additional_notes.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
-                                        Additional Notes (Optional)
-                                    </label>
-                                    {{ form.additional_notes }}
-                                    {% if form.additional_notes.errors %}
-                                    <p class="mt-1 text-sm text-red-600">{{ form.additional_notes.errors.0 }}</p>
-                                    {% endif %}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Navigation Buttons -->
-                <div class="flex justify-between mt-8 pt-6 border-t">
-                    <button type="button" id="prevBtn" class="btn btn-secondary hidden">
-                        Previous
-                    </button>
-                    <button type="button" id="nextBtn" class="btn btn-primary ml-auto">
-                        Next
-                    </button>
-                    <button type="submit" id="submitBtn" class="btn btn-success hidden">
-                        Submit Application
-                    </button>
-                </div>
+                {% include 'job_service/component/job_details.html' %}
+                {% include 'job_service/component/location.html' %}
+                {% include 'job_service/component/contact.html' %}
+                {% include 'job_service/partials/navigation_buttons.html' %}
             </form>
         </div>
     </div>
@@ -319,37 +33,40 @@
 
 <script>
 let currentStep = 1;
-const totalSteps = 3; // Updated total steps
+const totalSteps = 3;
 
 function showStep(step) {
     // Hide all steps
     for (let i = 1; i <= totalSteps; i++) {
         document.getElementById(`step${i}`).classList.add('hidden');
     }
-    
     // Show current step
     document.getElementById(`step${step}`).classList.remove('hidden');
-    
     // Update progress indicators
     updateProgress(step);
-    
     // Update buttons
     updateButtons(step);
+    // Call the initializer for the current step
+    if (step === 1 && window.initJobDetailsStep) window.initJobDetailsStep();
+    if (step === 2 && window.initLocationStep) window.initLocationStep();
+    if (step === 3 && window.initContactStep) window.initContactStep();
 }
 
 function updateProgress(step) {
-    const progressSteps = document.querySelectorAll('.flex.items-center');
+    // Only select the direct step containers (not the outer container or dividers)
+    const progressSteps = document.querySelectorAll('.mb-8 > .flex.items-center > .flex.items-center');
     progressSteps.forEach((progressStep, index) => {
         const stepNumber = index + 1;
         const circle = progressStep.querySelector('div');
         const text = progressStep.querySelector('div + div');
-        
-        if (stepNumber <= step) {
-            circle.className = 'bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold';
-            text.className = 'ml-2 text-sm font-medium text-blue-600';
-        } else {
-            circle.className = 'bg-gray-300 text-gray-500 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold';
-            text.className = 'ml-2 text-sm font-medium text-gray-500';
+        if (circle && text) {
+            if (stepNumber <= step) {
+                circle.className = 'bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold';
+                text.className = 'ml-2 text-sm font-medium text-blue-600';
+            } else {
+                circle.className = 'bg-gray-300 text-gray-500 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold';
+                text.className = 'ml-2 text-sm font-medium text-gray-500';
+            }
         }
     });
 }
@@ -358,13 +75,11 @@ function updateButtons(step) {
     const prevBtn = document.getElementById('prevBtn');
     const nextBtn = document.getElementById('nextBtn');
     const submitBtn = document.getElementById('submitBtn');
-    
     if (step === 1) {
         prevBtn.classList.add('hidden');
     } else {
         prevBtn.classList.remove('hidden');
     }
-    
     if (step === totalSteps) {
         nextBtn.classList.add('hidden');
         submitBtn.classList.remove('hidden');
@@ -388,42 +103,14 @@ function prevStep() {
     }
 }
 
-// Event listeners
 document.getElementById('nextBtn').addEventListener('click', nextStep);
 document.getElementById('prevBtn').addEventListener('click', prevStep);
 
-// Form field interactions
-document.getElementById('id_application_reason').addEventListener('change', function() {
-    const otherReasonField = document.getElementById('otherReasonField');
-    if (this.value === 'other') {
-        otherReasonField.classList.remove('hidden');
-    } else {
-        otherReasonField.classList.add('hidden');
-    }
-});
-
-document.getElementById('id_city_preference').addEventListener('change', function() {
-    const specificCityField = document.getElementById('specificCityField');
-    if (this.value === 'specific_city') {
-        specificCityField.classList.remove('hidden');
-    } else {
-        specificCityField.classList.add('hidden');
-    }
-});
-
-document.getElementById('id_salary_expectations').addEventListener('change', function() {
-    const salaryRangeFields = document.getElementById('salaryRangeFields');
-    if (this.value === 'specific_range') {
-        salaryRangeFields.classList.remove('hidden');
-    } else {
-        salaryRangeFields.classList.add('hidden');
-    }
-});
-
-// Initialize
+// Initialize first step
 showStep(1);
 
 // Form submission validation
+// (Keep this logic as before)
 document.getElementById('jobApplicationForm').addEventListener('submit', function(e) {
     {% if not has_resumes %}
     e.preventDefault();
