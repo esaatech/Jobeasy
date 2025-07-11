@@ -1,0 +1,271 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="headline-primary mb-2">Application Status</h1>
+                <p class="subheadline">{{ application_request.job_title }}</p>
+            </div>
+            <a href="{% url 'job_service:job_application_service' %}" class="btn btn-ghost">
+                ← Back to Dashboard
+            </a>
+        </div>
+
+        <!-- Status Card -->
+        <div class="bg-white rounded-lg shadow-md p-8 mb-8">
+            <div class="flex justify-between items-start mb-6">
+                <div>
+                    <h2 class="headline-secondary mb-2">{{ application_request.job_title }}</h2>
+                    <p class="body-text">{{ application_request.get_location_display }}</p>
+                </div>
+                <span class="px-4 py-2 text-sm font-medium rounded-full 
+                    {% if application_request.status == 'completed' %}bg-green-100 text-green-800
+                    {% elif application_request.status == 'processing' %}bg-blue-100 text-blue-800
+                    {% elif application_request.status == 'pending' %}bg-yellow-100 text-yellow-800
+                    {% elif application_request.status == 'failed' %}bg-red-100 text-red-800
+                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                    {{ application_request.get_status_display }}
+                </span>
+            </div>
+
+            <!-- Progress Timeline -->
+            <div class="mb-8">
+                <h3 class="headline-tertiary mb-4">Progress Timeline</h3>
+                <div class="space-y-4">
+                    <div class="flex items-center">
+                        <div class="bg-green-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mr-4">
+                            ✓
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-900">Application Submitted</p>
+                            <p class="text-sm text-gray-500">{{ application_request.created_at|date:"M d, Y at g:i A" }}</p>
+                        </div>
+                    </div>
+
+                    {% if application_request.status != 'pending' %}
+                    <div class="flex items-center">
+                        <div class="bg-green-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mr-4">
+                            ✓
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-900">Processing Started</p>
+                            <p class="text-sm text-gray-500">{{ application_request.updated_at|date:"M d, Y at g:i A" }}</p>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="flex items-center">
+                        <div class="bg-gray-300 text-gray-500 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mr-4">
+                            ○
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-500">Processing Started</p>
+                            <p class="text-sm text-gray-400">Pending</p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if application_request.jobs_found > 0 %}
+                    <div class="flex items-center">
+                        <div class="bg-green-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mr-4">
+                            ✓
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-900">Jobs Found</p>
+                            <p class="text-sm text-gray-500">{{ application_request.jobs_found }} opportunities identified</p>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="flex items-center">
+                        <div class="bg-gray-300 text-gray-500 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mr-4">
+                            ○
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-500">Jobs Found</p>
+                            <p class="text-sm text-gray-400">Searching...</p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if application_request.applications_submitted > 0 %}
+                    <div class="flex items-center">
+                        <div class="bg-green-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mr-4">
+                            ✓
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-900">Applications Submitted</p>
+                            <p class="text-sm text-gray-500">{{ application_request.applications_submitted }} applications sent</p>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="flex items-center">
+                        <div class="bg-gray-300 text-gray-500 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mr-4">
+                            ○
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-500">Applications Submitted</p>
+                            <p class="text-sm text-gray-400">Preparing applications...</p>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if application_request.status == 'completed' %}
+                    <div class="flex items-center">
+                        <div class="bg-green-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mr-4">
+                            ✓
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-900">Completed</p>
+                            <p class="text-sm text-gray-500">{{ application_request.completed_at|date:"M d, Y at g:i A" }}</p>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="flex items-center">
+                        <div class="bg-gray-300 text-gray-500 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mr-4">
+                            ○
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-500">Completed</p>
+                            <p class="text-sm text-gray-400">In progress...</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            {% if can_cancel %}
+            <div class="flex gap-4">
+                <form method="post" action="{% url 'job_service:cancel_application' application_request.request_id %}" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger"
+                            onclick="return confirm('Are you sure you want to cancel this application? This action cannot be undone.')">
+                        Cancel Application
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Application Details -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Job Details -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="headline-tertiary mb-4">Job Details</h3>
+                <div class="space-y-3">
+                    <div>
+                        <span class="text-sm font-medium text-gray-500">Job Title:</span>
+                        <p class="text-gray-900">{{ application_request.job_title }}</p>
+                    </div>
+                    <div>
+                        <span class="text-sm font-medium text-gray-500">Application Reason:</span>
+                        <p class="text-gray-900">{{ application_request.get_application_reason_display }}</p>
+                        {% if application_request.other_reason %}
+                        <p class="text-sm text-gray-600 mt-1">{{ application_request.other_reason }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <span class="text-sm font-medium text-gray-500">Salary Expectations:</span>
+                        <p class="text-gray-900">{{ application_request.get_salary_display }}</p>
+                    </div>
+                    <div>
+                        <span class="text-sm font-medium text-gray-500">Start Date:</span>
+                        <p class="text-gray-900">{{ application_request.get_start_date_display }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Location Preferences -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="headline-tertiary mb-4">Location Preferences</h3>
+                <div class="space-y-3">
+                    <div>
+                        <span class="text-sm font-medium text-gray-500">Country:</span>
+                        <p class="text-gray-900">{{ application_request.country }}</p>
+                    </div>
+                    <div>
+                        <span class="text-sm font-medium text-gray-500">State/Province:</span>
+                        <p class="text-gray-900">{{ application_request.state_province }}</p>
+                    </div>
+                    <div>
+                        <span class="text-sm font-medium text-gray-500">City Preference:</span>
+                        <p class="text-gray-900">{{ application_request.get_city_preference_display }}</p>
+                        {% if application_request.specific_city %}
+                        <p class="text-sm text-gray-600 mt-1">Specific city: {{ application_request.specific_city }}</p>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <span class="text-sm font-medium text-gray-500">Distance:</span>
+                        <p class="text-gray-900">{{ application_request.get_distance_preference_display }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Information -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="headline-tertiary mb-4">Contact Information</h3>
+                <div class="space-y-3">
+                    <div>
+                        <span class="text-sm font-medium text-gray-500">Email:</span>
+                        <p class="text-gray-900">{{ application_request.email }}</p>
+                    </div>
+                    <div>
+                        <span class="text-sm font-medium text-gray-500">Phone:</span>
+                        <p class="text-gray-900">{{ application_request.phone }}</p>
+                    </div>
+                    <div>
+                        <span class="text-sm font-medium text-gray-500">Preferred Contact:</span>
+                        <p class="text-gray-900">{{ application_request.get_preferred_contact_method_display }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Resume Information -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="headline-tertiary mb-4">Resume Information</h3>
+                <div class="space-y-3">
+                    {% if application_request.resume_used %}
+                    <div>
+                        <span class="text-sm font-medium text-gray-500">Resume Used:</span>
+                        <p class="text-gray-900">{{ application_request.resume_used.name }}</p>
+                        <a href="{% url 'resume_builder:view_resume_by_id' application_request.resume_used.id %}" 
+                           class="text-blue-600 hover:text-blue-700 text-sm">View Resume</a>
+                    </div>
+                    {% elif application_request.uploaded_resume %}
+                    <div>
+                        <span class="text-sm font-medium text-gray-500">Uploaded Resume:</span>
+                        <p class="text-gray-900">{{ application_request.uploaded_resume.name }}</p>
+                        <a href="{{ application_request.uploaded_resume.url }}" 
+                           class="text-blue-600 hover:text-blue-700 text-sm" target="_blank">Download</a>
+                    </div>
+                    {% else %}
+                    <div>
+                        <span class="text-sm font-medium text-gray-500">Resume:</span>
+                        <p class="text-gray-500">No resume selected</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional Notes -->
+        {% if application_request.additional_notes %}
+        <div class="bg-white rounded-lg shadow-md p-6 mt-8">
+            <h3 class="headline-tertiary mb-4">Additional Notes</h3>
+            <p class="body-text">{{ application_request.additional_notes }}</p>
+        </div>
+        {% endif %}
+
+        <!-- Processing Notes -->
+        {% if application_request.processing_notes %}
+        <div class="bg-blue-50 rounded-lg p-6 mt-8">
+            <h3 class="headline-tertiary mb-4">Processing Notes</h3>
+            <p class="body-text">{{ application_request.processing_notes }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

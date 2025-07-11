@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     JobSource, Job, JobApplication, UserJobPreferences, 
-    JobScrapingLog, ServicePackage, UserSubscription
+    JobScrapingLog, ServicePackage, UserSubscription, JobApplicationRequest
 )
 
 @admin.register(JobSource)
@@ -167,3 +167,46 @@ class UserSubscriptionAdmin(admin.ModelAdmin):
             'fields': ('started_at', 'expires_at')
         }),
     )
+
+@admin.register(JobApplicationRequest)
+class JobApplicationRequestAdmin(admin.ModelAdmin):
+    list_display = ['user', 'job_title', 'status', 'country', 'state_province', 'created_at', 'applications_submitted']
+    list_filter = ['status', 'application_reason', 'city_preference', 'salary_expectations', 'created_at']
+    search_fields = ['user__username', 'user__email', 'job_title', 'country', 'state_province']
+    readonly_fields = ['request_id', 'created_at', 'updated_at', 'completed_at']
+    ordering = ['-created_at']
+    
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('request_id', 'user', 'job_title', 'application_reason', 'other_reason')
+        }),
+        ('Resume Information', {
+            'fields': ('resume_used', 'uploaded_resume'),
+            'classes': ('collapse',)
+        }),
+        ('Location Preferences', {
+            'fields': ('country', 'state_province', 'city_preference', 'specific_city', 'distance_preference')
+        }),
+        ('Contact Information', {
+            'fields': ('email', 'phone', 'preferred_contact_method'),
+            'classes': ('collapse',)
+        }),
+        ('Additional Preferences', {
+            'fields': ('salary_expectations', 'salary_min', 'salary_max', 'start_date', 'additional_notes'),
+            'classes': ('collapse',)
+        }),
+        ('Status & Results', {
+            'fields': ('status', 'jobs_found', 'applications_submitted', 'interviews_scheduled', 'processing_notes')
+        }),
+        ('Processing Details', {
+            'fields': ('ai_optimization_applied', 'cover_letters_generated'),
+            'classes': ('collapse',)
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at', 'completed_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).select_related('user', 'resume_used')

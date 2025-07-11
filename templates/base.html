@@ -93,7 +93,7 @@
     <!-- Subscription Frontend Utilities -->
     <script>
         // Set user subscription plan from backend context
-        window.userSubscriptionPlan = '{{ user.subscription.plan.name|default:"Free" }}';
+        window.userSubscriptionPlan = '{{ current_subscription.plan.name|default:"Free" }}';
         console.log('User subscription plan set to:', window.userSubscriptionPlan);
     </script>
     

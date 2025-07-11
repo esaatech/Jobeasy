@@ -200,3 +200,133 @@ class InterviewAnswer(models.Model):
 
     def __str__(self):
         return f"Answer to {self.question} (Score: {self.score})"
+
+class JobApplicationRequest(models.Model):
+    """Complete job application service request"""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='job_application_requests')
+    request_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    
+    # Job Details
+    job_title = models.CharField(max_length=200)
+    application_reason = models.CharField(max_length=50, choices=[
+        ('career_growth', 'Career Growth & Advancement'),
+        ('better_compensation', 'Better Compensation & Benefits'),
+        ('work_life_balance', 'Better Work-Life Balance'),
+        ('relocation', 'Relocation to New City/Country'),
+        ('travel_opportunity', 'Travel & Work Abroad'),
+        ('industry_change', 'Change of Industry'),
+        ('company_culture', 'Better Company Culture'),
+        ('remote_work', 'Remote Work Opportunities'),
+        ('other', 'Other')
+    ])
+    other_reason = models.TextField(blank=True)
+    
+    # Resume Information
+    resume_used = models.ForeignKey('resume_builder.Resume', on_delete=models.SET_NULL, null=True, blank=True)
+    uploaded_resume = models.FileField(upload_to='job_applications/resumes/', null=True, blank=True)
+    
+    # Location Preferences
+    country = models.CharField(max_length=100)
+    state_province = models.CharField(max_length=100)
+    city_preference = models.CharField(max_length=20, choices=[
+        ('specific_city', 'Specific City'),
+        ('nearby_cities', 'Nearby Cities (within 50 miles)'),
+        ('any_city', 'Any City in State/Province'),
+        ('remote_only', 'Remote Only'),
+        ('hybrid', 'Hybrid (Some Office Time)')
+    ])
+    specific_city = models.CharField(max_length=100, blank=True)
+    distance_preference = models.CharField(max_length=20, choices=[
+        ('0-25', '0-25 miles'),
+        ('25-50', '25-50 miles'),
+        ('50-100', '50-100 miles'),
+        ('100+', '100+ miles'),
+        ('any', 'Any distance')
+    ])
+    
+    # Contact Information
+    email = models.EmailField()
+    phone = models.CharField(max_length=20)
+    preferred_contact_method = models.CharField(max_length=10, choices=[
+        ('email', 'Email'),
+        ('phone', 'Phone'),
+        ('both', 'Both')
+    ])
+    
+    # Additional Preferences
+    salary_expectations = models.CharField(max_length=20, choices=[
+        ('negotiable', 'Negotiable'),
+        ('market_rate', 'Market Rate'),
+        ('specific_range', 'Specific Range')
+    ])
+    salary_min = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    salary_max = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    start_date = models.CharField(max_length=20, choices=[
+        ('immediately', 'Immediately'),
+        ('2_weeks', '2 Weeks'),
+        ('1_month', '1 Month'),
+        ('2_months', '2 Months'),
+        ('3_months', '3 Months'),
+        ('flexible', 'Flexible')
+    ])
+    additional_notes = models.TextField(blank=True)
+    
+    # Status and Processing
+    status = models.CharField(max_length=20, choices=[
+        ('pending', 'Pending'),
+        ('processing', 'Processing'),
+        ('completed', 'Completed'),
+        ('failed', 'Failed'),
+        ('cancelled', 'Cancelled')
+    ], default='pending')
+    
+    # Results
+    jobs_found = models.IntegerField(default=0)
+    applications_submitted = models.IntegerField(default=0)
+    interviews_scheduled = models.IntegerField(default=0)
+    
+    # Timestamps
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    
+    # Processing details
+    processing_notes = models.TextField(blank=True)
+    ai_optimization_applied = models.BooleanField(default=False)
+    cover_letters_generated = models.IntegerField(default=0)
+    
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'status']),
+            models.Index(fields=['job_title']),
+            models.Index(fields=['country', 'state_province']),
+        ]
+    
+    def __str__(self):
+        return f"{self.user.username} - {self.job_title} ({self.status})"
+    
+    @property
+    def is_completed(self):
+        return self.status == 'completed'
+    
+    @property
+    def is_processing(self):
+        return self.status == 'processing'
+    
+    @property
+    def can_cancel(self):
+        return self.status in ['pending', 'processing']
+    
+    def get_location_display(self):
+        """Get formatted location string"""
+        location_parts = [self.country, self.state_province]
+        if self.specific_city:
+            location_parts.insert(1, self.specific_city)
+        return ', '.join(location_parts)
+    
+    def get_salary_display(self):
+        """Get formatted salary string"""
+        if self.salary_expectations == 'specific_range' and self.salary_min and self.salary_max:
+            return f"${self.salary_min:,.0f} - ${self.salary_max:,.0f}"
+        return self.get_salary_expectations_display()

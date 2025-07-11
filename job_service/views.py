@@ -2,47 +2,180 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, Sum
 from django.utils import timezone
-from .models import Job, JobApplication, UserJobPreferences, ServicePackage, UserSubscription
+from django.contrib import messages
+from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+from .models import Job, JobApplication, UserJobPreferences, ServicePackage, UserSubscription, JobApplicationRequest
+from .forms import JobApplicationForm
+from resume_builder.models import Resume
 import json
 
 def job_application_service(request):
-    """Main job application service landing page"""
+    """Main job application service landing page - now focused on the complete process"""
     
-    # Get service packages
-    service_packages = ServicePackage.objects.filter(is_active=True).order_by('price')
+    if not request.user.is_authenticated:
+        return redirect('auth:login')
     
-    # Get featured jobs for preview
-    featured_jobs = Job.objects.filter(is_featured=True, is_active=True)[:6]
+    # Get user's existing application requests
+    user_requests = JobApplicationRequest.objects.filter(user=request.user).order_by('-created_at')[:5]
+    
+    # Get user's resumes
+    user_resumes = Resume.objects.filter(user=request.user).order_by('-created_at')
+    
+    # Check if user has Ultimate subscription
+    from subscriptions.models import UserSubscription
+    active_subscription = UserSubscription.objects.filter(
+        user=request.user,
+        status='ACTIVE'
+    ).select_related('plan').first()
+    
+    is_ultimate = active_subscription and active_subscription.plan.name == 'Ultimate'
     
     # Hero section content
     hero_content = {
         'title': 'Complete Job Application Service',
-        'description': 'Automate your entire job search process. From resume optimization to cover letter generation and job applications - we handle everything for you.',
+        'description': 'We handle your entire job search process. From finding opportunities to submitting applications - we do it all for you.',
         'features': [
-            'AI-Powered Resume Optimization',
-            'Personalized Cover Letter Generation',
-            'Automated Job Application Tracking',
-            'ATS-Friendly Templates',
-            'Multi-Platform Job Search'
-        ],
-        'pricing': {
-            'basic': 25,
-            'premium': 50,
-            'enterprise': 100
-        }
+            'AI-Powered Job Matching',
+            'Automated Application Submission',
+            'Resume Optimization',
+            'Cover Letter Generation',
+            'Application Tracking'
+        ]
+    }
+    
+    # Service statistics
+    service_stats = {
+        'total_requests': JobApplicationRequest.objects.count(),
+        'completed_requests': JobApplicationRequest.objects.filter(status='completed').count(),
+        'total_applications': JobApplicationRequest.objects.aggregate(
+            total=Sum('applications_submitted')
+        )['total'] or 0,
+        'success_rate': '85%'  # Placeholder
     }
     
     context = {
         'hero_content': hero_content,
-        'service_packages': service_packages,
-        'featured_jobs': featured_jobs,
-        'total_jobs': Job.objects.filter(is_active=True).count(),
-        'total_applications': JobApplication.objects.count() if request.user.is_authenticated else 0
+        'user_requests': user_requests,
+        'user_resumes': user_resumes,
+        'service_stats': service_stats,
+        'has_resumes': user_resumes.exists(),
+        'is_ultimate': is_ultimate
     }
     
     return render(request, 'job_service/job_application_service.html', context)
+
+@login_required
+def start_job_application(request):
+    """Start a new job application process"""
+    
+    # Check if user has resumes
+    user_resumes = Resume.objects.filter(user=request.user).order_by('-created_at')
+    has_resumes = user_resumes.exists()
+    
+    if request.method == 'POST':
+        # Check if user has resumes first
+        if not has_resumes:
+            messages.error(request, 'You need to create a resume before we can start your job search.')
+            return redirect('resume_builder:create_resume')
+        
+        form = JobApplicationForm(request.user, request.POST, request.FILES)
+        if form.is_valid():
+            # Create the job application request
+            application_request = JobApplicationRequest.objects.create(
+                user=request.user,
+                job_title=form.cleaned_data['job_title'],
+                application_reason=form.cleaned_data['application_reason'],
+                other_reason=form.cleaned_data.get('other_reason', ''),
+                country=form.cleaned_data['country'],
+                state_province=form.cleaned_data['state_province'],
+                city_preference=form.cleaned_data['city_preference'],
+                specific_city=form.cleaned_data.get('specific_city', ''),
+                distance_preference=form.cleaned_data['distance_preference'],
+                email=form.cleaned_data['email'],
+                phone=form.cleaned_data['phone'],
+                preferred_contact_method=form.cleaned_data['preferred_contact_method'],
+                salary_expectations=form.cleaned_data['salary_expectations'],
+                salary_min=form.cleaned_data.get('salary_min'),
+                salary_max=form.cleaned_data.get('salary_max'),
+                start_date=form.cleaned_data['start_date'],
+                additional_notes=form.cleaned_data.get('additional_notes', '')
+            )
+            
+            # Automatically select the most recent resume
+            if has_resumes:
+                application_request.resume_used = user_resumes.first()
+            
+            application_request.save()
+            
+            messages.success(request, 'Your job application request has been submitted successfully! We\'ll start processing it right away.')
+            return redirect('job_service:application_status', request_id=application_request.request_id)
+    else:
+        form = JobApplicationForm(user=request.user)
+    
+    context = {
+        'form': form,
+        'step': 1,
+        'has_resumes': has_resumes,
+        'user_resumes': user_resumes[:3] if has_resumes else None  # Show first 3 resumes for context
+    }
+    
+    return render(request, 'job_service/start_application.html', context)
+
+@login_required
+def application_status(request, request_id):
+    """View the status of a job application request"""
+    
+    application_request = get_object_or_404(JobApplicationRequest, request_id=request_id, user=request.user)
+    
+    context = {
+        'application_request': application_request,
+        'can_cancel': application_request.can_cancel
+    }
+    
+    return render(request, 'job_service/application_status.html', context)
+
+@login_required
+def cancel_application(request, request_id):
+    """Cancel a job application request"""
+    
+    if request.method == 'POST':
+        application_request = get_object_or_404(JobApplicationRequest, request_id=request_id, user=request.user)
+        
+        if application_request.can_cancel:
+            application_request.status = 'cancelled'
+            application_request.save()
+            messages.success(request, 'Your job application request has been cancelled.')
+        else:
+            messages.error(request, 'This request cannot be cancelled.')
+    
+    return redirect('job_service:job_application_service')
+
+@login_required
+def my_applications(request):
+    """View all user's job application requests"""
+    
+    applications = JobApplicationRequest.objects.filter(user=request.user).order_by('-created_at')
+    
+    # Filter by status
+    status_filter = request.GET.get('status', '')
+    if status_filter:
+        applications = applications.filter(status=status_filter)
+    
+    # Pagination
+    paginator = Paginator(applications, 10)
+    page = request.GET.get('page', 1)
+    applications_page = paginator.get_page(page)
+    
+    context = {
+        'applications': applications_page,
+        'status_filter': status_filter,
+        'status_choices': JobApplicationRequest.status.field.choices,
+    }
+    
+    return render(request, 'job_service/my_applications.html', context)
 
 @login_required
 def job_dashboard(request):

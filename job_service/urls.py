@@ -7,6 +7,12 @@ urlpatterns = [
     # Main service page
     path('', views.job_application_service, name='job_application_service'),
     
+    # Job application process
+    path('start/', views.start_job_application, name='start_application'),
+    path('status/<uuid:request_id>/', views.application_status, name='application_status'),
+    path('cancel/<uuid:request_id>/', views.cancel_application, name='cancel_application'),
+    path('my-applications/', views.my_applications, name='my_applications'),
+    
     # User dashboard and management
     path('dashboard/', views.job_dashboard, name='dashboard'),
     path('preferences/', views.user_preferences, name='preferences'),

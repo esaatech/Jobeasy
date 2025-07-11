@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">My Job Applications</h1>
+                <p class="text-lg text-gray-600">Track all your job application requests</p>
+            </div>
+            <a href="{% url 'job_service:start_application' %}" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors">
+                Start New Application
+            </a>
+        </div>
+
+        <!-- Filters -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <form method="get" class="flex flex-wrap gap-4 items-end">
+                <div>
+                    <label for="status" class="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                    <select name="status" id="status" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">All Statuses</option>
+                        {% for value, label in status_choices %}
+                        <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <button type="submit" class="bg-gray-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-gray-700 transition-colors">
+                    Filter
+                </button>
+                {% if status_filter %}
+                <a href="{% url 'job_service:my_applications' %}" class="text-gray-600 hover:text-gray-800 font-medium">
+                    Clear Filters
+                </a>
+                {% endif %}
+            </form>
+        </div>
+
+        <!-- Applications List -->
+        {% if applications %}
+        <div class="space-y-6">
+            {% for application in applications %}
+            <div class="bg-white rounded-lg shadow-md border border-gray-200 p-6">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="flex-1">
+                        <h3 class="text-xl font-semibold text-gray-900 mb-2">{{ application.job_title }}</h3>
+                        <p class="text-gray-600 mb-2">{{ application.get_location_display }}</p>
+                        <div class="flex items-center gap-4 text-sm text-gray-500">
+                            <span>Created: {{ application.created_at|date:"M d, Y" }}</span>
+                            {% if application.applications_submitted > 0 %}
+                            <span>• {{ application.applications_submitted }} applications submitted</span>
+                            {% endif %}
+                            {% if application.jobs_found > 0 %}
+                            <span>• {{ application.jobs_found }} jobs found</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <span class="px-3 py-1 text-sm font-medium rounded-full 
+                        {% if application.status == 'completed' %}bg-green-100 text-green-800
+                        {% elif application.status == 'processing' %}bg-blue-100 text-blue-800
+                        {% elif application.status == 'pending' %}bg-yellow-100 text-yellow-800
+                        {% elif application.status == 'failed' %}bg-red-100 text-red-800
+                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                        {{ application.get_status_display }}
+                    </span>
+                </div>
+
+                <!-- Quick Stats -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-blue-600">{{ application.jobs_found }}</div>
+                        <div class="text-sm text-gray-500">Jobs Found</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-600">{{ application.applications_submitted }}</div>
+                        <div class="text-sm text-gray-500">Applications</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-purple-600">{{ application.interviews_scheduled }}</div>
+                        <div class="text-sm text-gray-500">Interviews</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-orange-600">{{ application.cover_letters_generated }}</div>
+                        <div class="text-sm text-gray-500">Cover Letters</div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex gap-3">
+                    <a href="{% url 'job_service:application_status' application.request_id %}" 
+                       class="flex-1 bg-blue-600 text-white text-center py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                        View Details
+                    </a>
+                    {% if application.can_cancel %}
+                    <form method="post" action="{% url 'job_service:cancel_application' application.request_id %}" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" class="bg-red-600 text-white py-2 px-4 rounded-lg hover:bg-red-700 transition-colors"
+                                onclick="return confirm('Are you sure you want to cancel this application?')">
+                            Cancel
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if applications.has_other_pages %}
+        <div class="mt-8 flex justify-center">
+            <nav class="flex items-center space-x-2">
+                {% if applications.has_previous %}
+                <a href="?page={{ applications.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}" 
+                   class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                    Previous
+                </a>
+                {% endif %}
+
+                {% for num in applications.paginator.page_range %}
+                    {% if applications.number == num %}
+                    <span class="px-3 py-2 text-sm font-medium text-white bg-blue-600 border border-blue-600 rounded-md">
+                        {{ num }}
+                    </span>
+                    {% elif num > applications.number|add:'-3' and num < applications.number|add:'3' %}
+                    <a href="?page={{ num }}{% if status_filter %}&status={{ status_filter }}{% endif %}" 
+                       class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                        {{ num }}
+                    </a>
+                    {% endif %}
+                {% endfor %}
+
+                {% if applications.has_next %}
+                <a href="?page={{ applications.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}" 
+                   class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                    Next
+                </a>
+                {% endif %}
+            </nav>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <!-- Empty State -->
+        <div class="bg-white rounded-lg shadow-md p-12 text-center">
+            <div class="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2-2v2m8 0V6a2 2 0 012 2v6a2 2 0 01-2 2H8a2 2 0 01-2-2V8a2 2 0 012-2V6"></path>
+                </svg>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No applications yet</h3>
+            <p class="text-gray-600 mb-6">Start your first job application to get the ball rolling!</p>
+            <a href="{% url 'job_service:start_application' %}" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors">
+                Start Your First Application
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 
