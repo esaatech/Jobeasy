@@ -35,5 +35,18 @@
   "additional_notes": "Notes supplémentaires (Optionnel)",
   "previous": "Précédent",
   "next": "Suivant",
-  "submit_application": "Soumettre la candidature"
+  "submit_application": "Soumettre la candidature",
+  "reason_career_growth": "Évolution et avancement de carrière",
+  "reason_better_compensation": "Meilleure rémunération et avantages",
+  "reason_work_life_balance": "Meilleur équilibre vie professionnelle/vie privée",
+  "reason_relocation": "Déménagement dans une nouvelle ville/pays",
+  "reason_travel_opportunity": "Voyager et travailler à l'étranger",
+  "reason_industry_change": "Changement de secteur",
+  "reason_company_culture": "Meilleure culture d'entreprise",
+  "reason_remote_work": "Opportunités de travail à distance",
+  "reason_other": "Autre",
+  "_job_title_placeholder": "",
+  "job_title_placeholder": "ex. Ingénieur logiciel, Responsable marketing, Analyste de données",
+  "select_countries": "Sélectionner les pays",
+  "add_another_country": "Ajouter un autre pays"
 } 

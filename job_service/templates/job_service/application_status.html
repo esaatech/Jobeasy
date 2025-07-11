@@ -139,13 +139,9 @@
             <!-- Action Buttons -->
             {% if can_cancel %}
             <div class="flex gap-4">
-                <form method="post" action="{% url 'job_service:cancel_application' application_request.request_id %}" class="inline">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-danger"
-                            onclick="return confirm('Are you sure you want to cancel this application? This action cannot be undone.')">
-                        Cancel Application
-                    </button>
-                </form>
+                <button type="button" class="btn btn-danger" onclick="confirmCancel()">
+                    Cancel Application
+                </button>
             </div>
             {% endif %}
         </div>
@@ -182,24 +178,28 @@
             <div class="bg-white rounded-lg shadow-md p-6">
                 <h3 class="headline-tertiary mb-4">Location Preferences</h3>
                 <div class="space-y-3">
+                    {% if application_request.countries %}
                     <div>
-                        <span class="text-sm font-medium text-gray-500">Country:</span>
-                        <p class="text-gray-900">{{ application_request.country }}</p>
+                        <span class="text-sm font-medium text-gray-500">Countries & States:</span>
+                        <div class="mt-1">
+                            {% for country_data in application_request.countries %}
+                                <div class="text-gray-900 mb-1">
+                                    <strong>{{ country_data.name }}</strong>
+                                    {% if country_data.states %}
+                                        <span class="text-sm text-gray-600">({{ country_data.states|join:", " }})</span>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
                     </div>
+                    {% endif %}
                     <div>
-                        <span class="text-sm font-medium text-gray-500">State/Province:</span>
-                        <p class="text-gray-900">{{ application_request.state_province }}</p>
-                    </div>
-                    <div>
-                        <span class="text-sm font-medium text-gray-500">City Preference:</span>
-                        <p class="text-gray-900">{{ application_request.get_city_preference_display }}</p>
-                        {% if application_request.specific_city %}
-                        <p class="text-sm text-gray-600 mt-1">Specific city: {{ application_request.specific_city }}</p>
-                        {% endif %}
+                        <span class="text-sm font-medium text-gray-500">City:</span>
+                        <p class="text-gray-900">{{ application_request.city|default:"Not specified" }}</p>
                     </div>
                     <div>
                         <span class="text-sm font-medium text-gray-500">Distance:</span>
-                        <p class="text-gray-900">{{ application_request.get_distance_preference_display }}</p>
+                        <p class="text-gray-900">{{ application_request.distance|default:"Not specified" }} miles</p>
                     </div>
                 </div>
             </div>
@@ -268,4 +268,62 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Hidden form for cancel action -->
+{% if can_cancel %}
+<form id="cancelForm" method="post" action="{% url 'job_service:cancel_application' application_request.request_id %}" style="display: none;">
+    {% csrf_token %}
+</form>
+{% endif %}
+
+<script>
+function confirmCancel() {
+    console.log('confirmCancel function called');
+    
+    // Check if Alert is available
+    if (typeof Alert === 'undefined') {
+        console.error('Alert is not defined');
+        // Fallback to browser confirm
+        if (confirm('Are you sure you want to cancel this application? This action cannot be undone.')) {
+            console.log('Browser confirm - cancelling application...');
+            document.getElementById('cancelForm').submit();
+        }
+        return;
+    }
+    
+    console.log('Alert is available, calling Alert.confirm');
+    console.log('Dialog available:', typeof Dialog);
+    
+    try {
+        // Use the correct parameter structure for Alert.confirm
+        Alert.confirm(
+            {
+                message: 'Are you sure you want to cancel this application? This action cannot be undone.',
+                title: 'Cancel Application',
+                confirmText: 'Yes, Cancel',
+                cancelText: 'Keep Application',
+                onConfirm: function() {
+                    console.log('Cancelling application...');
+                    // Submit the hidden form
+                    document.getElementById('cancelForm').submit();
+                }
+            }
+        );
+        console.log('Alert.confirm called successfully');
+        
+    } catch (error) {
+        console.error('Error calling Alert.confirm:', error);
+        // Fallback to browser confirm
+        if (confirm('Are you sure you want to cancel this application? This action cannot be undone.')) {
+            console.log('Browser confirm - cancelling application...');
+            document.getElementById('cancelForm').submit();
+        }
+    }
+}
+
+// Test if function is loaded
+console.log('confirmCancel function loaded:', typeof confirmCancel);
+console.log('Alert utility available:', typeof Alert);
+console.log('Dialog utility available:', typeof Dialog);
+</script>
 {% endblock %} 

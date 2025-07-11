@@ -22,6 +22,7 @@
         <div class="bg-white rounded-lg shadow-md p-8">
             <form method="post" enctype="multipart/form-data" id="jobApplicationForm">
                 {% csrf_token %}
+                <input type="hidden" id="countriesInput" name="countries">
                 {% include 'job_service/component/job_details.html' %}
                 {% include 'job_service/component/location.html' %}
                 {% include 'job_service/component/contact.html' %}
@@ -34,6 +35,8 @@
 <script>
 let currentStep = 1;
 const totalSteps = 3;
+// Global job search data object
+window.jobSearchData = {};
 
 function showStep(step) {
     // Hide all steps
@@ -90,6 +93,12 @@ function updateButtons(step) {
 }
 
 function nextStep() {
+    // Validate current step before proceeding
+    let valid = true;
+    if (currentStep === 1 && window.validateJobDetailsStep) valid = window.validateJobDetailsStep();
+    if (currentStep === 2 && window.validateLocationStep) valid = window.validateLocationStep();
+    if (currentStep === 3 && window.validateContactStep) valid = window.validateContactStep();
+    if (!valid) return;
     if (currentStep < totalSteps) {
         currentStep++;
         showStep(currentStep);
@@ -112,11 +121,23 @@ showStep(1);
 // Form submission validation
 // (Keep this logic as before)
 document.getElementById('jobApplicationForm').addEventListener('submit', function(e) {
-    {% if not has_resumes %}
-    e.preventDefault();
-    alert('You need to create a resume before we can start your job search. Please click "Create Resume" to get started.');
-    return false;
-    {% endif %}
+    // Validate all steps before submit
+    let valid = true;
+    if (window.validateJobDetailsStep) valid = window.validateJobDetailsStep();
+    if (window.validateLocationStep) valid = valid && window.validateLocationStep();
+    if (window.validateContactStep) valid = valid && window.validateContactStep();
+    if (!valid) {
+        e.preventDefault();
+        return false;
+    }
+    // Serialize jobSearchData to JSON and log/send
+    const jsonData = JSON.stringify(window.jobSearchData);
+    // Set countries hidden input for backend
+    if (window.jobSearchData.countries) {
+        document.getElementById('countriesInput').value = JSON.stringify(window.jobSearchData.countries);
+    }
+    console.log('Submitting:', jsonData);
+    // TODO: send jsonData to backend if needed
 });
 </script>
 {% endblock %} 

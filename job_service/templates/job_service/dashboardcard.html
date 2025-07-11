@@ -24,13 +24,28 @@ Shows different content based on user's subscription status.
     </a>
 </div>
 {% else %}
-<div class="bg-gradient-to-r from-green-50 to-emerald-100 rounded-xl shadow-lg p-6 flex flex-col items-center justify-center mb-8">
-    <h3 class="headline-secondary mb-2">Start Your Job Search</h3>
-    <p class="body-text mb-4 text-center max-w-md">
-        Ready to find your dream job? Let us handle your entire job search process while you focus on preparing for interviews.
-    </p>
-    <a href="{% url 'job_service:start_application' %}" class="btn btn-success btn-lg">
-        Start Your Job Search
-    </a>
-</div>
+    {% comment %} Check for active applications (pending or processing) {% endcomment %}
+    {% with active_application=user.job_application_requests.all|first %}
+        {% if active_application and active_application.status == 'pending' or active_application.status == 'processing' %}
+            <div class="bg-gradient-to-r from-yellow-50 to-orange-100 rounded-xl shadow-lg p-6 flex flex-col items-center justify-center mb-8">
+                <h3 class="headline-secondary mb-2">Application in Progress</h3>
+                <p class="body-text mb-4 text-center max-w-md">
+                    Your job application for "{{ active_application.job_title }}" is currently being processed. We're actively searching for opportunities and will notify you of any updates.
+                </p>
+                <a href="{% url 'job_service:application_status' active_application.request_id %}" class="btn btn-warning btn-lg">
+                    View Application Status
+                </a>
+            </div>
+        {% else %}
+            <div class="bg-gradient-to-r from-green-50 to-emerald-100 rounded-xl shadow-lg p-6 flex flex-col items-center justify-center mb-8">
+                <h3 class="headline-secondary mb-2">Start Your Job Search</h3>
+                <p class="body-text mb-4 text-center max-w-md">
+                    Ready to find your dream job? Let us handle your entire job search process while you focus on preparing for interviews.
+                </p>
+                <a href="{% url 'job_service:start_application' %}" class="btn btn-success btn-lg">
+                    Start Your Job Search
+                </a>
+            </div>
+        {% endif %}
+    {% endwith %}
 {% endif %} 

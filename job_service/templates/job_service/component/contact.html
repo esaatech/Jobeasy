@@ -88,5 +88,48 @@
             });
         }
     }
+
+    window.validateContactStep = function() {
+        const email = document.getElementById('id_email').value.trim();
+        const phone = document.getElementById('id_phone').value.trim();
+        const contactMethod = document.querySelector('input[name="preferred_contact_method"]:checked')?.value;
+        const salaryExpect = document.getElementById('id_salary_expectations').value;
+        let salaryMin = document.getElementById('id_salary_min').value;
+        let salaryMax = document.getElementById('id_salary_max').value;
+        const startDate = document.getElementById('id_start_date').value;
+        const notes = document.getElementById('id_additional_notes').value.trim();
+        if (!email) {
+            window.Alert.error('Please enter your email.');
+            return false;
+        }
+        if (!phone) {
+            window.Alert.error('Please enter your phone number.');
+            return false;
+        }
+        if (!contactMethod) {
+            window.Alert.error('Please select a preferred contact method.');
+            return false;
+        }
+        if (salaryExpect === 'specific_range') {
+            if (!salaryMin || !salaryMax || Number(salaryMin) >= Number(salaryMax)) {
+                window.Alert.error('Please enter a valid salary range.');
+                return false;
+            }
+        }
+        window.jobSearchData.email = email;
+        window.jobSearchData.phone = phone;
+        window.jobSearchData.preferred_contact_method = contactMethod;
+        window.jobSearchData.salary_expectations = salaryExpect;
+        if (salaryExpect === 'specific_range') {
+            window.jobSearchData.salary_min = salaryMin;
+            window.jobSearchData.salary_max = salaryMax;
+        } else {
+            delete window.jobSearchData.salary_min;
+            delete window.jobSearchData.salary_max;
+        }
+        window.jobSearchData.start_date = startDate;
+        window.jobSearchData.additional_notes = notes;
+        return true;
+    }
     </script>
 </div> 

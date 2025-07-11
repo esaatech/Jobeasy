@@ -35,5 +35,18 @@
   "additional_notes": "Notas adicionales (Opcional)",
   "previous": "Anterior",
   "next": "Siguiente",
-  "submit_application": "Enviar solicitud"
+  "submit_application": "Enviar solicitud",
+  "reason_career_growth": "Crecimiento y avance profesional",
+  "reason_better_compensation": "Mejor compensación y beneficios",
+  "reason_work_life_balance": "Mejor equilibrio entre trabajo y vida personal",
+  "reason_relocation": "Reubicación a nueva ciudad/país",
+  "reason_travel_opportunity": "Viajar y trabajar en el extranjero",
+  "reason_industry_change": "Cambio de industria",
+  "reason_company_culture": "Mejor cultura empresarial",
+  "reason_remote_work": "Oportunidades de trabajo remoto",
+  "reason_other": "Otro",
+  "_job_title_placeholder": "",
+  "job_title_placeholder": "p. ej., Ingeniero de software, Gerente de marketing, Analista de datos",
+  "select_countries": "Seleccionar países",
+  "add_another_country": "Agregar otro país"
 } 

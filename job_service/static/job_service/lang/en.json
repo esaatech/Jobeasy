@@ -35,5 +35,18 @@
   "additional_notes": "Additional Notes (Optional)",
   "previous": "Previous",
   "next": "Next",
-  "submit_application": "Submit Application"
+  "submit_application": "Submit Application",
+  "reason_career_growth": "Career Growth & Advancement",
+  "reason_better_compensation": "Better Compensation & Benefits",
+  "reason_work_life_balance": "Better Work-Life Balance",
+  "reason_relocation": "Relocation to New City/Country",
+  "reason_travel_opportunity": "Travel & Work Abroad",
+  "reason_industry_change": "Change of Industry",
+  "reason_company_culture": "Better Company Culture",
+  "reason_remote_work": "Remote Work Opportunities",
+  "reason_other": "Other",
+  "_job_title_placeholder": "",
+  "job_title_placeholder": "e.g., Software Engineer, Marketing Manager, Data Analyst",
+  "select_countries": "Select Countries",
+  "add_another_country": "Add Another Country"
 } 

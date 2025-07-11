@@ -1,57 +1,304 @@
 <div id="step2" class="step-content hidden">
     <h2 class="headline-secondary mb-6" data-i18n="where_work"></h2>
     <div class="space-y-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-                <label for="{{ form.country.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2" data-i18n="country"></label>
-                {{ form.country }}
-                {% if form.country.errors %}
-                <p class="mt-1 text-sm text-red-600">{{ form.country.errors.0 }}</p>
-                {% endif %}
-            </div>
-            <div>
-                <label for="{{ form.state_province.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2" data-i18n="state_province"></label>
-                {{ form.state_province }}
-                {% if form.state_province.errors %}
-                <p class="mt-1 text-sm text-red-600">{{ form.state_province.errors.0 }}</p>
-                {% endif %}
-            </div>
+        <!-- Country Selection -->
+        <!-- Dialog-based country picker: no inline search input here -->
+        <div id="selectedCountries" class="space-y-4">
+            <!-- Selected countries will be displayed here -->
         </div>
+        <!-- Add Country Button -->
+        <div class="text-center">
+            <button type="button" id="addCountryBtn" 
+                    class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                </svg>
+                <span data-i18n="add_another_country"></span>
+            </button>
+        </div>
+
+        <!-- City Field: always visible text input -->
         <div>
-            <label for="{{ form.city_preference.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2" data-i18n="city_preference"></label>
-            {{ form.city_preference }}
-            {% if form.city_preference.errors %}
-            <p class="mt-1 text-sm text-red-600">{{ form.city_preference.errors.0 }}</p>
-            {% endif %}
+            <label for="city" class="block text-sm font-medium text-gray-700 mb-2" data-i18n="specific_city"></label>
+            <input type="text" id="city" name="city" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Enter city name">
         </div>
-        <div id="specificCityField" class="hidden">
-            <label for="{{ form.specific_city.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2" data-i18n="specific_city"></label>
-            {{ form.specific_city }}
-            {% if form.specific_city.errors %}
-            <p class="mt-1 text-sm text-red-600">{{ form.specific_city.errors.0 }}</p>
-            {% endif %}
-        </div>
+        
         <div>
-            <label for="{{ form.distance_preference.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2" data-i18n="distance_preference"></label>
-            {{ form.distance_preference }}
-            {% if form.distance_preference.errors %}
-            <p class="mt-1 text-sm text-red-600">{{ form.distance_preference.errors.0 }}</p>
-            {% endif %}
+            <label for="distance" class="block text-sm font-medium text-gray-700 mb-2" data-i18n="distance_preference"></label>
+            <div class="flex items-center space-x-4">
+                <input type="range" id="distance" name="distance" min="0" max="200" step="5" value="50" class="w-full">
+                <span id="distanceValue" class="w-16 text-right text-gray-700">50 miles</span>
+            </div>
         </div>
     </div>
+
     <script>
+    // Global variables
+    let countriesData = [];
+    let selectedCountries = [];
+    let countrySearchTimeout;
+
     window.initLocationStep = function() {
-        var cityPref = document.getElementById('id_city_preference');
-        if (cityPref) {
-            cityPref.addEventListener('change', function() {
-                var specificCityField = document.getElementById('specificCityField');
-                if (this.value === 'specific_city') {
-                    specificCityField.classList.remove('hidden');
-                } else {
-                    specificCityField.classList.add('hidden');
-                }
+        loadCountries();
+        setupEventListeners();
+        // Distance slider value display
+        const slider = document.getElementById('distance');
+        const valueSpan = document.getElementById('distanceValue');
+        if (slider && valueSpan) {
+            slider.addEventListener('input', function() {
+                valueSpan.textContent = `${this.value} miles`;
             });
         }
+        // No city preference toggle needed
+    }
+
+    async function loadCountries() {
+        try {
+            const response = await fetch('https://restcountries.com/v3.1/all?fields=name,cca2,cca3');
+            countriesData = await response.json();
+            countriesData.sort((a, b) => a.name.common.localeCompare(b.name.common));
+            console.log('Countries loaded:', countriesData.length);
+        } catch (error) {
+            console.error('Error loading countries:', error);
+            window.Alert.error('Failed to load countries. Please try again.');
+        }
+    }
+
+    function setupEventListeners() {
+        const addCountryBtn = document.getElementById('addCountryBtn');
+        addCountryBtn.addEventListener('click', async function() {
+            if (!countriesData || countriesData.length === 0) {
+                // Show loading dialog
+                let loadingDialog = new Dialog({
+                    title: 'Loading Countries',
+                    content: `<div class="flex flex-col items-center justify-center py-8">
+                        <svg class="animate-spin h-8 w-8 text-blue-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <div class="text-gray-500">Loading country list...</div>
+                    </div>`,
+                    showClose: false,
+                    primaryButtonText: null
+                });
+                loadingDialog.show();
+                // Wait for countries to load
+                while (!countriesData || countriesData.length === 0) {
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                }
+                loadingDialog.close();
+            }
+            showCountryDialog();
+        });
+    }
+
+    function showCountryDialog() {
+        // Remove any existing dialog from the DOM
+        document.querySelectorAll('.fixed.inset-0.z-50').forEach(el => el.remove());
+        // Build dialog content: search input + country list container
+        let dialogContent = `
+            <input type="text" id="countryDialogSearch" placeholder="Search countries..." class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            <div id="countryDialogList" class="max-h-80 overflow-y-auto mt-2 border border-gray-100 rounded-md bg-white"></div>
+        `;
+
+        // Always create a new Dialog instance
+        let dialog = new Dialog({
+            title: 'Select Country',
+            content: dialogContent,
+            primaryButtonText: 'Close',
+            showClose: true
+        });
+        dialog.show();
+
+        // Debug: Log state when dialog is opened
+        console.log('--- showCountryDialog called ---');
+        console.log('countriesData:', countriesData);
+        console.log('selectedCountries:', selectedCountries);
+
+        // Deeper debug: check dialog DOM after show
+        setTimeout(() => {
+            const searchInput = document.getElementById('countryDialogSearch');
+            const listDiv = document.getElementById('countryDialogList');
+            console.log('Dialog DOM after show:');
+            console.log('searchInput:', searchInput);
+            console.log('listDiv:', listDiv);
+            if (searchInput && listDiv) {
+                searchInput.addEventListener('input', function() {
+                    renderCountryDialogList(this.value);
+                });
+                renderCountryDialogList('');
+            } else {
+                console.error('Dialog content not found in DOM!');
+            }
+        }, 0);
+
+        // Render the country list and attach listeners
+        function renderCountryDialogList(query) {
+            let filtered = countriesData.filter(country =>
+                country.name.common.toLowerCase().includes(query.toLowerCase()) &&
+                !selectedCountries.some(selected => selected.cca2 === country.cca2)
+            );
+            // Debug: Log filtered list
+            console.log('renderCountryDialogList query:', query);
+            console.log('Filtered countries:', filtered);
+            let listDiv = document.getElementById('countryDialogList');
+            if (!listDiv) {
+                console.error('renderCountryDialogList: listDiv not found!');
+                return;
+            }
+            let listHtml = filtered.map(country => `
+                <div class="px-4 py-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 last:border-b-0"
+                     data-country-name="${country.name.common.replace(/&/g, '&amp;').replace(/\"/g, '&quot;').replace(/'/g, '&#39;')}"
+                     data-country-cca2="${country.cca2}">
+                    ${country.name.common} <span class="text-xs text-gray-500">${country.cca2}</span>
+                </div>
+            `).join('');
+            listDiv.innerHTML = listHtml || '<div class="p-4 text-gray-400">No countries found.</div>';
+            // Attach click listeners for this dialog instance
+            listDiv.querySelectorAll('[data-country-name]').forEach(option => {
+                option.addEventListener('click', function() {
+                    let country = {
+                        name: { common: this.dataset.countryName },
+                        cca2: this.dataset.countryCca2
+                    };
+                    addCountry(country);
+                    dialog.close();
+                });
+            });
+        }
+    }
+
+    async function addCountry(country) {
+        console.log('addCountry called with:', country);
+        if (selectedCountries.some(selected => selected.cca2 === country.cca2)) {
+            window.Alert.error('This country is already selected.');
+            return;
+        }
+
+        selectedCountries.push(country);
+        await renderSelectedCountries();
+    }
+
+    async function renderSelectedCountries() {
+        const container = document.getElementById('selectedCountries');
+        
+        container.innerHTML = selectedCountries.map((country, index) => `
+            <div class="country-card bg-gray-50 border border-gray-200 rounded-lg p-4" data-index="${index}">
+                <div class="flex justify-between items-start mb-3">
+                    <div>
+                        <h3 class="font-medium text-gray-900">${country.name.common}</h3>
+                        <p class="text-sm text-gray-500">${country.cca2}${country.cca3 ? ' • ' + country.cca3 : ''}</p>
+                    </div>
+                    <button type="button" onclick="removeCountry(${index})" 
+                            class="text-red-500 hover:text-red-700">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">States/Provinces</label>
+                        <select class="country-states w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent" 
+                                multiple data-country="${country.cca2}">
+                            <option value="remote">Remote</option>
+                            <option value="hybrid">Hybrid</option>
+                            <option value="" disabled>Loading states...</option>
+                        </select>
+                        <p class="text-xs text-gray-500 mt-1">Hold Ctrl/Cmd to select multiple states</p>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        // Load states for each country
+        for (let i = 0; i < selectedCountries.length; i++) {
+            await loadStatesForCountry(selectedCountries[i], i);
+        }
+    }
+
+    async function loadStatesForCountry(country, index) {
+        try {
+            const states = await getStatesForCountry(country.cca2);
+            const select = document.querySelector(`[data-index="${index}"] .country-states`);
+            // Prepend Remote and Hybrid
+            select.innerHTML = [
+                '<option value="remote">Remote</option>',
+                '<option value="hybrid">Hybrid</option>',
+                ...states.map(state => `<option value="${state}">${state}</option>`)
+            ].join('');
+        } catch (error) {
+            console.error(`Error loading states for ${country.name.common}:`, error);
+            const select = document.querySelector(`[data-index="${index}"] .country-states`);
+            select.innerHTML = '<option value="" disabled>Failed to load states</option>';
+        }
+    }
+
+    async function getStatesForCountry(countryCode) {
+        // This is a simplified implementation
+        // For a production app, you'd want to use a proper states API
+        const commonStates = {
+            'US': ['Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'],
+            'CA': ['Alberta', 'British Columbia', 'Manitoba', 'New Brunswick', 'Newfoundland and Labrador', 'Northwest Territories', 'Nova Scotia', 'Nunavut', 'Ontario', 'Prince Edward Island', 'Quebec', 'Saskatchewan', 'Yukon'],
+            'GB': ['England', 'Scotland', 'Wales', 'Northern Ireland'],
+            'AU': ['Australian Capital Territory', 'New South Wales', 'Northern Territory', 'Queensland', 'South Australia', 'Tasmania', 'Victoria', 'Western Australia'],
+            'DE': ['Baden-Württemberg', 'Bavaria', 'Berlin', 'Brandenburg', 'Bremen', 'Hamburg', 'Hesse', 'Lower Saxony', 'Mecklenburg-Vorpommern', 'North Rhine-Westphalia', 'Rhineland-Palatinate', 'Saarland', 'Saxony', 'Saxony-Anhalt', 'Schleswig-Holstein', 'Thuringia'],
+            'FR': ['Auvergne-Rhône-Alpes', 'Bourgogne-Franche-Comté', 'Bretagne', 'Centre-Val de Loire', 'Corse', 'Grand Est', 'Hauts-de-France', 'Île-de-France', 'Normandie', 'Nouvelle-Aquitaine', 'Occitanie', 'Pays de la Loire', 'Provence-Alpes-Côte d\'Azur'],
+            'IN': ['Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh', 'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal']
+        };
+
+        if (commonStates[countryCode]) {
+            return commonStates[countryCode];
+        }
+
+        // For other countries, return a generic list or make an API call
+        // You could use APIs like:
+        // - https://api.countrystatecity.in/v1/countries/{country}/states
+        // - https://api.zippopotam.us/{countryCode}
+        
+        return ['State/Province 1', 'State/Province 2', 'State/Province 3']; // Placeholder
+    }
+
+    function removeCountry(index) {
+        selectedCountries.splice(index, 1);
+        renderSelectedCountries();
+    }
+
+    window.validateLocationStep = function() {
+        if (selectedCountries.length === 0) {
+            window.Alert.error('Please select at least one country.');
+            return false;
+        }
+        // Validate that at least one state is selected for each country
+        for (let i = 0; i < selectedCountries.length; i++) {
+            const select = document.querySelector(`[data-index="${i}"] .country-states`);
+            const selectedStates = Array.from(select.selectedOptions).map(option => option.value);
+            if (selectedStates.length === 0) {
+                window.Alert.error(`Please select at least one state/province for ${selectedCountries[i].name.common}.`);
+                return false;
+            }
+        }
+        // Get city from text input
+        const specificCity = document.getElementById('city').value.trim();
+        // Get distance from slider
+        const distancePref = document.getElementById('distance').value;
+        if (!specificCity) {
+            window.Alert.error('Please enter a city.');
+            return false;
+        }
+        // Store the data in the global object
+        window.jobSearchData.countries = selectedCountries.map((country, index) => {
+            const select = document.querySelector(`[data-index="${index}"] .country-states`);
+            const selectedStates = Array.from(select.selectedOptions).map(option => option.value);
+            return {
+                name: country.name.common,
+                code: country.cca2,
+                states: selectedStates
+            };
+        });
+        window.jobSearchData.city = specificCity;
+        window.jobSearchData.distance_preference = distancePref;
+        return true;
     }
     </script>
 </div> 

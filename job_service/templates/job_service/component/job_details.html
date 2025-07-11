@@ -12,7 +12,11 @@
             {% endif %}
         </div>
         <div>
-            {{ form.application_reason }}
+            <select name="application_reason" id="id_application_reason" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                {% for value, label in form.application_reason.field.choices %}
+                    <option value="{{ value }}" data-i18n="reason_{{ value }}" {% if form.application_reason.value == value %}selected{% endif %}></option>
+                {% endfor %}
+            </select>
             {% if form.application_reason.help_text %}
             <p class="mt-1 text-sm text-gray-500" data-i18n="why_applying_help"></p>
             {% endif %}
@@ -41,6 +45,56 @@
                 }
             });
         }
+        // Update option text on language switch
+        function updateReasonOptions() {
+            document.querySelectorAll('#id_application_reason option').forEach(function(opt) {
+                var key = opt.getAttribute('data-i18n');
+                if (key && window.i18next) {
+                    opt.textContent = i18next.t(key);
+                }
+            });
+        }
+        // Update job_title placeholder on language switch
+        function updateJobTitlePlaceholder() {
+            var jobTitleInput = document.getElementById('id_job_title');
+            if (jobTitleInput && jobTitleInput.hasAttribute('data-i18n-placeholder') && window.i18next) {
+                var key = jobTitleInput.getAttribute('data-i18n-placeholder');
+                jobTitleInput.placeholder = i18next.t(key);
+            }
+        }
+        if (window.i18next) {
+            updateReasonOptions();
+            updateJobTitlePlaceholder();
+            i18next.on('languageChanged', function() {
+                updateReasonOptions();
+                updateJobTitlePlaceholder();
+            });
+        }
+    }
+
+    window.validateJobDetailsStep = function() {
+        const jobTitle = document.getElementById('id_job_title').value.trim();
+        const applicationReason = document.getElementById('id_application_reason').value;
+        let otherReason = '';
+        if (applicationReason === 'other') {
+            otherReason = document.getElementById('id_other_reason').value.trim();
+        }
+        if (!jobTitle) {
+            window.Alert.error('Please enter a job title.');
+            return false;
+        }
+        if (applicationReason === 'other' && !otherReason) {
+            window.Alert.error('Please specify your reason for applying.');
+            return false;
+        }
+        window.jobSearchData.job_title = jobTitle;
+        window.jobSearchData.application_reason = applicationReason;
+        if (applicationReason === 'other') {
+            window.jobSearchData.other_reason = otherReason;
+        } else {
+            delete window.jobSearchData.other_reason;
+        }
+        return true;
     }
     </script>
 </div> 

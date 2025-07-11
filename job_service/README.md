@@ -1,3 +1,38 @@
+# Job Service App
+
+## Recent Changes (2024-07)
+
+### Major Updates
+
+- **Multi-step Job Application Form**: The job application form is now modular, with steps for job details, location, and contact info.
+- **Location Step Redesign**:
+  - Users can select multiple countries and states using a dialog-based picker (REST Countries API).
+  - City is now a plain text input (always visible).
+  - Distance preference is now a slider (0–200 miles).
+  - States dropdown prepends "Remote" and "Hybrid" options.
+- **Frontend Robustness**:
+  - Dialog is re-created each time to avoid DOM reuse bugs.
+  - Debugging and logging added for dialog and country selection.
+  - Selected countries, states, city, and distance are serialized into hidden fields for backend submission.
+- **Backend Model Changes**:
+  - `JobApplicationRequest` model now includes:
+    - `countries` (JSONField) for multiple countries/states
+    - `city` (CharField) for user-entered city
+    - `distance` (IntegerField) for slider value
+  - Old location fields are kept for compatibility but marked as deprecated.
+- **Form and View Updates**:
+  - `JobApplicationForm` and `start_job_application` view updated to handle new fields and validation.
+  - Form validation improved for city, salary range, and "other" reason.
+- **Cancel Application Flow**:
+  - Cancel button now uses a custom Alert dialog for confirmation (not browser confirm).
+  - On cancel, user is redirected to the main dashboard app (`dashboard:dashboard`).
+- **Bug Fixes**:
+  - Fixed issues with dialog not appearing after first open.
+  - Fixed city field always being a text input.
+  - Fixed dashboard redirect after cancel to avoid missing template errors.
+
+---
+
 # Job Service Language Files
 
 This directory contains translation files specifically for the `job_service` app's internationalization (i18n) system.

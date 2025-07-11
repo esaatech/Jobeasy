@@ -225,24 +225,16 @@ class JobApplicationRequest(models.Model):
     resume_used = models.ForeignKey('resume_builder.Resume', on_delete=models.SET_NULL, null=True, blank=True)
     uploaded_resume = models.FileField(upload_to='job_applications/resumes/', null=True, blank=True)
     
-    # Location Preferences
-    country = models.CharField(max_length=100)
-    state_province = models.CharField(max_length=100)
-    city_preference = models.CharField(max_length=20, choices=[
-        ('specific_city', 'Specific City'),
-        ('nearby_cities', 'Nearby Cities (within 50 miles)'),
-        ('any_city', 'Any City in State/Province'),
-        ('remote_only', 'Remote Only'),
-        ('hybrid', 'Hybrid (Some Office Time)')
-    ])
+    # Location Preferences (new fields)
+    countries = models.JSONField(default=list, blank=True, null=True, help_text="List of selected countries and states")
+    city = models.CharField(max_length=100, blank=True, help_text="User-entered city name")
+    distance = models.IntegerField(blank=True, null=True, help_text="Distance preference in miles")
+    # Deprecated/legacy fields (keep for compatibility)
+    country = models.CharField(max_length=100, blank=True)
+    state_province = models.CharField(max_length=100, blank=True)
+    city_preference = models.CharField(max_length=20, blank=True)
     specific_city = models.CharField(max_length=100, blank=True)
-    distance_preference = models.CharField(max_length=20, choices=[
-        ('0-25', '0-25 miles'),
-        ('25-50', '25-50 miles'),
-        ('50-100', '50-100 miles'),
-        ('100+', '100+ miles'),
-        ('any', 'Any distance')
-    ])
+    distance_preference = models.CharField(max_length=20, blank=True)
     
     # Contact Information
     email = models.EmailField()

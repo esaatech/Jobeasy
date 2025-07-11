@@ -11,22 +11,23 @@ class JobApplicationForm(forms.Form):
         max_length=200,
         widget=forms.TextInput(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-            'placeholder': 'e.g., Software Engineer, Marketing Manager, Data Analyst'
+            'placeholder': 'e.g., Software Engineer, Marketing Manager, Data Analyst',
+            'data-i18n-placeholder': 'job_title_placeholder'
         }),
         help_text="What type of job are you looking for?"
     )
     
     application_reason = forms.ChoiceField(
         choices=[
-            ('career_growth', 'Career Growth & Advancement'),
-            ('better_compensation', 'Better Compensation & Benefits'),
-            ('work_life_balance', 'Better Work-Life Balance'),
-            ('relocation', 'Relocation to New City/Country'),
-            ('travel_opportunity', 'Travel & Work Abroad'),
-            ('industry_change', 'Change of Industry'),
-            ('company_culture', 'Better Company Culture'),
-            ('remote_work', 'Remote Work Opportunities'),
-            ('other', 'Other')
+            ('career_growth', 'career_growth'),
+            ('better_compensation', 'better_compensation'),
+            ('work_life_balance', 'work_life_balance'),
+            ('relocation', 'relocation'),
+            ('travel_opportunity', 'travel_opportunity'),
+            ('industry_change', 'industry_change'),
+            ('company_culture', 'company_culture'),
+            ('remote_work', 'remote_work'),
+            ('other', 'other')
         ],
         widget=forms.Select(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
@@ -44,58 +45,41 @@ class JobApplicationForm(forms.Form):
         })
     )
     
-    # Step 2: Location Preferences
-    country = forms.CharField(
+    # New location fields
+    countries = forms.CharField(widget=forms.HiddenInput(), required=False)
+    city = forms.CharField(
         max_length=100,
+        required=True,
         widget=forms.TextInput(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-            'placeholder': 'e.g., United States, Canada, United Kingdom'
+            'placeholder': 'Enter city name'
         })
     )
-    
-    state_province = forms.CharField(
-        max_length=100,
-        widget=forms.TextInput(attrs={
-            'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-            'placeholder': 'e.g., California, Ontario, England'
-        })
-    )
-    
-    city_preference = forms.ChoiceField(
-        choices=[
-            ('specific_city', 'Specific City'),
-            ('nearby_cities', 'Nearby Cities (within 50 miles)'),
-            ('any_city', 'Any City in State/Province'),
-            ('remote_only', 'Remote Only'),
-            ('hybrid', 'Hybrid (Some Office Time)')
-        ],
-        widget=forms.Select(attrs={
-            'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-        })
-    )
-    
-    specific_city = forms.CharField(
-        max_length=100,
+    distance = forms.IntegerField(
         required=False,
-        widget=forms.TextInput(attrs={
+        widget=forms.NumberInput(attrs={
             'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent',
-            'placeholder': 'e.g., San Francisco, Toronto, London'
+            'placeholder': 'Distance in miles'
         })
     )
-    
-    distance_preference = forms.ChoiceField(
-        choices=[
-            ('0-25', '0-25 miles'),
-            ('25-50', '25-50 miles'),
-            ('50-100', '50-100 miles'),
-            ('100+', '100+ miles'),
-            ('any', 'Any distance')
-        ],
-        widget=forms.Select(attrs={
-            'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-        })
-    )
-    
+    # Deprecated/legacy fields (keep for compatibility, but not required)
+    country = forms.CharField(required=False, widget=forms.HiddenInput())
+    state_province = forms.CharField(required=False, widget=forms.HiddenInput())
+    city_preference = forms.CharField(required=False, widget=forms.HiddenInput())
+    specific_city = forms.CharField(required=False, widget=forms.HiddenInput())
+    distance_preference = forms.CharField(required=False, widget=forms.HiddenInput())
+
+    def clean_countries(self):
+        import json
+        data = self.cleaned_data.get('countries')
+        if not data:
+            return []
+        try:
+            countries = json.loads(data)
+            return countries
+        except Exception:
+            raise forms.ValidationError("Invalid country/state data.")
+
     # Step 3: Contact Information
     email = forms.EmailField(
         widget=forms.EmailInput(attrs={
@@ -197,12 +181,10 @@ class JobApplicationForm(forms.Form):
             if salary_min >= salary_max:
                 raise forms.ValidationError("Minimum salary must be less than maximum salary.")
         
-        # Validate city preference
-        city_preference = cleaned_data.get('city_preference')
-        specific_city = cleaned_data.get('specific_city')
-        
-        if city_preference == 'specific_city' and not specific_city:
-            raise forms.ValidationError("Please specify a city when selecting 'Specific City' option.")
+        # Validate city
+        city = cleaned_data.get('city')
+        if not city:
+            raise forms.ValidationError("Please enter a city.")
         
         # Validate application reason
         application_reason = cleaned_data.get('application_reason')

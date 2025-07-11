@@ -83,17 +83,23 @@ def start_job_application(request):
         
         form = JobApplicationForm(request.user, request.POST, request.FILES)
         if form.is_valid():
+            
             # Create the job application request
             application_request = JobApplicationRequest.objects.create(
                 user=request.user,
                 job_title=form.cleaned_data['job_title'],
                 application_reason=form.cleaned_data['application_reason'],
                 other_reason=form.cleaned_data.get('other_reason', ''),
-                country=form.cleaned_data['country'],
-                state_province=form.cleaned_data['state_province'],
-                city_preference=form.cleaned_data['city_preference'],
+                # New location fields
+                countries=form.cleaned_data.get('countries', []),
+                city=form.cleaned_data.get('city', ''),
+                distance=form.cleaned_data.get('distance'),
+                # Old fields (keep for compatibility, but not used by frontend)
+                country=form.cleaned_data.get('country', ''),
+                state_province=form.cleaned_data.get('state_province', ''),
+                city_preference=form.cleaned_data.get('city_preference', ''),
                 specific_city=form.cleaned_data.get('specific_city', ''),
-                distance_preference=form.cleaned_data['distance_preference'],
+                distance_preference=form.cleaned_data.get('distance_preference', ''),
                 email=form.cleaned_data['email'],
                 phone=form.cleaned_data['phone'],
                 preferred_contact_method=form.cleaned_data['preferred_contact_method'],
@@ -151,7 +157,7 @@ def cancel_application(request, request_id):
         else:
             messages.error(request, 'This request cannot be cancelled.')
     
-    return redirect('job_service:job_application_service')
+    return redirect('dashboard:dashboard')
 
 @login_required
 def my_applications(request):

@@ -155,4 +155,7 @@ class Dialog {
     destroy() {
         this.element.remove();
     }
-} 
+}
+
+// Expose Dialog globally for use by Alert utility
+window.Dialog = Dialog; 
