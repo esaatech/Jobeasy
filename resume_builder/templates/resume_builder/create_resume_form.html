@@ -1098,6 +1098,12 @@ console.log('isAuthenticated:', window.isAuthenticated);
         // Store resume data in sessionStorage for retrieval after authentication
         sessionStorage.setItem('pendingResumeData', JSON.stringify(resumeData));
         
+        // Set a flag in sessionStorage to indicate this is from resume creation
+        sessionStorage.setItem('fromResumeCreation', 'true');
+        
+        // Encode resume data for URL parameter
+        const resumeDataParam = encodeURIComponent(JSON.stringify(resumeData));
+        
         // Check if Alert is available (from utils)
         if (typeof window.Alert !== 'undefined' && window.Alert.confirm) {
             window.Alert.confirm({
@@ -1106,12 +1112,12 @@ console.log('isAuthenticated:', window.isAuthenticated);
                 confirmText: 'Sign Up',
                 cancelText: 'Login',
                 onConfirm: () => {
-                    // Redirect to registration page
-                    window.location.href = '/auth/register/';
+                    // Redirect to registration page with resume data
+                    window.location.href = `/auth/register/?resume_data=${resumeDataParam}`;
                 },
                 onCancel: () => {
-                    // Redirect to login page
-                    window.location.href = '/auth/login/';
+                    // Redirect to login page with resume data
+                    window.location.href = `/auth/login/?resume_data=${resumeDataParam}`;
                 }
             });
         } else {
@@ -1119,9 +1125,9 @@ console.log('isAuthenticated:', window.isAuthenticated);
             const shouldRegister = confirm('To save your resume, you need to create an account. Click OK to sign up or Cancel to login.');
             
             if (shouldRegister) {
-                window.location.href = '/auth/register/';
+                window.location.href = `/auth/register/?resume_data=${resumeDataParam}`;
             } else {
-                window.location.href = '/auth/login/';
+                window.location.href = `/auth/login/?resume_data=${resumeDataParam}`;
             }
         }
     }

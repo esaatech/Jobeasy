@@ -48,12 +48,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     console.log('Resume created successfully:', data);
                     // Remove the pending data from sessionStorage
                     sessionStorage.removeItem('pendingResumeData');
+                    sessionStorage.removeItem('fromResumeCreation');
                     // Redirect to my resumes page
                     window.location.href = data.redirect_url;
                 } else {
                     console.error('Failed to create resume:', data.error);
                     // Remove the pending data to avoid infinite retries
                     sessionStorage.removeItem('pendingResumeData');
+                    sessionStorage.removeItem('fromResumeCreation');
                     showError('Failed to save your resume: ' + data.error);
                 }
             })
@@ -61,17 +63,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('Error creating resume:', error);
                 // Remove the pending data to avoid infinite retries
                 sessionStorage.removeItem('pendingResumeData');
+                sessionStorage.removeItem('fromResumeCreation');
                 showError('Failed to save your resume. Please try again.');
             });
         } catch (error) {
             console.error('Error parsing pending resume data:', error);
             // Remove the invalid data
             sessionStorage.removeItem('pendingResumeData');
+            sessionStorage.removeItem('fromResumeCreation');
             showError('Invalid resume data. Please create a new resume.');
         }
     } else {
-        // No pending resume data, redirect to my resumes
-        window.location.href = '{% url "resume_builder:my_resumes" %}';
+        // No pending resume data, clear any leftover flags and redirect to dashboard
+        sessionStorage.removeItem('fromResumeCreation');
+        window.location.href = '{% url "dashboard:dashboard" %}';
     }
     
     function showError(message) {
@@ -79,9 +84,9 @@ document.addEventListener('DOMContentLoaded', function() {
         errorElement.textContent = message;
         errorElement.classList.remove('hidden');
         
-        // Redirect to my resumes after showing error
+        // Redirect to dashboard after showing error
         setTimeout(() => {
-            window.location.href = '{% url "resume_builder:my_resumes" %}';
+            window.location.href = '{% url "dashboard:dashboard" %}';
         }, 3000);
     }
 });
