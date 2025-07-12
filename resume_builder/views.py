@@ -240,7 +240,7 @@ def optimize_resume(request):
     }
     return render(request, 'resume_builder/optimize_resume.html', {'hero_content': hero_content})
 
-@require_plus_subscription(feature_identifier='resume_update')
+@login_required
 def upload_resume(request):
     """Upload and parse resume from file"""
     if request.method == 'POST':
