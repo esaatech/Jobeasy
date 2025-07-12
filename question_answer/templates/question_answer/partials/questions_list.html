@@ -27,9 +27,11 @@
                 ></textarea>
                 
                 <div class="answer-actions">
+                    <!-- Commented out submit answer functionality - will be updated later
                     <button class="btn btn-primary submit-answer-btn" data-question-id="{{ question.id }}">
                         Submit Answer
                     </button>
+                    -->
                     <button class="btn btn-secondary show-sample-btn" data-question-id="{{ question.id }}">
                         Show Sample Answer
                     </button>
@@ -162,7 +164,8 @@
         });
     });
     
-    // Submit individual answers
+    // Submit individual answers - commented out for later update
+    /*
     document.querySelectorAll('.submit-answer-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const questionId = this.getAttribute('data-question-id');
@@ -180,6 +183,7 @@
             this.style.background = '#28a745';
         });
     });
+    */
     
     // Submit all answers
     function submitAllAnswers() {

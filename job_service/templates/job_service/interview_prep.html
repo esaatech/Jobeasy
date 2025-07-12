@@ -16,19 +16,6 @@
         margin-bottom: 3rem;
     }
     
-    .interview-prep-header h1 {
-        color: var(--primary-color);
-        font-size: 2.5rem;
-        margin-bottom: 1rem;
-    }
-    
-    .interview-prep-header p {
-        font-size: 1.1rem;
-        color: var(--text-muted);
-        max-width: 600px;
-        margin: 0 auto;
-    }
-    
     .qa-content {
         background: white;
         border-radius: 12px;
@@ -88,8 +75,8 @@
 {% block content %}
 <div class="interview-prep-container">
     <div class="interview-prep-header">
-        <h1>Interview Preparation</h1>
-        <p>Practice with common interview questions and get AI-powered feedback on your responses. Choose a category to get started.</p>
+        <h1 class="headline-primary">Interview Preparation</h1>
+        <p class="subheadline">Practice with common interview questions and get AI-powered feedback on your responses. Choose a category to get started.</p>
     </div>
     
     <div class="category-filter">
@@ -149,34 +136,18 @@
     </div>
     
     <div id="qaContent" class="qa-content" hx-get="{% url 'qa:load_questions' %}?category=General" hx-trigger="load" hx-indicator="#loadingSpinner">
-        <div class="loading-spinner" id="loadingSpinner">
-            <div class="spinner"></div>
-        </div>
+        <!-- Content will be loaded here -->
+    </div>
+    
+    <!-- Loading spinner moved outside qaContent so it can serve as HTMX indicator -->
+    <div class="loading-spinner" id="loadingSpinner" style="display: none;">
+        <div class="spinner"></div>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    // Hide loading spinner initially
-    document.getElementById('loadingSpinner').style.display = 'none';
-    
-    // Show loading spinner when HTMX requests start
-    document.body.addEventListener('htmx:beforeRequest', function(evt) {
-        console.log('HTMX beforeRequest:', evt.detail);
-        if (evt.target.id === 'qaContent') {
-            document.getElementById('loadingSpinner').style.display = 'flex';
-        }
-    });
-    
-    // Hide loading spinner when HTMX requests complete
-    document.body.addEventListener('htmx:afterRequest', function(evt) {
-        console.log('HTMX afterRequest:', evt.detail);
-        if (evt.target.id === 'qaContent') {
-            document.getElementById('loadingSpinner').style.display = 'none';
-        }
-    });
-    
     // Handle HTMX errors
     document.body.addEventListener('htmx:responseError', function(evt) {
         console.log('HTMX responseError:', evt.detail);
