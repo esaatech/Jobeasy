@@ -92,6 +92,7 @@ def start_job_application(request):
                 other_reason=form.cleaned_data.get('other_reason', ''),
                 # New location fields
                 countries=form.cleaned_data.get('countries', []),
+                work_arrangements=form.cleaned_data.get('work_arrangements', []),
                 city=form.cleaned_data.get('city', ''),
                 distance=form.cleaned_data.get('distance'),
                 # Old fields (keep for compatibility, but not used by frontend)

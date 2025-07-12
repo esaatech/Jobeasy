@@ -229,6 +229,7 @@ class JobApplicationRequest(models.Model):
     countries = models.JSONField(default=list, blank=True, null=True, help_text="List of selected countries and states")
     city = models.CharField(max_length=100, blank=True, help_text="User-entered city name")
     distance = models.IntegerField(blank=True, null=True, help_text="Distance preference in miles")
+    work_arrangements = models.JSONField(default=list, blank=True, null=True, help_text="List of preferred work arrangements (remote, hybrid, onsite)")
     # Deprecated/legacy fields (keep for compatibility)
     country = models.CharField(max_length=100, blank=True)
     state_province = models.CharField(max_length=100, blank=True)

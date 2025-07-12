@@ -23,6 +23,7 @@
             <form method="post" enctype="multipart/form-data" id="jobApplicationForm">
                 {% csrf_token %}
                 <input type="hidden" id="countriesInput" name="countries">
+                <input type="hidden" id="workArrangementsInput" name="work_arrangements">
                 {% include 'job_service/component/job_details.html' %}
                 {% include 'job_service/component/location.html' %}
                 {% include 'job_service/component/contact.html' %}
@@ -135,6 +136,10 @@ document.getElementById('jobApplicationForm').addEventListener('submit', functio
     // Set countries hidden input for backend
     if (window.jobSearchData.countries) {
         document.getElementById('countriesInput').value = JSON.stringify(window.jobSearchData.countries);
+    }
+    // Set work_arrangements hidden input for backend
+    if (window.jobSearchData.work_arrangements) {
+        document.getElementById('workArrangementsInput').value = JSON.stringify(window.jobSearchData.work_arrangements);
     }
     console.log('Submitting:', jsonData);
     // TODO: send jsonData to backend if needed

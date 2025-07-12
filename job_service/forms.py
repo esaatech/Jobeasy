@@ -47,6 +47,7 @@ class JobApplicationForm(forms.Form):
     
     # New location fields
     countries = forms.CharField(widget=forms.HiddenInput(), required=False)
+    work_arrangements = forms.CharField(widget=forms.HiddenInput(), required=False)
     city = forms.CharField(
         max_length=100,
         required=True,
@@ -79,6 +80,17 @@ class JobApplicationForm(forms.Form):
             return countries
         except Exception:
             raise forms.ValidationError("Invalid country/state data.")
+
+    def clean_work_arrangements(self):
+        import json
+        data = self.cleaned_data.get('work_arrangements')
+        if not data:
+            return []
+        try:
+            work_arrangements = json.loads(data)
+            return work_arrangements
+        except Exception:
+            raise forms.ValidationError("Invalid work arrangement data.")
 
     # Step 3: Contact Information
     email = forms.EmailField(
