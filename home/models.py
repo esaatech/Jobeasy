@@ -55,3 +55,16 @@ class ContactMessage(models.Model):
 
     def __str__(self):
         return f"{self.name} <{self.email}>"
+
+class JobOpening(models.Model):
+    title = models.CharField(max_length=200)
+    location = models.CharField(max_length=200, blank=True)
+    description = models.TextField()
+    is_active = models.BooleanField(default=True)
+    posted_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-posted_at']
+
+    def __str__(self):
+        return self.title

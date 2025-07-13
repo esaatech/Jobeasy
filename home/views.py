@@ -150,6 +150,35 @@ def job_cover_letter(request):
             'error': str(e)
         }, status=500)
 
+def contact(request):
+    context = {
+        'page_title': 'Contact Us - AI Cover Letter',
+        'page_description': 'Get in touch with our team for support, feedback, or partnership inquiries.'
+    }
+    return render(request, 'home/contact.html', context)
+
+def careers(request):
+    from .models import JobOpening
+    jobs = JobOpening.objects.filter(is_active=True)
+    context = {
+        'page_title': 'Careers - AI Cover Letter',
+        'page_description': 'Join our team and help revolutionize the job application process!',
+        'jobs': jobs
+    }
+    return render(request, 'home/careers.html', context)
+
+def terms(request):
+    return render(request, 'home/terms.html', {
+        'page_title': 'Terms & Conditions - AI Cover Letter',
+        'page_description': 'Read our terms and conditions.'
+    })
+
+def privacy(request):
+    return render(request, 'home/privacy.html', {
+        'page_title': 'Privacy Policy - AI Cover Letter',
+        'page_description': 'Read our privacy policy.'
+    })
+
 # API: List all published FAQs
 class FAQListAPIView(generics.ListAPIView):
     queryset = FAQ.objects.filter(published=True)

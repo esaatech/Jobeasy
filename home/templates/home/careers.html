@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Careers - AI Cover Letter{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="bg-gradient-to-br from-blue-50 to-indigo-100 py-16">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="text-center">
+            <h1 class="headline-primary mb-6" data-i18n="careers_title">Careers</h1>
+            <p class="subheadline max-w-3xl mx-auto" data-i18n="careers_hero">
+                Join our team and help revolutionize the job application process! Explore our open positions below.
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- Job Openings Section -->
+<div class="py-16 bg-white">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        {% if jobs %}
+        <div class="grid gap-8 md:grid-cols-2">
+            {% for job in jobs %}
+            <div class="bg-gray-50 rounded-xl shadow-lg p-8 flex flex-col justify-between">
+                <div>
+                    <h2 class="headline-secondary mb-2">{{ job.title }}</h2>
+                    {% if job.location %}
+                    <p class="text-sm text-gray-500 mb-2" data-i18n="careers_location" data-location="{{ job.location }}">Location: {{ job.location }}</p>
+                    {% endif %}
+                    <div class="prose text-gray-700 mb-4">{{ job.description|linebreaks }}</div>
+                </div>
+                <div class="mt-4">
+                    <span class="inline-block bg-green-100 text-green-800 text-xs px-3 py-1 rounded-full font-semibold" data-i18n="careers_open">Open</span>
+                    <span class="text-xs text-gray-400 ml-2" data-i18n="careers_posted" data-date="{{ job.posted_at|date:'M d, Y' }}">Posted {{ job.posted_at|date:"M d, Y" }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-12">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            <h3 class="headline-tertiary mt-2" data-i18n="careers_no_positions">No open positions at this time</h3>
+            <p class="body-text-small mt-1">
+                <span data-i18n="careers_no_positions_desc">We're always looking for talented people. Check back soon or email your resume to</span>
+                <a href="mailto:support@jobeas.com" class="text-blue-500 underline">support@jobeas.com</a>.
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

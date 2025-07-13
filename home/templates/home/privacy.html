@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}Privacy Policy - Jobeas{% endblock %}
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div class="max-w-4xl w-full px-4 sm:px-6 lg:px-8">
+        <div class="text-center">
+            <h1 class="headline-primary mb-6" data-i18n="privacy_title">Privacy Policy</h1>
+            <p class="subheadline max-w-2xl mx-auto" data-i18n="privacy_hero">Your privacy is important to us. This policy explains how we collect, use, and protect your information.</p>
+        </div>
+        <div class="bg-white rounded-xl shadow-lg p-8 mt-8 prose mx-auto">
+            <h2 data-i18n="privacy_collect_title">1. Information We Collect</h2>
+            <p data-i18n="privacy_collect_text">We collect information you provide directly to us, such as when you sign up, contact us, or use our services.</p>
+            <h2 data-i18n="privacy_use_title">2. Use of Information</h2>
+            <p data-i18n="privacy_use_text">We use your information to provide, maintain, and improve our services, and to communicate with you.</p>
+            <h2 data-i18n="privacy_share_title">3. Sharing of Information</h2>
+            <p data-i18n="privacy_share_text">We do not share your personal information with third parties except as required by law or to provide our services.</p>
+            <h2 data-i18n="privacy_security_title">4. Data Security</h2>
+            <p data-i18n="privacy_security_text">We implement reasonable security measures to protect your information from unauthorized access.</p>
+            <h2 data-i18n="privacy_changes_title">5. Changes to This Policy</h2>
+            <p data-i18n="privacy_changes_text">We may update this policy from time to time. We encourage you to review it regularly.</p>
+            <h2 data-i18n="privacy_contact_title">6. Contact</h2>
+            <p>
+                <span data-i18n="privacy_contact_text">If you have any questions about this privacy policy, please</span>
+                <a href="mailto:support@jobeas.com" class="text-blue-500 underline">contact us</a>.
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+// Set page title using i18next
+function setPageTitle() {
+    if (window.i18next && window.i18next.isInitialized) {
+        const title = window.i18next.t('privacy_title_full');
+        if (title && title !== 'privacy_title_full') {
+            document.title = title;
+        }
+    }
+}
+
+// Wait for i18next to be ready
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if i18next is already initialized
+    if (window.i18next && window.i18next.isInitialized) {
+        setPageTitle();
+    } else {
+        // Wait for i18next to be initialized
+        const checkI18next = setInterval(function() {
+            if (window.i18next && window.i18next.isInitialized) {
+                setPageTitle();
+                clearInterval(checkI18next);
+            }
+        }, 100);
+        
+        // Fallback: stop checking after 5 seconds
+        setTimeout(function() {
+            clearInterval(checkI18next);
+        }, 5000);
+    }
+});
+
+// Also update title when language changes
+document.addEventListener('i18next:languageChanged', setPageTitle);
+</script>
+{% endblock %} 

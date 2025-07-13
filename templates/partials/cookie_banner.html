@@ -1,0 +1,19 @@
+<!-- Cookie Consent Banner -->
+<div id="cookie-banner" class="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 z-50 transform translate-y-full transition-transform duration-300">
+    <div class="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+        <div class="flex-1">
+            <p class="text-sm sm:text-base">
+                <span data-i18n="cookie_message_start">We use cookies to improve your experience on our website. By continuing to use this site, you agree to our use of cookies as described in our</span>
+                <a href="{% url 'home:privacy' %}" class="underline hover:text-blue-200" data-i18n="cookie_message_link">Privacy Policy</a>.
+            </p>
+        </div>
+        <div class="flex gap-3 flex-shrink-0">
+            <button onclick="acceptCookies()" class="bg-white text-blue-600 px-4 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors duration-200" data-i18n="cookie_accept">
+                Accept All
+            </button>
+            <button onclick="declineCookies()" class="border border-white text-white px-4 py-2 rounded-lg font-medium hover:bg-white hover:text-blue-600 transition-colors duration-200" data-i18n="cookie_decline">
+                Decline
+            </button>
+        </div>
+    </div>
+</div> 

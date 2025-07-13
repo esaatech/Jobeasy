@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import CoverLetterInstruction, FAQ, Testimonial, NewsletterSignup, ContactMessage
+from .models import CoverLetterInstruction, FAQ, Testimonial, NewsletterSignup, ContactMessage, JobOpening
 
 @admin.register(CoverLetterInstruction)
 class CoverLetterInstructionAdmin(admin.ModelAdmin):
@@ -49,3 +49,5 @@ class ContactMessageAdmin(admin.ModelAdmin):
     list_display = ('name', 'email', 'date')
     search_fields = ('name', 'email', 'message')
     ordering = ('-date',)
+
+admin.site.register(JobOpening)

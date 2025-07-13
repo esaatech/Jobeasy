@@ -83,12 +83,18 @@
     <!-- Footer -->
     {% include 'home/partials/footer.html' %}
 
+    <!-- Cookie Banner -->
+    {% include 'partials/cookie_banner.html' %}
+
     <!-- Base JavaScript -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     
     <!-- Alert System JavaScript -->
     <script src="{% static 'utils/components/dialog.js' %}"></script>
     <script src="{% static 'utils/components/alert.js' %}"></script>
+
+    <!-- Cookie Consent JavaScript -->
+    <script src="{% static 'js/cookie_consent.js' %}"></script>
 
     <!-- Subscription Frontend Utilities -->
     <script>
@@ -111,28 +117,33 @@
     // Initialize i18next with all languages
     async function initializeI18next() {
         try {
-            // Load all language resources from job_service app
-            const [enRes, frRes, esRes] = await Promise.all([
+            // Load all language resources from job_service and home app
+            const [enJob, frJob, esJob, enHome, frHome, esHome] = await Promise.all([
                 fetch('{% static "job_service/lang/en.json" %}').then(res => res.json()),
                 fetch('{% static "job_service/lang/fr.json" %}').then(res => res.json()),
-                fetch('{% static "job_service/lang/es.json" %}').then(res => res.json())
+                fetch('{% static "job_service/lang/es.json" %}').then(res => res.json()),
+                fetch('{% static "home/lang/en.json" %}').then(res => res.json()),
+                fetch('{% static "home/lang/es.json" %}').then(res => res.json()),
+                fetch('{% static "home/lang/fr.json" %}').then(res => res.json())
             ]);
 
-            // Initialize i18next with all resources
+            // Merge job_service and home resources for each language
+            function mergeResources(job, home) {
+                return Object.assign({}, job, home);
+            }
+
             await i18next.init({
                 lng: 'en', // default language
                 fallbackLng: 'en',
                 resources: {
-                    en: { translation: enRes },
-                    fr: { translation: frRes },
-                    es: { translation: esRes }
+                    en: { translation: mergeResources(enJob, enHome) },
+                    fr: { translation: mergeResources(frJob, frHome) },
+                    es: { translation: mergeResources(esJob, esHome) }
                 },
                 debug: false
             });
 
-            // Update all elements with data-i18n attributes
             updateContent();
-            
             console.log('i18next initialized successfully');
         } catch (error) {
             console.error('Error initializing i18next:', error);
@@ -142,9 +153,20 @@
     function updateContent() {
         document.querySelectorAll('[data-i18n]').forEach(el => {
             const key = el.getAttribute('data-i18n');
-            const translation = i18next.t(key, el.dataset);
-            if (translation && translation !== key) {
-                el.textContent = translation;
+            // Use escapeValue: false for keys that contain HTML
+            if (
+                key === 'careers_no_positions_desc' ||
+                key === 'privacy_contact_text' ||
+                key === 'terms_contact_text' ||
+                key === 'cookie_message'
+            ) {
+                const translation = i18next.t(key, { ...el.dataset, interpolation: { escapeValue: false } });
+                el.innerHTML = translation;
+            } else {
+                const translation = i18next.t(key, el.dataset);
+                if (translation && translation !== key) {
+                    el.textContent = translation;
+                }
             }
         });
         // Update placeholders
