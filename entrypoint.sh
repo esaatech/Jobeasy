@@ -5,6 +5,17 @@ set -e
 python manage.py migrate --noinput
 python manage.py collectstatic --noinput
 
+# Create Django admin user if it doesn't exist
+python manage.py shell -c "
+from django.contrib.auth import get_user_model
+User = get_user_model()
+if not User.objects.filter(username='$ADMIN_USERNAME').exists():
+    User.objects.create_superuser('$ADMIN_USERNAME', '$ADMIN_EMAIL', '$ADMIN_PASSWORD')
+    print('Admin user created successfully')
+else:
+    print('Admin user already exists')
+"
+
 # Populate subscriptions plans
 python manage.py setup_subscription_plans
 
