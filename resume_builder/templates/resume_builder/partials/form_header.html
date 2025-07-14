@@ -1,0 +1,12 @@
+<!-- Resume Name Field -->
+<div class="bg-gray-50 p-6 rounded-lg border border-gray-200">
+    <h3 class="headline-tertiary mb-4">Resume Name</h3>
+    <input type="text" name="resume_name" id="resumeName" 
+           value="{% if resume_instance %}{{ resume_instance.name }}{% else %}{{ default_resume_name }}{% endif %}" required
+           class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+    <p class="body-text-small mt-2">Give your resume a name to help you identify it later.</p>
+</div>
+<input type="hidden" name="resume_id" id="resumeId" value="{{ resume_instance.id|default:'' }}">
+
+<!-- Template Selection Section -->
+{% include 'partials/template_selection.html' with selected_template=resume_instance.template_id %} 

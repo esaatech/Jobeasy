@@ -1,0 +1,118 @@
+<style>
+    .step {
+        @apply text-sm font-medium text-gray-500;
+    }
+
+    .step.active {
+        @apply text-emerald-500;
+    }
+
+    .form-step {
+        transition: all 0.3s ease-in-out;
+    }
+
+    .form-step.hidden {
+        display: none;
+    }
+
+    /* CKEditor 5 List Styling Fixes */
+    .ck-editor__editable ul {
+        list-style-type: disc;
+        margin-left: 20px;
+        padding-left: 20px;
+    }
+
+    .ck-editor__editable ol {
+        list-style-type: decimal;
+        margin-left: 20px;
+        padding-left: 20px;
+    }
+
+    .ck-editor__editable li {
+        margin-bottom: 5px;
+    }
+
+    /* Ensure proper spacing for nested lists */
+    .ck-editor__editable ul ul {
+        list-style-type: circle;
+        margin-top: 5px;
+    }
+
+    .ck-editor__editable ol ol {
+        list-style-type: lower-alpha;
+        margin-top: 5px;
+    }
+
+    /* CKEditor 5 Heading Styling */
+    .ck-editor__editable h1,
+    .ck.ck-editor__editable h1 {
+        font-size: 2em !important;
+        font-weight: bold !important;
+        margin: 0.67em 0 !important;
+        color: #1f2937 !important;
+        display: block !important;
+    }
+
+    .ck-editor__editable h2,
+    .ck.ck-editor__editable h2 {
+        font-size: 1.5em !important;
+        font-weight: bold !important;
+        margin: 0.83em 0 !important;
+        color: #1f2937 !important;
+        display: block !important;
+    }
+
+    .ck-editor__editable h3,
+    .ck.ck-editor__editable h3 {
+        font-size: 1.17em !important;
+        font-weight: bold !important;
+        margin: 1em 0 !important;
+        color: #374151 !important;
+        display: block !important;
+    }
+
+    .ck-editor__editable h4,
+    .ck.ck-editor__editable h4 {
+        font-size: 1em !important;
+        font-weight: bold !important;
+        margin: 1.33em 0 !important;
+        color: #374151 !important;
+        display: block !important;
+    }
+
+    .ck-editor__editable h5,
+    .ck.ck-editor__editable h5 {
+        font-size: 0.83em !important;
+        font-weight: bold !important;
+        margin: 1.67em 0 !important;
+        color: #6b7280 !important;
+        display: block !important;
+    }
+
+    .ck-editor__editable h6,
+    .ck.ck-editor__editable h6 {
+        font-size: 0.67em !important;
+        font-weight: bold !important;
+        margin: 2.33em 0 !important;
+        color: #6b7280 !important;
+        display: block !important;
+    }
+
+    /* Additional targeting for CKEditor content */
+    .ck-content h1,
+    .ck-content h2,
+    .ck-content h3,
+    .ck-content h4,
+    .ck-content h5,
+    .ck-content h6 {
+        font-weight: bold !important;
+        display: block !important;
+    }
+
+    .ck-content h1 { font-size: 2em !important; margin: 0.67em 0 !important; }
+    .ck-content h2 { font-size: 1.5em !important; margin: 0.83em 0 !important; }
+    .ck-content h3 { font-size: 1.17em !important; margin: 1em 0 !important; }
+    .ck-content h4 { font-size: 1em !important; margin: 1.33em 0 !important; }
+    .ck-content h5 { font-size: 0.83em !important; margin: 1.67em 0 !important; }
+    .ck-content h6 { font-size: 0.67em !important; margin: 2.33em 0 !important; }
+</style> 

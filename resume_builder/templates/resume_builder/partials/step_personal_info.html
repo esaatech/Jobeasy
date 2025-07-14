@@ -1,0 +1,32 @@
+<!-- Step 1: Personal Information -->
+<div class="form-step" data-step="1">
+    <h2 class="headline-secondary mb-6">Personal Information</h2>
+    <div class="border-b-2 border-emerald-500 mb-6"></div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+            <label class="block text-sm font-bold text-gray-700 mb-2">Full Name</label>
+            <input type="text" name="fullName" value="{{ resume_instance.personal_info.full_name|default:'' }}" required
+                class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+        </div>
+        <div>
+            <label class="block text-sm font-bold text-gray-700 mb-2">Professional Title</label>
+            <input type="text" name="title" value="{{ resume_instance.personal_info.title|default:'' }}" required
+                class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+        </div>
+        <div>
+            <label class="block text-sm font-bold text-gray-700 mb-2">Email</label>
+            <input type="email" name="email" value="{{ resume_instance.personal_info.email|default:'' }}" required
+                class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+        </div>
+        <div>
+            <label class="block text-sm font-bold text-gray-700 mb-2">Phone</label>
+            <input type="tel" name="phone" value="{{ resume_instance.personal_info.phone|default:'' }}"
+                class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+        </div>
+        <div class="md:col-span-2">
+            <label class="block text-sm font-bold text-gray-700 mb-2">Professional Summary</label>
+            <textarea name="summary" id="summary-editor" rows="4" required
+                class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">{{ resume_instance.personal_info.summary|default:'' }}</textarea>
+        </div>
+    </div>
+</div> 

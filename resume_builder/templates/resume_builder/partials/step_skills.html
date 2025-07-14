@@ -1,0 +1,25 @@
+<!-- Step 4: Skills -->
+<div class="form-step hidden" data-step="4">
+    <h2 class="headline-secondary mb-6">Skills</h2>
+    <div class="border-b-2 border-emerald-500 mb-6"></div>
+    <div class="space-y-6">
+        <div>
+            <label class="block text-sm font-bold text-gray-700 mb-2">Technical Skills</label>
+            <input type="text" name="technicalSkills" placeholder="Separate skills with commas"
+                value="{% if resume_instance.skills.technical %}{{ resume_instance.skills.technical|join:', ' }}{% endif %}"
+                class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+        </div>
+        <div>
+            <label class="block text-sm font-bold text-gray-700 mb-2">Soft Skills</label>
+            <input type="text" name="softSkills" placeholder="Separate skills with commas"
+                value="{% if resume_instance.skills.soft %}{{ resume_instance.skills.soft|join:', ' }}{% endif %}"
+                class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+        </div>
+        <div>
+            <label class="block text-sm font-bold text-gray-700 mb-2">Languages</label>
+            <input type="text" name="languages" placeholder="Separate languages with commas"
+                value="{% if resume_instance.skills.languages %}{{ resume_instance.skills.languages|join:', ' }}{% endif %}"
+                class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+        </div>
+    </div>
+</div> 
