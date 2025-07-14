@@ -65,15 +65,30 @@ def integration_settings(request):
 
 @login_required
 def billing_settings(request):
+    # Get user's current subscription (active)
+    from subscriptions.models import UserSubscription, SubscriptionPlan
+    current_subscription = None
+    if request.user.is_authenticated:
+        current_subscription = UserSubscription.objects.filter(
+            user=request.user,
+            status='ACTIVE'
+        ).select_related('plan', 'plan_duration').first()
+        if not current_subscription:
+            free_plan = SubscriptionPlan.objects.filter(name='Free', is_active=True).first()
+            if free_plan:
+                current_subscription = type('obj', (object,), {
+                    'plan': free_plan,
+                    'plan_duration': None,
+                    'status': 'ACTIVE'
+                })()
     context = {
         'active_section': 'billing',
-        'page_title': 'Billing & Subscription'
+        'page_title': 'Billing & Subscription',
+        'current_subscription': current_subscription,
     }
-    
     # Check if this is an HTMX request
     if request.headers.get('HX-Request'):
         return render(request, 'settings/partials/billing_content.html', context)
-    
     return render(request, 'settings/settings.html', context)
 
 @login_required

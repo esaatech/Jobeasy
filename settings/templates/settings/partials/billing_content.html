@@ -11,7 +11,9 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm font-medium text-gray-700">Plan</p>
-                            <p class="text-sm text-gray-500">Free Plan</p>
+                            <p class="text-sm text-gray-500">
+                                {{ current_subscription.plan.name|default:'Free Plan' }}
+                            </p>
                         </div>
                         <div>
                             <p class="text-sm font-medium text-gray-700">Status</p>
