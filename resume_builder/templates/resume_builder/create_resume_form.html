@@ -1189,3 +1189,59 @@ console.log('isAuthenticated:', window.isAuthenticated);
 <!-- CKEditor 5 Local Build -->
 <script src="{% static 'ckeditor5/ckeditor.js' %}"></script>
 
+<!-- AI Summary Button Handler -->
+<script>
+// AI Summary Button Handler
+(function() {
+    const btn = document.getElementById('aiSummaryBtn');
+    if (!btn) return;
+    btn.addEventListener('click', async function() {
+        const resumeIdInput = document.getElementById('resumeId');
+        const resumeId = resumeIdInput ? resumeIdInput.value : null;
+        if (!resumeId) {
+            window.Alert && window.Alert.error
+                ? window.Alert.error('Resume ID not found. Please save your resume first.')
+                : alert('Resume ID not found. Please save your resume first.');
+            return;
+        }
+        btn.disabled = true;
+        btn.classList.add('opacity-60', 'pointer-events-none');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<span class="animate-spin mr-2">⏳</span>Generating...';
+        try {
+            const response = await fetch('/resume/generate-ai-summary/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': window.CSRF_TOKEN || document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({ resume_id: resumeId })
+            });
+            const data = await response.json();
+            if (data.success) {
+                if (window.ckeditor5Instances && window.ckeditor5Instances['summary-editor']) {
+                    window.ckeditor5Instances['summary-editor'].setData(data.summary);
+                } else {
+                    document.getElementById('summary-editor').value = data.summary;
+                }
+                window.Alert && window.Alert.success
+                    ? window.Alert.success('AI summary generated!')
+                    : alert('AI summary generated!');
+            } else {
+                window.Alert && window.Alert.error
+                    ? window.Alert.error(data.error || 'Failed to generate summary.')
+                    : alert(data.error || 'Failed to generate summary.');
+            }
+        } catch (err) {
+            window.Alert && window.Alert.error
+                ? window.Alert.error('An error occurred while generating the summary.')
+                : alert('An error occurred while generating the summary.');
+        } finally {
+            btn.disabled = false;
+            btn.classList.remove('opacity-60', 'pointer-events-none');
+            btn.innerHTML = originalText;
+        }
+    });
+})();
+</script>
+

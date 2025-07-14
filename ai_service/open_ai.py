@@ -503,6 +503,45 @@ def test_parse_resume_from_text():
     except Exception as e:
         print(f"\n❌ Parsing failed: {str(e)}")
 
+def generate_professional_summary(resume_data: dict):
+    """
+    Generate a professional summary for a resume using all relevant information.
+    Input: resume_data (dict) with keys: personal_info, experience, education, skills, additional
+    Output: { 'success': True, 'summary': str } or { 'success': False, 'error': str }
+    """
+    system_msg = (
+        "You are an expert resume writer. Given a candidate's full resume data, "
+        "write a concise, compelling professional summary (3-5 sentences) that highlights their most relevant "
+        "skills, experience, and strengths. The summary should be suitable for the top of a modern resume, "
+        "written in a professional, first-person implied style (do NOT use the candidate's name, and do NOT use 'he', 'she', or 'they'). "
+        "Do NOT include any personal pronouns or refer to the candidate by name. "
+        "Focus on value, impact, and expertise. Respond with JSON: { 'summary': ... } only."
+    )
+    user_msg = f"""
+### RESUME DATA ###
+Personal Info: {json.dumps(resume_data.get('personal_info', {}), indent=2)}
+Experience: {json.dumps(resume_data.get('experience', []), indent=2)}
+Education: {json.dumps(resume_data.get('education', []), indent=2)}
+Skills: {json.dumps(resume_data.get('skills', {}), indent=2)}
+Additional: {json.dumps(resume_data.get('additional', {}), indent=2)}
+### TASK ###
+Write a professional summary for this candidate. Respond with JSON: {{ 'summary': ... }} only.
+"""
+    try:
+        chat_resp = client.chat.completions.create(
+            model="gpt-4o",
+            temperature=0.3,
+            messages=[
+                {"role": "system", "content": system_msg},
+                {"role": "user", "content": user_msg}
+            ],
+            response_format={"type": "json_object"}
+        )
+        data = json.loads(chat_resp.choices[0].message.content.strip())
+        return {"success": True, "summary": data.get("summary", "")}
+    except (OpenAIError, json.JSONDecodeError) as err:
+        return {"success": False, "error": str(err)}
+
 if __name__ == "__main__":
     # Example usage:
     test_optimize_my_resume_for_job()

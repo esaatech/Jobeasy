@@ -28,6 +28,9 @@ urlpatterns = [
     path('get-resume-content/<int:resume_id>/', views.get_resume_content, name='get_resume_content'),
     path('save-summary/', views.save_summary, name='save_summary'),
 
+    # AI summary generation endpoint
+    path('generate-ai-summary/', views.generate_ai_summary, name='generate_ai_summary'),
+
     # Misc
     path('save-resume/', views.save_resume, name='save_resume'),
     path('my-resumes/', views.my_resumes, name='my_resumes'),

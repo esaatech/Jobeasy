@@ -27,6 +27,7 @@ from docx import Document
 
 # Import AI service for resume parsing
 from ai_service.open_ai import parse_resume_from_text
+from ai_service.open_ai import generate_professional_summary
 
 # Import utils for date options
 from utils.date_utils import get_month_year_options
@@ -1538,4 +1539,31 @@ def save_summary(request):
         except Exception as e:
             logger.error(f"Save summary error: {str(e)}")
             return JsonResponse({'success': False, 'error': 'Failed to save summary'}, status=500)
+    return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+
+@login_required
+def generate_ai_summary(request):
+    """Generate a professional summary for a resume using AI."""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            resume_id = data.get('resume_id')
+            if not resume_id:
+                return JsonResponse({'success': False, 'error': 'Resume ID is required'}, status=400)
+            resume = get_object_or_404(Resume, id=resume_id, user=request.user)
+            resume_data = {
+                'personal_info': resume.personal_info or {},
+                'experience': resume.experience or [],
+                'education': resume.education or [],
+                'skills': resume.skills or {},
+                'additional': resume.additional or {}
+            }
+            ai_result = generate_professional_summary(resume_data)
+            if ai_result.get('success'):
+                return JsonResponse({'success': True, 'summary': ai_result['summary']})
+            else:
+                return JsonResponse({'success': False, 'error': ai_result.get('error', 'AI summary generation failed')}, status=500)
+        except Exception as e:
+            logger.error(f"AI summary generation error: {str(e)}")
+            return JsonResponse({'success': False, 'error': 'Failed to generate summary'}, status=500)
     return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
