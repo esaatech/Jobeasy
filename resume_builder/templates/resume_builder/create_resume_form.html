@@ -27,6 +27,9 @@
             <!-- Step 5: Additional Information -->
             {% include 'resume_builder/partials/step_additional.html' %}
 
+            <!-- Step 6: Professional Summary -->
+            {% include 'resume_builder/partials/step_summary.html' %}
+
             <!-- Navigation Buttons -->
             {% include 'resume_builder/partials/form_navigation.html' %}
         </form>
@@ -51,7 +54,7 @@ console.log('isAuthenticated:', window.isAuthenticated);
 
     // No import needed. Use window.Alert globally.
     let currentStep = 1;
-    const totalSteps = 5;
+    const totalSteps = 6;
     let resumeId = document.getElementById('resumeId').value || null;
 
     function updateProgressBar() {
@@ -134,14 +137,10 @@ console.log('isAuthenticated:', window.isAuthenticated);
 
     // Validation functions (return true for now, can be enhanced later)
     function validatePersonalInfo() {
-        const requiredFields = ['resume_name', 'fullName', 'title', 'email', 'summary'];
+        const requiredFields = ['resume_name', 'fullName', 'title', 'email'];
         for (let field of requiredFields) {
             let value;
-            if (field === 'summary' && window.ckeditor5Instances['summary-editor']) {
-                value = window.ckeditor5Instances['summary-editor'].getData().trim();
-            } else {
-                value = document.querySelector(`[name="${field}"]`).value.trim();
-            }
+            value = document.querySelector(`[name="${field}"]`).value.trim();
             if (!value) {
                 window.Alert.error(`Please fill in the ${field.replace(/([A-Z])/g, ' $1').toLowerCase()} field.`);
                 return false;
@@ -258,6 +257,11 @@ console.log('isAuthenticated:', window.isAuthenticated);
         return true;
     }
 
+    function validateSummary() {
+        // Summary is optional - no validation required
+        return true;
+    }
+
     // Save functions for each step
     async function savePersonalInfo(andExit = false) {
         const formData = new FormData(document.getElementById('resumeForm'));
@@ -266,19 +270,12 @@ console.log('isAuthenticated:', window.isAuthenticated);
         const selectedTemplate = document.querySelector('input[name="template_id"]:checked');
         const templateId = selectedTemplate ? selectedTemplate.value : 'professional';
         
-        // Get summary content from CKEditor instance if it exists, otherwise from form data
-        let summaryContent = formData.get('summary');
-        if (window.ckeditor5Instances['summary-editor']) {
-            summaryContent = window.ckeditor5Instances['summary-editor'].getData();
-        }
-        
         const data = {
             resume_name: formData.get('resume_name'),
             fullName: formData.get('fullName'),
             title: formData.get('title'),
             email: formData.get('email'),
             phone: formData.get('phone'),
-            summary: summaryContent,
             template_id: templateId,
             is_editing_save: andExit
         };
@@ -646,6 +643,53 @@ console.log('isAuthenticated:', window.isAuthenticated);
         }
     }
 
+    async function saveSummary(andExit = false) {
+        const formData = new FormData(document.getElementById('resumeForm'));
+        
+        // Get template selection
+        const selectedTemplate = document.querySelector('input[name="template_id"]:checked');
+        const templateId = selectedTemplate ? selectedTemplate.value : 'professional';
+        
+        // Get summary content from CKEditor instance if it exists, otherwise from form data
+        let summaryContent = formData.get('summary');
+        if (window.ckeditor5Instances['summary-editor']) {
+            summaryContent = window.ckeditor5Instances['summary-editor'].getData();
+        }
+        
+        const data = {
+            resume_id: resumeId,
+            summary: summaryContent,
+            template_id: templateId,
+            is_editing_save: andExit
+        };
+
+        try {
+            const response = await fetch('{% url "resume_builder:save_summary" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+            if (result.success) {
+                if (andExit && result.redirect_url) {
+                    window.location.href = result.redirect_url;
+                }
+                return true;
+            } else {
+                window.Alert.error(result.error || 'Failed to save summary');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            window.Alert.error('Failed to save summary');
+            return false;
+        }
+    }
+
     async function saveAndExit() {
         let isValid = false;
         let isSaved = false;
@@ -670,6 +714,10 @@ console.log('isAuthenticated:', window.isAuthenticated);
             case 5:
                 isValid = validateAdditional();
                 if (isValid) await saveAdditional(true);
+                break;
+            case 6:
+                isValid = validateSummary();
+                if (isValid) await saveSummary(true);
                 break;
         }
     }
@@ -697,6 +745,9 @@ console.log('isAuthenticated:', window.isAuthenticated);
                     case 5:
                         isValid = validateAdditional();
                         break;
+                    case 6:
+                        isValid = validateSummary();
+                        break;
                 }
                 if (!isValid) return;
                 switch (currentStep) {
@@ -714,6 +765,9 @@ console.log('isAuthenticated:', window.isAuthenticated);
                         break;
                     case 5:
                         isSaved = await saveAdditional();
+                        break;
+                    case 6:
+                        isSaved = await saveSummary();
                         break;
                 }
                 if (isSaved) {
@@ -746,10 +800,10 @@ console.log('isAuthenticated:', window.isAuthenticated);
     async function finalizeResume(action) {
         if (window.isAuthenticated) {
             // Authenticated user: existing backend flow
-            if (!validateAdditional()) {
+            if (!validateSummary()) {
                 return;
             }
-            const isSaved = await saveAdditional();
+            const isSaved = await saveSummary();
             if (!isSaved) {
                 return;
             }

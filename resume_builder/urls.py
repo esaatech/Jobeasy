@@ -26,6 +26,7 @@ urlpatterns = [
     path('save-additional/', views.save_additional, name='save_additional'),
     path('finalize-resume/', views.finalize_resume, name='finalize_resume'),
     path('get-resume-content/<int:resume_id>/', views.get_resume_content, name='get_resume_content'),
+    path('save-summary/', views.save_summary, name='save_summary'),
 
     # Misc
     path('save-resume/', views.save_resume, name='save_resume'),

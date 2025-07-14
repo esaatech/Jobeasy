@@ -1137,42 +1137,36 @@ def save_personal_info(request):
                     draft=True,
                     template_id=data.get('template_id', 'professional')
                 )
-            
-            # Update data
+            # Defensive update: only update summary if present in payload
+            personal_info = resume.personal_info or {}
+            personal_info['full_name'] = data.get('fullName', personal_info.get('full_name', ''))
+            personal_info['title'] = data.get('title', personal_info.get('title', ''))
+            personal_info['email'] = data.get('email', personal_info.get('email', ''))
+            personal_info['phone'] = data.get('phone', personal_info.get('phone', ''))
+            if 'summary' in data:
+                personal_info['summary'] = data.get('summary', personal_info.get('summary', ''))
             resume.name = data.get('resume_name', resume.name)
-            resume.personal_info = {
-                'full_name': data.get('fullName'),
-                'title': data.get('title'),
-                'email': data.get('email'),
-                'phone': data.get('phone'),
-                'summary': data.get('summary')
-            }
-            
+            resume.personal_info = personal_info
             # Update template if provided
             if data.get('template_id'):
                 resume.template_id = data.get('template_id')
-            
             resume.save()
-
             if is_editing_save:
                 return JsonResponse({
                     'success': True,
                     'message': 'Personal information saved.',
                     'redirect_url': reverse('resume_builder:my_resumes')
                 })
-            
             return JsonResponse({
                 'success': True,
                 'message': 'Personal information saved successfully!',
                 'resume_id': resume.id
             })
-            
         except json.JSONDecodeError:
             return JsonResponse({'success': False, 'error': 'Invalid JSON data'}, status=400)
         except Exception as e:
             logger.error(f"Save personal info error: {str(e)}")
             return JsonResponse({'success': False, 'error': 'Failed to save personal information'}, status=500)
-    
     return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
 
 @login_required
@@ -1510,3 +1504,38 @@ def create_resume_after_auth(request):
         return render(request, 'resume_builder/create_resume_after_auth.html')
     
     return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+@login_required
+def save_summary(request):
+    """Save step 6: Professional Summary"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            resume_id = data.get('resume_id')
+            is_editing_save = data.get('is_editing_save', False)
+            
+            if not resume_id:
+                return JsonResponse({'success': False, 'error': 'Resume ID is required'}, status=400)
+            
+            resume = get_object_or_404(Resume, id=resume_id, user=request.user)
+            # Only update the summary field in personal_info
+            personal_info = resume.personal_info or {}
+            personal_info['summary'] = data.get('summary', '')
+            resume.personal_info = personal_info
+            # Update template if provided
+            if data.get('template_id'):
+                resume.template_id = data.get('template_id')
+            resume.save()
+            if is_editing_save:
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Summary saved.',
+                    'redirect_url': reverse('resume_builder:my_resumes')
+                })
+            return JsonResponse({'success': True, 'message': 'Summary saved successfully!'})
+        except json.JSONDecodeError:
+            return JsonResponse({'success': False, 'error': 'Invalid JSON data'}, status=400)
+        except Exception as e:
+            logger.error(f"Save summary error: {str(e)}")
+            return JsonResponse({'success': False, 'error': 'Failed to save summary'}, status=500)
+    return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
