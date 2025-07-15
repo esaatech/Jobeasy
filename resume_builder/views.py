@@ -26,7 +26,7 @@ import PyPDF2
 from docx import Document
 
 # Import AI service for resume parsing
-from ai_service.open_ai import parse_resume_from_text
+from ai_service.structured_resume import format_resume
 from ai_service.open_ai import generate_professional_summary
 
 # Import utils for date options
@@ -310,7 +310,7 @@ def upload_resume(request):
             # Parse the resume text using AI
             logger.info("Parsing resume with AI")
             try:
-                parsed_data = parse_resume_from_text(resume_text)
+                parsed_data = format_resume(resume_text)
             except TimeoutError:
                 logger.error("AI parsing timeout error")
                 error_dialog = get_network_timeout_dialog()
@@ -341,9 +341,9 @@ def upload_resume(request):
                         'error': error_dialog
                     }, status=500)
             
-            personal_info = parsed_data.get('personal_info', {})
-            experience = parsed_data.get('experience', [])
-            skills = parsed_data.get('skills', {})
+            personal_info = parsed_data.personal_info.model_dump()
+            experience = parsed_data.experience
+            skills = parsed_data.skills.model_dump()
             
             # Always save as draft for user verification
             should_be_draft = True
@@ -360,10 +360,10 @@ def upload_resume(request):
                 template_id=template_id,
                 original_content=resume_text,
                 personal_info=personal_info,
-                experience=experience,
-                education=parsed_data.get('education', []),
+                experience=[exp.model_dump() for exp in experience],
+                education=[edu.model_dump() for edu in parsed_data.education],
                 skills=skills,
-                additional=parsed_data.get('additional', {}),
+                additional=parsed_data.additional.model_dump(),
                 is_optimized=False,  # This is not an optimized resume
                 # Set default values for optimization fields
                 keyword_matches=[],

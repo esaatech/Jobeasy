@@ -8,7 +8,7 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.11"
 django = "^5.2.3"
-openai = "^1.88.0"
+openai = "^1.96.0"
 dotenv = "^0.9.9"
 pdfplumber = "^0.11.7"
 django-mailbox = "^4.10.1"
