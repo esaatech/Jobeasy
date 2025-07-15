@@ -24,6 +24,7 @@ stripe = "^12.3.0"
 dj-database-url = "^3.0.1"
 python-decouple = "^3.8"
 psycopg2-binary = "^2.9.10"
+sendgrid = "^6.11.0"
 
 [tool.poetry.scripts]
 test = "test_runner:main"
