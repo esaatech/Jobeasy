@@ -226,6 +226,17 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': True,
         },
+        # Add detailed email logging
+        'django.core.mail': {
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'django.security.DisallowedHost': {
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
     },
 }
 
@@ -274,3 +285,22 @@ CKEDITOR_5_CONFIGS = {
         ],
     },
 }
+
+# Test email configuration for debugging
+if DEBUG:
+    # In development, you can test email sending
+    EMAIL_TEST_RECIPIENT = os.environ.get('EMAIL_TEST_RECIPIENT', 'engrjoelivon@yahoo.com')
+    EMAIL_TEST_SENDER = os.environ.get('FROM_EMAIL', 'support@jobeas.com')
+    
+    # Print email configuration for debugging
+    print(f"=== EMAIL CONFIGURATION DEBUG ===")
+    print(f"EMAIL_BACKEND: {EMAIL_BACKEND}")
+    print(f"EMAIL_HOST: {EMAIL_HOST}")
+    print(f"EMAIL_PORT: {EMAIL_PORT}")
+    print(f"EMAIL_USE_TLS: {EMAIL_USE_TLS}")
+    print(f"EMAIL_HOST_USER: {EMAIL_HOST_USER}")
+    print(f"EMAIL_HOST_PASSWORD: {'SET' if EMAIL_HOST_PASSWORD else 'NOT SET'}")
+    print(f"DEFAULT_FROM_EMAIL: {DEFAULT_FROM_EMAIL}")
+    print(f"FROM_EMAIL env var: {os.environ.get('FROM_EMAIL', 'NOT SET')}")
+    print(f"SENDGRID_MAIL_ACCESS: {'SET' if os.environ.get('SENDGRID_MAIL_ACCESS') else 'NOT SET'}")
+    print(f"=================================")

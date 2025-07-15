@@ -26,6 +26,13 @@ python manage.py bulk_add_faq
 # Populate interview prep questions
 python manage.py import_interview_prep
 
+# Test SendGrid email configuration (only in production)
+if [ "$DJANGO_ENV" = "production" ]; then
+    echo "Testing SendGrid email configuration..."
+    python manage.py test_sendgrid_email --to engrjoelivon@yahoo.com --subject "Jobeas Deployment Test"
+    echo "Email test completed"
+fi
+
 # Start the server with full Gunicorn options
 exec gunicorn jobeas.wsgi:application \
   --bind 0.0.0.0:${PORT:-8009} \

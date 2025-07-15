@@ -54,7 +54,7 @@ class NotificationService:
                 from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', NotificationService.DEFAULT_FROM_EMAIL_FALLBACK)
             print(f"From: {from_email}")
             print(f"Settings DEFAULT_FROM_EMAIL: {getattr(settings, 'DEFAULT_FROM_EMAIL', 'NOT SET')}")
-            print(f"Environment DEFAULT_FROM_EMAIL: {os.environ.get('DEFAULT_FROM_EMAIL', 'NOT SET')}")
+            print(f"Environment FROM_EMAIL: {os.environ.get('FROM_EMAIL', 'NOT SET')}")
             
             # Render HTML content
             print(f"Rendering template: {template_name}.html")
