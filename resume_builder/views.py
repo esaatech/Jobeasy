@@ -26,7 +26,7 @@ import PyPDF2
 from docx import Document
 
 # Import AI service for resume parsing
-from ai_service.structured_resume import format_resume
+from ai_service.structured_resume import format_resume_single_call as format_resume
 from ai_service.open_ai import generate_professional_summary
 
 # Import utils for date options

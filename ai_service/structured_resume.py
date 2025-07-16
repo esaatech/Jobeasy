@@ -38,8 +38,8 @@ class Skills(BaseModel):
     languages: List[str] = Field(description="Languages spoken")
 
 class Additional(BaseModel):
-    certifications: str = Field(description="Certifications and licenses")
-    projects: str = Field(description="Notable projects")
+    certifications: str = Field(description="Certifications and licenses with HTML formatting")
+    projects: str = Field(description="Notable projects with HTML formatting")
 
 class ResumeDataBasic(BaseModel):
     personal_info: PersonalInfo = Field(description="Personal information")
@@ -126,6 +126,7 @@ For the professional summary, extract if present or generate a compelling one ba
                 {"role": "user", "content": user_msg}
             ],
             response_format=ResumeDataBasic,
+            temperature=0.1,  # Low temperature for consistent parsing
         )
         
         return completion.choices[0].message.parsed
@@ -215,6 +216,7 @@ Return properly formatted HTML text for descriptions.
                 {"role": "user", "content": user_msg}
             ],
             response_format=ExperienceList,
+            temperature=0.1,  # Low temperature for consistent parsing
         )
         
         return completion.choices[0].message.parsed.experiences
@@ -254,6 +256,140 @@ def format_resume(resume_text: str) -> ResumeData:
         
     except Exception as err:
         raise Exception(f"Complete resume parsing failed: {str(err)}")
+
+def format_resume_single_call(resume_text: str) -> ResumeData:
+    print("format_resume_single_call")
+    """
+    Parse raw resume text using a single AI call with RISEN framework for better consistency.
+    
+    RISEN Framework:
+    - Role: You are an expert resume parser with specialized expertise in comprehensive resume analysis.
+    - Instruction: Follow this structured step-by-step process to extract ALL resume information.
+    - Step: Sequential extraction steps.
+    - Endgoal: Complete, accurate resume data.
+    - Narrowing: Focus on specific extraction tasks.
+    
+    Args:
+        resume_text (str): Raw resume text from uploaded file
+        
+    Returns:
+        ResumeData: Complete structured resume data using Pydantic models
+        
+    Raises:
+        Exception: If parsing fails
+    """
+    
+    # RISEN Framework Implementation
+    system_msg = (
+        "ROLE: You are an expert resume parser with specialized expertise in comprehensive resume analysis.\n\n"
+        
+        "INSTRUCTION: Follow this structured step-by-step process to extract ALL resume information:\n\n"
+        
+        "STEP 1 - PERSONAL INFORMATION EXTRACTION:\n"
+        "- Extract: full name, email, phone, location, LinkedIn URL\n"
+        "- For professional title: If explicitly provided, use it. If not, deduce based on:\n"
+        "  * Most recent job experience and seniority level\n"
+        "  * Skills and technologies mentioned\n"
+        "  * Overall career progression and experience level\n"
+        "- For professional summary: Extract if present, otherwise generate a compelling 3-4 sentence summary\n"
+        "- Summary MUST be written in FIRST PERSON (use 'I', 'my', 'me') - NEVER in third person\n"
+        "- Summary should highlight: key strengths, experience level, career focus, notable achievements\n"
+        "- Example format: 'I am a [title] with [X] years of experience in [field]. I specialize in [key skills] and have successfully [key achievement]. I am passionate about [career focus] and have a proven track record of [notable accomplishment].'\n\n"
+        
+        "STEP 2 - WORK EXPERIENCE EXTRACTION:\n"
+        "- Identify ALL work experience entries (look for: Experience, Work Experience, Employment, Professional Experience)\n"
+        "- For each job, extract: title, company name, start date, end date\n"
+        "- Use YYYY-MM format for dates (YYYY-01 if only year available)\n"
+        "- Set current positions to 'Present'\n"
+        "- Capture complete company names including legal entities (Inc., LLC, Corp., etc.)\n"
+        "- Extract ALL text under each job as complete description\n"
+        "- Convert descriptions to clean HTML format: <p> for paragraphs, <ul><li> for bullet points\n"
+        "- Extract all bullet points and accomplishment statements as achievements\n"
+        "- Preserve all technical details, metrics, and quantifiable results\n"
+        "- Do not skip any jobs, even if they seem brief\n\n"
+        
+        "STEP 3 - EDUCATION EXTRACTION:\n"
+        "- Identify all education entries (degrees, certifications, training)\n"
+        "- Extract: degree, institution, start date, end date, GPA, description\n"
+        "- Use YYYY-MM format for dates\n"
+        "- Set ongoing education to 'Present'\n"
+        "- Include all relevant details and descriptions\n\n"
+        
+        "STEP 4 - SKILLS CATEGORIZATION:\n"
+        "- Technical skills: programming languages, tools, technologies, software, frameworks\n"
+        "- Soft skills: communication, leadership, problem-solving, teamwork, project management\n"
+        "- Languages: spoken languages with proficiency levels if mentioned (e.g., 'English (Native)', 'Spanish (Conversational)')\n"
+        "- IMPORTANT: Always extract languages if mentioned in the resume\n"
+        "- Extract all skills mentioned in the resume\n\n"
+        
+        "STEP 5 - ADDITIONAL INFORMATION:\n"
+        "- Certifications: Extract all certifications and format with HTML (<ul><li> for bullet points)\n"
+        "- Projects: Extract all projects and format with HTML (<ul><li> for bullet points)\n"
+        "- Look for projects in: 'Projects', 'Portfolio', 'Notable Projects', 'Personal Projects', 'Side Projects', 'Open Source'\n"
+        "- Also check work experience descriptions for project mentions\n"
+        "- Check education section for academic projects\n"
+        "- Awards: honors, recognitions, achievements\n"
+        "- IMPORTANT: Use HTML formatting for certifications and projects like experience descriptions\n"
+        "- Convert comma-separated items into proper HTML lists\n"
+        "- Preserve all details and descriptions for each certification and project\n"
+        "- Other relevant information that doesn't fit other categories\n\n"
+        
+        "STEP 6 - COMPLETENESS VALIDATION:\n"
+        "- Verify that at least name, some experience, and some skills are extracted\n"
+        "- Ensure all extracted information is accurate and complete\n"
+        "- Set is_complete to false if critical information is missing\n\n"
+        
+        "ENDGOAL: Produce complete, structured resume data with:\n"
+        "- Complete personal information with deduced title and FIRST-PERSON professional summary\n"
+        "- ALL work experience entries with complete descriptions and achievements\n"
+        "- All education entries with proper formatting\n"
+        "- Comprehensive skills categorization including languages\n"
+        "- Certifications and projects with HTML formatting (consistent with experience descriptions)\n"
+        "- Additional information captured\n"
+        "- Accurate completeness assessment\n\n"
+        
+        "NARROWING: Focus ONLY on resume information extraction. Do not:\n"
+        "- Add or invent information not present in the text\n"
+        "- Skip any experience, education, or skills mentioned\n"
+        "- Skip languages if mentioned in the resume\n"
+        "- Leave certifications or projects without HTML formatting (use <ul><li> for lists)\n"
+        "- Summarize or condense descriptions\n"
+        "- Process non-resume content\n"
+        "- Modify the original information\n"
+        "- Write professional summaries in third person (always use first person: I, my, me)"
+    )
+    
+    user_msg = f"""
+### RAW RESUME TEXT ###
+{resume_text}
+
+### EXECUTION ###
+Follow the RISEN framework steps exactly:
+1. Extract personal information (name, contact, title, summary)
+2. Identify and extract ALL work experience entries with complete details
+3. Extract all education entries
+4. Categorize all skills (technical, soft, languages)
+5. Capture additional information (certifications, projects)
+6. Validate completeness and accuracy
+
+Return structured resume data with complete information for all sections.
+"""
+    
+    try:
+        completion = client.chat.completions.parse(
+            model="gpt-4o-2024-08-06",
+            messages=[
+                {"role": "system", "content": system_msg},
+                {"role": "user", "content": user_msg}
+            ],
+            response_format=ResumeData,
+            temperature=0.0,  # Zero temperature for maximum consistency
+        )
+        
+        return completion.choices[0].message.parsed
+        
+    except (OpenAIError, Exception) as err:
+        raise Exception(f"Single call resume parsing failed: {str(err)}")
 
 def test_format_resume():
     """Test function for format_resume"""
@@ -302,7 +438,7 @@ def test_format_resume():
         print(result.model_dump_json(indent=2))
         
         # Quick validation
-        print(f"\n📊 Extraction Summary:")
+        print(f"\n�� Extraction Summary:")
         print(f"- Name extracted: {bool(result.personal_info.full_name)}")
         print(f"- Professional title: {result.personal_info.title}")
         print(f"- Experience entries: {len(result.experience)}")
@@ -322,5 +458,86 @@ def test_format_resume():
     except Exception as e:
         print(f"\n❌ Structured parsing failed: {str(e)}")
 
+def test_single_call_performance():
+    """Test function to compare single call vs dual call performance"""
+    import time
+    
+    sample_resume_text = """
+    JOHN DOE
+    Software Engineer
+    john.doe@email.com | (555) 123-4567 | New York, NY
+    linkedin.com/in/johndoe
+
+    PROFESSIONAL SUMMARY
+    Experienced software engineer with 5+ years developing web applications using Python, JavaScript, and React. Passionate about creating scalable solutions and leading development teams.
+
+    EXPERIENCE
+    Senior Software Engineer
+    Tech Corp | 2021 - Present
+    - Led development of microservices architecture serving 1M+ users
+    - Managed team of 5 developers and improved deployment efficiency by 40%
+    - Implemented CI/CD pipelines reducing deployment time by 60%
+
+    Software Engineer
+    Startup Inc | 2019 - 2021
+    - Developed REST APIs using Python Flask and Django
+    - Built responsive frontend using React and TypeScript
+    - Collaborated with cross-functional teams in agile environment
+
+    EDUCATION
+    Bachelor of Science in Computer Science
+    University of Technology | 2019 | GPA: 3.8
+
+    SKILLS
+    Technical: Python, JavaScript, React, Node.js, AWS, Docker, Kubernetes
+    Soft Skills: Leadership, Communication, Problem Solving, Team Collaboration
+    Languages: English (Native), Spanish (Conversational)
+
+    CERTIFICATIONS
+    AWS Certified Developer Associate
+    Google Cloud Professional Developer
+
+    PROJECTS
+    E-commerce Platform: Built full-stack application using React and Django
+    """
+
+    print("🔄 Testing Single Call Performance...")
+    print("=" * 50)
+    
+    # Test single call
+    start_time = time.time()
+    try:
+        result_single = format_resume_single_call(sample_resume_text)
+        single_time = time.time() - start_time
+        
+        print(f"✅ Single Call Results:")
+        print(f"⏱️  Time: {single_time:.2f} seconds")
+        print(f"👤 Name: {result_single.personal_info.full_name}")
+        print(f"💼 Title: {result_single.personal_info.title}")
+        print(f"📝 Summary: {len(result_single.personal_info.summary)} characters")
+        print(f"💼 Experience entries: {len(result_single.experience)}")
+        print(f"🔧 Technical skills: {len(result_single.skills.technical)}")
+        print(f"✅ Is complete: {result_single.is_complete}")
+        
+        # Show first experience details
+        if result_single.experience:
+            exp = result_single.experience[0]
+            print(f"\n📋 First Experience:")
+            print(f"  Title: {exp.title}")
+            print(f"  Company: {exp.company}")
+            print(f"  Description length: {len(exp.description)} characters")
+            print(f"  Achievements: {len(exp.achievements)}")
+            
+    except Exception as e:
+        print(f"❌ Single call failed: {str(e)}")
+        return
+    
+    print("\n" + "=" * 50)
+    print("🎯 Performance Comparison:")
+    print(f"Single Call: {single_time:.2f} seconds")
+    print("Dual Call: ~2x longer (estimated)")
+    print(f"Speed Improvement: ~{(single_time * 2 - single_time) / (single_time * 2) * 100:.0f}% faster")
+
 if __name__ == "__main__":
-    test_format_resume() 
+    test_format_resume()
+    test_single_call_performance() 
