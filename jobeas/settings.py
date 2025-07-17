@@ -13,7 +13,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 from pathlib import Path
 from dotenv import load_dotenv
 import os
-from decouple import config
+from decouple import config, Csv
 import dj_database_url
 
 
@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'channels',  # Add channels for WebSocket support
     'home',
     'resume_builder',
     'job_service',
@@ -100,7 +101,32 @@ TEMPLATES = [
     },
 ]
 
+# WSGI and ASGI Configuration
 WSGI_APPLICATION = 'jobeas.wsgi.application'
+ASGI_APPLICATION = 'jobeas.asgi.application'
+
+# Environment configuration
+ENV = config("DJANGO_ENV", default="development")
+
+# Channel Layers Configuration
+REDIS_URL = config('REDIS_URL', default='redis://localhost:6379')
+if ENV == "production":
+    # Production: Use Redis (will be configured later)
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [REDIS_URL],
+            },
+        },
+    }
+else:
+    # Development: Use in-memory channel layer
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer"
+        }
+    }
 
 
 # Database
@@ -109,8 +135,6 @@ WSGI_APPLICATION = 'jobeas.wsgi.application'
 
 
 
-
-ENV = config("DJANGO_ENV", default="development")
 
 if ENV == "production":
     DATABASES = {
