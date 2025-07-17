@@ -106,22 +106,21 @@ WSGI_APPLICATION = 'jobeas.wsgi.application'
 ASGI_APPLICATION = 'jobeas.asgi.application'
 
 # Environment configuration
-ENV = config("DJANGO_ENV", default="development")
+DJANGO_ENV = config("DJANGO_ENV", default="development")
 
 # Channel Layers Configuration
-REDIS_URL = config('REDIS_URL', default='redis://localhost:6379')
-if ENV == "production":
-    # Production: Use Redis (will be configured later)
+if DJANGO_ENV == "production":
+    # Production: Use Railway Redis
     CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels_redis.core.RedisChannelLayer",
             "CONFIG": {
-                "hosts": [REDIS_URL],
+                "hosts": [config('REDIS_URL', default='redis://localhost:6379')],
             },
         },
     }
 else:
-    # Development: Use in-memory channel layer
+    # Development: Use in-memory channel layer (no Redis needed)
     CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels.layers.InMemoryChannelLayer"
@@ -136,7 +135,7 @@ else:
 
 
 
-if ENV == "production":
+if DJANGO_ENV == "production":
     DATABASES = {
         'default': dj_database_url.config(
             default=config("DATABASE_URL_PROD"),
@@ -265,7 +264,7 @@ LOGGING = {
 }
 
 # Add file logging only in development
-if ENV == "development":
+if DJANGO_ENV == "development":
     import os
     logs_dir = BASE_DIR / 'logs'
     if not logs_dir.exists():
