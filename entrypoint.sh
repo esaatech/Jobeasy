@@ -1,6 +1,9 @@
 #!/bin/sh
 set -e
 
+# Set Django settings module
+export DJANGO_SETTINGS_MODULE=jobeas.settings
+
 # Usual Django setup
 python manage.py migrate --noinput
 python manage.py collectstatic --noinput

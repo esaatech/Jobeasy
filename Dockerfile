@@ -34,11 +34,5 @@ COPY . /app/
 # Expose port 8009
 EXPOSE 8009
 
-# Set environment variables for Django
-ENV DJANGO_SETTINGS_MODULE=jobeas.settings
-
-COPY entrypoint.sh /app/entrypoint.sh
-ENTRYPOINT ["/app/entrypoint.sh"]
-
-# Use Uvicorn for ASGI support
-CMD ["sh", "-c", "python manage.py migrate && python manage.py collectstatic --noinput && uvicorn jobeas.asgi:application --host 0.0.0.0 --port ${PORT:-8009} --workers 1 --timeout-keep-alive 120"] 
+# Set entrypoint
+ENTRYPOINT ["sh", "entrypoint.sh"] 
