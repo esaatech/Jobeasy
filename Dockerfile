@@ -40,5 +40,5 @@ ENV DJANGO_SETTINGS_MODULE=jobeas.settings
 COPY entrypoint.sh /app/entrypoint.sh
 ENTRYPOINT ["/app/entrypoint.sh"]
 
-# Remove or comment out the old CMD line
-# CMD ["sh", "-c", "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn jobeas.wsgi:application --bind 0.0.0.0:${PORT:-8009} --workers 1 --timeout 120 --keep-alive 5 --max-r"] 
+# Use Uvicorn for ASGI support
+CMD ["sh", "-c", "python manage.py migrate && python manage.py collectstatic --noinput && uvicorn jobeas.asgi:application --host 0.0.0.0 --port ${PORT:-8009} --workers 1 --timeout-keep-alive 120"] 

@@ -26,11 +26,10 @@ python manage.py bulk_add_faq
 # Populate interview prep questions
 python manage.py import_interview_prep
 
-# Start the server with full Gunicorn options
-exec gunicorn jobeas.wsgi:application \
-  --bind 0.0.0.0:${PORT:-8009} \
+# Start the server with Uvicorn for ASGI support
+exec uvicorn jobeas.asgi:application \
+  --host 0.0.0.0 \
+  --port ${PORT:-8009} \
   --workers 1 \
-  --timeout 120 \
-  --keep-alive 5 \
-  --max-requests 1000 \
-  --max-requests-jitter 100 
+  --timeout-keep-alive 120 \
+  --access-log 
