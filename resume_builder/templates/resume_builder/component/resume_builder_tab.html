@@ -1,0 +1,947 @@
+<!-- Resume Builder Tab Component -->
+<div class="resume-builder-tab" id="resumeBuilderTab">
+    <div class="resume-builder-header">
+        <div class="resume-info">
+            <h2 id="resumeTitle">📄 My Resume</h2>
+            <p id="resumeTemplate" class="text-sm text-gray-600">Template: Professional</p>
+        </div>
+        <div class="resume-actions">
+            <button class="btn btn-secondary btn-sm" onclick="editResume()">
+                <i class="fas fa-edit"></i> Edit
+            </button>
+            <button class="btn btn-primary btn-sm" onclick="downloadResume()">
+                <i class="fas fa-download"></i> Download
+            </button>
+        </div>
+    </div>
+    
+    <div class="resume-sections">
+        <!-- Personal Information Section -->
+        <div class="section-card" id="personalInfoSection">
+            <div class="section-header">
+                <div class="section-status">
+                    <span class="status-icon" id="personalInfoStatus">⏳</span>
+                    <h3>Personal Information</h3>
+                </div>
+                <div class="section-progress">
+                    <span class="progress-text" id="personalInfoProgress">0%</span>
+                </div>
+            </div>
+            <div class="section-content" id="personalInfoContent">
+                <div class="placeholder-content">
+                    <p class="text-gray-500">AI will guide you through this section...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Work Experience Section -->
+        <div class="section-card" id="experienceSection">
+            <div class="section-header">
+                <div class="section-status">
+                    <span class="status-icon" id="experienceStatus">⏳</span>
+                    <h3>Work Experience</h3>
+                </div>
+                <div class="section-progress">
+                    <span class="progress-text" id="experienceProgress">0%</span>
+                </div>
+            </div>
+            <div class="section-content" id="experienceContent">
+                <div class="placeholder-content">
+                    <p class="text-gray-500">AI will guide you through this section...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Education Section -->
+        <div class="section-card" id="educationSection">
+            <div class="section-header">
+                <div class="section-status">
+                    <span class="status-icon" id="educationStatus">⏳</span>
+                    <h3>Education</h3>
+                </div>
+                <div class="section-progress">
+                    <span class="progress-text" id="educationProgress">0%</span>
+                </div>
+            </div>
+            <div class="section-content" id="educationContent">
+                <div class="placeholder-content">
+                    <p class="text-gray-500">AI will guide you through this section...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Skills Section -->
+        <div class="section-card" id="skillsSection">
+            <div class="section-header">
+                <div class="section-status">
+                    <span class="status-icon" id="skillsStatus">⏳</span>
+                    <h3>Skills</h3>
+                </div>
+                <div class="section-progress">
+                    <span class="progress-text" id="skillsProgress">0%</span>
+                </div>
+            </div>
+            <div class="section-content" id="skillsContent">
+                <div class="placeholder-content">
+                    <p class="text-gray-500">AI will guide you through this section...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Additional Information Section -->
+        <div class="section-card" id="additionalSection">
+            <div class="section-header">
+                <div class="section-status">
+                    <span class="status-icon" id="additionalStatus">⏳</span>
+                    <h3>Additional Information</h3>
+                </div>
+                <div class="section-progress">
+                    <span class="progress-text" id="additionalProgress">0%</span>
+                </div>
+            </div>
+            <div class="section-content" id="additionalContent">
+                <div class="placeholder-content">
+                    <p class="text-gray-500">AI will guide you through this section...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Overall Progress -->
+    <div class="overall-progress">
+        <div class="progress-bar">
+            <div class="progress-fill" id="overallProgressFill" style="width: 0%"></div>
+        </div>
+        <span class="progress-text" id="overallProgressText">0% Complete</span>
+    </div>
+</div>
+
+<style>
+/* Resume Builder Tab Styles */
+.resume-builder-tab {
+    width: 100%;
+    height: 100%;
+    background: #f8fafc;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.resume-builder-header {
+    padding: 20px;
+    background: white;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.resume-info h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #374151;
+}
+
+.resume-info p {
+    margin: 5px 0 0 0;
+    font-size: 0.9rem;
+}
+
+.resume-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.resume-sections {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.section-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    border: 1px solid #e5e7eb;
+}
+
+.section-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #f3f4f6;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.section-status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.status-icon {
+    font-size: 1.2rem;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+
+.status-icon.completed {
+    background: #10b981;
+    color: white;
+}
+
+.status-icon.in-progress {
+    background: #3b82f6;
+    color: white;
+    animation: pulse 2s infinite;
+}
+
+.status-icon.pending {
+    background: #9ca3af;
+    color: white;
+}
+
+.status-icon.error {
+    background: #ef4444;
+    color: white;
+}
+
+.section-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #374151;
+}
+
+.section-progress {
+    font-size: 0.9rem;
+    color: #6b7280;
+}
+
+.section-content {
+    padding: 20px;
+    min-height: 60px;
+}
+
+.placeholder-content {
+    text-align: center;
+    padding: 20px;
+    color: #9ca3af;
+}
+
+.section-data {
+    display: grid;
+    gap: 12px;
+}
+
+.data-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.data-item:last-child {
+    border-bottom: none;
+}
+
+.data-label {
+    font-weight: 500;
+    color: #374151;
+}
+
+.data-value {
+    color: #6b7280;
+    text-align: right;
+}
+
+.overall-progress {
+    padding: 20px;
+    background: white;
+    border-top: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.progress-bar {
+    flex: 1;
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981, #059669);
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #374151;
+    min-width: 80px;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Button Styles */
+.btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-primary {
+    background: #3b82f6;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #2563eb;
+}
+
+.btn-secondary {
+    background: #f3f4f6;
+    color: #374151;
+    border: 1px solid #d1d5db;
+}
+
+.btn-secondary:hover {
+    background: #e5e7eb;
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+}
+</style>
+
+<script>
+// ResumeDataManager class to accumulate and manage all resume data
+class ResumeDataManager {
+    constructor() {
+        console.log('🔧 ResumeDataManager: Initializing');
+        this.data = {
+            personal_info: {},
+            experience: [],
+            education: [],
+            skills: {},
+            additional: {}
+        };
+        this.resumeId = null;
+        this.resumeName = 'My Resume';
+        this.templateId = 'professional';
+    }
+    
+    // Set resume metadata
+    setResumeInfo(resumeId, resumeName, templateId) {
+        console.log('🔧 ResumeDataManager: Setting resume info', { resumeId, resumeName, templateId });
+        this.resumeId = resumeId;
+        this.resumeName = resumeName || 'My Resume';
+        this.templateId = templateId || 'professional';
+        this.updateResumeBuilderDisplay();
+    }
+    
+    // Add or update personal information
+    updatePersonalInfo(personalInfo) {
+        console.log('🔧 ResumeDataManager: Updating personal info', personalInfo);
+        this.data.personal_info = { ...this.data.personal_info, ...personalInfo };
+        this.updateResumeBuilderDisplay();
+    }
+    
+    // Add experience entry
+    addExperience(experienceEntry) {
+        console.log('🔧 ResumeDataManager: Adding experience', experienceEntry);
+        this.data.experience.push(experienceEntry);
+        this.updateResumeBuilderDisplay();
+    }
+    
+    // Update experience (replace all)
+    updateExperience(experienceEntries) {
+        console.log('🔧 ResumeDataManager: Updating experience', experienceEntries);
+        this.data.experience = experienceEntries;
+        this.updateResumeBuilderDisplay();
+    }
+    
+    // Add education entry
+    addEducation(educationEntry) {
+        console.log('🔧 ResumeDataManager: Adding education', educationEntry);
+        this.data.education.push(educationEntry);
+        this.updateResumeBuilderDisplay();
+    }
+    
+    // Update education (replace all)
+    updateEducation(educationEntries) {
+        console.log('🔧 ResumeDataManager: Updating education', educationEntries);
+        this.data.education = educationEntries;
+        this.updateResumeBuilderDisplay();
+    }
+    
+    // Update skills
+    updateSkills(skills) {
+        console.log('🔧 ResumeDataManager: Updating skills', skills);
+        this.data.skills = { ...this.data.skills, ...skills };
+        this.updateResumeBuilderDisplay();
+    }
+    
+    // Update additional information
+    updateAdditional(additional) {
+        console.log('🔧 ResumeDataManager: Updating additional', additional);
+        this.data.additional = { ...this.data.additional, ...additional };
+        this.updateResumeBuilderDisplay();
+    }
+    
+    // Get all data
+    getAllData() {
+        return {
+            ...this.data,
+            resumeId: this.resumeId,
+            resumeName: this.resumeName,
+            templateId: this.templateId
+        };
+    }
+    
+    // Calculate section progress
+    calculateSectionProgress(section) {
+        switch (section) {
+            case 'personal_info':
+                const requiredFields = ['full_name', 'email', 'phone', 'location', 'title'];
+                const filledFields = requiredFields.filter(field => 
+                    this.data.personal_info[field] && this.data.personal_info[field].trim()
+                );
+                return (filledFields.length / requiredFields.length) * 100;
+                
+            case 'experience':
+                return this.data.experience.length > 0 ? 100 : 0;
+                
+            case 'education':
+                return this.data.education.length > 0 ? 100 : 0;
+                
+            case 'skills':
+                const hasSkills = (this.data.skills.technical && this.data.skills.technical.length > 0) ||
+                                 (this.data.skills.soft && this.data.skills.soft.length > 0) ||
+                                 (this.data.skills.languages && this.data.skills.languages.length > 0);
+                return hasSkills ? 100 : 0;
+                
+            case 'additional':
+                const hasAdditional = (this.data.additional.certifications && this.data.additional.certifications.trim()) ||
+                                     (this.data.additional.projects && this.data.additional.projects.trim());
+                return hasAdditional ? 100 : 0;
+                
+            default:
+                return 0;
+        }
+    }
+    
+    // Calculate overall progress
+    calculateOverallProgress() {
+        const sections = ['personal_info', 'experience', 'education', 'skills', 'additional'];
+        const totalProgress = sections.reduce((sum, section) => {
+            return sum + this.calculateSectionProgress(section);
+        }, 0);
+        return Math.round(totalProgress / sections.length);
+    }
+    
+    // Update the Resume Builder tab display
+    updateResumeBuilderDisplay() {
+        console.log('🔧 ResumeDataManager: Updating display with data', this.data);
+        
+        // Update resume info
+        if (window.resumeBuilderTab) {
+            window.resumeBuilderTab.setResumeInfo(this.resumeId, this.resumeName, this.templateId);
+        }
+        
+        // Update each section
+        const sections = ['personal_info', 'experience', 'education', 'skills', 'additional'];
+        sections.forEach(section => {
+            const progress = this.calculateSectionProgress(section);
+            const status = progress === 100 ? 'completed' : progress > 0 ? 'in-progress' : 'pending';
+            
+            if (window.resumeBuilderTab) {
+                window.resumeBuilderTab.updateSectionStatus(section, status, progress);
+                window.resumeBuilderTab.updateSectionContent(section, this.data[section]);
+            }
+        });
+        
+        // Update overall progress
+        const overallProgress = this.calculateOverallProgress();
+        if (window.resumeBuilderTab) {
+            window.resumeBuilderTab.updateOverallProgress(overallProgress);
+        }
+    }
+}
+
+// Global instance
+window.resumeDataManager = new ResumeDataManager();
+
+class ResumeBuilderTab {
+    constructor() {
+        console.log('🔧 ResumeBuilderTab constructor called');
+        
+        this.currentResumeId = null;
+        this.currentTemplate = 'professional';
+        this.sectionStatus = {
+            personal_info: { status: 'pending', progress: 0 },
+            experience: { status: 'pending', progress: 0 },
+            education: { status: 'pending', progress: 0 },
+            skills: { status: 'pending', progress: 0 },
+            additional: { status: 'pending', progress: 0 }
+        };
+        this.sectionContent = {
+            personal_info: null,
+            experience: null,
+            education: null,
+            skills: null,
+            additional: null
+        };
+        
+        this.initializeEventListeners();
+    }
+    
+    // Helper method to convert section names to camelCase element IDs
+    getElementId(section, elementType) {
+        const sectionMap = {
+            'personal_info': 'personalInfo',
+            'experience': 'experience',
+            'education': 'education',
+            'skills': 'skills',
+            'additional': 'additional'
+        };
+        
+        const sectionId = sectionMap[section] || section;
+        return `${sectionId}${elementType}`;
+    }
+    
+    initializeEventListeners() {
+        console.log('🔧 ResumeBuilderTab: Initializing event listeners');
+        // Event listeners will be added as needed
+    }
+    
+    ensureInitialized() {
+        console.log('🔧 ResumeBuilderTab: Ensuring initialization');
+        
+        // Check if the tab is visible
+        const tabElement = document.getElementById('resumeBuilderTab');
+        if (tabElement) {
+            const computedStyle = getComputedStyle(tabElement);
+            console.log(`🔍 ResumeBuilderTab display:`, computedStyle.display);
+            console.log(`🔍 ResumeBuilderTab visibility:`, computedStyle.visibility);
+            console.log(`🔍 ResumeBuilderTab opacity:`, computedStyle.opacity);
+            console.log(`🔍 ResumeBuilderTab height:`, computedStyle.height);
+            console.log(`🔍 ResumeBuilderTab width:`, computedStyle.width);
+        }
+        
+        // Check if all required elements exist
+        const requiredElements = [
+            'resumeTitle', 'resumeTemplate', 'overallProgressFill', 'overallProgressText'
+        ];
+        
+        const sectionElements = [
+            'personalInfoStatus', 'personalInfoProgress', 'personalInfoContent',
+            'experienceStatus', 'experienceProgress', 'experienceContent',
+            'educationStatus', 'educationProgress', 'educationContent',
+            'skillsStatus', 'skillsProgress', 'skillsContent',
+            'additionalStatus', 'additionalProgress', 'additionalContent'
+        ];
+        
+        const allElements = [...requiredElements, ...sectionElements];
+        const missingElements = [];
+        
+        allElements.forEach(elementId => {
+            if (!document.getElementById(elementId)) {
+                missingElements.push(elementId);
+            }
+        });
+        
+        if (missingElements.length > 0) {
+            console.warn('⚠️ ResumeBuilderTab: Missing elements:', missingElements);
+            return false;
+        }
+        
+        console.log('✅ ResumeBuilderTab: All elements found, initialization complete');
+        
+        // Only show basic content if no resume data exists yet
+        if (!this.currentResumeId) {
+            this.showBasicContent();
+        } else {
+            console.log('🔧 ResumeBuilderTab: Resume data exists, preserving content');
+            // Restore section statuses and content from memory
+            this.restoreContent();
+        }
+        
+        return true;
+    }
+    
+    restoreContent() {
+        console.log('🔧 ResumeBuilderTab: Restoring content from memory');
+        
+        // Restore section statuses
+        Object.keys(this.sectionStatus).forEach(section => {
+            const status = this.sectionStatus[section];
+            if (status) {
+                this.updateSectionStatus(section, status.status, status.progress);
+            }
+        });
+        
+        // Restore section content from memory if available
+        Object.keys(this.sectionContent).forEach(section => {
+            const content = this.sectionContent[section];
+            if (content) {
+                this.updateSectionContent(section, content);
+            }
+        });
+        
+        console.log('✅ ResumeBuilderTab: Content restored');
+    }
+    
+    showBasicContent() {
+        console.log('🔧 ResumeBuilderTab: Showing basic content');
+        
+        // Set basic resume info
+        const resumeTitle = document.getElementById('resumeTitle');
+        if (resumeTitle) {
+            resumeTitle.textContent = '📄 My Resume';
+        }
+        
+        const resumeTemplate = document.getElementById('resumeTemplate');
+        if (resumeTemplate) {
+            resumeTemplate.textContent = 'Template: Professional';
+        }
+        
+        // Set basic content for each section
+        const sections = ['personalInfo', 'experience', 'education', 'skills', 'additional'];
+        sections.forEach(section => {
+            const contentDiv = document.getElementById(`${section}Content`);
+            if (contentDiv) {
+                contentDiv.innerHTML = `
+                    <div class="placeholder-content">
+                        <p class="text-gray-500">AI will guide you through this section...</p>
+                    </div>
+                `;
+            }
+        });
+        
+        console.log('✅ ResumeBuilderTab: Basic content set');
+    }
+    
+    setResumeInfo(resumeId, resumeName, templateId) {
+        console.log('🔧 ResumeBuilderTab: Setting resume info', { resumeId, resumeName, templateId });
+        
+        this.currentResumeId = resumeId;
+        this.currentTemplate = templateId;
+        
+        const resumeTitle = document.getElementById('resumeTitle');
+        const resumeTemplate = document.getElementById('resumeTemplate');
+        
+        // Check if elements exist before updating
+        if (!resumeTitle) {
+            console.warn('⚠️ Resume title element not found');
+            return;
+        }
+        
+        if (!resumeTemplate) {
+            console.warn('⚠️ Resume template element not found');
+            return;
+        }
+        
+        resumeTitle.textContent = `📄 ${resumeName}`;
+        resumeTemplate.textContent = `Template: ${templateId.charAt(0).toUpperCase() + templateId.slice(1)}`;
+    }
+    
+    updateSectionStatus(section, status, progress = 0) {
+        console.log('🔧 ResumeBuilderTab: Updating section status', { section, status, progress });
+        
+        this.sectionStatus[section] = { status, progress };
+        
+        const statusIcon = document.getElementById(this.getElementId(section, 'Status'));
+        const progressText = document.getElementById(this.getElementId(section, 'Progress'));
+        
+        console.log(`🔍 Looking for status icon: ${this.getElementId(section, 'Status')}`);
+        console.log(`🔍 Looking for progress text: ${this.getElementId(section, 'Progress')}`);
+        
+        // Check if elements exist before updating
+        if (!statusIcon) {
+            console.warn(`⚠️ Status icon element not found: ${this.getElementId(section, 'Status')}`);
+            return;
+        }
+        
+        if (!progressText) {
+            console.warn(`⚠️ Progress text element not found: ${this.getElementId(section, 'Progress')}`);
+            return;
+        }
+        
+        console.log(`🔍 Found status icon:`, statusIcon);
+        console.log(`🔍 Found progress text:`, progressText);
+        
+        // Update status icon
+        statusIcon.className = 'status-icon';
+        statusIcon.classList.add(status);
+        
+        switch (status) {
+            case 'completed':
+                statusIcon.textContent = '✅';
+                break;
+            case 'in-progress':
+                statusIcon.textContent = '🔄';
+                break;
+            case 'pending':
+                statusIcon.textContent = '⏳';
+                break;
+            case 'error':
+                statusIcon.textContent = '❌';
+                break;
+        }
+        
+        // Update progress text
+        progressText.textContent = `${Math.round(progress)}%`;
+        
+        console.log(`🔍 Updated status icon text:`, statusIcon.textContent);
+        console.log(`🔍 Updated progress text:`, progressText.textContent);
+        
+        // Update overall progress
+        this.updateOverallProgress();
+    }
+    
+    updateSectionContent(section, data) {
+        console.log('🔧 ResumeBuilderTab: Updating section content', { section, data });
+        
+        // Save the content data in memory for restoration
+        this.sectionContent[section] = data;
+        
+        const contentDiv = document.getElementById(this.getElementId(section, 'Content'));
+        
+        // Check if element exists before updating
+        if (!contentDiv) {
+            console.warn(`⚠️ Content div element not found: ${this.getElementId(section, 'Content')}`);
+            return;
+        }
+        
+        console.log(`🔍 Found content div:`, contentDiv);
+        console.log(`🔍 Current innerHTML:`, contentDiv.innerHTML);
+        
+        if (!data || Object.keys(data).length === 0) {
+            const placeholderHtml = `
+                <div class="placeholder-content">
+                    <p class="text-gray-500">AI will guide you through this section...</p>
+                </div>
+            `;
+            contentDiv.innerHTML = placeholderHtml;
+            console.log(`🔍 Set placeholder HTML:`, placeholderHtml);
+            return;
+        }
+        
+        let html = '<div class="section-data">';
+        
+        switch (section) {
+            case 'personal_info':
+                if (data.full_name) html += `<div class="data-item"><span class="data-label">Name:</span><span class="data-value">${data.full_name}</span></div>`;
+                if (data.title) html += `<div class="data-item"><span class="data-label">Title:</span><span class="data-value">${data.title}</span></div>`;
+                if (data.email) html += `<div class="data-item"><span class="data-label">Email:</span><span class="data-value">${data.email}</span></div>`;
+                if (data.phone) html += `<div class="data-item"><span class="data-label">Phone:</span><span class="data-value">${data.phone}</span></div>`;
+                if (data.location) html += `<div class="data-item"><span class="data-label">Location:</span><span class="data-value">${data.location}</span></div>`;
+                if (data.linkedin) html += `<div class="data-item"><span class="data-label">LinkedIn:</span><span class="data-value">${data.linkedin}</span></div>`;
+                if (data.summary) html += `<div class="data-item"><span class="data-label">Summary:</span><span class="data-value">${data.summary.substring(0, 100)}${data.summary.length > 100 ? '...' : ''}</span></div>`;
+                break;
+                
+            case 'experience':
+                if (data && data.length > 0) {
+                    data.forEach((exp, index) => {
+                        html += `<div class="data-item"><span class="data-label">${exp.title || 'Position'}:</span><span class="data-value">${exp.company || 'Company'} (${exp.start_date || 'Start'} - ${exp.end_date || 'End'})</span></div>`;
+                    });
+                }
+                break;
+                
+            case 'education':
+                if (data && data.length > 0) {
+                    data.forEach((edu, index) => {
+                        html += `<div class="data-item"><span class="data-label">${edu.degree || 'Degree'}:</span><span class="data-value">${edu.institution || 'Institution'} (${edu.start_date || 'Start'} - ${edu.end_date || 'End'})</span></div>`;
+                    });
+                }
+                break;
+                
+            case 'skills':
+                if (data.technical && data.technical.length > 0) {
+                    html += `<div class="data-item"><span class="data-label">Technical Skills:</span><span class="data-value">${data.technical.join(', ')}</span></div>`;
+                }
+                if (data.soft && data.soft.length > 0) {
+                    html += `<div class="data-item"><span class="data-label">Soft Skills:</span><span class="data-value">${data.soft.join(', ')}</span></div>`;
+                }
+                if (data.languages && data.languages.length > 0) {
+                    html += `<div class="data-item"><span class="data-label">Languages:</span><span class="data-value">${data.languages.join(', ')}</span></div>`;
+                }
+                break;
+                
+            case 'additional':
+                if (data.certifications) {
+                    html += `<div class="data-item"><span class="data-label">Certifications:</span><span class="data-value">${data.certifications}</span></div>`;
+                }
+                if (data.projects) {
+                    html += `<div class="data-item"><span class="data-label">Projects:</span><span class="data-value">${data.projects}</span></div>`;
+                }
+                break;
+        }
+        
+        html += '</div>';
+        console.log(`🔍 Generated HTML for ${section}:`, html);
+        
+        contentDiv.innerHTML = html;
+        console.log(`🔍 After setting innerHTML:`, contentDiv.innerHTML);
+        
+        // Force a reflow to ensure the content is rendered
+        contentDiv.offsetHeight;
+    }
+    
+    updateOverallProgress(progress) {
+        console.log('🔧 ResumeBuilderTab: Updating overall progress', progress);
+        
+        const progressFill = document.getElementById('overallProgressFill');
+        const progressText = document.getElementById('overallProgressText');
+        
+        // Check if elements exist before updating
+        if (!progressFill) {
+            console.warn('⚠️ Overall progress fill element not found');
+            return;
+        }
+        
+        if (!progressText) {
+            console.warn('⚠️ Overall progress text element not found');
+            return;
+        }
+        
+        // Update progress bar
+        progressFill.style.width = `${progress}%`;
+        
+        // Update progress text
+        progressText.textContent = `${progress}% Complete`;
+        
+        console.log(`🔍 Updated progress fill width: ${progress}%`);
+        console.log(`🔍 Updated progress text: ${progress}% Complete`);
+    }
+    
+    // Public methods for external access
+    handleResumeCreated(data) {
+        console.log('📄 ResumeBuilderTab: Resume created event:', data);
+        
+        // Ensure the tab is initialized before updating
+        if (!this.ensureInitialized()) {
+            console.warn('⚠️ ResumeBuilderTab: Cannot handle resume created event - tab not initialized');
+            return;
+        }
+        
+        this.setResumeInfo(data.resume_id, data.resume_name, data.template_id);
+        
+        // Automatically switch to the Resume Builder tab
+        if (window.tabManager) {
+            window.tabManager.switchToTab('resume-builder');
+        }
+        
+        // Test: Set some manual content to see if it appears
+        this.testContentVisibility();
+    }
+    
+    testContentVisibility() {
+        console.log('🧪 ResumeBuilderTab: Testing content visibility');
+        
+        const testContent = document.getElementById('personalInfoContent');
+        if (testContent) {
+            const testHtml = `
+                <div class="section-data">
+                    <div class="data-item">
+                        <span class="data-label">Test Name:</span>
+                        <span class="data-value">TEST USER</span>
+                    </div>
+                    <div class="data-item">
+                        <span class="data-label">Test Email:</span>
+                        <span class="data-value">test@example.com</span>
+                    </div>
+                </div>
+            `;
+            testContent.innerHTML = testHtml;
+            console.log('🧪 Set test content:', testHtml);
+            console.log('🧪 Test content innerHTML after setting:', testContent.innerHTML);
+        } else {
+            console.warn('🧪 Test content element not found');
+        }
+    }
+    
+    handleResumeUpdated(data) {
+        console.log('📄 ResumeBuilderTab: Resume updated event:', data);
+        
+        // Ensure the tab is initialized before updating
+        if (!this.ensureInitialized()) {
+            console.warn('⚠️ ResumeBuilderTab: Cannot handle resume updated event - tab not initialized');
+            return;
+        }
+        
+        if (data.personal_info) {
+            this.updateSectionContent('personal_info', data.personal_info);
+            this.updateSectionStatus('personal_info', 'completed', 100);
+        }
+        if (data.experience) {
+            this.updateSectionContent('experience', data.experience);
+            this.updateSectionStatus('experience', 'completed', 100);
+        }
+        if (data.education) {
+            this.updateSectionContent('education', data.education);
+            this.updateSectionStatus('education', 'completed', 100);
+        }
+        if (data.skills) {
+            this.updateSectionContent('skills', data.skills);
+            this.updateSectionStatus('skills', 'completed', 100);
+        }
+        if (data.additional) {
+            this.updateSectionContent('additional', data.additional);
+            this.updateSectionStatus('additional', 'completed', 100);
+        }
+    }
+    
+    handleSectionCompleted(data) {
+        console.log('✅ ResumeBuilderTab: Section completed event:', data);
+        
+        // Ensure the tab is initialized before updating
+        if (!this.ensureInitialized()) {
+            console.warn('⚠️ ResumeBuilderTab: Cannot handle section completed event - tab not initialized');
+            return;
+        }
+        
+        this.updateSectionStatus(data.section, 'completed', 100);
+        this.updateSectionContent(data.section, data.data);
+    }
+    
+    handleSectionInProgress(data) {
+        console.log('🔄 ResumeBuilderTab: Section in progress event:', data);
+        
+        // Ensure the tab is initialized before updating
+        if (!this.ensureInitialized()) {
+            console.warn('⚠️ ResumeBuilderTab: Cannot handle section in progress event - tab not initialized');
+            return;
+        }
+        
+        this.updateSectionStatus(data.section, 'in-progress', data.progress || 50);
+    }
+}
+
+// Initialize the Resume Builder Tab
+window.resumeBuilderTab = new ResumeBuilderTab();
+console.log('✅ ResumeBuilderTab initialized');
+</script> 

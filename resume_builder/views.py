@@ -20,6 +20,7 @@ import uuid
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
 
 # Import libraries for file processing
 import PyPDF2
@@ -41,6 +42,231 @@ from utils.subscription import get_resume_update_plus_dialog, get_resume_update_
 
 # Load environment variables from .env file
 load_dotenv()
+
+# Global assistant cache
+_assistant_cache = {}
+
+def get_or_create_assistant():
+    """
+    Get or create the resume builder assistant with caching
+    """
+    global _assistant_cache
+    
+    print("🔍 DEBUG: get_or_create_assistant called")
+    
+    # Clear cache to force recreation with updated schema and instructions
+    _assistant_cache = {}
+    print("🧹 Cache cleared to force recreation with HTML list formatting for all descriptions")
+    
+    if 'resume_assistant_id' in _assistant_cache:
+        print("✅ Using cached assistant")
+        return _assistant_cache['manager'], _assistant_cache['resume_assistant_id']
+    
+    print("🆕 Creating new assistant...")
+    
+    try:
+        from ai_service.ai_resume_assistant import OpenAIAssistantManager, FunctionConfig
+        from ai_service.task_schema import TASK_SCHEMAS
+        
+        print("📦 Imports successful")
+        
+        # Initialize the manager
+        print("🔧 Initializing OpenAI Assistant Manager...")
+        manager = OpenAIAssistantManager()
+        print("✅ Manager initialized")
+        
+        # Create assistant with resume building functions
+        print("🔧 Creating assistant with functions...")
+        resume_functions = []
+        for func_name, func_config in TASK_SCHEMAS['resume'].items():
+            print(f"📋 Adding function: {func_name}")
+            resume_functions.append(FunctionConfig(
+                name=func_config['name'],
+                description=func_config['description'],
+                parameters=func_config['parameters'],
+                instructions=f"Use this function when you need to {func_config['description'].lower()}"
+            ))
+        
+        print(f"📋 Total functions: {len(resume_functions)}")
+        
+        assistant_id = manager.create_assistant(
+            name="Resume Builder Assistant",
+            base_instructions="""You are an AI Resume Assistant that helps users create professional resumes through natural conversation. 
+
+Your capabilities include:
+- Creating new resumes with template selection
+- Adding and editing personal information, work experience, education, and skills
+- Managing multiple resumes per user
+- Switching between different resume templates
+- Providing resume writing tips and guidance
+
+**IMPORTANT: Always format your responses using Markdown for better readability and structure.**
+
+IMPORTANT FUNCTION CALLING RULES:
+1. ALWAYS use function calls for actions, never just describe them
+2. When users ask about available templates, use the list_templates function
+3. When users ask "which templates do you have" or "what templates are available", use the list_templates function
+4. When users ask to create a resume, use the create_resume function
+5. When users provide information, use the appropriate save functions
+6. When users ask about their resumes, use the list_user_resumes function
+
+RESUME CREATION FLOW:
+1. First, help user choose a template using list_templates
+2. Create resume using create_resume with chosen template
+3. Guide through sections in order: Personal Info → Experience → Education → Skills → Additional → Summary
+4. For each section, collect ALL required information before calling save functions
+5. If save function returns validation errors, ask for missing information
+6. After each section completion, inform user about next section
+7. CRITICAL: Summary is generated LAST after all other sections are complete
+
+PERSONAL INFORMATION HANDLING:
+- Collect: full name, email, phone, location, title
+- CRITICAL: Do NOT ask for summary during personal info collection
+- Summary will be generated automatically after all other sections are complete
+- Use save_personal_info function for basic personal details only
+
+WORK EXPERIENCE HANDLING:
+- When users mention work experience, carefully extract all details including dates
+- For current positions, use end_date: "Present"
+- For past positions, provide the actual end date in YYYY-MM format
+- CRITICAL: Do NOT make up dates if they are not provided. If only year is given (e.g., "2002 to 2004"), ask for the specific months
+- If dates are unclear or incomplete, ask for clarification before calling save functions
+- Always extract complete job descriptions and achievements
+- FORMAT: Job descriptions should be formatted as HTML list: "<ul><li>Achievement 1</li><li>Achievement 2</li></ul>"
+- If user mentions "Developed web applications and managed database" → description: "<ul><li>Developed web applications</li><li>Managed database</li></ul>"
+- NOTE: end_date is required in the schema - use "Present" for current positions
+- CRITICAL: save_experience function ADDS to existing experience, does not replace it
+- Users can add multiple jobs at once or one job at a time
+- Always inform users of their total experience count after saving
+
+EDUCATION HANDLING:
+- For current education, use end_date: "Present"
+- For completed education, provide actual end dates
+- CRITICAL: Do NOT make up dates if they are not provided. If only year is given (e.g., "2002 to 2004"), ask for the specific months
+- If dates are unclear or incomplete, ask for clarification before calling save functions
+- FORMAT: Education descriptions should be formatted as HTML list: "<ul><li>Detail 1</li><li>Detail 2</li></ul>"
+- If user mentions "Focused on software engineering and completed capstone project" → description: "<ul><li>Focused on software engineering</li><li>Completed capstone project</li></ul>"
+- NOTE: end_date is required in the schema - use "Present" for current education
+- CRITICAL: save_education function ADDS to existing education, does not replace it
+- Users can add multiple education entries at once or one at a time
+- Always inform users of their total education count after saving
+
+SKILLS HANDLING:
+- When users mention skills, categorize them into technical_skills, soft_skills, and languages
+- Technical skills: programming languages, tools, technologies, frameworks (e.g., Java, Python, React, AWS)
+- Soft skills: communication, teamwork, leadership, problem-solving, etc.
+- Languages: spoken languages (e.g., English, Spanish, French)
+- CRITICAL: save_skills function REPLACES existing skills (unlike experience/education which are additive)
+- Always provide the skills as arrays in the function call
+- If user mentions "I know Java, Python, and React" → technical_skills: ["Java", "Python", "React"]
+- If user mentions "I'm good at teamwork and communication" → soft_skills: ["Teamwork", "Communication"]
+- If user mentions "I speak English and Spanish" → languages: ["English", "Spanish"]
+- You can call save_skills with any combination of the three skill types
+- Always inform users of their skills count after saving
+
+ADDITIONAL INFORMATION HANDLING:
+- When users mention certifications, licenses, or professional qualifications, extract them and format as HTML list
+- When users mention projects, achievements, or additional work, extract them and format as HTML list
+- CRITICAL: save_additional function requires both certifications and projects parameters
+- FORMAT: Use HTML list format for better display: "<ul><li>Item Name (Date/Details)</li></ul>"
+- If user mentions "I have Microsoft Certified and Google GCP Certified" → certifications: "<ul><li>Microsoft Certified</li><li>Google GCP Certified</li></ul>"
+- If user mentions "I built a wireless server and a website called TravelTaf" → projects: "<ul><li>Built a wireless server</li><li>Created website called TravelTaf</li></ul>"
+- If user mentions "Food Safety Certification (January 2022 to January 2027)" → certifications: "<ul><li>Food Safety Certification (January 2022 to January 2027)</li></ul>"
+- Always provide both parameters even if one is empty (use empty string "")
+- Always inform users when additional information is saved
+
+SUMMARY GENERATION HANDLING:
+- CRITICAL: Summary is generated LAST after all other sections (Personal Info, Experience, Education, Skills, Additional) are complete
+- After saving additional information, inform user that you can now generate a professional summary
+- Offer to generate the summary automatically based on their complete resume content
+- If user agrees, use the save_summary function with a comprehensive professional summary
+- If user wants to provide their own summary, ask for it and use save_summary function
+- FORMAT: Summary should be formatted as HTML paragraph: "<p>Professional summary text...</p>"
+- CRITICAL: Summary must be written in FIRST PERSON (using "I am", "I have", "My experience", etc.) NOT third person
+- NEVER use third person format like "Joel Ivongbe is..." or "John Smith has..." - always use "I am..." or "I have..."
+- The summary should highlight key achievements, experience, and skills from their resume in first person
+- Always inform user that their resume is now complete after saving the summary
+
+TEMPLATE HANDLING:
+- When users want to preview templates (without a specific resume), use the preview_template function
+- When users want to switch templates for an existing resume, use the switch_template function
+- If user asks to "view" or "see" a template, use preview_template
+- If user asks to "switch" or "change" template for their resume, use switch_template
+
+VALIDATION AND ERROR HANDLING:
+- All save functions now include comprehensive validation
+- If a save function returns validation errors, ask the user for the missing information
+- Do NOT call save functions until you have collected all required information
+- Be specific about what information is missing when validation fails
+
+USER ID MANAGEMENT:
+- The current user ID will be provided in each message context
+- ALWAYS use the exact user_id provided in the message context for all function calls
+- NEVER make up or guess user IDs - only use the one provided
+- If no user_id is provided, ask the user to provide their user ID
+
+SECTION COMPLETION GUIDANCE:
+- Personal Information: Requires full name, email, phone, location, and title (NO summary yet)
+- Work Experience: Requires at least one entry with title, company, dates, and description
+- Education: Requires at least one entry with degree, institution, and dates
+- Skills: Requires at least some skills (technical, soft, or languages)
+- Additional: Optional but can include certifications and projects
+- Summary: Generated last after all other sections are complete
+
+Available templates: Professional, Modern, Creative
+
+**RESPONSE FORMATTING GUIDELINES:**
+- Use **bold** for important points and section headers
+- Use bullet points (•) for lists of information
+- Use numbered lists for step-by-step instructions
+- Use `code` formatting for technical terms, function names, or template IDs
+- Use > blockquotes for important notes or warnings
+- Structure responses with clear headers and sections
+- Use emojis sparingly but effectively (✅ for success, ⚠️ for warnings, etc.)
+
+Remember to:
+1. Always use the user_id provided in the message context for all operations
+2. Create a resume first before adding content
+3. Be conversational and helpful
+4. Confirm when information is saved
+5. Guide users through the process naturally
+6. USE FUNCTION CALLS for all actions, not just descriptions
+7. Handle validation errors gracefully by asking for missing information
+8. Inform users when switching to the Resume Builder tab
+9. ALWAYS detect and properly handle current positions and ongoing education
+10. Generate summary LAST after all other sections are complete
+11. Offer to generate summary automatically or let user provide their own
+12. **Format all responses using Markdown for better readability**
+
+Example: If user says "Software Developer at Esaatechnology, Jan 2023 to Present" → end_date: "Present"
+Example: If user asks "Can I view the modern template?", call preview_template function with the modern template_id and the provided user_id.
+Example: If user asks "Which resume templates do you have?", call list_templates function with the provided user_id.
+Example: If user asks "Switch my resume to modern template", call switch_template function with the resume_id and modern template_id.
+Example: If user says "I know Java, Python, and React" → call save_skills with technical_skills: ["Java", "Python", "React"]
+Example: If user says "Software Developer at Tech Corp, developed web apps and managed database" → call save_experience with description: "<ul><li>Developed web applications</li><li>Managed database</li></ul>"
+Example: If user says "Bachelor's in Computer Science, focused on software engineering" → call save_education with description: "<ul><li>Focused on software engineering</li></ul>"
+Example: If user says "I have Microsoft Certified and built a wireless server" → call save_additional with certifications: "<ul><li>Microsoft Certified</li></ul>", projects: "<ul><li>Built a wireless server</li></ul>"
+Example: After all sections are complete, offer to generate summary: "Great! Your resume is almost complete. I can now generate a professional summary based on your experience, education, and skills. Would you like me to create one for you, or would you prefer to write your own?"
+Example: If user agrees to AI-generated summary, call save_summary with a comprehensive summary: "<p>I am an experienced software developer with 5+ years in web development, specializing in Java, Python, and React. I have a proven track record of developing scalable applications and managing database systems. My background in computer science with focus on software engineering principles has enabled me to deliver high-quality solutions consistently.</p>"
+Example: If save_personal_info returns validation errors, ask for missing information.""",
+            functions=resume_functions
+        )
+        
+        print(f"🤖 Assistant creation result: {assistant_id}")
+        
+        if assistant_id:
+            _assistant_cache['manager'] = manager
+            _assistant_cache['resume_assistant_id'] = assistant_id
+            print("✅ Assistant cached successfully")
+            return manager, assistant_id
+        
+    except Exception as e:
+        print(f"❌ Error creating assistant: {str(e)}")
+        import traceback
+        print(f"📋 Traceback: {traceback.format_exc()}")
+    
+    print("❌ Failed to create assistant")
+    return None, None
 
 class OptimizedResume(BaseModel):
     optimized_content: str = Field(description="The ATS-optimized resume content")
@@ -406,6 +632,8 @@ def view_resume(request, resume_id=None):
     Display a resume by rendering the template dynamically from database data.
     If resume_id is provided, it fetches a saved resume and renders it with the chosen template.
     Otherwise, it uses unsaved optimization results from the session.
+    
+    Supports HTMX requests for AI assistant integration by returning only the resume content.
     """
     context = {}
     if resume_id:
@@ -427,7 +655,19 @@ def view_resume(request, resume_id=None):
         # Render the resume with the chosen template
         html_content = render_to_string(f'resume_templates/{template_id}.html', {'resume_data': resume_data})
         
-        # Create full HTML document
+        # Check if this is an HTMX request (for AI assistant integration)
+        is_htmx_request = request.headers.get('HX-Request') == 'true'
+        
+        if is_htmx_request:
+            # For HTMX requests, return only the resume content without full page layout
+            context = {
+                'resume': resume,
+                'resume_html': html_content,
+                'is_htmx_request': True
+            }
+            return render(request, 'resume_builder/component/resume_preview_tab.html', context)
+        
+        # Create full HTML document for regular requests
         full_html = f"""
 <!DOCTYPE html>
 <html lang="en">
@@ -663,7 +903,7 @@ def get_localized_sample_data(locale='en-US'):
             },
             'additional': {
                 'certifications': 'Desarrollador Certificado AWS, Profesional de Google Cloud',
-                'projects': 'Contribuidora de código abierto al ecosistema React, Construí aplicación de seguimiento financiero personal'
+                'projects': 'Contribuidora de código abierto al ecosystème React, Construí aplicación de seguimiento financiero personal'
             }
         },
         'fr-FR': {
@@ -1567,3 +1807,243 @@ def generate_ai_summary(request):
             logger.error(f"AI summary generation error: {str(e)}")
             return JsonResponse({'success': False, 'error': 'Failed to generate summary'}, status=500)
     return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+
+def get_available_templates(request):
+    """Get all available resume templates"""
+    if request.method == 'GET':
+        try:
+            # Available templates with descriptive information
+            templates = [
+                {
+                    'id': 'professional',
+                    'name': 'Professional',
+                    'description': 'Clean and traditional design suitable for corporate environments',
+                    'features': ['ATS-friendly', 'Clean layout', 'Professional fonts', 'Standard sections']
+                },
+                {
+                    'id': 'modern',
+                    'name': 'Modern',
+                    'description': 'Contemporary design with modern styling and layout',
+                    'features': ['Modern typography', 'Color accents', 'Creative layout', 'Visual hierarchy']
+                },
+                {
+                    'id': 'creative',
+                    'name': 'Creative',
+                    'description': 'Unique and eye-catching design for creative industries',
+                    'features': ['Unique layout', 'Creative elements', 'Colorful design', 'Stand out']
+                }
+            ]
+            
+            return JsonResponse({
+                'success': True,
+                'templates': templates,
+                'count': len(templates)
+            })
+            
+        except Exception as e:
+            logger.error(f"Error getting templates: {str(e)}")
+            return JsonResponse({
+                'success': False,
+                'error': 'Failed to get templates'
+            }, status=500)
+    
+    return JsonResponse({
+        'success': False,
+        'error': 'Method not allowed'
+    }, status=405)
+
+@login_required
+def ai_resume_assistant(request):
+    """AI Resume Assistant interface with chat and preview"""
+    
+    context = {
+        'hero_content': {
+            'page_title': 'AI Resume Assistant',
+            'page_description': 'Create your perfect resume with our AI assistant. Chat naturally and see your resume update in real-time.'
+        }
+    }
+    return render(request, 'resume_builder/resumeassistant.html', context)
+
+@login_required
+@csrf_exempt
+@require_http_methods(["POST"])
+def chat_with_ai(request):
+    """
+    Django view for handling AI chat with proper user management
+    
+    This view integrates with the actual AI assistant manager to provide
+    real resume building functionality through natural conversation.
+    """
+    print("\n" + "="*50)
+    print("🔍 DEBUG: chat_with_ai view called")
+    print("="*50)
+    
+    try:
+        # Get the authenticated user
+        user = request.user
+        user_id = str(user.id)
+        print(f"👤 User ID: {user_id}")
+        print(f"👤 Username: {user.username}")
+        
+        # Parse the request
+        print("📥 Parsing request body...")
+        data = json.loads(request.body)
+        message = data.get('message', '')
+        thread_id = data.get('thread_id')
+        print(f"💬 Message: {message}")
+        print(f"🧵 Thread ID: {thread_id}")
+        
+        # Get or create assistant
+        print("🤖 Getting or creating assistant...")
+        manager, assistant_id = get_or_create_assistant()
+        print(f"🤖 Assistant ID: {assistant_id}")
+        
+        if not assistant_id:
+            print("⚠️ No assistant ID, returning fallback response")
+            return JsonResponse({
+                'success': True,
+                'response': "I'm here to help you build your resume! I can help you create a new resume, edit existing ones, or get resume writing tips. What would you like to do?",
+                'thread_id': thread_id or 'mock_thread_123',
+                'user_id': user_id
+            })
+        
+        # Create thread if not provided
+        if not thread_id:
+            print("🧵 Creating new thread...")
+            thread_id = manager.create_thread()
+            print(f"🧵 New thread ID: {thread_id}")
+            if not thread_id:
+                print("❌ Failed to create thread")
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Failed to create conversation thread'
+                }, status=500)
+        
+        # Send message to AI with user context
+        print("🚀 Sending message to AI...")
+        print(f"📤 Query: {message}")
+        print(f"👤 User ID: {user_id}")
+        print(f"🧵 Thread ID: {thread_id}")
+        print(f"🤖 Assistant ID: {assistant_id}")
+        
+        result = manager.add_message_and_run(
+            thread_id=thread_id,
+            assistant_id=assistant_id,
+            query=message,
+            user_id=user_id
+        )
+        
+        print(f"📥 AI Result: {result}")
+        
+        if result:
+            response_data = {
+                'success': True,
+                'response': result['response'],
+                'thread_id': thread_id,
+                'user_id': user_id
+            }
+            
+            # Add resume ID if available
+            if result.get('resume_id'):
+                response_data['resume_id'] = result['resume_id']
+                print(f"📄 Resume ID included: {result['resume_id']}")
+            
+            print("✅ Returning successful response")
+            print(f"📤 Response data: {response_data}")
+            return JsonResponse(response_data)
+        else:
+            print("❌ No result from AI")
+            return JsonResponse({
+                'success': False,
+                'error': 'No response from assistant',
+                'thread_id': thread_id
+            }, status=500)
+            
+    except json.JSONDecodeError as e:
+        print(f"❌ JSON decode error: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid JSON data'
+        }, status=400)
+    except Exception as e:
+        print(f"❌ Unexpected error: {str(e)}")
+        import traceback
+        print(f"📋 Traceback: {traceback.format_exc()}")
+        return JsonResponse({
+            'success': False,
+            'error': 'Internal server error'
+        }, status=500)
+
+@login_required
+def get_user_resumes(request):
+    """
+    Django view to get all resumes for the authenticated user
+    
+    This demonstrates how the AI assistant can access user-specific data
+    """
+    try:
+        user = request.user
+        user_id = str(user.id)
+        
+        # Get user's resumes
+        resumes = user.resumes.all().order_by('-updated_at')
+        
+        resume_list = []
+        for resume in resumes:
+            resume_list.append({
+                "resume_id": str(resume.id),
+                "name": resume.name,
+                "template_id": resume.template_id,
+                "draft": resume.draft,
+                "created_at": resume.created_at.isoformat() if resume.created_at else None,
+                "updated_at": resume.updated_at.isoformat() if resume.updated_at else None
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'resumes': resume_list,
+            'count': len(resume_list),
+            'user_id': user_id
+        })
+        
+    except Exception as e:
+        logger.error(f"Error in get_user_resumes: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': 'Internal server error'
+        }, status=500)
+
+@login_required
+def get_resume_preview(request, resume_id):
+    """
+    Get resume preview HTML for the AI assistant interface
+    
+    This view returns the rendered HTML of a resume for the preview panel
+    """
+    try:
+        # Get the resume
+        resume = get_object_or_404(Resume, id=resume_id, user=request.user)
+        
+        # Get template from query params or use resume's default
+        template_id = request.GET.get('template', resume.template_id or 'professional')
+        
+        # Prepare resume data for template rendering
+        resume_data = {
+            'personal_info': resume.personal_info or {},
+            'experience': resume.experience or [],
+            'education': resume.education or [],
+            'skills': resume.skills or {},
+            'additional': resume.additional or {}
+        }
+        
+        # Render the resume with the chosen template
+        html_content = render_to_string(f'resume_templates/{template_id}.html', {'resume_data': resume_data})
+        
+        return HttpResponse(html_content, content_type='text/html')
+        
+    except Exception as e:
+        logger.error(f"Error in get_resume_preview: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': 'Failed to load resume preview'
+        }, status=500)

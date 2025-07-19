@@ -77,6 +77,11 @@ function setDefaultDialogData() {
  * @param {string} requiredPlan - The plan required ('Plus' or 'Ultimate')
  */
 function showSubscriptionDialog(requiredPlan) {
+    console.log('🔍 DEBUG: showSubscriptionDialog called');
+    console.log('📋 Required plan:', requiredPlan);
+    console.log('👤 User plan:', window.userSubscriptionPlan);
+    console.log('📋 Stack trace:', new Error().stack);
+    
     const dialog = SUBSCRIPTION_DIALOGS[requiredPlan.toLowerCase()] || SUBSCRIPTION_DIALOGS.plus;
     
     // Create subscription dialog element
@@ -208,10 +213,17 @@ function withSubscriptionCheck(requiredPlan, originalFunction) {
  * @returns {boolean} - True if user has access, false otherwise
  */
 function checkSubscriptionAccess(requiredPlan) {
+    console.log('🔍 DEBUG: checkSubscriptionAccess called');
+    console.log('📋 Required plan:', requiredPlan);
+    console.log('👤 User plan:', window.userSubscriptionPlan);
+    console.log('📋 Stack trace:', new Error().stack);
+    
     if (!hasSubscriptionAccess(requiredPlan)) {
+        console.log('❌ User does not have access, showing dialog');
         showSubscriptionDialog(requiredPlan);
         return false;
     }
+    console.log('✅ User has access');
     return true;
 }
 

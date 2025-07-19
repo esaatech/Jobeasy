@@ -198,3 +198,50 @@ resume_builder/
 - **Backend**: Django, xhtml2pdf (PDF generation)
 - **Optional**: html2docx (Word document generation)
 - **Optional**: pdf_generator (Enhanced PDF generation)
+
+
+
+
+Resume assistant Architecture
+
+
+
+┌─────────────────┐    WebSocket Connection    ┌─────────────────┐
+│   Frontend      │◄──────────────────────────►│   Backend       │
+│   (Browser)     │                            │   (Django)      │
+└─────────────────┘                            └─────────────────┘
+         │                                              │
+         │ 1. User sends message                       │
+         │    "Switch to modern template"              │
+         │                                              │
+         ▼                                              │
+┌─────────────────┐                            ┌─────────────────┐
+│ WebSocket       │                            │ AI Assistant    │
+│ Consumer        │                            │ Manager         │
+└─────────────────┘                            └─────────────────┘
+         │                                              │
+         │                                              ▼
+         │                                    ┌─────────────────┐
+         │                                    │ Function        │
+         │                                    │ Handler         │
+         │                                    │ switch_template │
+         │                                    └─────────────────┘
+         │                                              │
+         │                                              ▼
+         │                                    ┌─────────────────┐
+         │                                    │ Event Emitter   │
+         │                                    │ (Django Channels)│
+         │                                    └─────────────────┘
+         │                                              │
+         │                                              ▼
+         │                                    ┌─────────────────┐
+         │                                    │ WebSocket       │
+         │                                    │ Group Send      │
+         │                                    └─────────────────┘
+         │                                              │
+         ▼                                              │
+┌─────────────────┐                            ┌─────────────────┐
+│ Frontend        │◄───────────────────────────┤ Event Received  │
+│ Event Handler   │                            │ "template_changed"│
+│ Updates UI      │                            └─────────────────┘
+└─────────────────┘

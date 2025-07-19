@@ -15,6 +15,12 @@ urlpatterns = [
     path('download/', views.download_resume, name='download_resume'),
     path('preview/<str:template_id>/', views.preview_template, name='preview_template'),
     
+    # AI Assistant
+    path('ai-assistant/', views.ai_resume_assistant, name='ai_resume_assistant'),
+    path('api/chat/', views.chat_with_ai, name='chat_with_ai'),
+    path('api/resumes/', views.get_user_resumes, name='get_user_resumes'),
+    path('api/resume/<int:resume_id>/preview/', views.get_resume_preview, name='get_resume_preview'),
+    
     # Subscription check
     path('check-access/', views.check_resume_update_access, name='check_resume_update_access'),
     
@@ -40,4 +46,5 @@ urlpatterns = [
     path('preview-anonymous/', views.preview_anonymous_resume, name='preview_anonymous_resume'),
     path('create-from-data/', views.create_resume_from_data, name='create_resume_from_data'),
     path('create-after-auth/', views.create_resume_after_auth, name='create_resume_after_auth'),
+    path('templates/', views.get_available_templates, name='get_available_templates'),
 ]

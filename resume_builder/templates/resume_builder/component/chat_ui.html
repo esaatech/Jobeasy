@@ -1,0 +1,778 @@
+<!-- Chat UI Component -->
+<div class="chat-sidebar">
+    <div class="chat-header">
+        <h2>🤖 AI Resume Assistant</h2>
+        <p>Hi {{ user.first_name|default:user.username }}! I'm here to help you create your perfect resume.</p>
+    </div>
+    
+    <div class="chat-messages" id="chatMessages">
+        <!-- Messages will be dynamically added here -->
+    </div>
+    
+    <div class="chat-input-container">
+        <div class="chat-input-wrapper">
+            <textarea 
+                class="chat-input" 
+                id="chatInput" 
+                placeholder="Type your message here..."
+                rows="1"
+            ></textarea>
+            <button class="send-button" id="sendButton" disabled>
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+class ChatUI {
+    constructor() {
+        console.log('🔧 ChatUI constructor called');
+        
+        this.chatMessages = document.getElementById('chatMessages');
+        this.chatInput = document.getElementById('chatInput');
+        this.sendButton = document.getElementById('sendButton');
+        
+        this.currentThreadId = null;
+        this.currentResumeId = null;
+        this.websocket = null;
+        
+        this.initializeEventListeners();
+        this.initializeWebSocket();
+        this.addWelcomeMessage();
+    }
+    
+    initializeWebSocket() {
+        console.log('🔧 ChatUI: Initializing WebSocket connection');
+        
+        // Create WebSocket connection
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws/resume-builder/`;
+        
+        try {
+            this.websocket = new WebSocket(wsUrl);
+            
+            this.websocket.onopen = () => {
+                console.log('✅ WebSocket connection established');
+                // Clear any connection error messages
+                this.removeConnectionError();
+            };
+            
+            this.websocket.onmessage = (event) => {
+                console.log('📥 WebSocket message received:', event.data);
+                this.handleWebSocketMessage(event.data);
+            };
+            
+            this.websocket.onclose = (event) => {
+                console.log('🔌 WebSocket connection closed', event.code, event.reason);
+                
+                // Show connection error message
+                this.showConnectionError('Connection lost. Attempting to reconnect...');
+                
+                // Attempt to reconnect after 5 seconds
+                setTimeout(() => {
+                    console.log('🔄 Attempting to reconnect WebSocket...');
+                    this.initializeWebSocket();
+                }, 5000);
+            };
+            
+            this.websocket.onerror = (error) => {
+                console.error('❌ WebSocket error:', error);
+                this.showConnectionError('Connection error. Please check your internet connection.');
+            };
+            
+        } catch (error) {
+            console.error('❌ Failed to initialize WebSocket:', error);
+            this.showConnectionError('Failed to establish connection. Please refresh the page.');
+        }
+    }
+    
+    handleWebSocketMessage(data) {
+        try {
+            const message = JSON.parse(data);
+            console.log('📥 Parsed WebSocket message:', message);
+            
+            switch (message.type) {
+                case 'ai_response':
+                    // Handle AI response
+                    if (this.pendingMessages && Object.keys(this.pendingMessages).length > 0) {
+                        // Resolve the first pending message
+                        const messageId = Object.keys(this.pendingMessages)[0];
+                        const { resolve } = this.pendingMessages[messageId];
+                        delete this.pendingMessages[messageId];
+                        
+                        resolve({
+                            success: true,
+                            message: message.message,
+                            thread_id: message.thread_id,
+                            resume_id: message.resume_id,
+                            action: message.action,
+                            data: message.data
+                        });
+                    } else {
+                        // No pending message, add to chat directly
+                        this.addMessage(message.message);
+                    }
+                    break;
+                    
+                case 'progress_update':
+                    // Handle progress updates during AI processing
+                    this.updateProgressMessage(message.message);
+                    break;
+                    
+                case 'backend_event':
+                    this.handleBackendEvent(message.event_type, message.data);
+                    break;
+                    
+                case 'welcome_message':
+                    console.log('👋 Welcome message received:', message.message);
+                    break;
+                    
+                default:
+                    console.log('📥 Unknown message type:', message.type);
+            }
+            
+        } catch (error) {
+            console.error('❌ Error parsing WebSocket message:', error);
+        }
+    }
+    
+    handleBackendEvent(eventType, data) {
+        console.log('🔧 ChatUI: Handling backend event:', eventType, data);
+        
+        switch (eventType) {
+            case 'resume_created':
+                this.handleResumeCreated(data);
+                break;
+                
+            case 'resume_updated':
+                this.handleResumeUpdated(data);
+                break;
+                
+            case 'template_changed':
+                this.handleTemplateChanged(data);
+                break;
+                
+            case 'template_preview_changed':
+                this.handleTemplatePreviewChanged(data);
+                break;
+                
+            case 'section_completed':
+                this.handleSectionCompleted(data);
+                break;
+                
+            case 'section_in_progress':
+                this.handleSectionInProgress(data);
+                break;
+                
+            default:
+                console.log('🔧 ChatUI: Unknown backend event type:', eventType);
+        }
+    }
+    
+    handleResumeCreated(data) {
+        console.log('📄 Resume created event:', data);
+        this.currentResumeId = data.resume_id;
+        
+        // Initialize ResumeDataManager with the new resume
+        if (window.resumeDataManager) {
+            window.resumeDataManager.setResumeInfo(
+                data.resume_id,
+                data.resume_name,
+                data.template_id
+            );
+        }
+        
+        // Don't add duplicate message - the AI response already includes the success message
+        // Only add a message if this is a pure backend event (no AI response)
+        if (!this.lastAIResponseWasResumeCreation) {
+            this.addMessage(`
+## ✅ Resume Created Successfully!
+
+**Resume Name:** ${data.resume_name}
+**Template:** ${data.template_id}
+**Status:** Draft
+
+I've created your resume and I'm ready to guide you through each section step by step. Let's start with your **personal information**!
+
+**What I need from you:**
+• Full name
+• Email address
+• Phone number
+• Location (City, State/Country)
+• Professional title
+            `);
+        }
+        
+        // Reset the flag
+        this.lastAIResponseWasResumeCreation = false;
+        
+        // Switch to Resume Builder tab
+        if (window.tabManager) {
+            window.tabManager.switchToTab('resume-builder');
+        }
+        
+        // Update template preview with the correct template
+        if (window.templatePreview) {
+            console.log('🎨 Updating template preview with resume ID:', data.resume_id, 'and template:', data.template_id);
+            window.templatePreview.updateResumePreview(data.resume_id, data.template_id);
+        }
+        
+        // Update Resume Builder tab with the new resume info
+        if (window.resumeBuilderTab) {
+            // Ensure the tab is initialized before setting info
+            setTimeout(() => {
+                if (window.resumeBuilderTab.ensureInitialized()) {
+                    window.resumeBuilderTab.setResumeInfo(data.resume_id, data.resume_name, data.template_id);
+                } else {
+                    console.warn('⚠️ Resume Builder tab not initialized, retrying in 1 second...');
+                    setTimeout(() => {
+                        if (window.resumeBuilderTab.ensureInitialized()) {
+                            window.resumeBuilderTab.setResumeInfo(data.resume_id, data.resume_name, data.template_id);
+                        }
+                    }, 1000);
+                }
+            }, 100);
+        }
+        
+        // Update Resume Preview tab with the new resume info
+        if (window.resumePreviewTab) {
+            console.log('📄 Updating Resume Preview tab with resume ID:', data.resume_id, 'and template:', data.template_id);
+            window.resumePreviewTab.setResumeInfo(data.resume_id, data.resume_name, data.template_id);
+        }
+    }
+    
+    handleResumeUpdated(data) {
+        console.log('📄 Resume updated event:', data);
+        
+        // Update ResumeDataManager with the new data
+        if (window.resumeDataManager) {
+            // Determine which section was updated based on the data
+            if (data.personal_info) {
+                window.resumeDataManager.updatePersonalInfo(data.personal_info);
+            }
+            if (data.experience) {
+                window.resumeDataManager.updateExperience(data.experience);
+            }
+            if (data.education) {
+                window.resumeDataManager.updateEducation(data.education);
+            }
+            if (data.skills) {
+                window.resumeDataManager.updateSkills(data.skills);
+            }
+            if (data.additional) {
+                window.resumeDataManager.updateAdditional(data.additional);
+            }
+            
+            // Update resume metadata if provided
+            if (data.resume_id) {
+                window.resumeDataManager.setResumeInfo(
+                    data.resume_id, 
+                    data.resume_name || window.resumeDataManager.resumeName,
+                    data.template_id || window.resumeDataManager.templateId
+                );
+            }
+        }
+        
+        // Update template preview with new data
+        if (window.templatePreview && data.resume_id) {
+            const templateId = data.template_id || 'professional';
+            window.templatePreview.updateResumePreview(data.resume_id, templateId);
+        }
+        
+        // Update Resume Preview tab with new data
+        if (window.resumePreviewTab && data.resume_id) {
+            const templateId = data.template_id || 'professional';
+            window.resumePreviewTab.setResumeInfo(data.resume_id, data.resume_name, templateId);
+        }
+        
+        // Check if this is a summary update (resume completion)
+        if (data.section === 'summary' || (data.personal_info && data.personal_info.summary)) {
+            console.log('🎉 Resume completion detected! Switching to Preview Resume tab');
+            
+            // Switch to Preview Resume tab after a short delay to ensure data is loaded
+            setTimeout(() => {
+                if (window.tabManager) {
+                    window.tabManager.switchToTab('resume-preview');
+                }
+            }, 1000);
+            
+            // Add completion message
+            this.addMessage(`
+## 🎉 Resume Complete!
+
+**Congratulations!** Your resume is now complete with all sections including the professional summary.
+
+**What you can do now:**
+• **Preview Resume** - View your final resume in the Preview Resume tab
+• **Download** - Get your resume in PDF, Word, or HTML format
+• **Edit** - Make any final adjustments if needed
+• **Create Another** - Start building another resume
+
+Your resume is ready to help you land your next job! 🚀
+            `);
+        } else {
+            // Regular update message
+            this.addMessage(`
+## ✅ Resume Updated Successfully!
+
+**Last Updated:** ${new Date(data.timestamp).toLocaleTimeString()}
+
+Your resume has been updated with the latest information. You can view the changes in the Resume Builder tab.
+            `);
+        }
+    }
+    
+    handleTemplateChanged(data) {
+        console.log('🎨 Template changed event:', data);
+        
+        // Update template preview
+        if (window.templatePreview) {
+            window.templatePreview.switchTemplate(data.template_id);
+        }
+        
+        // Update Resume Builder tab
+        if (window.resumeBuilderTab) {
+            window.resumeBuilderTab.setResumeInfo(data.resume_id, data.resume_name, data.template_id);
+        }
+        
+        // Update Resume Preview tab
+        if (window.resumePreviewTab) {
+            window.resumePreviewTab.setResumeInfo(data.resume_id, data.resume_name, data.template_id);
+        }
+        
+        // Add template change notification to chat
+        this.addMessage(`
+## 🎨 Template Changed Successfully!
+
+**New Template:** ${data.template_id}
+
+Your resume is now using the ${data.template_id} template. You can preview the changes in the Template Preview tab.
+        `);
+    }
+    
+    handleTemplatePreviewChanged(data) {
+        console.log('🎨 Template preview changed event:', data);
+        
+        // Update template preview without requiring a resume
+        if (window.templatePreview) {
+            window.templatePreview.switchTemplate(data.template_id);
+        }
+        
+        // Add template preview change notification to chat
+        this.addMessage(`
+## 🎨 Template Preview Changed
+
+**Template:** ${data.template_id}
+
+You're now previewing the ${data.template_id} template. You can see how your resume will look with this design.
+        `);
+    }
+    
+    handleSectionCompleted(data) {
+        console.log('✅ Section completed event:', data);
+        
+        // Update ResumeDataManager with the completed section data
+        if (window.resumeDataManager && data.data) {
+            switch (data.section) {
+                case 'personal_info':
+                    window.resumeDataManager.updatePersonalInfo(data.data);
+                    break;
+                case 'experience':
+                    window.resumeDataManager.updateExperience(data.data);
+                    break;
+                case 'education':
+                    window.resumeDataManager.updateEducation(data.data);
+                    break;
+                case 'skills':
+                    window.resumeDataManager.updateSkills(data.data);
+                    break;
+                case 'additional':
+                    window.resumeDataManager.updateAdditional(data.data);
+                    break;
+            }
+        }
+        
+        // Add section completion notification to chat
+        this.addMessage(`
+## ✅ Section Completed!
+
+**Section:** ${data.section}
+${data.next_section ? `**Next:** ${data.next_section}` : '**Status:** All sections complete!'}
+
+Great progress! ${data.next_section ? `Let's continue with the ${data.next_section} section.` : 'Your resume is ready for review!'}
+        `);
+    }
+    
+    handleSectionInProgress(data) {
+        console.log('🔄 Section in progress event:', data);
+        
+        // Update Resume Builder tab
+        if (window.resumeBuilderTab) {
+            window.resumeBuilderTab.handleSectionInProgress(data);
+        }
+        
+        // Add section progress notification to chat
+        this.addMessage(`
+## 🔄 Section in Progress
+
+**Section:** ${data.section}
+**Progress:** ${data.progress || 0}%
+
+I'm currently working on the ${data.section} section. This may take a moment...
+        `);
+    }
+    
+    initializeEventListeners() {
+        console.log('🔧 ChatUI: Initializing event listeners');
+        
+        // Send button click
+        this.sendButton.addEventListener('click', () => {
+            console.log('🖱️ Send button clicked');
+            this.sendMessage();
+        });
+        
+        // Enter key press
+        this.chatInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                this.sendMessage();
+            }
+        });
+        
+        // Auto-resize textarea
+        this.chatInput.addEventListener('input', () => {
+            this.chatInput.style.height = 'auto';
+            this.chatInput.style.height = Math.min(this.chatInput.scrollHeight, 100) + 'px';
+            this.updateSendButton();
+        });
+        
+        console.log('✅ ChatUI: Event listeners initialized');
+    }
+    
+    addWelcomeMessage() {
+        console.log('🔧 ChatUI: Adding welcome message');
+        
+        const welcomeMessage = `
+            <div class="message ai">
+                <div class="message-avatar">AI</div>
+                <div class="message-content">
+                    <p>Hello! I'm your AI Resume Assistant. I can help you create a professional resume step by step.</p>
+                    <p><strong>What would you like to do?</strong></p>
+                    <ul style="margin: 10px 0; padding-left: 20px;">
+                        <li>Create a new resume from scratch</li>
+                        <li>Edit an existing resume</li>
+                        <li>Get help with resume tips</li>
+                        <li>Switch between different templates</li>
+                    </ul>
+                    <p>Just tell me what you'd like to do and I'll guide you through the process!</p>
+                </div>
+            </div>
+        `;
+        
+        this.chatMessages.innerHTML = welcomeMessage;
+        console.log('✅ ChatUI: Welcome message added');
+    }
+    
+    updateSendButton() {
+        const hasText = this.chatInput.value.trim().length > 0;
+        this.sendButton.disabled = !hasText;
+    }
+    
+    addMessage(content, isUser = false) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${isUser ? 'user' : 'ai'}`;
+        
+        const avatar = document.createElement('div');
+        avatar.className = 'message-avatar';
+        avatar.textContent = isUser ? '{{ user.first_name|default:user.username|first|upper }}' : 'AI';
+        
+        const messageContent = document.createElement('div');
+        messageContent.className = 'message-content';
+        
+        // Parse Markdown for AI messages, keep plain text for user messages
+        if (isUser) {
+            messageContent.textContent = content;
+        } else {
+            // Check if marked.js is available
+            if (typeof marked !== 'undefined') {
+                // Configure marked.js options for security and styling
+                marked.setOptions({
+                    breaks: true, // Convert line breaks to <br>
+                    gfm: true,    // GitHub Flavored Markdown
+                    sanitize: false, // We trust the AI content
+                    smartLists: true,
+                    smartypants: true
+                });
+                
+                // Parse Markdown to HTML
+                messageContent.innerHTML = marked.parse(content);
+            } else {
+                // Fallback: simple text formatting if marked.js is not available
+                console.warn('⚠️ Marked.js not available, using fallback formatting');
+                messageContent.innerHTML = content
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    .replace(/`(.*?)`/g, '<code>$1</code>')
+                    .replace(/\n/g, '<br>')
+                    .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+                    .replace(/^### (.*$)/gm, '<h3>$1</h3>')
+                    .replace(/^• (.*$)/gm, '<li>$1</li>')
+                    .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>');
+            }
+        }
+        
+        messageDiv.appendChild(avatar);
+        messageDiv.appendChild(messageContent);
+        
+        this.chatMessages.appendChild(messageDiv);
+        this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+    }
+    
+    addTypingIndicator() {
+        const typingDiv = document.createElement('div');
+        typingDiv.className = 'typing-indicator';
+        typingDiv.id = 'typingIndicator';
+        
+        const dots = document.createElement('div');
+        dots.className = 'typing-dots';
+        dots.innerHTML = `
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+            <div class="typing-dot"></div>
+        `;
+        
+        const progressText = document.createElement('div');
+        progressText.className = 'typing-progress';
+        progressText.innerHTML = `
+            <p style="margin: 8px 0 0 0; font-size: 0.9rem; color: #6b7280;">
+                🤖 AI is processing your request... This may take up to 90 seconds for complex operations.
+            </p>
+        `;
+        
+        // Add progress update capability
+        this.currentProgressText = progressText;
+        
+        typingDiv.appendChild(dots);
+        typingDiv.appendChild(progressText);
+        this.chatMessages.appendChild(typingDiv);
+        this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+    }
+    
+    updateProgressMessage(message) {
+        if (this.currentProgressText) {
+            this.currentProgressText.innerHTML = `
+                <p style="margin: 8px 0 0 0; font-size: 0.9rem; color: #6b7280;">
+                    ${message}
+                </p>
+            `;
+        }
+    }
+    
+    removeTypingIndicator() {
+        const typingIndicator = document.getElementById('typingIndicator');
+        if (typingIndicator) {
+            typingIndicator.remove();
+        }
+    }
+    
+    async sendMessage() {
+        console.log('🚀 ChatUI: sendMessage called');
+        
+        const message = this.chatInput.value.trim();
+        if (!message) return;
+        
+        // Add user message
+        this.addMessage(message, true);
+        
+        // Clear input
+        this.chatInput.value = '';
+        this.chatInput.style.height = 'auto';
+        this.updateSendButton();
+        
+        // Show typing indicator
+        this.addTypingIndicator();
+        
+        // Set timeout - increased to 90 seconds to match backend processing time
+        const timeoutId = setTimeout(() => {
+            this.removeTypingIndicator();
+            this.addMessage(`
+## ⏰ Request Timed Out
+
+The AI assistant is taking longer than expected to process your request. This can happen with complex operations like creating resumes or switching templates.
+
+**What you can do:**
+• Try sending your message again
+• Break down complex requests into smaller parts
+• Check your internet connection
+• Contact support if the issue persists
+            `);
+        }, 90000); // Increased from 30000 to 90000 (90 seconds)
+        
+        try {
+            // Send message via WebSocket instead of HTTP API
+            const response = await this.sendWebSocketMessage(message);
+            clearTimeout(timeoutId);
+            this.removeTypingIndicator();
+            
+            if (response.success) {
+                this.addMessage(response.message);
+                
+                // Store thread ID for future requests
+                if (response.thread_id) {
+                    this.currentThreadId = response.thread_id;
+                    console.log('🧵 Thread ID stored:', this.currentThreadId);
+                }
+                
+                // Store resume ID if available and set flag for resume creation
+                if (response.resume_id) {
+                    this.currentResumeId = response.resume_id;
+                    console.log('📄 Resume ID stored:', this.currentResumeId);
+                    
+                    // Set flag to prevent duplicate messages from backend events
+                    this.lastAIResponseWasResumeCreation = true;
+                }
+                
+                // Notify template preview to update if needed
+                if (window.templatePreview && this.currentResumeId) {
+                    // Get the current template from the response data if available
+                    const templateId = response.data?.template_id || 'professional';
+                    window.templatePreview.updateResumePreview(this.currentResumeId, templateId);
+                }
+            } else {
+                this.addMessage(`
+## ❌ Error
+
+${response.message}
+
+Please try again or contact support if the problem persists.
+                `);
+            }
+            
+        } catch (error) {
+            clearTimeout(timeoutId); // Clear timeout on error
+            this.removeTypingIndicator();
+            console.error('❌ Error sending message:', error);
+            
+            // Handle different types of errors
+            if (error.message === 'Response timeout') {
+                this.addMessage(`
+## ⏰ Request Timed Out
+
+The AI assistant is taking longer than expected to process your request. This can happen with complex operations like creating resumes or switching templates.
+
+**What you can do:**
+• Try sending your message again
+• Break down complex requests into smaller parts
+• Check your internet connection
+• Contact support if the issue persists
+                `);
+            } else if (error.message === 'WebSocket is not connected') {
+                this.addMessage(`
+## 🔌 Connection Lost
+
+The connection to the server was lost. Please wait for the connection to be restored or refresh the page.
+
+**What you can do:**
+• Wait for automatic reconnection
+• Refresh the page
+• Check your internet connection
+• Contact support if the problem persists
+                `);
+            } else {
+                this.addMessage(`
+## ❌ Error Sending Message
+
+**Error:** ${error.message}
+
+Please try again or contact support if the problem persists.
+                `);
+            }
+        }
+    }
+    
+    sendWebSocketMessage(message) {
+        return new Promise((resolve, reject) => {
+            if (!this.websocket || this.websocket.readyState !== WebSocket.OPEN) {
+                reject(new Error('WebSocket is not connected'));
+                return;
+            }
+            
+            // Store pending message for resolution
+            if (!this.pendingMessages) {
+                this.pendingMessages = {};
+            }
+            
+            const messageId = Date.now().toString();
+            this.pendingMessages[messageId] = { resolve, reject };
+            
+            // Send message
+            const messageData = {
+                type: 'user_message',
+                message: message,
+                thread_id: this.currentThreadId,
+                resume_id: this.currentResumeId
+            };
+            
+            console.log('📤 Sending WebSocket message:', messageData);
+            this.websocket.send(JSON.stringify(messageData));
+            
+            // Set timeout for response - increased to 90 seconds to match backend processing time
+            setTimeout(() => {
+                if (this.pendingMessages[messageId]) {
+                    delete this.pendingMessages[messageId];
+                    reject(new Error('Response timeout'));
+                }
+            }, 90000); // Increased from 30000 to 90000 (90 seconds)
+        });
+    }
+    
+    getCSRFToken() {
+        const name = 'csrftoken';
+        let cookieValue = null;
+        
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        
+        return cookieValue;
+    }
+
+    showConnectionError(message) {
+        // Remove any existing error message
+        this.removeConnectionError();
+        
+        this.addMessage(`
+## 🔌 Connection Error
+
+${message}
+
+Please check your internet connection and try again. If the problem persists, please refresh the page.
+        `);
+    }
+    
+    removeConnectionError() {
+        const errorDiv = document.getElementById('connectionError');
+        if (errorDiv) {
+            errorDiv.remove();
+        }
+    }
+    
+    retryConnection() {
+        console.log('🔄 Manual retry connection requested');
+        this.removeConnectionError();
+        this.initializeWebSocket();
+    }
+}
+
+// Initialize the Chat UI
+window.chatUI = new ChatUI();
+console.log('✅ ChatUI initialized');
+</script>

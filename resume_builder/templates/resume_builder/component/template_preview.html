@@ -1,0 +1,251 @@
+<!-- Template Preview Component -->
+<div class="preview-sidebar">
+    <div class="preview-header">
+        <h2>📄 Resume Preview</h2>
+        <div class="template-selector">
+            <button class="template-btn active" data-template="professional">Professional</button>
+            <button class="template-btn" data-template="modern">Modern</button>
+            <button class="template-btn" data-template="creative">Creative</button>
+        </div>
+    </div>
+    
+    <div class="preview-content">
+        <div class="resume-preview" id="resumePreview">
+            <!-- Template content will be loaded here -->
+        </div>
+    </div>
+</div>
+
+<script>
+class TemplatePreview {
+    constructor() {
+        console.log('🔧 TemplatePreview constructor called');
+        
+        this.resumePreview = document.getElementById('resumePreview');
+        this.currentTemplate = 'professional';
+        this.currentResumeId = null;
+        
+        this.initializeEventListeners();
+        this.loadDefaultTemplate();
+    }
+    
+    initializeEventListeners() {
+        console.log('🔧 TemplatePreview: Initializing event listeners');
+        
+        // Template button listeners
+        const templateButtons = document.querySelectorAll('.template-btn');
+        console.log('📋 Found template buttons:', templateButtons.length);
+        
+        templateButtons.forEach((btn, index) => {
+            const template = btn.dataset.template;
+            console.log(`🔧 Adding listener to template button ${index}:`, template);
+            
+            btn.addEventListener('click', (e) => {
+                console.log('🖱️ Template button clicked!');
+                console.log('📋 Template:', e.target.dataset.template);
+                this.switchTemplate(e.target.dataset.template);
+            });
+            
+            console.log(`✅ Listener added to button ${index} (${template})`);
+        });
+        
+        console.log('✅ TemplatePreview: Event listeners initialized');
+    }
+    
+    async loadDefaultTemplate() {
+        console.log('🔧 TemplatePreview: Loading default template');
+        await this.loadTemplatePreview('professional');
+        this.updateTemplateButtons('professional');
+        console.log('✅ TemplatePreview: Default template loaded');
+    }
+    
+    async switchTemplate(template) {
+        console.log('🔧 TemplatePreview: switchTemplate called with:', template);
+        
+        try {
+            this.currentTemplate = template;
+            console.log('📋 Current template set to:', this.currentTemplate);
+            
+            // Update active button styling
+            this.updateTemplateButtons(template);
+            
+            // Load template content from backend
+            await this.loadTemplatePreview(template);
+            
+            console.log('✅ TemplatePreview: Template switched successfully to:', template);
+            
+        } catch (error) {
+            console.error('❌ TemplatePreview: Error switching template:', error);
+        }
+    }
+    
+    updateTemplateButtons(activeTemplate) {
+        console.log('🔧 TemplatePreview: updateTemplateButtons called with:', activeTemplate);
+        
+        document.querySelectorAll('.template-btn').forEach(btn => {
+            const template = btn.dataset.template;
+            console.log(`🔘 Button template: ${template}, Active template: ${activeTemplate}`);
+            
+            if (template === activeTemplate) {
+                btn.classList.add('active');
+                console.log(`✅ Button ${template} marked as active`);
+            } else {
+                btn.classList.remove('active');
+                console.log(`❌ Button ${template} marked as inactive`);
+            }
+        });
+        
+        console.log('✅ TemplatePreview: Template buttons updated');
+    }
+    
+    async loadTemplatePreview(templateId) {
+        console.log('🔧 TemplatePreview: loadTemplatePreview called with:', templateId);
+        
+        try {
+            // Get user's locale (same as resume.html)
+            const userLocale = navigator.language || 'en-US';
+            
+            // Use the exact same URL generation approach as resume.html
+            const url = `{% url 'resume_builder:preview_template' 'professional' %}`.replace('professional', templateId) + `?locale=${userLocale}`;
+            console.log('🌐 Making API call to:', url);
+            
+            const response = await fetch(url);
+            
+            console.log('📥 Response received');
+            console.log('📊 Response status:', response.status);
+            console.log('📊 Response ok:', response.ok);
+            
+            if (response.ok) {
+                const html = await response.text();
+                console.log('📄 HTML content length:', html.length);
+                
+                this.resumePreview.innerHTML = html;
+                console.log('✅ TemplatePreview: Template preview loaded successfully');
+            } else {
+                const errorText = await response.text();
+                console.error('❌ HTTP error:', response.status, errorText);
+                throw new Error(`Failed to load template: ${response.status} ${errorText}`);
+            }
+            
+        } catch (error) {
+            console.error('❌ TemplatePreview: Error loading template preview:', error);
+            // Show the exact same error message as resume.html
+            this.resumePreview.innerHTML = `
+                <div class="text-center py-8">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <h3 class="mt-2 text-sm font-medium text-gray-900">Template Preview Unavailable</h3>
+                    <p class="mt-1 text-sm text-gray-500">Unable to load template preview. Please try again later.</p>
+                </div>
+            `;
+        }
+    }
+    
+    async updateResumePreview(resumeId, templateId = null) {
+        console.log('🔧 TemplatePreview: updateResumePreview called with resume ID:', resumeId, 'and template:', templateId);
+        
+        if (!resumeId) {
+            console.log('⚠️ No resume ID provided, skipping update');
+            return;
+        }
+        
+        this.currentResumeId = resumeId;
+        
+        // Update template if provided
+        if (templateId) {
+            console.log('🎨 Updating template from', this.currentTemplate, 'to', templateId);
+            this.currentTemplate = templateId;
+            this.updateTemplateButtons(templateId);
+            console.log('🎨 Template updated to:', templateId);
+        } else {
+            console.log('🎨 No template provided, keeping current template:', this.currentTemplate);
+        }
+        
+        const url = `/resume/api/resume/${resumeId}/preview/?template=${this.currentTemplate}`;
+        console.log('🌐 Making API call to:', url);
+        
+        try {
+            const response = await fetch(url, {
+                headers: {
+                    'X-CSRFToken': this.getCSRFToken()
+                }
+            });
+            
+            console.log('📥 Response received, status:', response.status);
+            
+            if (response.ok) {
+                const html = await response.text();
+                console.log('📄 HTML content length:', html.length);
+                this.resumePreview.innerHTML = html;
+                console.log('✅ TemplatePreview: Resume preview updated successfully with template:', this.currentTemplate);
+            } else {
+                const errorText = await response.text();
+                console.error('❌ TemplatePreview: Failed to update resume preview:', response.status, errorText);
+                // Fallback to template preview
+                await this.loadTemplatePreview(this.currentTemplate);
+            }
+        } catch (error) {
+            console.error('❌ TemplatePreview: Error updating resume preview:', error);
+            // Fallback to template preview
+            await this.loadTemplatePreview(this.currentTemplate);
+        }
+    }
+    
+    getCSRFToken() {
+        const name = 'csrftoken';
+        let cookieValue = null;
+        
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        
+        return cookieValue;
+    }
+
+    // Public method to switch template from backend events
+    switchTemplateFromBackend(templateId) {
+        console.log('🎯 TemplatePreview: switchTemplateFromBackend called with:', templateId);
+        return this.switchTemplate(templateId);
+    }
+
+    // Public method to update resume preview from backend events
+    updateResumePreviewFromBackend(resumeId, templateId = null) {
+        console.log('🎯 TemplatePreview: updateResumePreviewFromBackend called with:', { resumeId, templateId });
+        
+        if (templateId) {
+            this.currentTemplate = templateId;
+            this.updateTemplateButtons(templateId);
+        }
+        
+        return this.updateResumePreview(resumeId);
+    }
+
+    // Public method to trigger template button click programmatically
+    triggerTemplateButtonClick(templateId) {
+        console.log('🎯 TemplatePreview: triggerTemplateButtonClick called with:', templateId);
+        
+        const button = document.querySelector(`.template-btn[data-template="${templateId}"]`);
+        if (button) {
+            console.log('🖱️ Programmatically clicking template button:', templateId);
+            button.click();
+        } else {
+            console.error('❌ Template button not found:', templateId);
+        }
+    }
+}
+
+// Initialize TemplatePreview when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🔧 Initializing TemplatePreview component');
+    window.templatePreview = new TemplatePreview();
+    console.log('✅ TemplatePreview component initialized');
+});
+</script> 

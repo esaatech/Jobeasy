@@ -57,16 +57,23 @@ class ResumeBuilderConsumer(AsyncWebsocketConsumer):
             text_data_json = json.loads(text_data)
             message = text_data_json.get('message', '')
             message_type = text_data_json.get('type', 'user_message')
+            thread_id = text_data_json.get('thread_id')
             
-            # Process message through AI assistant
-            response = await self.process_with_ai(message, message_type)
+            print(f"🔍 WebSocket received message: {message}")
+            print(f"🔍 Message type: {message_type}")
+            print(f"🔍 Thread ID: {thread_id}")
+            
+            # Process message through real AI assistant
+            response = await self.process_with_real_ai(message, thread_id)
             
             # Send response back to WebSocket
             await self.send(text_data=json.dumps({
                 'type': 'ai_response',
                 'message': response['message'],
                 'action': response.get('action'),
-                'data': response.get('data')
+                'data': response.get('data'),
+                'thread_id': response.get('thread_id'),
+                'resume_id': response.get('resume_id')
             }))
             
         except json.JSONDecodeError:
@@ -75,42 +82,104 @@ class ResumeBuilderConsumer(AsyncWebsocketConsumer):
                 'message': 'Invalid message format'
             }))
         except Exception as e:
+            print(f"❌ WebSocket error: {str(e)}")
             await self.send(text_data=json.dumps({
                 'type': 'error',
                 'message': f'An error occurred: {str(e)}'
             }))
 
+    @database_sync_to_async
+    def process_with_real_ai(self, message, thread_id):
+        """
+        Process user message with the real AI assistant manager.
+        This integrates with your OpenAI Assistant Manager.
+        """
+        try:
+            print(f"🤖 Processing message with real AI: {message}")
+            
+            # Import the AI assistant manager
+            from resume_builder.views import get_or_create_assistant
+            
+            # Get or create assistant
+            manager, assistant_id = get_or_create_assistant()
+            
+            if not assistant_id:
+                print("❌ No assistant available")
+                return {
+                    'message': "I'm sorry, I'm having trouble connecting to my AI assistant right now. Please try again later.",
+                    'thread_id': thread_id
+                }
+            
+            # Create thread if not provided
+            if not thread_id:
+                print("🧵 Creating new thread")
+                thread_id = manager.create_thread()
+                if not thread_id:
+                    return {
+                        'message': "I'm sorry, I couldn't create a conversation thread. Please try again.",
+                        'thread_id': None
+                    }
+            
+            print(f"🤖 Sending message to AI assistant")
+            print(f"📤 Thread ID: {thread_id}")
+            print(f"📤 Assistant ID: {assistant_id}")
+            print(f"📤 User ID: {self.user_id}")
+            
+            # Send message to AI with user context
+            result = manager.add_message_and_run(
+                thread_id=thread_id,
+                assistant_id=assistant_id,
+                query=message,
+                user_id=self.user_id
+            )
+            
+            print(f"📥 AI result: {result}")
+            
+            if result:
+                response_data = {
+                    'message': result['response'],
+                    'thread_id': thread_id,
+                    'user_id': self.user_id
+                }
+                
+                # Add resume ID if available
+                if result.get('resume_id'):
+                    response_data['resume_id'] = result['resume_id']
+                
+                return response_data
+            else:
+                return {
+                    'message': "I'm sorry, I didn't get a response from my AI assistant. Please try again.",
+                    'thread_id': thread_id
+                }
+                
+        except Exception as e:
+            print(f"❌ Error in process_with_real_ai: {str(e)}")
+            import traceback
+            print(f"📋 Traceback: {traceback.format_exc()}")
+            return {
+                'message': f"I'm sorry, I encountered an error: {str(e)}",
+                'thread_id': thread_id
+            }
+
     async def process_with_ai(self, message, message_type):
         """
-        Process user message with AI assistant.
-        This will integrate with your OpenAI Assistant Manager later.
+        DEPRECATED: This method is no longer used.
+        Kept for backward compatibility.
         """
-        # For now, return a simple response
-        # Later, this will call your AI service
-        
-        if message_type == 'template_selection':
-            return {
-                'message': f'Great choice! I\'ve selected the {message} template. Let\'s start with your personal information. What\'s your full name?',
-                'action': 'template_selected',
-                'data': {'template': message}
-            }
-        elif 'name' in message.lower():
-            return {
-                'message': f'Nice to meet you! I\'ve added your name. Now, what\'s your professional title?',
-                'action': 'personal_info_updated',
-                'data': {'field': 'name', 'value': message}
-            }
-        elif 'title' in message.lower() or 'engineer' in message.lower() or 'manager' in message.lower():
-            return {
-                'message': f'Excellent! I\'ve added your title. Next, what\'s your email address?',
-                'action': 'personal_info_updated',
-                'data': {'field': 'title', 'value': message}
-            }
-        else:
-            return {
-                'message': f'I understand you said: "{message}". Let me help you with that. What specific information would you like to add to your resume?',
-                'action': 'general_response'
-            }
+        # This method is deprecated - use process_with_real_ai instead
+        return await self.process_with_real_ai(message, None)
+
+    async def send_event(self, event):
+        """
+        Send events from function handlers to the frontend.
+        This is called by the EventEmitter when function handlers want to trigger frontend actions.
+        """
+        await self.send(text_data=json.dumps({
+            'type': 'backend_event',
+            'event_type': event['event_type'],
+            'data': event['data']
+        }))
 
     async def resume_updated(self, event):
         """Send resume update to WebSocket."""

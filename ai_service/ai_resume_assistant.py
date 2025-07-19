@@ -87,9 +87,9 @@ import time
 import os
 from typing import Optional, List, Dict, Any, Callable
 from dotenv import load_dotenv
-from agents.services.tasks_schema import TASK_SCHEMAS
+from .task_schema import TASK_SCHEMAS
 from openai import OpenAI
-from agents.services.function_handlers import FunctionHandlers
+from .function_handlers import FunctionHandlers
 import json
 
 class FunctionConfig:
@@ -162,6 +162,7 @@ class OpenAIAssistantManager:
     - Thread Management: Maintain separate conversation contexts
     - Vector Store Management: Upload, update, and manage document collections
     - Error Handling: Comprehensive error handling and logging
+    - User Management: Proper user isolation for multi-user environments
     
     USAGE PATTERNS:
     ===============
@@ -180,7 +181,7 @@ class OpenAIAssistantManager:
     Conversation:
         thread_id = manager.create_thread()
         response = manager.add_message_and_run(
-            thread_id, assistant_id, "Hello"
+            thread_id, assistant_id, "Hello", user_id="user_123"
         )
     
     ADVANCED USAGE:
@@ -233,6 +234,7 @@ class OpenAIAssistantManager:
     - API keys are loaded from environment variables
     - Function arguments are validated before execution
     - No sensitive data is logged in debug output
+    - User isolation ensures data privacy
     - Consider implementing rate limiting for production use
     """
     
@@ -507,7 +509,7 @@ class OpenAIAssistantManager:
             print(f"Error creating thread: {e}")
             return None
 
-    def add_message_and_run(self, thread_id: str, assistant_id: str, query: str) -> Optional[str]:
+    def add_message_and_run(self, thread_id: str, assistant_id: str, query: str, user_id: str) -> Optional[Dict]:
         """
         Add a message to thread and run the assistant with function calling support
         
@@ -521,29 +523,33 @@ class OpenAIAssistantManager:
         3. Poll for run status
         4. Handle function calls if required
         5. Submit tool outputs back to assistant
-        6. Return final response
+        6. Return final response with any resume IDs
         
         Args:
             thread_id (str): ID of the conversation thread
             assistant_id (str): ID of the assistant to use
             query (str): User's message/query
+            user_id (str): ID of the user initiating the conversation
         
         Returns:
-            Optional[str]: Assistant's response if successful, None if failed
+            Optional[Dict]: Dictionary with 'response' and optional 'resume_id' if successful, None if failed
         
         Raises:
             Exception: If message processing or function execution fails
         
         Example:
             # Send a message and get response
-            response = manager.add_message_and_run(
+            result = manager.add_message_and_run(
                 thread_id="thread_abc123",
                 assistant_id="asst_xyz789",
-                query="Write an email to customer@example.com about our new product"
+                query="Create a new resume for me",
+                user_id="user_123"
             )
             
-            if response:
-                print(f"Assistant: {response}")
+            if result:
+                print(f"Assistant: {result['response']}")
+                if result.get('resume_id'):
+                    print(f"Resume ID: {result['resume_id']}")
             else:
                 print("No response received")
         
@@ -552,52 +558,85 @@ class OpenAIAssistantManager:
             - The method includes timeout protection (60 seconds)
             - All function results are logged for debugging
             - The assistant can call multiple functions in sequence
+            - Resume IDs are extracted from function results and returned
         """
         try:
-            print("\n=== Starting Message and Run ===")
+            print("\n" + "="*60)
+            print("🚀 AI ASSISTANT: Starting add_message_and_run")
+            print("="*60)
+            print(f"📝 Thread ID: {thread_id}")
+            print(f"🤖 Assistant ID: {assistant_id}")
+            print(f"💬 Query: {query}")
+            print(f"👤 User ID: {user_id}")
             
-            # Add the user message to the thread
-            message = self.client.beta.threads.messages.create(
-                thread_id=thread_id,
-                role="user",
-                content=query
-            )
-            print("✓ Message added to thread")
-            
-            # Create a run to process the message
-            run = self.client.beta.threads.runs.create(
-                thread_id=thread_id,
-                assistant_id=assistant_id
-            )
-            print(f"✓ Run created with ID: {run.id}")
-            
-            # Poll for completion with timeout protection
-            timeout = 60  # 60 second timeout
-            start_time = time.time()
-            
-            while True:
-                # Check for timeout
-                if time.time() - start_time > timeout:
-                    print("❌ Run timed out")
-                    return None
-                    
-                # Get current run status
-                run_status = self.client.beta.threads.runs.retrieve(
+            # Add user message to thread with user context
+            print(f"\n📝 Adding message to thread {thread_id}")
+            try:
+                # Inject user context into the message
+                contextualized_query = f"""Current user ID: {user_id}
+
+User message: {query}
+
+IMPORTANT: Always use user_id: {user_id} when calling any functions that require a user_id parameter."""
+                
+                self.client.beta.threads.messages.create(
                     thread_id=thread_id,
-                    run_id=run.id
+                    role="user",
+                    content=contextualized_query
                 )
-                print(f"\n➤ Current Run Status: {run_status.status}")
+                print("✅ Message added successfully with user context")
+            except Exception as e:
+                print(f"❌ Error adding message: {e}")
+                raise
+            
+            # Create and start a run
+            print(f"🚀 Starting run with assistant {assistant_id}")
+            try:
+                run = self.client.beta.threads.runs.create(
+                    thread_id=thread_id,
+                    assistant_id=assistant_id
+                )
+                print(f"✅ Run created with ID: {run.id}")
+            except Exception as e:
+                print(f"❌ Error creating run: {e}")
+                raise
+            
+            # Track resume IDs from function calls
+            resume_ids = []
+            
+            # Poll for run status
+            start_time = time.time()
+            timeout = 90  # Increased from 60 to 90 seconds to match frontend timeout
+            poll_count = 0
+            
+            print(f"⏰ Starting polling loop (timeout: {timeout}s)")
+            
+            while time.time() - start_time < timeout:
+                poll_count += 1
+                elapsed_time = time.time() - start_time
+                print(f"\n🔄 Poll #{poll_count} (elapsed: {elapsed_time:.1f}s / {timeout}s)")
+                
+                try:
+                    run_status = self.client.beta.threads.runs.retrieve(
+                        thread_id=thread_id,
+                        run_id=run.id
+                    )
+                    print(f"⏳ Run status: {run_status.status}")
+                except Exception as e:
+                    print(f"❌ Error retrieving run status: {e}")
+                    raise
                 
                 # Handle function calls
                 if run_status.status == "requires_action":
-                    print("\n🔧 Function call required!")
+                    print("\n🔧 Function calls required!")
                     tool_calls = run_status.required_action.submit_tool_outputs.tool_calls
-                    print(f"Number of tool calls: {len(tool_calls)}")
+                    print(f"🔧 Number of tool calls: {len(tool_calls)}")
                     
                     tool_outputs = []
-                    for tool_call in tool_calls:
-                        print(f"\nFunction to call: {tool_call.function.name}")
-                        print(f"Arguments: {tool_call.function.arguments}")
+                    for i, tool_call in enumerate(tool_calls):
+                        print(f"\n🔧 Processing tool call {i+1}/{len(tool_calls)}")
+                        print(f"🔧 Function to call: {tool_call.function.name}")
+                        print(f"🔧 Arguments: {tool_call.function.arguments}")
                         
                         # Create function handler instance
                         handler = FunctionHandlers()
@@ -606,19 +645,93 @@ class OpenAIAssistantManager:
                         args = json.loads(tool_call.function.arguments)
                         
                         # Execute the appropriate function based on name
-                        if tool_call.function.name == "save_email":
-                            result = handler.save_email(**args)
-                        elif tool_call.function.name == "auto_respond_email":
-                            result = handler.auto_respond_email(**args)
-                        elif tool_call.function.name == "reply_to_email":
-                            result = handler.reply_to_email(**args)
-                        elif tool_call.function.name == "forward_email":
-                            result = handler.forward_email(**args)
-                        else:
-                            print(f"Unknown function: {tool_call.function.name}")
-                            result = {"error": f"Unknown function: {tool_call.function.name}"}
+                        print(f"🔧 Executing function: {tool_call.function.name}")
+                        try:
+                            if tool_call.function.name == "save_email":
+                                result = handler.save_email(**args)
+                            elif tool_call.function.name == "auto_respond_email":
+                                result = handler.auto_respond_email(**args)
+                            elif tool_call.function.name == "reply_to_email":
+                                result = handler.reply_to_email(**args)
+                            elif tool_call.function.name == "forward_email":
+                                result = handler.forward_email(**args)
+                            # Resume builder functions - New robust version
+                            elif tool_call.function.name == "create_resume":
+                                result = handler.create_resume(**args)
+                                # Extract resume ID if created successfully
+                                if result.get("success") and result.get("data", {}).get("resume_id"):
+                                    resume_ids.append(result["data"]["resume_id"])
+                            elif tool_call.function.name == "save_personal_info":
+                                result = handler.save_personal_info(**args)
+                                # Extract resume ID if available
+                                if result.get("success") and result.get("data", {}).get("resume_id"):
+                                    resume_ids.append(result["data"]["resume_id"])
+                            elif tool_call.function.name == "edit_personal_info":
+                                result = handler.edit_personal_info(**args)
+                            elif tool_call.function.name == "save_experience":
+                                result = handler.save_experience(**args)
+                                # Extract resume ID if available
+                                if result.get("success") and result.get("data", {}).get("resume_id"):
+                                    resume_ids.append(result["data"]["resume_id"])
+                            elif tool_call.function.name == "edit_experience":
+                                result = handler.edit_experience(**args)
+                            elif tool_call.function.name == "delete_experience":
+                                result = handler.delete_experience(**args)
+                            elif tool_call.function.name == "save_education":
+                                result = handler.save_education(**args)
+                                # Extract resume ID if available
+                                if result.get("success") and result.get("data", {}).get("resume_id"):
+                                    resume_ids.append(result["data"]["resume_id"])
+                            elif tool_call.function.name == "edit_education":
+                                result = handler.edit_education(**args)
+                            elif tool_call.function.name == "delete_education":
+                                result = handler.delete_education(**args)
+                            elif tool_call.function.name == "save_skills":
+                                result = handler.save_skills(**args)
+                                # Extract resume ID if available
+                                if result.get("success") and result.get("data", {}).get("resume_id"):
+                                    resume_ids.append(result["data"]["resume_id"])
+                            elif tool_call.function.name == "edit_skills":
+                                result = handler.edit_skills(**args)
+                            elif tool_call.function.name == "save_additional":
+                                result = handler.save_additional(**args)
+                                # Extract resume ID if available
+                                if result.get("success") and result.get("data", {}).get("resume_id"):
+                                    resume_ids.append(result["data"]["resume_id"])
+                            elif tool_call.function.name == "save_summary":
+                                result = handler.save_summary(**args)
+                                # Extract resume ID if available
+                                if result.get("success") and result.get("data", {}).get("resume_id"):
+                                    resume_ids.append(result["data"]["resume_id"])
+                            elif tool_call.function.name == "edit_additional":
+                                result = handler.edit_additional(**args)
+                            elif tool_call.function.name == "get_resume_info":
+                                result = handler.get_resume_info(**args)
+                            elif tool_call.function.name == "list_user_resumes":
+                                result = handler.list_user_resumes(**args)
+                            elif tool_call.function.name == "finalize_resume":
+                                result = handler.finalize_resume(**args)
+                                # Extract resume ID if available
+                                if result.get("success") and result.get("data", {}).get("resume_id"):
+                                    resume_ids.append(result["data"]["resume_id"])
+                            elif tool_call.function.name == "list_templates":
+                                result = handler.list_templates(**args)
+                            elif tool_call.function.name == "preview_template":
+                                result = handler.preview_template(**args)
+                            elif tool_call.function.name == "switch_template":
+                                result = handler.switch_template(**args)
+                                # Extract resume ID if available
+                                if result.get("success") and result.get("data", {}).get("resume_id"):
+                                    resume_ids.append(result["data"]["resume_id"])
+                            else:
+                                print(f"❌ Unknown function: {tool_call.function.name}")
+                                result = {"error": f"Unknown function: {tool_call.function.name}"}
                             
-                        print(f"\nFunction result: {result}")
+                            print(f"✅ Function result: {result}")
+                            
+                        except Exception as e:
+                            print(f"❌ Error executing function {tool_call.function.name}: {e}")
+                            result = {"error": f"Function execution failed: {str(e)}"}
                         
                         # Add result to tool outputs
                         tool_outputs.append({
@@ -628,43 +741,77 @@ class OpenAIAssistantManager:
                     
                     # Submit tool outputs back to assistant
                     if tool_outputs:
-                        print(f"\nSubmitting tool outputs: {tool_outputs}")
-                        self.client.beta.threads.runs.submit_tool_outputs(
-                            thread_id=thread_id,
-                            run_id=run.id,
-                            tool_outputs=tool_outputs
-                        )
+                        print(f"\n📤 Submitting {len(tool_outputs)} tool outputs...")
+                        try:
+                            self.client.beta.threads.runs.submit_tool_outputs(
+                                thread_id=thread_id,
+                                run_id=run.id,
+                                tool_outputs=tool_outputs
+                            )
+                            print("✅ Tool outputs submitted successfully")
+                        except Exception as e:
+                            print(f"❌ Error submitting tool outputs: {e}")
+                            raise
                     else:
                         print("\n⚠️ No tool outputs generated!")
                 
                 # Handle successful completion
                 elif run_status.status == "completed":
-                    print("\n✓ Run completed!")
-                    messages = self.client.beta.threads.messages.list(
-                        thread_id=thread_id
-                    )
-                    print("\n📝 Final Messages:")
-                    for msg in messages.data:
-                        print(f"Role: {msg.role}")
-                        if msg.content:
-                            print(f"Content: {msg.content[0].text.value}")
-                    return messages.data[0].content[0].text.value
+                    print("\n✅ Run completed!")
+                    try:
+                        messages = self.client.beta.threads.messages.list(
+                            thread_id=thread_id
+                        )
+                        print(f"📝 Retrieved {len(messages.data)} messages")
+                        
+                        if messages.data:
+                            response_text = messages.data[0].content[0].text.value
+                            print(f"📝 Response text: {response_text[:100]}...")
+                            
+                            # Return response with any resume IDs
+                            result = {"response": response_text}
+                            
+                            # Add resume ID if any were created/updated
+                            if resume_ids:
+                                result["resume_id"] = resume_ids[-1]  # Use the most recent one
+                                print(f"📄 Resume ID extracted: {result['resume_id']}")
+                            
+                            print("✅ Returning successful result")
+                            return result
+                        else:
+                            print("❌ No messages found")
+                            return None
+                            
+                    except Exception as e:
+                        print(f"❌ Error retrieving messages: {e}")
+                        raise
                     
                 # Handle failures
                 elif run_status.status in ["failed", "expired", "cancelled"]:
                     print(f"\n❌ Run failed with status: {run_status.status}")
                     if hasattr(run_status, 'last_error'):
-                        print(f"Error: {run_status.last_error}")
+                        print(f"❌ Error: {run_status.last_error}")
                     return None
+                
+                # Handle queued status
+                elif run_status.status == "queued":
+                    print("⏳ Run is queued, waiting...")
+                
+                # Handle in_progress status
+                elif run_status.status == "in_progress":
+                    print("⚙️ Run is in progress...")
                     
                 # Wait before next status check
-                print("⏳ Waiting for next status update...")
+                print("⏳ Waiting 1 second before next poll...")
                 time.sleep(1)
+            
+            print(f"⏰ Timeout reached after {timeout} seconds")
+            return None
                 
         except Exception as e:
-            print(f"\n❌ Error in conversation: {str(e)}")
+            print(f"\n❌ Error in add_message_and_run: {str(e)}")
             import traceback
-            print(f"Traceback: {traceback.format_exc()}")
+            print(f"📋 Traceback: {traceback.format_exc()}")
             return None
 
     def delete_file_from_vector_store(self, vector_store_id: str, file_id: str) -> bool:
@@ -967,7 +1114,8 @@ def main():
             response = manager.add_message_and_run(
                 thread_id=thread_id,
                 assistant_id=assistant_id,
-                query="What's the name of Odysseus wife?"
+                query="What's the name of Odysseus wife?",
+                user_id="user_123"
             )
             
             if response:
@@ -1068,7 +1216,8 @@ def test_save_email_assistant():
             response = manager.add_message_and_run(
                 thread_id=thread_id,
                 assistant_id=assistant_id,
-                query=test_message
+                query=test_message,
+                user_id="user_123"
             )
             
             print("\nTest Message:", test_message)
@@ -1208,7 +1357,8 @@ def test_multi_function_assistant():
             response = manager.add_message_and_run(
                 thread_id=thread_id,
                 assistant_id=assistant_id,
-                query=complex_test
+                query=complex_test,
+                user_id="user_123"
             )
             print("\nComplex Test Response:", response)
             
@@ -1224,7 +1374,7 @@ if __name__ == "__main__":
     #manager.add_file_to_existing_vector_store("ai/datastore/data/about-us.txt", "vs_UfD2J8pthS0qlP19uXlHHWDJ")
     #thread_id=manager.create_thread()
     #print(f"Thread created: {thread_id}")
-    #response = manager.add_message_and_run(thread_id, "asst_vShH1Hyfaprc3elbsEg7VjKq", "tell me about traveltaf?")
+    #response = manager.add_message_and_run(thread_id, "asst_vShH1Hyfaprc3elbsEg7VjKq", "tell me about traveltaf?", "user_123")
     #print(f"Assistant response: {response}")
     #manager.delete_file("file-Wq5u3pqoQ3Rg8ec5VdKWaa")
     #manager.delete_vector_store("vs_mJVHTIDCiZ2KTZi3tUja7Mik")
