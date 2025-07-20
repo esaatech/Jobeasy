@@ -138,9 +138,9 @@ class ResumePreviewTab {
             resumeContent.innerHTML = '<div class="text-center py-8"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div><p class="mt-2 text-gray-600">Loading resume...</p></div>';
         }
         
-        // Use HTMX to load only the resume content
+        // Use HTMX to load the entire tab content
         htmx.ajax('GET', fullUrl, {
-            target: '#resumeContent',
+            target: '#resume-preview-tab',
             swap: 'innerHTML',
             headers: {
                 'HX-Request': 'true'
