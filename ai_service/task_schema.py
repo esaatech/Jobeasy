@@ -171,6 +171,66 @@ TASK_SCHEMAS = {
                 'additionalProperties': False
             }
         },
+        'edit_education': {
+            'name': 'edit_education',
+            'description': 'Edit a specific education entry by index',
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'user_id': {'type': 'string', 'description': 'ID of the user'},
+                    'resume_id': {'type': 'string', 'description': 'ID of the resume to update'},
+                    'education_index': {'type': 'integer', 'description': 'Index of education entry to edit (0, 1, 2, etc.)'},
+                    'field': {'type': 'string', 'enum': ['degree', 'institution', 'start_date', 'end_date', 'description'], 'description': 'Field to edit'},
+                    'value': {'type': 'string', 'description': 'New value for the field'}
+                },
+                'required': ['user_id', 'resume_id', 'education_index', 'field', 'value'],
+                'additionalProperties': False
+            }
+        },
+        'delete_education': {
+            'name': 'delete_education',
+            'description': 'Delete a specific education entry by index',
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'user_id': {'type': 'string', 'description': 'ID of the user'},
+                    'resume_id': {'type': 'string', 'description': 'ID of the resume to update'},
+                    'education_index': {'type': 'integer', 'description': 'Index of education entry to delete (0, 1, 2, etc.)'}
+                },
+                'required': ['user_id', 'resume_id', 'education_index'],
+                'additionalProperties': False
+            }
+        },
+        'edit_experience': {
+            'name': 'edit_experience',
+            'description': 'Edit a specific experience entry by index',
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'user_id': {'type': 'string', 'description': 'ID of the user'},
+                    'resume_id': {'type': 'string', 'description': 'ID of the resume to update'},
+                    'experience_index': {'type': 'integer', 'description': 'Index of experience entry to edit (0, 1, 2, etc.)'},
+                    'field': {'type': 'string', 'enum': ['title', 'company', 'start_date', 'end_date', 'description'], 'description': 'Field to edit'},
+                    'value': {'type': 'string', 'description': 'New value for the field'}
+                },
+                'required': ['user_id', 'resume_id', 'experience_index', 'field', 'value'],
+                'additionalProperties': False
+            }
+        },
+        'delete_experience': {
+            'name': 'delete_experience',
+            'description': 'Delete a specific experience entry by index',
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'user_id': {'type': 'string', 'description': 'ID of the user'},
+                    'resume_id': {'type': 'string', 'description': 'ID of the resume to update'},
+                    'experience_index': {'type': 'integer', 'description': 'Index of experience entry to delete (0, 1, 2, etc.)'}
+                },
+                'required': ['user_id', 'resume_id', 'experience_index'],
+                'additionalProperties': False
+            }
+        },
         'list_templates': {
             'name': 'list_templates',
             'description': 'List available resume templates',

@@ -266,7 +266,7 @@ class OpenAIAssistantManager:
         name: str,
         base_instructions: str,
         functions: List[FunctionConfig],
-        model: str = "gpt-4-turbo-preview"
+        model: str = "gpt-4o-mini"
     ) -> Optional[str]:
         """
         Create an OpenAI assistant with dynamic function configuration
@@ -279,7 +279,7 @@ class OpenAIAssistantManager:
             name (str): Human-readable name for the assistant
             base_instructions (str): Base behavior instructions for the assistant
             functions (List[FunctionConfig]): List of function configurations
-            model (str, optional): OpenAI model to use. Defaults to "gpt-4-turbo-preview"
+            model (str, optional): OpenAI model to use. Defaults to "gpt-4o-mini"
         
         Returns:
             Optional[str]: Assistant ID if successful, None if failed
@@ -673,6 +673,8 @@ IMPORTANT: Always use user_id: {user_id} when calling any functions that require
                                 # Extract resume ID if available
                                 if result.get("success") and result.get("data", {}).get("resume_id"):
                                     resume_ids.append(result["data"]["resume_id"])
+                            elif tool_call.function.name == "delete_experience_by_company":
+                                result = handler.delete_experience_by_company(**args)
                             elif tool_call.function.name == "edit_experience":
                                 result = handler.edit_experience(**args)
                             elif tool_call.function.name == "delete_experience":

@@ -99,6 +99,8 @@ class ResumeBuilderConsumer(AsyncWebsocketConsumer):
             
             # Import the AI assistant manager
             from resume_builder.views import get_or_create_assistant
+            from datetime import datetime
+            import json
             
             # Get or create assistant
             manager, assistant_id = get_or_create_assistant()
@@ -120,6 +122,9 @@ class ResumeBuilderConsumer(AsyncWebsocketConsumer):
                         'thread_id': None
                     }
             
+            # Smart resume data inclusion - only include if we have a recent resume from AI interaction
+            enhanced_message = self._prepare_message_with_smart_resume_context(message)
+            
             print(f"🤖 Sending message to AI assistant")
             print(f"📤 Thread ID: {thread_id}")
             print(f"📤 Assistant ID: {assistant_id}")
@@ -129,7 +134,7 @@ class ResumeBuilderConsumer(AsyncWebsocketConsumer):
             result = manager.add_message_and_run(
                 thread_id=thread_id,
                 assistant_id=assistant_id,
-                query=message,
+                query=enhanced_message,
                 user_id=self.user_id
             )
             
@@ -202,4 +207,115 @@ class ResumeBuilderConsumer(AsyncWebsocketConsumer):
         await self.send(text_data=json.dumps({
             'type': 'template_changed',
             'template_id': event['template_id']
-        })) 
+        }))
+
+    def _prepare_message_with_smart_resume_context(self, message):
+        """
+        Smart function to determine when resume data is needed and include it only when necessary.
+        This reduces token usage by not sending full resume data for general chat.
+        """
+        # Keywords that indicate resume-related operations
+        resume_keywords = [
+            'resume', 'cv', 'curriculum vitae', 'create resume', 'build resume', 'edit resume',
+            'update', 'change', 'modify', 'delete', 'remove', 'add', 'edit', 'save',
+            'experience', 'education', 'skills', 'personal', 'summary', 'template',
+            'university', 'college', 'school', 'degree', 'company', 'job', 'work',
+            'position', 'title', 'employment', 'career', 'professional', 'work history',
+            'academic', 'qualification', 'certification', 'training', 'course',
+            'skill', 'competency', 'expertise', 'proficiency', 'knowledge',
+            'project', 'achievement', 'accomplishment', 'responsibility', 'duty',
+            'technology', 'software', 'tool', 'language', 'framework', 'platform'
+        ]
+        
+        # Check if message contains resume-related keywords
+        message_lower = message.lower()
+        is_resume_related = any(keyword in message_lower for keyword in resume_keywords)
+        
+        print(f"🔍 Message analysis: '{message}'")
+        print(f"🔍 Resume-related: {is_resume_related}")
+        
+        # CRITICAL: Only include resume data if we have a resume_id from previous AI interaction
+        # This means the AI has already created a resume in this conversation
+        if not is_resume_related:
+            # For general chat, just send the message without resume data
+            print(f"📄 No resume data needed for general chat")
+            return message
+        
+        # For resume-related operations, check if we have a resume_id from previous AI interaction
+        # We'll need to check the thread history or store resume_id in session/context
+        # For now, let's check if there's a recent resume created by this user
+        try:
+            # Get user's most recent resume that was created recently (within last 10 minutes)
+            from django.utils import timezone
+            from datetime import timedelta
+            
+            recent_time = timezone.now() - timedelta(minutes=10)
+            current_resume = Resume.objects.filter(
+                user=self.user, 
+                created_at__gte=recent_time
+            ).order_by('-created_at').first()
+            
+            if current_resume:
+                # Prepare resume data for AI context
+                resume_data = {
+                    'resume_id': str(current_resume.id),
+                    'name': current_resume.name,
+                    'template_id': current_resume.template_id,
+                    'personal_info': current_resume.personal_info or {},
+                    'experience': current_resume.experience or [],
+                    'education': current_resume.education or [],
+                    'skills': current_resume.skills or {},
+                    'additional': current_resume.additional or {},
+                    'draft': current_resume.draft,
+                    'updated_at': current_resume.updated_at.isoformat() if current_resume.updated_at else None
+                }
+                
+                # Include resume data in user message
+                enhanced_message = f"""
+Current Resume State (as of {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}):
+{json.dumps(resume_data, indent=2)}
+
+User Request: {message}
+
+Note: You can edit and delete entries using their array indices (0, 1, 2, etc.). The resume data above shows the current state.
+
+CRITICAL: When editing or deleting entries, you MUST search through the current resume data provided above to find the correct entry. Do NOT rely on conversation history or previous entries - always use the current data shown above to determine the correct index.
+
+SEARCH PROCESS FOR EDITING/DELETING:
+1. First, identify what the user wants to edit/delete (institution name, company name, etc.)
+2. Search through the current education/experience arrays in the resume data above
+3. Look for EXACT or PARTIAL matches in the relevant fields
+4. Use the ARRAY INDEX (0, 1, 2, etc.) of the matching entry
+5. If multiple entries match, ask the user to be more specific
+6. If no entry matches, inform the user that the specified entry was not found
+
+EXAMPLE SEARCH PROCESS:
+- User says: "update tech university to techno"
+- Search education array for "tech university" in institution field
+- Find entry at index 1 with institution "Tech University"
+- Call edit_education with education_index=1, field="institution", value="Techno University"
+
+CRITICAL: Before calling edit_education or delete_education, you MUST:
+1. State which entry you found (e.g., "I found Tech University at index 1")
+2. Confirm the action you're taking (e.g., "I will update Tech University to Techno University")
+3. Then call the function with the correct index
+"""
+                print(f"📄 Resume data included for AI context")
+                print(f"📄 Resume ID: {resume_data['resume_id']}")
+                print(f"📄 Education entries: {len(resume_data['education'])}")
+                print(f"📄 Experience entries: {len(resume_data['experience'])}")
+                
+                # Debug: Show education entries with indices
+                print(f"\n🔍 DEBUG: Current Education Entries:")
+                for i, edu in enumerate(resume_data['education']):
+                    print(f"  Index {i}: {edu.get('degree', 'N/A')} from {edu.get('institution', 'N/A')}")
+                print(f"🔍 DEBUG: End Education Entries\n")
+                
+                return enhanced_message
+            else:
+                # No recent resume found - this is likely a new conversation
+                print(f"📄 No recent resume found - treating as new conversation")
+                return message
+        except Exception as e:
+            print(f"⚠️ Error getting resume data: {e}")
+            return message 

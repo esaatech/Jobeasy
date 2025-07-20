@@ -874,6 +874,155 @@ class FunctionHandlers:
             }
 
     @staticmethod
+    def edit_experience(user_id: str, resume_id: str, experience_index: int, field: str, value: str) -> Dict[str, Any]:
+        """Edit a specific experience entry"""
+        try:
+            print(f"\n========== EDIT EXPERIENCE ==========")
+            print(f"User ID: {user_id}")
+            print(f"Resume ID: {resume_id}")
+            print(f"Experience Index: {experience_index}")
+            print(f"Field: {field}")
+            print(f"Value: {value}")
+            
+            # Setup Django
+            import os
+            import django
+            from django.conf import settings
+            
+            if not settings.configured:
+                os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'jobeas.settings')
+                django.setup()
+            
+            from resume_builder.models import Resume
+            from django.contrib.auth.models import User
+            
+            # Validate user exists
+            try:
+                user = User.objects.get(id=user_id)
+            except User.DoesNotExist:
+                return {"success": False, "error": f"User with ID {user_id} not found"}
+            
+            # Validate resume belongs to user
+            try:
+                resume = Resume.objects.get(id=resume_id, user=user)
+            except Resume.DoesNotExist:
+                return {"success": False, "error": f"Resume with ID {resume_id} not found for user {user_id}"}
+            
+            # Validate field
+            valid_fields = ['title', 'company', 'start_date', 'end_date', 'description']
+            if field not in valid_fields:
+                return {"success": False, "error": f"Invalid field. Must be one of: {', '.join(valid_fields)}"}
+            
+            # Get current experience
+            current_experience = resume.experience or []
+            if experience_index >= len(current_experience):
+                return {"success": False, "error": f"Experience index {experience_index} out of range"}
+            
+            # Update the specific field
+            current_experience[experience_index][field] = value
+            resume.experience = current_experience
+            resume.save()
+
+            # Emit event to frontend
+            EventEmitter.emit_event(user_id, 'resume_updated', {
+                'resume_id': str(resume.id),
+                'experience': resume.experience,
+                'timestamp': datetime.now().isoformat()
+            })
+            
+            result = {
+                "success": True,
+                "message": f"Updated experience {experience_index} {field} to: {value}",
+                "data": {
+                    "resume_id": str(resume.id),
+                    "experience_index": experience_index,
+                    "field": field,
+                    "value": value,
+                    "timestamp": datetime.now().isoformat()
+                }
+            }
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error in edit_experience: {str(e)}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    @staticmethod
+    def delete_experience(user_id: str, resume_id: str, experience_index: int) -> Dict[str, Any]:
+        """Delete a specific experience entry"""
+        try:
+            print(f"\n========== DELETE EXPERIENCE ==========")
+            print(f"User ID: {user_id}")
+            print(f"Resume ID: {resume_id}")
+            print(f"Experience Index: {experience_index}")
+            
+            # Setup Django
+            import os
+            import django
+            from django.conf import settings
+            
+            if not settings.configured:
+                os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'jobeas.settings')
+                django.setup()
+            
+            from resume_builder.models import Resume
+            from django.contrib.auth.models import User
+            
+            # Validate user exists
+            try:
+                user = User.objects.get(id=user_id)
+            except User.DoesNotExist:
+                return {"success": False, "error": f"User with ID {user_id} not found"}
+            
+            # Validate resume belongs to user
+            try:
+                resume = Resume.objects.get(id=resume_id, user=user)
+            except Resume.DoesNotExist:
+                return {"success": False, "error": f"Resume with ID {resume_id} not found for user {user_id}"}
+            
+            # Get current experience
+            current_experience = resume.experience or []
+            if experience_index >= len(current_experience):
+                return {"success": False, "error": f"Experience index {experience_index} out of range"}
+            
+            # Get the experience entry to be deleted for the message
+            deleted_experience = current_experience[experience_index]
+            
+            # Remove the experience entry
+            current_experience.pop(experience_index)
+            resume.experience = current_experience
+            resume.save()
+
+            # Emit event to frontend
+            EventEmitter.emit_event(user_id, 'resume_updated', {
+                'resume_id': str(resume.id),
+                'experience': resume.experience,
+                'timestamp': datetime.now().isoformat()
+            })
+            
+            result = {
+                "success": True,
+                "message": f"Deleted experience: {deleted_experience.get('title', 'Unknown')} at {deleted_experience.get('company', 'Unknown')}",
+                "data": {
+                    "resume_id": str(resume.id),
+                    "experience_index": experience_index,
+                    "deleted_experience": deleted_experience,
+                    "timestamp": datetime.now().isoformat()
+                }
+            }
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error in delete_experience: {str(e)}")
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    @staticmethod
     def save_skills(
         user_id: str,
         resume_id: str,
