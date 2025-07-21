@@ -119,28 +119,31 @@
     // Initialize i18next with all languages
     async function initializeI18next() {
         try {
-            // Load all language resources from job_service and home app
-            const [enJob, frJob, esJob, enHome, frHome, esHome] = await Promise.all([
+            // Load all language resources from job_service, home, and resume_builder apps
+            const [enJob, frJob, esJob, enHome, frHome, esHome, enResume, frResume, esResume] = await Promise.all([
                 fetch('{% static "job_service/lang/en.json" %}').then(res => res.json()),
                 fetch('{% static "job_service/lang/fr.json" %}').then(res => res.json()),
                 fetch('{% static "job_service/lang/es.json" %}').then(res => res.json()),
                 fetch('{% static "home/lang/en.json" %}').then(res => res.json()),
                 fetch('{% static "home/lang/es.json" %}').then(res => res.json()),
-                fetch('{% static "home/lang/fr.json" %}').then(res => res.json())
+                fetch('{% static "home/lang/fr.json" %}').then(res => res.json()),
+                fetch('{% static "resume_builder/lang/en.json" %}').then(res => res.json()),
+                fetch('{% static "resume_builder/lang/fr.json" %}').then(res => res.json()),
+                fetch('{% static "resume_builder/lang/es.json" %}').then(res => res.json())
             ]);
 
-            // Merge job_service and home resources for each language
-            function mergeResources(job, home) {
-                return Object.assign({}, job, home);
+            // Merge job_service, home, and resume_builder resources for each language
+            function mergeResources(job, home, resume) {
+                return Object.assign({}, job, home, resume);
             }
 
             await i18next.init({
                 lng: 'en', // default language
                 fallbackLng: 'en',
                 resources: {
-                    en: { translation: mergeResources(enJob, enHome) },
-                    fr: { translation: mergeResources(frJob, frHome) },
-                    es: { translation: mergeResources(esJob, esHome) }
+                    en: { translation: mergeResources(enJob, enHome, enResume) },
+                    fr: { translation: mergeResources(frJob, frHome, frResume) },
+                    es: { translation: mergeResources(esJob, esHome, esResume) }
                 },
                 debug: false
             });

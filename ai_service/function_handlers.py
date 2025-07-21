@@ -1440,7 +1440,7 @@ class FunctionHandlers:
 
     @staticmethod
     def list_user_resumes(user_id: str) -> Dict[str, Any]:
-        """List all resumes for the current user"""
+        """List all resumes for the current user and trigger utility tab display"""
         try:
             print(f"\n========== LIST USER RESUMES ==========")
             print(f"User ID: {user_id}")
@@ -1473,19 +1473,24 @@ class FunctionHandlers:
                     "name": resume.name,
                     "template_id": resume.template_id,
                     "draft": resume.draft,
-                    "personal_info": resume.personal_info or {},
-                    "experience_count": len(resume.experience or []),
-                    "education_count": len(resume.education or []),
                     "created_at": resume.created_at.isoformat() if resume.created_at else None,
                     "updated_at": resume.updated_at.isoformat() if resume.updated_at else None
                 })
             
+            # Emit event to frontend to show resume list in utility tab
+            EventEmitter.emit_event(user_id, 'show_resume_list', {
+                'resume_count': len(resume_list),
+                'resumes': resume_list,
+                'timestamp': datetime.now().isoformat()
+            })
+            
+            # Return success message
             result = {
                 "success": True,
-                "message": f"Found {len(resume_list)} resumes",
+                "message": f"I found {len(resume_list)} resume(s) in your account. I've loaded them in the Utility tab for you to review.",
                 "data": {
+                    "resume_count": len(resume_list),
                     "resumes": resume_list,
-                    "count": len(resume_list),
                     "timestamp": datetime.now().isoformat()
                 }
             }

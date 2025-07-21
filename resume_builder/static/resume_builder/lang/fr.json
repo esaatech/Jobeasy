@@ -1,0 +1,15 @@
+{
+  "ai_welcome_title": "Assistant IA de CV",
+  "ai_welcome_greeting": "Bonjour ! Je suis votre Assistant IA de CV. Je peux vous aider à créer des CV et lettres de motivation professionnels étape par étape.",
+  "ai_welcome_question": "Que souhaitez-vous faire ?",
+  "ai_welcome_create_resume": "📝 Créer un nouveau CV à partir de zéro",
+  "ai_welcome_create_cover_letter": "📄 Créer une lettre de motivation",
+  "ai_welcome_view_download_edit": "✏️ Voir, télécharger et modifier un CV existant",
+  "ai_welcome_preview_templates": "👀 Aperçu des modèles disponibles",
+  "ai_welcome_resume_tips": "💡 Obtenir de l'aide pour les conseils de CV",
+  "ai_welcome_pro_tip_title": "💡 Conseil Pro :",
+  "ai_welcome_pro_tip": "Vous pouvez prévisualiser tous nos modèles dans l'onglet \"Aperçu des modèles\" pour voir quel style vous convient le mieux avant de créer votre CV !",
+  "ai_welcome_ats_title": "🎯 Optimisé ATS :",
+  "ai_welcome_ats": "Tous nos CV sont conçus pour être entièrement compatibles avec les systèmes de suivi des candidatures (ATS) pour maximiser vos chances d'être remarqué par les employeurs.",
+  "ai_welcome_closing": "Dites-moi simplement ce que vous souhaitez faire et je vous guiderai tout au long du processus !"
+} 

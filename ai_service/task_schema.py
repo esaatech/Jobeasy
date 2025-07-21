@@ -272,7 +272,7 @@ TASK_SCHEMAS = {
         },
         'list_user_resumes': {
             'name': 'list_user_resumes',
-            'description': 'List all resumes for the user',
+            'description': 'Show user resumes in the utility tab - use this whenever the user asks about their resumes, wants to see them, or needs to work with them',
             'parameters': {
                 'type': 'object',
                 'properties': {

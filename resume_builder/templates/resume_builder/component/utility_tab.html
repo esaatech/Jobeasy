@@ -1,0 +1,145 @@
+<!-- Utility Tab Component -->
+<div id="utilityTab" class="utility-tab">
+    <!-- Header -->
+    <div class="utility-header">
+        <h2>Utility Panel</h2>
+        <p class="text-sm text-gray-600 mt-1">
+            Dynamic content will load here when needed
+        </p>
+    </div>
+    
+    <!-- Content -->
+    <div class="utility-content">
+        <!-- Default state - shows when no specific content is loaded -->
+        <div class="flex flex-col items-center justify-center h-full text-center">
+            <div class="bg-gray-100 rounded-full p-6 mb-4">
+                <i class="fas fa-tools text-4xl text-gray-400"></i>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Utility Panel</h3>
+            <p class="text-gray-600 mb-4">
+                This panel will show dynamic content like resume lists, cover letters, and other utilities when requested.
+            </p>
+            <div class="text-sm text-gray-500">
+                <p>• Resume lists will appear here when you ask the AI to show your resumes</p>
+                <p>• Cover letters and other content will load dynamically</p>
+                <p>• Use the AI assistant to trigger different content types</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Utility Tab functionality
+class UtilityTab {
+    constructor() {
+        this.currentContentType = null;
+        this.initializeEventListeners();
+    }
+    
+    initializeEventListeners() {
+        console.log('🔧 UtilityTab: Initializing event listeners');
+    }
+    
+    loadContent(contentType, data = null) {
+        console.log('🔧 UtilityTab: Loading content type:', contentType);
+        this.currentContentType = contentType;
+        
+        const utilityContent = document.querySelector('.utility-content');
+        if (!utilityContent) {
+            console.error('❌ Utility content container not found');
+            return;
+        }
+        
+        // Show loading state
+        utilityContent.innerHTML = `
+            <div class="text-center py-8">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                <p class="mt-2 text-gray-600">Loading ${contentType}...</p>
+            </div>
+        `;
+        
+        // Load content via HTMX
+        const url = `{% url 'resume_builder:load_utility_content' 'placeholder' %}`.replace('placeholder', contentType);
+        
+        htmx.ajax('GET', url, {
+            target: '.utility-content',
+            swap: 'innerHTML',
+            headers: {
+                'HX-Request': 'true'
+            },
+            success: (response) => {
+                console.log('✅ Utility content loaded successfully:', contentType);
+                this.updateHeader(contentType);
+            },
+            error: (error) => {
+                console.error('❌ Error loading utility content:', error);
+                utilityContent.innerHTML = `
+                    <div class="text-center py-8 text-red-600">
+                        <i class="fas fa-exclamation-triangle text-2xl mb-2"></i>
+                        <p>Error loading ${contentType}</p>
+                        <button onclick="window.utilityTab.loadContent('${contentType}')" 
+                                class="mt-2 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                            Retry
+                        </button>
+                    </div>
+                `;
+            }
+        });
+    }
+    
+    updateHeader(contentType) {
+        const header = document.querySelector('.utility-header h2');
+        const subtitle = document.querySelector('.utility-header p');
+        
+        if (header && subtitle) {
+            switch (contentType) {
+                case 'resumes':
+                    header.textContent = 'My Resumes';
+                    subtitle.textContent = 'All your saved resumes';
+                    break;
+                case 'cover_letters':
+                    header.textContent = 'Cover Letters';
+                    subtitle.textContent = 'Your cover letter templates';
+                    break;
+                default:
+                    header.textContent = 'Utility Panel';
+                    subtitle.textContent = 'Dynamic content will load here when needed';
+            }
+        }
+    }
+    
+    clearContent() {
+        console.log('🔧 UtilityTab: Clearing content');
+        this.currentContentType = null;
+        
+        const utilityContent = document.querySelector('.utility-content');
+        if (utilityContent) {
+            utilityContent.innerHTML = `
+                <div class="flex flex-col items-center justify-center h-full text-center">
+                    <div class="bg-gray-100 rounded-full p-6 mb-4">
+                        <i class="fas fa-tools text-4xl text-gray-400"></i>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Utility Panel</h3>
+                    <p class="text-gray-600 mb-4">
+                        This panel will show dynamic content like resume lists, cover letters, and other utilities when requested.
+                    </p>
+                    <div class="text-sm text-gray-500">
+                        <p>• Resume lists will appear here when you ask the AI to show your resumes</p>
+                        <p>• Cover letters and other content will load dynamically</p>
+                        <p>• Use the AI assistant to trigger different content types</p>
+                    </div>
+                </div>
+            `;
+        }
+        
+        this.updateHeader('default');
+    }
+}
+
+// Initialize when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🔧 UtilityTab: DOM ready, initializing...');
+    window.utilityTab = new UtilityTab();
+    console.log('✅ UtilityTab initialized');
+});
+</script> 

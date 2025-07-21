@@ -1,0 +1,15 @@
+{
+  "ai_welcome_title": "Asistente IA de CV",
+  "ai_welcome_greeting": "¡Hola! Soy tu Asistente IA de CV. Puedo ayudarte a crear CV y cartas de presentación profesionales paso a paso.",
+  "ai_welcome_question": "¿Qué te gustaría hacer?",
+  "ai_welcome_create_resume": "📝 Crear un nuevo CV desde cero",
+  "ai_welcome_create_cover_letter": "📄 Crear una carta de presentación",
+  "ai_welcome_view_download_edit": "✏️ Ver, descargar y editar un CV existente",
+  "ai_welcome_preview_templates": "👀 Vista previa de plantillas disponibles",
+  "ai_welcome_resume_tips": "💡 Obtener ayuda con consejos de CV",
+  "ai_welcome_pro_tip_title": "💡 Consejo Pro:",
+  "ai_welcome_pro_tip": "¡Puedes previsualizar todas nuestras plantillas en la pestaña \"Vista previa de plantillas\" para ver qué estilo funciona mejor para ti antes de crear tu CV!",
+  "ai_welcome_ats_title": "🎯 Optimizado para ATS:",
+  "ai_welcome_ats": "Todos nuestros CV están diseñados para ser completamente compatibles con los Sistemas de Seguimiento de Candidatos (ATS) para maximizar tus posibilidades de ser notado por los empleadores.",
+  "ai_welcome_closing": "¡Solo dime qué te gustaría hacer y te guiaré a través del proceso!"
+} 

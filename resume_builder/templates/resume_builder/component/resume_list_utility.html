@@ -1,0 +1,654 @@
+<!-- Resume List Utility Component -->
+<style>
+    /* Resume List Utility Styles */
+    .resume-list-utility {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .resume-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 16px;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+
+    .resume-card:hover {
+        border-color: #667eea;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .resume-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 8px;
+    }
+
+    .resume-card-title {
+        font-weight: 600;
+        color: #374151;
+        margin: 0;
+    }
+
+    .resume-card-status {
+        font-size: 0.75rem;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-weight: 500;
+    }
+
+    .resume-card-status.draft {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .resume-card-status.ready {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .resume-card-meta {
+        display: flex;
+        gap: 16px;
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin-bottom: 12px;
+    }
+
+    .resume-card-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .resume-action-btn {
+        padding: 6px 12px;
+        border: 1px solid #d1d5db;
+        background: white;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        color: #374151;
+    }
+
+    .resume-action-btn:hover {
+        background: #f3f4f6;
+        border-color: #9ca3af;
+    }
+
+    .resume-action-btn.primary {
+        background: #667eea;
+        color: white;
+        border-color: #667eea;
+    }
+
+    .resume-action-btn.primary:hover {
+        background: #5a67d8;
+    }
+
+    .resume-action-btn.danger {
+        background: #ef4444;
+        color: white;
+        border-color: #ef4444;
+    }
+
+    .resume-action-btn.danger:hover {
+        background: #dc2626;
+    }
+
+    /* Select button styles */
+    .resume-action-btn.select-btn {
+        background: #10b981;
+        color: white;
+        border-color: #10b981;
+    }
+
+    .resume-action-btn.select-btn:hover {
+        background: #059669;
+    }
+
+    .resume-action-btn.select-btn.selected {
+        background: #059669;
+        border-color: #047857;
+        box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+    }
+
+    /* Selected resume card styles */
+    .resume-card.selected {
+        border-color: #10b981;
+        box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
+        background: #f0fdf4;
+    }
+
+    /* Additional utility styles for the component */
+    .mb-4 {
+        margin-bottom: 1rem;
+    }
+
+    .text-lg {
+        font-size: 1.125rem;
+    }
+
+    .font-medium {
+        font-weight: 500;
+    }
+
+    .text-gray-900 {
+        color: #111827;
+    }
+
+    .mb-2 {
+        margin-bottom: 0.5rem;
+    }
+
+    .text-sm {
+        font-size: 0.875rem;
+    }
+
+    .text-gray-600 {
+        color: #4b5563;
+    }
+
+    .mt-6 {
+        margin-top: 1.5rem;
+    }
+
+    .p-4 {
+        padding: 1rem;
+    }
+
+    .bg-blue-50 {
+        background-color: #eff6ff;
+    }
+
+    .border {
+        border-width: 1px;
+    }
+
+    .border-blue-200 {
+        border-color: #bfdbfe;
+    }
+
+    .rounded-lg {
+        border-radius: 0.5rem;
+    }
+
+    .text-blue-900 {
+        color: #1e3a8a;
+    }
+
+    .text-blue-800 {
+        color: #1e40af;
+    }
+
+    .space-y-1 > * + * {
+        margin-top: 0.25rem;
+    }
+
+    .text-center {
+        text-align: center;
+    }
+
+    .py-8 {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+    }
+
+    .bg-gray-100 {
+        background-color: #f3f4f6;
+    }
+
+    .rounded-full {
+        border-radius: 9999px;
+    }
+
+    .p-6 {
+        padding: 1.5rem;
+    }
+
+    .mx-auto {
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .w-16 {
+        width: 4rem;
+    }
+
+    .h-16 {
+        height: 4rem;
+    }
+
+    .flex {
+        display: flex;
+    }
+
+    .items-center {
+        align-items: center;
+    }
+
+    .justify-center {
+        justify-content: center;
+    }
+
+    .text-2xl {
+        font-size: 1.5rem;
+    }
+
+    .text-gray-400 {
+        color: #9ca3af;
+    }
+
+    .mb-4 {
+        margin-bottom: 1rem;
+    }
+
+    .bg-blue-600 {
+        background-color: #2563eb;
+    }
+
+    .text-white {
+        color: #ffffff;
+    }
+
+    .px-6 {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+
+    .py-2 {
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+    }
+
+    .hover\:bg-blue-700:hover {
+        background-color: #1d4ed8;
+    }
+
+    .transition-colors {
+        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+    }
+
+    .mr-2 {
+        margin-right: 0.5rem;
+    }
+
+    .mr-1 {
+        margin-right: 0.25rem;
+    }
+</style>
+
+<div class="resume-list-utility">
+    {% if resumes %}
+        <div class="mb-4">
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Your Resumes ({{ resumes.count }})</h3>
+            <p class="text-sm text-gray-600">Click on a resume to view or edit it</p>
+        </div>
+        
+        {% for resume in resumes %}
+        <div class="resume-card" data-resume-id="{{ resume.id }}" onclick="selectResumeForAI({{ resume.id }}, '{{ resume.name|escapejs }}', '{{ resume.template_id|escapejs }}')">
+            <div class="resume-card-header">
+                <h4 class="resume-card-title">{{ resume.name }}</h4>
+                <span class="resume-card-status {% if resume.draft %}draft{% else %}ready{% endif %}">
+                    {% if resume.draft %}Draft{% else %}Ready{% endif %}
+                </span>
+            </div>
+            
+            <div class="resume-card-meta">
+                <span>
+                    <i class="fas fa-palette text-gray-400 mr-1"></i>
+                    {{ resume.template_id|title }} Template
+                </span>
+                <span>
+                    <i class="fas fa-clock text-gray-400 mr-1"></i>
+                    Updated {{ resume.updated_at|timesince }} ago
+                </span>
+                {% if resume.personal_info.full_name %}
+                <span>
+                    <i class="fas fa-user text-gray-400 mr-1"></i>
+                    {{ resume.personal_info.full_name }}
+                </span>
+                {% endif %}
+            </div>
+            
+            <div class="resume-card-actions">
+                <button class="resume-action-btn select-btn" 
+                        onclick="event.stopPropagation(); selectResume({{ resume.id }}, '{{ resume.name|escapejs }}', '{{ resume.template_id|escapejs }}')"
+                        data-resume-id="{{ resume.id }}">
+                    Select
+                </button>
+                <button class="resume-action-btn primary" 
+                        onclick="event.stopPropagation(); editResume({{ resume.id }})">
+                    <i class="fas fa-edit mr-1"></i>
+                    Edit
+                </button>
+                <button class="resume-action-btn" 
+                        onclick="event.stopPropagation(); previewResume({{ resume.id }})">
+                    <i class="fas fa-eye mr-1"></i>
+                    Preview
+                </button>
+                <a href="{% url 'resume_builder:download_resume_file' resume.id 'pdf' %}" 
+                   class="resume-action-btn"
+                   onclick="event.stopPropagation();">
+                    <i class="fas fa-download mr-1"></i>
+                    Download
+                </a>
+                <button class="resume-action-btn danger" 
+                        onclick="event.stopPropagation(); deleteResume({{ resume.id }}, '{{ resume.name|escapejs }}')">
+                    <i class="fas fa-trash mr-1"></i>
+                    Delete
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+        
+        <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h4 class="text-sm font-medium text-blue-900 mb-2">💡 AI Assistant Tips</h4>
+            <ul class="text-sm text-blue-800 space-y-1">
+                <li>• Click on any resume card to tell the AI to work with that resume</li>
+                <li>• Say "edit my Software Engineer resume" to work with a specific resume</li>
+                <li>• Ask "show me my resumes" anytime to see this list again</li>
+                <li>• The AI can help you edit, improve, or create new resumes</li>
+            </ul>
+        </div>
+        
+    {% else %}
+        <div class="text-center py-8">
+            <div class="bg-gray-100 rounded-full p-6 mb-4 mx-auto w-16 h-16 flex items-center justify-center">
+                <i class="fas fa-file-alt text-2xl text-gray-400"></i>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No Resumes Found</h3>
+            <p class="text-gray-600 mb-4">
+                You haven't created any resumes yet. Let's create your first one!
+            </p>
+            <button class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                    onclick="tellAI('I want to create a new resume')">
+                <i class="fas fa-plus mr-2"></i>
+                Create New Resume
+            </button>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+// Resume selection for AI interaction
+function selectResumeForAI(resumeId, resumeName, templateId) {
+    console.log('📄 Resume selected for AI:', { resumeId, resumeName, templateId });
+    
+    // Switch to chat tab and send message to AI
+    if (window.tabManager) {
+        window.tabManager.switchToTab('template-preview'); // This will show the chat
+    }
+    
+    // Send message to AI about the selected resume
+    const message = `I want to work with my resume "${resumeName}" (ID: ${resumeId}). Please load this resume so I can edit it.`;
+    
+    if (window.chatUI) {
+        // Set the message in the chat input
+        const chatInput = document.getElementById('chatInput');
+        if (chatInput) {
+            chatInput.value = message;
+            chatInput.style.height = 'auto';
+            chatInput.style.height = Math.min(chatInput.scrollHeight, 100) + 'px';
+            
+            // Update send button state
+            if (window.chatUI.updateSendButton) {
+                window.chatUI.updateSendButton();
+            }
+        }
+    }
+}
+
+// Resume actions
+function editResume(resumeId) {
+    console.log('📝 Edit resume:', resumeId);
+    window.open(`{% url 'resume_builder:edit_resume' 0 %}`.replace('0', resumeId), '_blank');
+}
+
+function previewResume(resumeId) {
+    console.log('👁️ Preview resume:', resumeId);
+    // Switch to resume preview tab and load the resume
+    if (window.tabManager) {
+        window.tabManager.switchToTab('resume-preview');
+    }
+    if (window.resumePreviewTab) {
+        window.resumePreviewTab.setResumeInfo(resumeId, 'Resume', 'professional');
+    }
+}
+
+function deleteResume(resumeId, resumeName) {
+    console.log('🗑️ Delete resume:', resumeId);
+    
+    if (confirm(`Are you sure you want to delete "${resumeName}"? This action cannot be undone.`)) {
+        // Find the resume card element to remove - use a more reliable selector
+        const resumeCard = document.querySelector(`[data-resume-id="${resumeId}"]`);
+        
+        fetch(`{% url 'resume_builder:delete_resume' 0 %}`.replace('0', resumeId), {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCSRFToken(),
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                console.log('✅ Resume deleted successfully');
+                
+                // Option 1: Manually remove the card from DOM (faster)
+                if (resumeCard) {
+                    resumeCard.remove();
+                    updateResumeCount();
+                    console.log('🗑️ Resume card removed from DOM');
+                } else {
+                    // Option 2: Reload the entire content (fallback)
+                    console.log('🔄 Reloading utility content...');
+                    if (window.utilityTab) {
+                        window.utilityTab.loadContent('resumes');
+                    }
+                }
+                
+                // Show success message
+                showDeleteSuccess(resumeName);
+                
+            } else {
+                console.error('❌ Error deleting resume:', data.error);
+                alert('Error deleting resume: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('❌ Network error:', error);
+            alert('Error deleting resume. Please try again.');
+        });
+    }
+}
+
+function updateResumeCount() {
+    // Update the resume count in the header
+    const resumeCards = document.querySelectorAll('.resume-card');
+    const countElement = document.querySelector('.resume-list-utility h3');
+    
+    if (countElement) {
+        const newCount = resumeCards.length;
+        countElement.textContent = `Your Resumes (${newCount})`;
+    }
+    
+    // If no resumes left, show the empty state
+    if (resumeCards.length === 0) {
+        const utilityContent = document.querySelector('.utility-content');
+        if (utilityContent) {
+            // Create the empty state HTML without problematic onclick
+            const emptyStateHTML = `
+                <div class="text-center py-8">
+                    <div class="bg-gray-100 rounded-full p-6 mb-4 mx-auto w-16 h-16 flex items-center justify-center">
+                        <i class="fas fa-file-alt text-2xl text-gray-400"></i>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">No Resumes Found</h3>
+                    <p class="text-gray-600 mb-4">
+                        You haven't created any resumes yet. Let's create your first one!
+                    </p>
+                    <button class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors" id="createNewResumeBtn">
+                        <i class="fas fa-plus mr-2"></i>
+                        Create New Resume
+                    </button>
+                </div>
+            `;
+            
+            utilityContent.innerHTML = emptyStateHTML;
+            
+            // Add event listener to the button after it's created
+            const createBtn = document.getElementById('createNewResumeBtn');
+            if (createBtn) {
+                createBtn.addEventListener('click', () => {
+                    tellAI('I want to create a new resume');
+                });
+            }
+        }
+    }
+}
+
+function showDeleteSuccess(resumeName) {
+    // Create a temporary success message
+    const successMessage = document.createElement('div');
+    successMessage.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+    successMessage.innerHTML = `
+        <div class="flex items-center">
+            <i class="fas fa-check-circle mr-2"></i>
+            <span>"${resumeName}" deleted successfully</span>
+        </div>
+    `;
+    
+    document.body.appendChild(successMessage);
+    
+    // Remove the message after 3 seconds
+    setTimeout(() => {
+        if (successMessage.parentNode) {
+            successMessage.parentNode.removeChild(successMessage);
+        }
+    }, 3000);
+}
+
+function tellAI(message) {
+    console.log('🤖 Telling AI:', message);
+    
+    // Switch to chat tab
+    if (window.tabManager) {
+        window.tabManager.switchToTab('template-preview'); // This will show the chat
+    }
+    
+    // Set the message in the chat input
+    const chatInput = document.getElementById('chatInput');
+    if (chatInput) {
+        chatInput.value = message;
+        chatInput.style.height = 'auto';
+        chatInput.style.height = Math.min(chatInput.scrollHeight, 100) + 'px';
+        
+        // Update send button state
+        if (window.chatUI && window.chatUI.updateSendButton) {
+            window.chatUI.updateSendButton();
+        }
+    }
+}
+
+function getCSRFToken() {
+    const name = 'csrftoken';
+    let cookieValue = null;
+    
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    
+    return cookieValue;
+}
+
+// Resume selection management
+function selectResume(resumeId, resumeName, templateId) {
+    console.log('✅ Selecting resume:', { resumeId, resumeName, templateId });
+    
+    // Update global selected resume
+    window.selectedResume = {
+        id: resumeId,
+        name: resumeName,
+        template_id: templateId
+    };
+    
+    // Update UI to show selection
+    updateResumeSelection(resumeId);
+    
+    // Show selection feedback
+    showSelectionSuccess(resumeName);
+    
+    console.log('📄 Global selected resume updated:', window.selectedResume);
+}
+
+function updateResumeSelection(selectedResumeId) {
+    // Remove selection from all resume cards
+    document.querySelectorAll('.resume-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    // Remove selection from all select buttons
+    document.querySelectorAll('.resume-action-btn.select-btn').forEach(btn => {
+        btn.classList.remove('selected');
+        btn.innerHTML = 'Select';
+    });
+    
+    // Add selection to the selected resume card
+    const selectedCard = document.querySelector(`[data-resume-id="${selectedResumeId}"]`);
+    if (selectedCard) {
+        selectedCard.classList.add('selected');
+    }
+    
+    // Update the select button for the selected resume
+    const selectedBtn = document.querySelector(`[data-resume-id="${selectedResumeId}"].select-btn`);
+    if (selectedBtn) {
+        selectedBtn.classList.add('selected');
+        selectedBtn.innerHTML = '<i class="fas fa-check mr-1"></i>Selected';
+    }
+}
+
+function showSelectionSuccess(resumeName) {
+    // Create a temporary success message
+    const successMessage = document.createElement('div');
+    successMessage.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+    successMessage.innerHTML = `
+        <div class="flex items-center">
+            <i class="fas fa-check-circle mr-2"></i>
+            <span>"${resumeName}" selected</span>
+        </div>
+    `;
+    
+    document.body.appendChild(successMessage);
+    
+    // Remove the message after 2 seconds
+    setTimeout(() => {
+        if (successMessage.parentNode) {
+            successMessage.parentNode.removeChild(successMessage);
+        }
+    }, 2000);
+}
+
+// Function to get the currently selected resume
+function getSelectedResume() {
+    return window.selectedResume;
+}
+
+// Function to check if a resume is selected
+function isResumeSelected(resumeId) {
+    return window.selectedResume && window.selectedResume.id == resumeId;
+}
+</script> 

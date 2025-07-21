@@ -55,15 +55,12 @@ def get_or_create_assistant():
     
     print("🔍 DEBUG: get_or_create_assistant called")
     
-    # Clear cache to force recreation with updated schema and instructions
+    # Force clear cache to ensure recreation with updated function descriptions
     _assistant_cache = {}
-    print("🧹 Cache cleared to force recreation with HTML list formatting for all descriptions")
+    print("🧹 Cache forcefully cleared to ensure recreation with updated function descriptions")
     
-    if 'resume_assistant_id' in _assistant_cache:
-        print("✅ Using cached assistant")
-        return _assistant_cache['manager'], _assistant_cache['resume_assistant_id']
-    
-    print("🆕 Creating new assistant...")
+    # Always create new assistant to ensure updated instructions
+    print("🆕 Creating new assistant with updated instructions...")
     
     try:
         from ai_service.ai_resume_assistant import OpenAIAssistantManager, FunctionConfig
@@ -109,7 +106,7 @@ IMPORTANT FUNCTION CALLING RULES:
 3. When users ask "which templates do you have" or "what templates are available", use the list_templates function
 4. When users ask to create a resume, use the create_resume function
 5. When users provide information, use the appropriate save functions
-6. When users ask about their resumes, use the list_user_resumes function
+6. When users ask about their resumes (any variation), use the list_user_resumes function - this will automatically show resumes in the utility tab
 
 RESUME CREATION FLOW:
 1. First, help user choose a template using list_templates
@@ -219,6 +216,13 @@ TEMPLATE HANDLING:
 - When users want to switch templates for an existing resume, use the switch_template function
 - If user asks to "view" or "see" a template, use preview_template
 - If user asks to "switch" or "change" template for their resume, use switch_template
+
+UTILITY TAB FUNCTIONALITY:
+- When users ask about their resumes, use the list_user_resumes function
+- This will automatically switch to the Utility tab and display all their resumes in a user-friendly list
+- Users can then click on any resume to tell you to work with it
+- The utility tab can also show cover letters and other content types in the future
+- Always inform users when you've loaded content in the utility tab
 
 VALIDATION AND ERROR HANDLING:
 - All save functions now include comprehensive validation
@@ -692,6 +696,8 @@ def view_resume(request, resume_id=None):
         
         if is_htmx_request:
             # For HTMX requests, return only the resume content without full page layout
+            # Update the resume's template_id in the context to match the selected template
+            resume.template_id = template_id
             context = {
                 'resume': resume,
                 'resume_html': html_content,
@@ -1983,6 +1989,16 @@ def chat_with_ai(request):
                 response_data['resume_id'] = result['resume_id']
                 print(f"📄 Resume ID included: {result['resume_id']}")
             
+            # Add action if available (from function results)
+            if result.get('action'):
+                response_data['action'] = result['action']
+                print(f"🔧 Action included: {result['action']}")
+            
+            # Add action data if available
+            if result.get('data'):
+                response_data['data'] = result['data']
+                print(f"📊 Action data included: {result['data']}")
+            
             print("✅ Returning successful response")
             print(f"📤 Response data: {response_data}")
             return JsonResponse(response_data)
@@ -2193,3 +2209,45 @@ CRITICAL: Before calling edit_education or delete_education, you MUST:
         except Exception as e:
             print(f"⚠️ Error getting resume data: {e}")
             return message
+
+@login_required
+def load_utility_content(request, content_type):
+    """Load different types of content for the utility tab via HTMX"""
+    try:
+        if content_type == 'resumes':
+            # Load user's resumes
+            resumes = request.user.resumes.all().order_by('-updated_at')
+            return render(request, 'resume_builder/component/resume_list_utility.html', {
+                'resumes': resumes
+            })
+        elif content_type == 'cover_letters':
+            # Future: cover letters functionality
+            return render(request, 'resume_builder/component/cover_letters_utility.html', {
+                'cover_letters': []  # Placeholder for future implementation
+            })
+        else:
+            # Unknown content type
+            return HttpResponse(
+                f'<div class="text-center py-8 text-red-600">Unknown content type: {content_type}</div>',
+                content_type='text/html'
+            )
+            
+    except Exception as e:
+        logger.error(f"Error loading utility content {content_type}: {str(e)}")
+        return HttpResponse(
+            f'<div class="text-center py-8 text-red-600">Error loading {content_type}</div>',
+            content_type='text/html'
+        )
+
+
+
+
+
+
+
+
+@login_required
+def test_resumes(request):
+    """Test resumes view"""
+    resumes = request.user.resumes.all().order_by('-updated_at')
+    return render(request, 'test/test_resumes.html', {'resumes': resumes})

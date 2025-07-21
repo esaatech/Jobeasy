@@ -1,0 +1,15 @@
+{
+  "ai_welcome_title": "AI Resume Assistant",
+  "ai_welcome_greeting": "Hello! I'm your AI Resume Assistant. I can help you create professional resumes and cover letters step by step.",
+  "ai_welcome_question": "What would you like to do?",
+  "ai_welcome_create_resume": "📝 Create a new resume from scratch",
+  "ai_welcome_create_cover_letter": "📄 Create a cover letter",
+  "ai_welcome_view_download_edit": "✏️ View, download & edit an existing resume",
+  "ai_welcome_preview_templates": "👀 Preview available templates",
+  "ai_welcome_resume_tips": "💡 Get help with resume tips",
+  "ai_welcome_pro_tip_title": "💡 Pro Tip:",
+  "ai_welcome_pro_tip": "You can preview all our templates in the \"Template Preview\" tab to see which style works best for you before creating your resume!",
+  "ai_welcome_ats_title": "🎯 ATS Optimized:",
+  "ai_welcome_ats": "All our resumes are designed to be fully compatible with Applicant Tracking Systems (ATS) to maximize your chances of getting noticed by employers.",
+  "ai_welcome_closing": "Just tell me what you'd like to do and I'll guide you through the process!"
+} 

@@ -37,6 +37,9 @@ urlpatterns = [
     # AI summary generation endpoint
     path('generate-ai-summary/', views.generate_ai_summary, name='generate_ai_summary'),
 
+    # Utility content loading
+    path('utility/<str:content_type>/', views.load_utility_content, name='load_utility_content'),
+
     # Misc
     path('save-resume/', views.save_resume, name='save_resume'),
     path('my-resumes/', views.my_resumes, name='my_resumes'),
@@ -47,4 +50,11 @@ urlpatterns = [
     path('create-from-data/', views.create_resume_from_data, name='create_resume_from_data'),
     path('create-after-auth/', views.create_resume_after_auth, name='create_resume_after_auth'),
     path('templates/', views.get_available_templates, name='get_available_templates'),
+
+
+
+
+
+    #test
+    path('test-resumes/', views.test_resumes, name='test_resumes'),
 ]

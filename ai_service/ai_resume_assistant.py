@@ -778,6 +778,12 @@ IMPORTANT: Always use user_id: {user_id} when calling any functions that require
                                 result["resume_id"] = resume_ids[-1]  # Use the most recent one
                                 print(f"📄 Resume ID extracted: {result['resume_id']}")
                             
+                            # Check for actions from function results
+                            if hasattr(messages.data[0], 'content') and messages.data[0].content:
+                                # Look for action metadata in the response
+                                # This could be enhanced to parse structured data from the AI response
+                                pass
+                            
                             print("✅ Returning successful result")
                             return result
                         else:

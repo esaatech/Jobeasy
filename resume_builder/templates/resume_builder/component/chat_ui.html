@@ -1,12 +1,73 @@
 <!-- Chat UI Component -->
+<style>
+    /* Welcome Link Styles */
+    .message.ai .message-content .welcome-link {
+        display: inline-block;
+        padding: 8px 16px;
+        margin: 4px 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white !important;
+        text-decoration: none;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .message.ai .message-content .welcome-link:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        text-decoration: none;
+        color: white !important;
+        background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    }
+
+    .message.ai .message-content .welcome-link:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        background: linear-gradient(135deg, #4c51bf 0%, #553c9a 100%);
+    }
+</style>
+
 <div class="chat-sidebar">
     <div class="chat-header">
-        <h2>🤖 AI Resume Assistant</h2>
-        <p>Hi {{ user.first_name|default:user.username }}! I'm here to help you create your perfect resume.</p>
+        <h2>🤖 AI Assistant</h2>
+        <p>Hi {{ user.first_name|default:user.username }}! </p>
     </div>
     
     <div class="chat-messages" id="chatMessages">
-        <!-- Messages will be dynamically added here -->
+        <!-- Welcome Message -->
+        <div class="message ai">
+            <div class="message-avatar">AI</div>
+            <div class="message-content">
+                <p data-i18n="ai_welcome_greeting">Hello! I'm your AI Resume Assistant. I can help you create professional resumes and cover letters step by step.</p>
+                <p><strong data-i18n="ai_welcome_question">What would you like to do?</strong></p>
+                <div style="margin: 10px 0; padding-left: 20px;">
+                    <div style="margin: 8px 0;">
+                        <a href="#" class="welcome-link" data-action="create-resume" data-i18n="ai_welcome_create_resume">📝 Create a new resume from scratch</a>
+                    </div>
+                    <div style="margin: 8px 0;">
+                        <a href="#" class="welcome-link" data-action="create-cover-letter" data-i18n="ai_welcome_create_cover_letter">📄 Create a cover letter</a>
+                    </div>
+                    <div style="margin: 8px 0;">
+                        <a href="#" class="welcome-link" data-action="edit-resume" data-i18n="ai_welcome_view_download_edit">✏️ View, download & edit an existing resume</a>
+                    </div>
+                    <div style="margin: 8px 0;">
+                        <a href="#" class="welcome-link" data-action="preview-templates" data-i18n="ai_welcome_preview_templates">👀 Preview available templates</a>
+                    </div>
+                    <div style="margin: 8px 0;">
+                        <a href="#" class="welcome-link" data-action="resume-tips" data-i18n="ai_welcome_resume_tips">💡 Get help with resume tips</a>
+                    </div>
+                </div>
+                <p><strong data-i18n="ai_welcome_pro_tip_title">💡 Pro Tip:</strong> <span data-i18n="ai_welcome_pro_tip">You can preview all our templates in the "Template Preview" tab to see which style works best for you before creating your resume!</span></p>
+                <p><strong data-i18n="ai_welcome_ats_title">🎯 ATS Optimized:</strong> <span data-i18n="ai_welcome_ats">All our resumes are designed to be fully compatible with Applicant Tracking Systems (ATS) to maximize your chances of getting noticed by employers.</span></p>
+                <p data-i18n="ai_welcome_closing">Just tell me what you'd like to do and I'll guide you through the process!</p>
+            </div>
+        </div>
     </div>
     
     <div class="chat-input-container">
@@ -39,7 +100,7 @@ class ChatUI {
         
         this.initializeEventListeners();
         this.initializeWebSocket();
-        this.addWelcomeMessage();
+        this.addWelcomeLinkListeners();
     }
     
     initializeWebSocket() {
@@ -113,6 +174,11 @@ class ChatUI {
                         // No pending message, add to chat directly
                         this.addMessage(message.message);
                     }
+                    
+                    // Handle AI actions
+                    if (message.action) {
+                        this.handleAIAction(message.action, message.data);
+                    }
                     break;
                     
                 case 'progress_update':
@@ -165,6 +231,10 @@ class ChatUI {
                 this.handleSectionInProgress(data);
                 break;
                 
+            case 'show_resume_list':
+                this.handleShowResumeList(data);
+                break;
+                
             default:
                 console.log('🔧 ChatUI: Unknown backend event type:', eventType);
         }
@@ -210,12 +280,6 @@ I've created your resume and I'm ready to guide you through each section step by
         // Switch to Resume Builder tab
         if (window.tabManager) {
             window.tabManager.switchToTab('resume-builder');
-        }
-        
-        // Update template preview with the correct template
-        if (window.templatePreview) {
-            console.log('🎨 Updating template preview with resume ID:', data.resume_id, 'and template:', data.template_id);
-            window.templatePreview.updateResumePreview(data.resume_id, data.template_id);
         }
         
         // Update Resume Builder tab with the new resume info
@@ -272,12 +336,6 @@ I've created your resume and I'm ready to guide you through each section step by
                     data.template_id || window.resumeDataManager.templateId
                 );
             }
-        }
-        
-        // Update template preview with new data
-        if (window.templatePreview && data.resume_id) {
-            const templateId = data.template_id || 'professional';
-            window.templatePreview.updateResumePreview(data.resume_id, templateId);
         }
         
         // Update Resume Preview tab with new data
@@ -423,6 +481,34 @@ I'm currently working on the ${data.section} section. This may take a moment...
         `);
     }
     
+    handleShowResumeList(data) {
+        console.log('📄 Show resume list event:', data);
+        
+        // Switch to utility tab
+        if (window.tabManager) {
+            window.tabManager.switchToTab('utility');
+        }
+        
+        // Load resume list in utility tab
+        if (window.utilityTab) {
+            window.utilityTab.loadContent('resumes');
+        }
+        
+        // Add message to chat
+        this.addMessage(`
+## 📄 Resume List Loaded
+
+I found **${data.resume_count} resume(s)** in your account and loaded them in the Utility tab.
+
+**What you can do:**
+• **Click on any resume** to tell me to work with it
+• **Edit, preview, or delete** resumes using the action buttons
+• **Ask me to help** with any specific resume
+
+Just let me know what you'd like to do with your resumes!
+        `);
+    }
+    
     initializeEventListeners() {
         console.log('🔧 ChatUI: Initializing event listeners');
         
@@ -450,32 +536,75 @@ I'm currently working on the ${data.section} section. This may take a moment...
         console.log('✅ ChatUI: Event listeners initialized');
     }
     
-    addWelcomeMessage() {
-        console.log('🔧 ChatUI: Adding welcome message');
+    addWelcomeLinkListeners() {
+        const welcomeLinks = this.chatMessages.querySelectorAll('.welcome-link');
+        welcomeLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const action = link.getAttribute('data-action');
+                this.handleWelcomeLinkClick(action);
+            });
+        });
+    }
+    
+    handleWelcomeLinkClick(action) {
+        let message = '';
         
-        const welcomeMessage = `
-            <div class="message ai">
-                <div class="message-avatar">AI</div>
-                <div class="message-content">
-                    <p>Hello! I'm your AI Resume Assistant. I can help you create professional resumes and cover letters step by step.</p>
-                    <p><strong>What would you like to do?</strong></p>
-                    <ul style="margin: 10px 0; padding-left: 20px;">
-                        <li>Create a new resume from scratch</li>
-                        <li>Create a cover letter</li>
-                        <li>Edit an existing resume</li>
-                        <li>Preview available templates</li>
-                        <li>Switch between different templates</li>
-                        <li>Get help with resume tips</li>
-                    </ul>
-                    <p><strong>💡 Pro Tip:</strong> You can preview all our templates in the "Template Preview" tab to see which style works best for you before creating your resume!</p>
-                    <p><strong>🎯 ATS Optimized:</strong> All our resumes are designed to be fully compatible with Applicant Tracking Systems (ATS) to maximize your chances of getting noticed by employers.</p>
-                    <p>Just tell me what you'd like to do and I'll guide you through the process!</p>
-                </div>
-            </div>
-        `;
+        switch (action) {
+            case 'create-resume':
+                message = 'I want to create a new resume from scratch';
+                break;
+            case 'create-cover-letter':
+                message = 'I want to create a cover letter';
+                break;
+            case 'edit-resume':
+                // Direct navigation - no AI needed
+                this.handleDirectEditResume();
+                return; // Don't send message to AI
+            case 'preview-templates':
+                message = 'Show me the available templates';
+                break;
+            case 'switch-templates':
+                message = 'I want to switch between different templates';
+                break;
+            case 'resume-tips':
+                message = 'Give me some resume writing tips';
+                break;
+            default:
+                message = link.textContent;
+        }
         
-        this.chatMessages.innerHTML = welcomeMessage;
-        console.log('✅ ChatUI: Welcome message added');
+        // Set the message in the input and send it
+        this.chatInput.value = message;
+        this.sendMessage();
+    }
+    
+    handleDirectEditResume() {
+        console.log('🔧 Direct edit resume navigation');
+        
+        // Switch to utility tab
+        if (window.tabManager) {
+            window.tabManager.switchToTab('utility');
+        }
+        
+        // Load resume list in utility tab
+        if (window.utilityTab) {
+            window.utilityTab.loadContent('resumes');
+        }
+        
+        // Add message to chat
+        this.addMessage(`
+## 📄 Resume List Loaded
+
+I've loaded your resume list in the Utility tab for you to review and edit.
+
+**What you can do:**
+• **Click on any resume** to tell me to work with it
+• **Edit, preview, or delete** resumes using the action buttons
+• **Ask me to help** with any specific resume
+
+Just let me know what you'd like to do with your resumes!
+        `);
     }
     
     updateSendButton() {
@@ -589,11 +718,6 @@ I'm currently working on the ${data.section} section. This may take a moment...
         // Add user message
         this.addMessage(message, true);
         
-        // Clear input
-        this.chatInput.value = '';
-        this.chatInput.style.height = 'auto';
-        this.updateSendButton();
-        
         // Show typing indicator
         this.addTypingIndicator();
         
@@ -637,11 +761,10 @@ The AI assistant is taking longer than expected to process your request. This ca
                     this.lastAIResponseWasResumeCreation = true;
                 }
                 
-                // Notify template preview to update if needed
-                if (window.templatePreview && this.currentResumeId) {
-                    // Get the current template from the response data if available
-                    const templateId = response.data?.template_id || 'professional';
-                    window.templatePreview.updateResumePreview(this.currentResumeId, templateId);
+                // Handle any actions from the AI
+                if (response.action) {
+                    console.log('🔧 Handling AI action:', response.action);
+                    this.handleAIAction(response.action, response.data);
                 }
             } else {
                 this.addMessage(`
@@ -773,6 +896,88 @@ Please check your internet connection and try again. If the problem persists, pl
         console.log('🔄 Manual retry connection requested');
         this.removeConnectionError();
         this.initializeWebSocket();
+    }
+
+    handleAIAction(action, data) {
+        console.log('🤖 Handling AI action:', action, data);
+        
+        switch (action) {
+            case 'show_resume_list':
+                this.showResumeList();
+                break;
+            case 'show_cover_letters':
+                this.showCoverLetters();
+                break;
+            case 'switch_to_utility':
+                this.switchToUtility(data.content_type);
+                break;
+            default:
+                console.log('🤖 Unknown AI action:', action);
+        }
+    }
+    
+    showResumeList() {
+        console.log('📄 Showing resume list');
+        
+        // Switch to utility tab
+        if (window.tabManager) {
+            window.tabManager.switchToTab('utility');
+        }
+        
+        // Load resume list
+        if (window.utilityTab) {
+            window.utilityTab.loadContent('resumes');
+        }
+        
+        // Add message to chat
+        this.addMessage(`
+## 📄 Resume List Loaded
+
+I've loaded your resume list in the Utility tab. You can:
+
+• **Click on any resume** to tell me to work with it
+• **Edit, preview, or delete** resumes using the action buttons
+• **Ask me to help** with any specific resume
+
+Just let me know what you'd like to do with your resumes!
+        `);
+    }
+    
+    showCoverLetters() {
+        console.log('📝 Showing cover letters');
+        
+        // Switch to utility tab
+        if (window.tabManager) {
+            window.tabManager.switchToTab('utility');
+        }
+        
+        // Load cover letters (future implementation)
+        if (window.utilityTab) {
+            window.utilityTab.loadContent('cover_letters');
+        }
+        
+        // Add message to chat
+        this.addMessage(`
+## 📝 Cover Letters Loaded
+
+I've loaded your cover letters in the Utility tab. 
+
+*Note: Cover letter functionality is coming soon!*
+        `);
+    }
+    
+    switchToUtility(contentType) {
+        console.log('🔧 Switching to utility with content type:', contentType);
+        
+        // Switch to utility tab
+        if (window.tabManager) {
+            window.tabManager.switchToTab('utility');
+        }
+        
+        // Load specific content
+        if (window.utilityTab) {
+            window.utilityTab.loadContent(contentType);
+        }
     }
 }
 
