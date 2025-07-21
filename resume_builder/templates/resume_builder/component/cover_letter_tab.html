@@ -1,0 +1,417 @@
+<!-- Cover Letter Tab Component -->
+<style>
+    /* Cover Letter Tab Styles */
+    .cover-letter-tab {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        height: 100%;
+        overflow-y: auto;
+        padding: 20px;
+    }
+    .cover-letter-card {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 16px;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+    .cover-letter-card:hover {
+        border-color: #667eea;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    .cover-letter-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 8px;
+    }
+    .cover-letter-card-title {
+        font-weight: 600;
+        color: #374151;
+        margin: 0;
+    }
+    .cover-letter-card-status {
+        font-size: 0.75rem;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-weight: 500;
+    }
+    .cover-letter-card-status.draft {
+        background: #fef3c7;
+        color: #92400e;
+    }
+    .cover-letter-card-status.ready {
+        background: #d1fae5;
+        color: #065f46;
+    }
+    .cover-letter-card-meta {
+        display: flex;
+        gap: 16px;
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin-bottom: 12px;
+    }
+    .cover-letter-card-actions {
+        display: flex;
+        gap: 8px;
+    }
+    .cover-letter-action-btn {
+        padding: 6px 12px;
+        border: 1px solid #d1d5db;
+        background: white;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        text-decoration: none;
+        color: #374151;
+    }
+    .cover-letter-action-btn:hover {
+        background: #f3f4f6;
+        border-color: #9ca3af;
+    }
+    .cover-letter-action-btn.primary {
+        background: #667eea;
+        color: white;
+        border-color: #667eea;
+    }
+    .cover-letter-action-btn.primary:hover {
+        background: #5a67d8;
+    }
+    .cover-letter-action-btn.danger {
+        background: #ef4444;
+        color: white;
+        border-color: #ef4444;
+    }
+    .cover-letter-action-btn.danger:hover {
+        background: #dc2626;
+    }
+    /* Select button styles */
+    .cover-letter-action-btn.select-btn {
+        background: #10b981;
+        color: white;
+        border-color: #10b981;
+    }
+    .cover-letter-action-btn.select-btn:hover {
+        background: #059669;
+    }
+    .cover-letter-action-btn.select-btn.selected {
+        background: #059669;
+        border-color: #047857;
+        box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+    }
+    /* Selected cover letter card styles */
+    .cover-letter-card.selected {
+        border-color: #10b981;
+        box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.1);
+        background: #f0fdf4;
+    }
+    /* Additional utility styles for the component */
+    .mb-4 { margin-bottom: 1rem; }
+    .text-lg { font-size: 1.125rem; }
+    .font-medium { font-weight: 500; }
+    .text-gray-900 { color: #111827; }
+    .mb-2 { margin-bottom: 0.5rem; }
+    .text-sm { font-size: 0.875rem; }
+    .text-gray-600 { color: #4b5563; }
+    .mt-6 { margin-top: 1.5rem; }
+    .p-4 { padding: 1rem; }
+    .bg-blue-50 { background-color: #eff6ff; }
+    .border { border-width: 1px; }
+    .border-blue-200 { border-color: #bfdbfe; }
+    .rounded-lg { border-radius: 0.5rem; }
+    .text-blue-900 { color: #1e3a8a; }
+    .text-blue-800 { color: #1e40af; }
+    .space-y-1 > * + * { margin-top: 0.25rem; }
+    .text-center { text-align: center; }
+    .py-8 { padding-top: 2rem; padding-bottom: 2rem; }
+    .bg-gray-100 { background-color: #f3f4f6; }
+    .rounded-full { border-radius: 9999px; }
+    .p-6 { padding: 1.5rem; }
+    .mx-auto { margin-left: auto; margin-right: auto; }
+    .w-16 { width: 4rem; }
+    .h-16 { height: 4rem; }
+    .flex { display: flex; }
+    .items-center { align-items: center; }
+    .justify-center { justify-content: center; }
+    .text-2xl { font-size: 1.5rem; }
+    .text-gray-400 { color: #9ca3af; }
+    .bg-blue-600 { background-color: #2563eb; }
+    .text-white { color: #ffffff; }
+    .px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+    .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+    .hover\:bg-blue-700:hover { background-color: #1d4ed8; }
+    .transition-colors { transition-property: color, background-color, border-color, text-decoration-color, fill, stroke; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
+    .mr-2 { margin-right: 0.5rem; }
+    .mr-1 { margin-right: 0.25rem; }
+</style>
+
+<div id="coverLetterTab" class="cover-letter-tab">
+    {% if cover_letters %}
+        <div class="mb-4">
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Your Cover Letters ({{ cover_letters.count }})</h3>
+            <p class="text-sm text-gray-600">Click on a cover letter to view or edit it</p>
+        </div>
+        
+        {% for cover_letter in cover_letters %}
+        <div class="cover-letter-card" data-cover-letter-id="{{ cover_letter.id }}" onclick="selectCoverLetterForAI({{ cover_letter.id }}, '{{ cover_letter.name|escapejs }}', '{{ cover_letter.template_id|escapejs }}')">
+            <div class="cover-letter-card-header">
+                <h4 class="cover-letter-card-title">{{ cover_letter.name }}</h4>
+                <span class="cover-letter-card-status {% if cover_letter.draft %}draft{% else %}ready{% endif %}">
+                    {% if cover_letter.draft %}Draft{% else %}Ready{% endif %}
+                </span>
+            </div>
+            <div class="cover-letter-card-meta">
+                <span>
+                    <i class="fas fa-palette text-gray-400 mr-1"></i>
+                    {{ cover_letter.template_id|title }} Template
+                </span>
+                <span>
+                    <i class="fas fa-clock text-gray-400 mr-1"></i>
+                    Updated {{ cover_letter.updated_at|timesince }} ago
+                </span>
+                {% if cover_letter.personal_info.full_name %}
+                <span>
+                    <i class="fas fa-user text-gray-400 mr-1"></i>
+                    {{ cover_letter.personal_info.full_name }}
+                </span>
+                {% endif %}
+            </div>
+            <div class="cover-letter-card-actions">
+                <button class="cover-letter-action-btn select-btn" 
+                        onclick="event.stopPropagation(); selectCoverLetter({{ cover_letter.id }}, '{{ cover_letter.name|escapejs }}', '{{ cover_letter.template_id|escapejs }}')"
+                        data-cover-letter-id="{{ cover_letter.id }}">
+                    Select
+                </button>
+                <button class="cover-letter-action-btn primary" 
+                        onclick="event.stopPropagation(); editCoverLetter({{ cover_letter.id }})">
+                    <i class="fas fa-edit mr-1"></i>
+                    Edit
+                </button>
+                <button class="cover-letter-action-btn" 
+                        onclick="event.stopPropagation(); previewCoverLetter({{ cover_letter.id }})">
+                    <i class="fas fa-eye mr-1"></i>
+                    Preview
+                </button>
+                <a href="{% url 'resume_builder:download_cover_letter_file' cover_letter.id 'pdf' %}" 
+                   class="cover-letter-action-btn"
+                   onclick="event.stopPropagation();">
+                    <i class="fas fa-download mr-1"></i>
+                    Download
+                </a>
+                <button class="cover-letter-action-btn danger" 
+                        onclick="event.stopPropagation(); deleteCoverLetter({{ cover_letter.id }}, '{{ cover_letter.name|escapejs }}')">
+                    <i class="fas fa-trash mr-1"></i>
+                    Delete
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+        <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h4 class="text-sm font-medium text-blue-900 mb-2">💡 AI Assistant Tips</h4>
+            <ul class="text-sm text-blue-800 space-y-1">
+                <li>• Click on any cover letter card to tell the AI to work with that cover letter</li>
+                <li>• Say "edit my Software Engineer cover letter" to work with a specific cover letter</li>
+                <li>• Ask "show me my cover letters" anytime to see this list again</li>
+                <li>• The AI can help you edit, improve, or create new cover letters</li>
+            </ul>
+        </div>
+    {% else %}
+        <div class="text-center py-8">
+            <div class="bg-gray-100 rounded-full p-6 mb-4 mx-auto w-16 h-16 flex items-center justify-center">
+                <i class="fas fa-envelope text-2xl text-gray-400"></i>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No Cover Letters Found</h3>
+            <p class="text-gray-600 mb-4">
+                You haven't created any cover letters yet. Let's create your first one!
+            </p>
+            <button class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                    onclick="tellAI('I want to create a new cover letter')">
+                <i class="fas fa-plus mr-2"></i>
+                Create New Cover Letter
+            </button>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+// Cover Letter selection for AI interaction
+function selectCoverLetterForAI(coverLetterId, coverLetterName, templateId) {
+    console.log('📄 Cover letter selected for AI:', { coverLetterId, coverLetterName, templateId });
+    
+    // Switch to chat tab and send message to AI
+    if (window.tabManager) {
+        window.tabManager.switchToTab('template-preview'); // This will show the chat
+    }
+    
+    // Send message to AI about the selected cover letter
+    const message = `I want to work with my cover letter "${coverLetterName}" (ID: ${coverLetterId}). Please load this cover letter so I can edit it.`;
+    
+    if (window.chatUI) {
+        // Set the message in the chat input
+        const chatInput = document.getElementById('chatInput');
+        if (chatInput) {
+            chatInput.value = message;
+            chatInput.style.height = 'auto';
+            chatInput.style.height = Math.min(chatInput.scrollHeight, 100) + 'px';
+            
+            // Update send button state
+            if (window.chatUI.updateSendButton) {
+                window.chatUI.updateSendButton();
+            }
+        }
+    }
+}
+
+// Cover letter actions
+function editCoverLetter(coverLetterId) {
+    console.log('📝 Edit cover letter:', coverLetterId);
+    // TODO: Implement edit functionality
+    alert('Edit cover letter functionality coming soon!');
+}
+
+function previewCoverLetter(coverLetterId) {
+    console.log('👁️ Preview cover letter:', coverLetterId);
+    // TODO: Implement preview functionality
+    alert('Preview cover letter functionality coming soon!');
+}
+
+function deleteCoverLetter(coverLetterId, coverLetterName) {
+    console.log('🗑️ Delete cover letter:', coverLetterId);
+    
+    if (confirm(`Are you sure you want to delete "${coverLetterName}"? This action cannot be undone.`)) {
+        // TODO: Implement delete functionality
+        alert('Delete cover letter functionality coming soon!');
+    }
+}
+
+// Cover letter selection management
+function selectCoverLetter(coverLetterId, coverLetterName, templateId) {
+    console.log('✅ Selecting cover letter:', { coverLetterId, coverLetterName, templateId });
+    
+    // Update global selected cover letter
+    window.selectedCoverLetter = {
+        id: coverLetterId,
+        name: coverLetterName,
+        template_id: templateId
+    };
+    
+    // Set current cover letter ID for workflow integration
+    if (window.chatUI) {
+        window.chatUI.currentCoverLetterId = coverLetterId;
+        console.log('📄 Current cover letter ID set to:', coverLetterId);
+    }
+    
+    // Update UI to show selection
+    updateCoverLetterSelection(coverLetterId);
+    
+    // Show selection feedback
+    showCoverLetterSelectionSuccess(coverLetterName);
+    
+    // Show static message in chat
+    showCoverLetterSelectedMessage(coverLetterName);
+    
+    console.log('📄 Global selected cover letter updated:', window.selectedCoverLetter);
+}
+
+function showCoverLetterSelectedMessage(coverLetterName) {
+    if (window.chatUI) {
+        const message = `
+## ✅ Cover Letter Selected
+
+Great! I've selected **${coverLetterName}** as your active cover letter. This cover letter is now ready for editing, previewing, or AI assistance.
+
+**What would you like to do with this cover letter?**
+• **Edit Cover Letter**: Make changes to content, formatting, or sections
+• **Preview Cover Letter**: See how it looks in different templates
+• **Download Cover Letter**: Get PDF or Word versions
+• **AI Assistance**: Ask me to help improve, rewrite, or customize this cover letter
+
+Just let me know what you'd like to do next!
+        `;
+        
+        window.chatUI.addMessage(message);
+    }
+}
+
+function updateCoverLetterSelection(selectedCoverLetterId) {
+    // Remove selection from all cover letter cards
+    document.querySelectorAll('.cover-letter-card').forEach(card => {
+        card.classList.remove('selected');
+    });
+    
+    // Remove selection from all select buttons
+    document.querySelectorAll('.cover-letter-action-btn.select-btn').forEach(btn => {
+        btn.classList.remove('selected');
+        btn.innerHTML = 'Select';
+    });
+    
+    // Add selection to the selected cover letter card
+    const selectedCard = document.querySelector(`[data-cover-letter-id="${selectedCoverLetterId}"]`);
+    if (selectedCard) {
+        selectedCard.classList.add('selected');
+    }
+    
+    // Update the select button for the selected cover letter
+    const selectedBtn = document.querySelector(`[data-cover-letter-id="${selectedCoverLetterId}"].select-btn`);
+    if (selectedBtn) {
+        selectedBtn.classList.add('selected');
+        selectedBtn.innerHTML = '<i class="fas fa-check mr-1"></i>Selected';
+    }
+}
+
+function showCoverLetterSelectionSuccess(coverLetterName) {
+    // Create a temporary success message
+    const successMessage = document.createElement('div');
+    successMessage.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+    successMessage.innerHTML = `
+        <div class="flex items-center">
+            <i class="fas fa-check-circle mr-2"></i>
+            <span>"${coverLetterName}" selected</span>
+        </div>
+    `;
+    
+    document.body.appendChild(successMessage);
+    
+    // Remove the message after 2 seconds
+    setTimeout(() => {
+        if (successMessage.parentNode) {
+            successMessage.parentNode.removeChild(successMessage);
+        }
+    }, 2000);
+}
+
+function tellAI(message) {
+    console.log('🤖 Telling AI:', message);
+    
+    // Switch to chat tab
+    if (window.tabManager) {
+        window.tabManager.switchToTab('template-preview'); // This will show the chat
+    }
+    
+    // Set the message in the chat input
+    const chatInput = document.getElementById('chatInput');
+    if (chatInput) {
+        chatInput.value = message;
+        chatInput.style.height = 'auto';
+        chatInput.style.height = Math.min(chatInput.scrollHeight, 100) + 'px';
+        
+        // Update send button state
+        if (window.chatUI && window.chatUI.updateSendButton) {
+            window.chatUI.updateSendButton();
+        }
+    }
+}
+
+// Function to get the currently selected cover letter
+function getSelectedCoverLetter() {
+    return window.selectedCoverLetter;
+}
+
+// Function to check if a cover letter is selected
+function isCoverLetterSelected(coverLetterId) {
+    return window.selectedCoverLetter && window.selectedCoverLetter.id == coverLetterId;
+}
+</script>

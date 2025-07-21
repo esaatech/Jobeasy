@@ -2251,3 +2251,34 @@ def test_resumes(request):
     """Test resumes view"""
     resumes = request.user.resumes.all().order_by('-updated_at')
     return render(request, 'test/test_resumes.html', {'resumes': resumes})
+
+@login_required
+def resume_list_tab(request):
+    """Serve the resume list tab content via AJAX"""
+    resumes = Resume.objects.filter(user=request.user).order_by('-updated_at')
+    context = {
+        'resumes': resumes,
+    }
+    return render(request, 'resume_builder/component/resume_list_tab.html', context)
+
+@login_required
+def cover_letter_tab(request):
+    """Serve the cover letter tab content via AJAX"""
+    # TODO: Implement cover letter logic
+    context = {
+        'cover_letters': [],  # Placeholder
+    }
+    return render(request, 'resume_builder/component/cover_letter_tab.html', context)
+
+@login_required
+def templates_tab(request):
+    """Serve the templates tab content via AJAX"""
+    templates = [
+        {'id': 'professional', 'name': 'Professional', 'description': 'Clean and traditional'},
+        {'id': 'modern', 'name': 'Modern', 'description': 'Contemporary design'},
+        {'id': 'creative', 'name': 'Creative', 'description': 'Unique and artistic'},
+    ]
+    context = {
+        'templates': templates,
+    }
+    return render(request, 'resume_builder/component/templates_tab.html', context)

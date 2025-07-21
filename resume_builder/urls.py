@@ -21,6 +21,11 @@ urlpatterns = [
     path('api/resumes/', views.get_user_resumes, name='get_user_resumes'),
     path('api/resume/<int:resume_id>/preview/', views.get_resume_preview, name='get_resume_preview'),
     
+    # Dynamic Tab Content Endpoints
+    path('api/resume-list-tab/', views.resume_list_tab, name='resume_list_tab'),
+    path('api/cover-letter-tab/', views.cover_letter_tab, name='cover_letter_tab'),
+    path('api/templates-tab/', views.templates_tab, name='templates_tab'),
+    
     # Subscription check
     path('check-access/', views.check_resume_update_access, name='check_resume_update_access'),
     

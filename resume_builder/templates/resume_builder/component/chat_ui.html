@@ -31,12 +31,217 @@
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         background: linear-gradient(135deg, #4c51bf 0%, #553c9a 100%);
     }
+
+    /* Slide-out Navigation Styles */
+    .nav-toggle {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.2rem;
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 6px;
+        transition: background-color 0.2s;
+        margin-right: 12px;
+    }
+
+    .nav-toggle:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .slide-out-nav {
+        position: fixed;
+        top: 0;
+        left: -320px;
+        width: 320px;
+        height: 100vh;
+        background: white;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+        z-index: 1000;
+        transition: left 0.3s ease;
+        overflow-y: auto;
+    }
+
+    .slide-out-nav.open {
+        left: 0;
+    }
+
+    .nav-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 999;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .nav-overlay.open {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .nav-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .nav-header h3 {
+        margin: 0;
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
+
+    .nav-close {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+    }
+
+    .nav-close:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .nav-content {
+        padding: 20px;
+    }
+
+    .nav-section {
+        margin-bottom: 24px;
+    }
+
+    .nav-section h4 {
+        margin: 0 0 12px 0;
+        font-size: 1rem;
+        font-weight: 600;
+        color: #374151;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .nav-link {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        margin: 8px 0;
+        background: #f8fafc;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        color: #374151;
+        text-decoration: none;
+        font-size: 0.95rem;
+        font-weight: 500;
+        transition: all 0.2s;
+        cursor: pointer;
+    }
+
+    .nav-link:hover {
+        background: #f1f5f9;
+        border-color: #667eea;
+        color: #667eea;
+        transform: translateX(4px);
+    }
+
+    .nav-link i {
+        font-size: 1.1rem;
+        width: 20px;
+        text-align: center;
+    }
+
+    .nav-tip {
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 8px;
+        padding: 12px;
+        margin: 16px 0;
+        font-size: 0.875rem;
+        color: #1e40af;
+    }
+
+    .nav-tip strong {
+        display: block;
+        margin-bottom: 4px;
+        color: #1e3a8a;
+    }
 </style>
 
 <div class="chat-sidebar">
     <div class="chat-header">
-        <h2>🤖 AI Assistant</h2>
+        <div style="display: flex; align-items: center;">
+            <button class="nav-toggle" id="navToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h2>🤖 AI Assistant</h2>
+        </div>
         <p>Hi {{ user.first_name|default:user.username }}! </p>
+    </div>
+    
+    <!-- Slide-out Navigation -->
+    <div class="nav-overlay" id="navOverlay"></div>
+    <div class="slide-out-nav" id="slideOutNav">
+        <div class="nav-header">
+            <h3>📋 Quick Navigation</h3>
+            <button class="nav-close" id="navClose">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="nav-content">
+            <div class="nav-section">
+                <h4><i class="fas fa-plus-circle"></i>Create New</h4>
+                <a href="#" class="nav-link" data-action="create-resume">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Create a new resume from scratch</span>
+                </a>
+                <a href="#" class="nav-link" data-action="create-cover-letter">
+                    <i class="fas fa-envelope"></i>
+                    <span>Create a cover letter</span>
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <h4><i class="fas fa-edit"></i>Manage Existing</h4>
+                <a href="#" class="nav-link" data-action="edit-resume">
+                    <i class="fas fa-folder-open"></i>
+                    <span>View, download & edit an existing resume</span>
+                </a>
+                <a href="#" class="nav-link" data-action="preview-templates">
+                    <i class="fas fa-palette"></i>
+                    <span>Preview available templates</span>
+                </a>
+            </div>
+            
+            <div class="nav-section">
+                <h4><i class="fas fa-lightbulb"></i>Get Help</h4>
+                <a href="#" class="nav-link" data-action="resume-tips">
+                    <i class="fas fa-question-circle"></i>
+                    <span>Get help with resume tips</span>
+                </a>
+            </div>
+            
+            <div class="nav-tip">
+                <strong>💡 Pro Tip:</strong>
+                You can preview all our templates in the "Template Preview" tab to see which style works best for you before creating your resume!
+            </div>
+            
+            <div class="nav-tip">
+                <strong>🎯 ATS Optimized:</strong>
+                All our resumes are designed to be fully compatible with Applicant Tracking Systems (ATS) to maximize your chances of getting noticed by employers.
+            </div>
+        </div>
     </div>
     
     <div class="chat-messages" id="chatMessages">
@@ -101,6 +306,7 @@ class ChatUI {
         this.initializeEventListeners();
         this.initializeWebSocket();
         this.addWelcomeLinkListeners();
+        this.initializeSlideOutNavigation();
     }
     
     initializeWebSocket() {
@@ -555,8 +761,9 @@ Just let me know what you'd like to do with your resumes!
                 message = 'I want to create a new resume from scratch';
                 break;
             case 'create-cover-letter':
-                message = 'I want to create a cover letter';
-                break;
+                // Direct navigation - no AI needed
+                this.handleDirectCreateCoverLetter();
+                return; // Don't send message to AI
             case 'edit-resume':
                 // Direct navigation - no AI needed
                 this.handleDirectEditResume();
@@ -579,24 +786,43 @@ Just let me know what you'd like to do with your resumes!
         this.sendMessage();
     }
     
+    handleDirectCreateCoverLetter() {
+        console.log('🔧 Direct create cover letter navigation (dynamic tab)');
+        if (window.openCoverLetterTab) {
+            window.openCoverLetterTab();
+        } else if (window.dynamicTabs && window.dynamicTabs.openTab) {
+            window.dynamicTabs.openTab('cover-letter');
+        } else {
+            alert('Cover Letter tab system not loaded!');
+        }
+        this.addMessage(`
+## 📄 Cover Letter Tab Opened
+
+I've opened the Cover Letter tab for you to manage your cover letters.
+
+**What you can do:**
+• **Create New Cover Letter** - Start building a new cover letter
+• **Edit Existing** - Modify any of your existing cover letters
+• **Preview** - See how your cover letters look
+• **Download** - Get your cover letters in PDF format
+
+Just let me know what you'd like to do with your cover letters!
+        `);
+    }
+    
     handleDirectEditResume() {
-        console.log('🔧 Direct edit resume navigation');
-        
-        // Switch to utility tab
-        if (window.tabManager) {
-            window.tabManager.switchToTab('utility');
+        console.log('�� Direct edit resume navigation (dynamic tab)');
+        if (window.openResumeListTab) {
+            window.openResumeListTab();
+        } else if (window.dynamicTabs && window.dynamicTabs.openTab) {
+            window.dynamicTabs.openTab('resume-list');
+        } else {
+            alert('Resume List tab system not loaded!');
         }
-        
-        // Load resume list in utility tab
-        if (window.utilityTab) {
-            window.utilityTab.loadContent('resumes');
-        }
-        
-        // Add message to chat
         this.addMessage(`
 ## 📄 Resume List Loaded
 
-I've loaded your resume list in the Utility tab for you to review and edit.
+I've opened your resume list in a new tab for you to review and edit.
 
 **What you can do:**
 • **Click on any resume** to tell me to work with it
@@ -978,6 +1204,99 @@ I've loaded your cover letters in the Utility tab.
         if (window.utilityTab) {
             window.utilityTab.loadContent(contentType);
         }
+    }
+
+    initializeSlideOutNavigation() {
+        console.log('🔧 ChatUI: Initializing slide-out navigation');
+        this.navToggle = document.getElementById('navToggle');
+        this.navClose = document.getElementById('navClose');
+        this.navOverlay = document.getElementById('navOverlay');
+        this.slideOutNav = document.getElementById('slideOutNav');
+
+        if (this.navToggle && this.navClose && this.navOverlay && this.slideOutNav) {
+            this.navToggle.addEventListener('click', () => this.toggleSlideOutNav());
+            this.navClose.addEventListener('click', () => this.closeSlideOutNav());
+            this.navOverlay.addEventListener('click', () => this.closeSlideOutNav());
+
+            // Add event listeners for navigation links
+            const navLinks = this.slideOutNav.querySelectorAll('.nav-link');
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    const action = link.getAttribute('data-action');
+                    this.handleNavLinkClick(action);
+                });
+            });
+
+            // Close on resize if not open
+            window.addEventListener('resize', () => {
+                if (this.isSlideOutNavOpen() && window.innerWidth > 768) { // Adjust breakpoint as needed
+                    this.closeSlideOutNav();
+                }
+            });
+        } else {
+            console.warn('⚠️ Slide-out navigation elements not found in the DOM.');
+        }
+    }
+
+    toggleSlideOutNav() {
+        if (this.isSlideOutNavOpen()) {
+            this.closeSlideOutNav();
+        } else {
+            this.openSlideOutNav();
+        }
+    }
+
+    openSlideOutNav() {
+        this.slideOutNav.classList.add('open');
+        this.navOverlay.classList.add('open');
+        this.navToggle.setAttribute('aria-expanded', 'true');
+        this.navToggle.setAttribute('aria-label', 'Close navigation');
+        document.body.style.overflow = 'hidden'; // Prevent scrolling behind the nav
+    }
+
+    closeSlideOutNav() {
+        this.slideOutNav.classList.remove('open');
+        this.navOverlay.classList.remove('open');
+        this.navToggle.setAttribute('aria-expanded', 'false');
+        this.navToggle.setAttribute('aria-label', 'Open navigation');
+        document.body.style.overflow = ''; // Restore scrolling
+    }
+
+    isSlideOutNavOpen() {
+        return this.slideOutNav.classList.contains('open');
+    }
+
+    handleNavLinkClick(action) {
+        console.log('🔗 Nav link clicked, action:', action);
+        this.closeSlideOutNav(); // Close navigation
+
+        let message = '';
+        switch (action) {
+            case 'create-resume':
+                message = 'I want to create a new resume from scratch';
+                break;
+            case 'create-cover-letter':
+                this.handleDirectCreateCoverLetter();
+                return;
+            case 'edit-resume':
+                this.handleDirectEditResume();
+                return;
+            case 'preview-templates':
+                message = 'Show me the available templates';
+                break;
+            case 'switch-templates':
+                message = 'I want to switch between different templates';
+                break;
+            case 'resume-tips':
+                message = 'Give me some resume writing tips';
+                break;
+            default:
+                message = `Navigate to ${action}`;
+        }
+
+        this.chatInput.value = message;
+        this.sendMessage();
     }
 }
 
