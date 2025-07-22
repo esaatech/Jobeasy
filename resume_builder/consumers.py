@@ -58,13 +58,15 @@ class ResumeBuilderConsumer(AsyncWebsocketConsumer):
             message = text_data_json.get('message', '')
             message_type = text_data_json.get('type', 'user_message')
             thread_id = text_data_json.get('thread_id')
+            resume_id = text_data_json.get('resume_id')  # Extract resume_id from message
             
             print(f"🔍 WebSocket received message: {message}")
             print(f"🔍 Message type: {message_type}")
             print(f"🔍 Thread ID: {thread_id}")
+            print(f"🔍 .............................Resume ID..............................: {resume_id}")  # Debug print for resume_id
             
-            # Process message through real AI assistant
-            response = await self.process_with_real_ai(message, thread_id)
+            # Process message through real AI assistant with resume_id
+            response = await self.process_with_real_ai(message, thread_id, resume_id)
             
             # Send response back to WebSocket
             await self.send(text_data=json.dumps({
@@ -89,13 +91,14 @@ class ResumeBuilderConsumer(AsyncWebsocketConsumer):
             }))
 
     @database_sync_to_async
-    def process_with_real_ai(self, message, thread_id):
+    def process_with_real_ai(self, message, thread_id, resume_id=None):
         """
         Process user message with the real AI assistant manager.
         This integrates with your OpenAI Assistant Manager.
         """
         try:
             print(f"🤖 Processing message with real AI: {message}")
+            print(f"🤖 Resume ID provided: {resume_id}")  # Debug print
             
             # Import the AI assistant manager
             from resume_builder.views import get_or_create_assistant
@@ -122,13 +125,14 @@ class ResumeBuilderConsumer(AsyncWebsocketConsumer):
                         'thread_id': None
                     }
             
-            # Smart resume data inclusion - only include if we have a recent resume from AI interaction
-            enhanced_message = self._prepare_message_with_smart_resume_context(message)
+            # Smart resume data inclusion - now with explicit resume_id
+            enhanced_message = self._prepare_message_with_smart_resume_context(message, resume_id)
             
             print(f"🤖 Sending message to AI assistant")
             print(f"📤 Thread ID: {thread_id}")
             print(f"📤 Assistant ID: {assistant_id}")
             print(f"📤 User ID: {self.user_id}")
+            print(f"📤 Resume ID: {resume_id}")  # Debug print
             
             # Send message to AI with user context
             result = manager.add_message_and_run(
@@ -150,6 +154,8 @@ class ResumeBuilderConsumer(AsyncWebsocketConsumer):
                 # Add resume ID if available
                 if result.get('resume_id'):
                     response_data['resume_id'] = result['resume_id']
+                elif resume_id:  # Use the resume_id from the request if AI didn't return one
+                    response_data['resume_id'] = resume_id
                 
                 return response_data
             else:
@@ -173,7 +179,7 @@ class ResumeBuilderConsumer(AsyncWebsocketConsumer):
         Kept for backward compatibility.
         """
         # This method is deprecated - use process_with_real_ai instead
-        return await self.process_with_real_ai(message, None)
+        return await self.process_with_real_ai(message, None, None)
 
     async def send_event(self, event):
         """
@@ -209,11 +215,13 @@ class ResumeBuilderConsumer(AsyncWebsocketConsumer):
             'template_id': event['template_id']
         }))
 
-    def _prepare_message_with_smart_resume_context(self, message):
+    def _prepare_message_with_smart_resume_context(self, message, resume_id=None):
         """
         Smart function to determine when resume data is needed and include it only when necessary.
         This reduces token usage by not sending full resume data for general chat.
         """
+        from datetime import datetime  # Import datetime here since we use it
+        
         # Keywords that indicate resume-related operations
         resume_keywords = [
             'resume', 'cv', 'curriculum vitae', 'create resume', 'build resume', 'edit resume',
@@ -224,7 +232,8 @@ class ResumeBuilderConsumer(AsyncWebsocketConsumer):
             'academic', 'qualification', 'certification', 'training', 'course',
             'skill', 'competency', 'expertise', 'proficiency', 'knowledge',
             'project', 'achievement', 'accomplishment', 'responsibility', 'duty',
-            'technology', 'software', 'tool', 'language', 'framework', 'platform'
+            'technology', 'software', 'tool', 'language', 'framework', 'platform',
+            'cover letter', 'cover', 'letter', 'job application', 'apply', 'position'
         ]
         
         # Check if message contains resume-related keywords
@@ -233,45 +242,61 @@ class ResumeBuilderConsumer(AsyncWebsocketConsumer):
         
         print(f"🔍 Message analysis: '{message}'")
         print(f"🔍 Resume-related: {is_resume_related}")
+        print(f"🔍 Resume ID provided: {resume_id}")
         
-        # CRITICAL: Only include resume data if we have a resume_id from previous AI interaction
-        # This means the AI has already created a resume in this conversation
+        # If not resume-related, just return the message
         if not is_resume_related:
-            # For general chat, just send the message without resume data
             print(f"📄 No resume data needed for general chat")
             return message
         
-        # For resume-related operations, check if we have a resume_id from previous AI interaction
-        # We'll need to check the thread history or store resume_id in session/context
-        # For now, let's check if there's a recent resume created by this user
-        try:
-            # Get user's most recent resume that was created recently (within last 10 minutes)
-            from django.utils import timezone
-            from datetime import timedelta
+        # Try to get resume data using the provided resume_id first
+        current_resume = None
+        if resume_id:
+            print(f"📄 Looking for specific resume ID: {resume_id}")
+            try:
+                current_resume = Resume.objects.filter(
+                    user=self.user, 
+                    id=resume_id
+                ).first()
+                if current_resume:
+                    print(f"✅ Found resume with ID {resume_id}: {current_resume.name}")
+                else:
+                    print(f"❌ Resume with ID {resume_id} not found for user {self.user.id}")
+            except Exception as e:
+                print(f"⚠️ Error looking up resume ID {resume_id}: {e}")
+        
+        # If no resume found by ID, fall back to most recent resume
+        if not current_resume:
+            print(f"📄 No specific resume ID provided or not found, looking for most recent resume")
+            try:
+                current_resume = Resume.objects.filter(
+                    user=self.user
+                ).order_by('-updated_at').first()
+                if current_resume:
+                    print(f"✅ Found most recent resume: {current_resume.name} (ID: {current_resume.id})")
+                else:
+                    print(f"❌ No resumes found for user {self.user.id}")
+            except Exception as e:
+                print(f"⚠️ Error looking up most recent resume: {e}")
+        
+        # If we found a resume, include its data
+        if current_resume:
+            # Prepare resume data for AI context
+            resume_data = {
+                'resume_id': str(current_resume.id),
+                'name': current_resume.name,
+                'template_id': current_resume.template_id,
+                'personal_info': current_resume.personal_info or {},
+                'experience': current_resume.experience or [],
+                'education': current_resume.education or [],
+                'skills': current_resume.skills or {},
+                'additional': current_resume.additional or {},
+                'draft': current_resume.draft,
+                'updated_at': current_resume.updated_at.isoformat() if current_resume.updated_at else None
+            }
             
-            recent_time = timezone.now() - timedelta(minutes=10)
-            current_resume = Resume.objects.filter(
-                user=self.user, 
-                created_at__gte=recent_time
-            ).order_by('-created_at').first()
-            
-            if current_resume:
-                # Prepare resume data for AI context
-                resume_data = {
-                    'resume_id': str(current_resume.id),
-                    'name': current_resume.name,
-                    'template_id': current_resume.template_id,
-                    'personal_info': current_resume.personal_info or {},
-                    'experience': current_resume.experience or [],
-                    'education': current_resume.education or [],
-                    'skills': current_resume.skills or {},
-                    'additional': current_resume.additional or {},
-                    'draft': current_resume.draft,
-                    'updated_at': current_resume.updated_at.isoformat() if current_resume.updated_at else None
-                }
-                
-                # Include resume data in user message
-                enhanced_message = f"""
+            # Include resume data in user message
+            enhanced_message = f"""
 Current Resume State (as of {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}):
 {json.dumps(resume_data, indent=2)}
 
@@ -300,22 +325,19 @@ CRITICAL: Before calling edit_education or delete_education, you MUST:
 2. Confirm the action you're taking (e.g., "I will update Tech University to Techno University")
 3. Then call the function with the correct index
 """
-                print(f"📄 Resume data included for AI context")
-                print(f"📄 Resume ID: {resume_data['resume_id']}")
-                print(f"📄 Education entries: {len(resume_data['education'])}")
-                print(f"📄 Experience entries: {len(resume_data['experience'])}")
-                
-                # Debug: Show education entries with indices
-                print(f"\n🔍 DEBUG: Current Education Entries:")
-                for i, edu in enumerate(resume_data['education']):
-                    print(f"  Index {i}: {edu.get('degree', 'N/A')} from {edu.get('institution', 'N/A')}")
-                print(f"🔍 DEBUG: End Education Entries\n")
-                
-                return enhanced_message
-            else:
-                # No recent resume found - this is likely a new conversation
-                print(f"📄 No recent resume found - treating as new conversation")
-                return message
-        except Exception as e:
-            print(f"⚠️ Error getting resume data: {e}")
+            print(f"📄 Resume data included for AI context")
+            print(f"📄 Resume ID: {resume_data['resume_id']}")
+            print(f"📄 Education entries: {len(resume_data['education'])}")
+            print(f"📄 Experience entries: {len(resume_data['experience'])}")
+            
+            # Debug: Show education entries with indices
+            print(f"\n🔍 DEBUG: Current Education Entries:")
+            for i, edu in enumerate(resume_data['education']):
+                print(f"  Index {i}: {edu.get('degree', 'N/A')} from {edu.get('institution', 'N/A')}")
+            print(f"🔍 DEBUG: End Education Entries\n")
+            
+            return enhanced_message
+        else:
+            # No resume found - this is likely a new conversation
+            print(f"📄 No resume found - treating as new conversation")
             return message 

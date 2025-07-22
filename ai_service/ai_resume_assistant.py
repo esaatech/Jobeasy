@@ -725,6 +725,10 @@ IMPORTANT: Always use user_id: {user_id} when calling any functions that require
                                 # Extract resume ID if available
                                 if result.get("success") and result.get("data", {}).get("resume_id"):
                                     resume_ids.append(result["data"]["resume_id"])
+                            elif tool_call.function.name == "cover_letter_completed":
+                                result = handler.cover_letter_completed(**args)
+                            elif tool_call.function.name == "get_current_date":
+                                result = handler.get_current_date(**args)
                             else:
                                 print(f"❌ Unknown function: {tool_call.function.name}")
                                 result = {"error": f"Unknown function: {tool_call.function.name}"}

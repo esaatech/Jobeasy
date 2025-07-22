@@ -307,6 +307,34 @@ TASK_SCHEMAS = {
                 'required': ['user_id', 'resume_id'],
                 'additionalProperties': False
             }
+        },
+        'cover_letter_completed': {
+            'name': 'cover_letter_completed',
+            'description': 'Notify the frontend that a cover letter has been generated and is ready for display. Only call this function after you have generated a complete cover letter in Markdown format.',
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'user_id': {'type': 'string', 'description': 'ID of the user to notify'},
+                    'cover_letter_markdown': {'type': 'string', 'description': 'The generated cover letter content in Markdown format'},
+                    'job_description': {'type': 'string', 'description': 'The job description used for the cover letter'},
+                    'resume_id': {'type': 'string', 'description': 'The resume ID used as context for the cover letter'}
+                },
+                'required': ['user_id', 'cover_letter_markdown', 'job_description', 'resume_id'],
+                'additionalProperties': False
+            }
+        },
+        'get_current_date': {
+            'name': 'get_current_date',
+            'description': 'Get the current date in a format suitable for cover letters and formal documents.',
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'user_id': {'type': 'string', 'description': 'ID of the user requesting the date'},
+                    'format': {'type': 'string', 'description': 'Date format preference: "formal" (e.g., "January 15, 2024"), "short" (e.g., "Jan 15, 2024"), or "numeric" (e.g., "01/15/2024"). Default is "formal".'}
+                },
+                'required': ['user_id', 'format'],
+                'additionalProperties': False
+            }
         }
     }
 }

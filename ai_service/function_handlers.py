@@ -1937,3 +1937,71 @@ class FunctionHandlers:
                 "success": False,
                 "error": str(e)
             } 
+
+    @staticmethod
+    def cover_letter_completed(user_id: str, cover_letter_markdown: str, job_description: str, resume_id: str) -> Dict[str, Any]:
+        """
+        Notify the frontend that a cover letter has been generated and is ready for display.
+        This function does NOT save the cover letter to the database; it simply emits an event
+        to the user's WebSocket group so the UI can display the cover letter in a tab.
+
+        Args:
+            user_id: ID of the user to notify
+            cover_letter_markdown: The generated cover letter content in Markdown format
+            job_description: The job description used for the cover letter
+            resume_id: The resume ID used as context for the cover letter
+
+        Returns:
+            dict: Confirmation of event emission
+        """
+        # Ensure all required parameters are present
+        if not user_id or not cover_letter_markdown or not job_description or not resume_id:
+            return {
+                "success": False, 
+                "error": "Missing required parameters: user_id, cover_letter_markdown, job_description, and resume_id are required"
+            }
+            
+        EventEmitter.emit_event(
+            user_id=user_id,
+            event_type="cover_letter_completed",
+            data={
+                "cover_letter_markdown": cover_letter_markdown,
+                "job_description": job_description,
+                "resume_id": resume_id,
+                "personal_story": None,  # Personal story will be handled by the AI in the cover letter content
+            }
+        )
+        return {"success": True, "message": "Cover letter event emitted to frontend."}
+
+    @staticmethod
+    def get_current_date(user_id: str, format: str = "formal") -> Dict[str, Any]:
+        """
+        Get the current date in a format suitable for cover letters and formal documents.
+
+        Args:
+            user_id: ID of the user requesting the date
+            format: Date format preference - "formal", "short", or "numeric"
+
+        Returns:
+            dict: Current date in the requested format
+        """
+        from datetime import datetime
+        
+        current_date = datetime.now()
+        
+        if format == "formal":
+            formatted_date = current_date.strftime("%B %d, %Y")
+        elif format == "short":
+            formatted_date = current_date.strftime("%b %d, %Y")
+        elif format == "numeric":
+            formatted_date = current_date.strftime("%m/%d/%Y")
+        else:
+            # Default to formal format
+            formatted_date = current_date.strftime("%B %d, %Y")
+        
+        return {
+            "success": True,
+            "date": formatted_date,
+            "format": format,
+            "timestamp": current_date.isoformat()
+        } 

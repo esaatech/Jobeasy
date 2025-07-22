@@ -441,6 +441,76 @@ class ChatUI {
                 this.handleShowResumeList(data);
                 break;
                 
+            case 'cover_letter_completed':
+                // Open the cover letter tab using the same logic as navigation
+                if (window.openCoverLetterTab) {
+                    window.openCoverLetterTab();
+                    setTimeout(() => {
+                        // Convert markdown to HTML using marked.js
+                        let coverLetterHTML = '';
+                        if (typeof marked !== 'undefined') {
+                            // Configure marked.js for cover letter formatting
+                            marked.setOptions({
+                                breaks: true,
+                                gfm: true,
+                                sanitize: false,
+                                smartLists: true,
+                                smartypants: true
+                            });
+                            coverLetterHTML = marked.parse(data.cover_letter_markdown);
+                        } else {
+                            // Fallback: simple markdown to HTML conversion
+                            coverLetterHTML = data.cover_letter_markdown
+                                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                                .replace(/\n/g, '<br>')
+                                .replace(/^# (.*$)/gm, '<h1>$1</h1>')
+                                .replace(/^## (.*$)/gm, '<h2>$1</h2>')
+                                .replace(/^### (.*$)/gm, '<h3>$1</h3>');
+                        }
+                        
+                        // Add action buttons to the cover letter content
+                        const coverLetterWithActions = `
+                            ${coverLetterHTML}
+                        `;
+                        
+                        // Use the new function to display the generated cover letter with context
+                        if (typeof showGeneratedCoverLetter === 'function') {
+                            showGeneratedCoverLetter(
+                                coverLetterWithActions,
+                                data.job_description || 'No job description provided',
+                                data.personal_story || 'No personal story provided'
+                            );
+                            
+                            // Add success message to chat
+                            this.addMessage(`
+## ✅ Cover Letter Generated Successfully!
+
+Your professional cover letter has been created and is now displayed in the Cover Letter tab.
+
+**What you can do:**
+• **Review the cover letter** - Check the content and formatting
+• **Edit if needed** - Make any adjustments to the content
+• **Download** - Get your cover letter in PDF format
+• **Create another** - Generate cover letters for other positions
+
+The cover letter has been tailored to match the job description and incorporates your resume information for a personalized touch.
+                            `);
+                        } else {
+                            // Fallback: replace entire tab content if function not available
+                            const tabContent = document.getElementById('coverLetterTab');
+                            if (tabContent) {
+                                tabContent.innerHTML = `
+                                    <div class="cover-letter-display" style="padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                        ${coverLetterWithActions}
+                                    </div>
+                                `;
+                            }
+                        }
+                    }, 200); // Wait for tab to be open
+                }
+                break;
+                
             default:
                 console.log('🔧 ChatUI: Unknown backend event type:', eventType);
         }
@@ -483,26 +553,9 @@ I've created your resume and I'm ready to guide you through each section step by
         // Reset the flag
         this.lastAIResponseWasResumeCreation = false;
         
-        // Switch to Resume Builder tab
+        // Switch to Resume Preview tab to show the created resume
         if (window.tabManager) {
-            window.tabManager.switchToTab('resume-builder');
-        }
-        
-        // Update Resume Builder tab with the new resume info
-        if (window.resumeBuilderTab) {
-            // Ensure the tab is initialized before setting info
-            setTimeout(() => {
-                if (window.resumeBuilderTab.ensureInitialized()) {
-                    window.resumeBuilderTab.setResumeInfo(data.resume_id, data.resume_name, data.template_id);
-                } else {
-                    console.warn('⚠️ Resume Builder tab not initialized, retrying in 1 second...');
-                    setTimeout(() => {
-                        if (window.resumeBuilderTab.ensureInitialized()) {
-                            window.resumeBuilderTab.setResumeInfo(data.resume_id, data.resume_name, data.template_id);
-                        }
-                    }, 1000);
-                }
-            }, 100);
+            window.tabManager.switchToTab('resume-preview');
         }
         
         // Update Resume Preview tab with the new resume info
@@ -514,6 +567,12 @@ I've created your resume and I'm ready to guide you through each section step by
     
     handleResumeUpdated(data) {
         console.log('📄 Resume updated event:', data);
+        
+        // Update current resume ID if provided
+        if (data.resume_id) {
+            this.currentResumeId = data.resume_id;
+            console.log('📄 Current resume ID updated to:', data.resume_id);
+        }
         
         // Update ResumeDataManager with the new data
         if (window.resumeDataManager) {
@@ -595,11 +654,6 @@ Your resume has been updated with the latest information. You can view the chang
             window.templatePreview.switchTemplate(data.template_id);
         }
         
-        // Update Resume Builder tab
-        if (window.resumeBuilderTab) {
-            window.resumeBuilderTab.setResumeInfo(data.resume_id, data.resume_name, data.template_id);
-        }
-        
         // Update Resume Preview tab
         if (window.resumePreviewTab) {
             window.resumePreviewTab.setResumeInfo(data.resume_id, data.resume_name, data.template_id);
@@ -611,7 +665,7 @@ Your resume has been updated with the latest information. You can view the chang
 
 **New Template:** ${data.template_id}
 
-Your resume is now using the ${data.template_id} template. You can preview the changes in the Template Preview tab.
+Your resume is now using the ${data.template_id} template. You can preview the changes in the Resume Preview tab.
         `);
     }
     
@@ -671,11 +725,6 @@ Great progress! ${data.next_section ? `Let's continue with the ${data.next_secti
     handleSectionInProgress(data) {
         console.log('🔄 Section in progress event:', data);
         
-        // Update Resume Builder tab
-        if (window.resumeBuilderTab) {
-            window.resumeBuilderTab.handleSectionInProgress(data);
-        }
-        
         // Add section progress notification to chat
         this.addMessage(`
 ## 🔄 Section in Progress
@@ -690,21 +739,20 @@ I'm currently working on the ${data.section} section. This may take a moment...
     handleShowResumeList(data) {
         console.log('📄 Show resume list event:', data);
         
-        // Switch to utility tab
-        if (window.tabManager) {
-            window.tabManager.switchToTab('utility');
-        }
-        
-        // Load resume list in utility tab
-        if (window.utilityTab) {
-            window.utilityTab.loadContent('resumes');
+        // Open resume list tab using dynamic tab system
+        if (window.openResumeListTab) {
+            window.openResumeListTab();
+        } else if (window.dynamicTabs && window.dynamicTabs.openTab) {
+            window.dynamicTabs.openTab('resume-list');
+        } else {
+            console.warn('⚠️ Resume list tab system not available');
         }
         
         // Add message to chat
         this.addMessage(`
 ## 📄 Resume List Loaded
 
-I found **${data.resume_count} resume(s)** in your account and loaded them in the Utility tab.
+I found **${data.resume_count} resume(s)** in your account and loaded them in the Resume List tab.
 
 **What you can do:**
 • **Click on any resume** to tell me to work with it
@@ -941,6 +989,11 @@ Just let me know what you'd like to do with your resumes!
         const message = this.chatInput.value.trim();
         if (!message) return;
         
+        // Clear the input field immediately after getting the message
+        this.chatInput.value = '';
+        this.chatInput.style.height = 'auto';
+        this.updateSendButton();
+        
         // Add user message
         this.addMessage(message, true);
         
@@ -1059,15 +1112,16 @@ Please try again or contact support if the problem persists.
             const messageId = Date.now().toString();
             this.pendingMessages[messageId] = { resolve, reject };
             
-            // Send message
+            // Send message with current resume_id
             const messageData = {
                 type: 'user_message',
                 message: message,
                 thread_id: this.currentThreadId,
-                resume_id: this.currentResumeId
+                resume_id: this.currentResumeId  // Always include current resume ID
             };
             
             console.log('📤 Sending WebSocket message:', messageData);
+            console.log('📤 Current resume ID:', this.currentResumeId);  // Debug print
             this.websocket.send(JSON.stringify(messageData));
             
             // Set timeout for response - increased to 90 seconds to match backend processing time
@@ -1145,21 +1199,20 @@ Please check your internet connection and try again. If the problem persists, pl
     showResumeList() {
         console.log('📄 Showing resume list');
         
-        // Switch to utility tab
-        if (window.tabManager) {
-            window.tabManager.switchToTab('utility');
-        }
-        
-        // Load resume list
-        if (window.utilityTab) {
-            window.utilityTab.loadContent('resumes');
+        // Open resume list tab using dynamic tab system
+        if (window.openResumeListTab) {
+            window.openResumeListTab();
+        } else if (window.dynamicTabs && window.dynamicTabs.openTab) {
+            window.dynamicTabs.openTab('resume-list');
+        } else {
+            console.warn('⚠️ Resume list tab system not available');
         }
         
         // Add message to chat
         this.addMessage(`
 ## 📄 Resume List Loaded
 
-I've loaded your resume list in the Utility tab. You can:
+I've loaded your resume list in the Resume List tab. You can:
 
 • **Click on any resume** to tell me to work with it
 • **Edit, preview, or delete** resumes using the action buttons
@@ -1172,21 +1225,20 @@ Just let me know what you'd like to do with your resumes!
     showCoverLetters() {
         console.log('📝 Showing cover letters');
         
-        // Switch to utility tab
-        if (window.tabManager) {
-            window.tabManager.switchToTab('utility');
-        }
-        
-        // Load cover letters (future implementation)
-        if (window.utilityTab) {
-            window.utilityTab.loadContent('cover_letters');
+        // Open cover letter tab using dynamic tab system
+        if (window.openCoverLetterTab) {
+            window.openCoverLetterTab();
+        } else if (window.dynamicTabs && window.dynamicTabs.openTab) {
+            window.dynamicTabs.openTab('cover-letter');
+        } else {
+            console.warn('⚠️ Cover letter tab system not available');
         }
         
         // Add message to chat
         this.addMessage(`
 ## 📝 Cover Letters Loaded
 
-I've loaded your cover letters in the Utility tab. 
+I've loaded your cover letters in the Cover Letter tab. 
 
 *Note: Cover letter functionality is coming soon!*
         `);
@@ -1195,14 +1247,21 @@ I've loaded your cover letters in the Utility tab.
     switchToUtility(contentType) {
         console.log('🔧 Switching to utility with content type:', contentType);
         
-        // Switch to utility tab
-        if (window.tabManager) {
-            window.tabManager.switchToTab('utility');
-        }
-        
-        // Load specific content
-        if (window.utilityTab) {
-            window.utilityTab.loadContent(contentType);
+        // Map content types to dynamic tabs
+        if (contentType === 'resumes') {
+            if (window.openResumeListTab) {
+                window.openResumeListTab();
+            } else if (window.dynamicTabs && window.dynamicTabs.openTab) {
+                window.dynamicTabs.openTab('resume-list');
+            }
+        } else if (contentType === 'cover_letters') {
+            if (window.openCoverLetterTab) {
+                window.openCoverLetterTab();
+            } else if (window.dynamicTabs && window.dynamicTabs.openTab) {
+                window.dynamicTabs.openTab('cover-letter');
+            }
+        } else {
+            console.warn('⚠️ Unknown content type:', contentType);
         }
     }
 

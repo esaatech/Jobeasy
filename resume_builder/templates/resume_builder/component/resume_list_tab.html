@@ -293,9 +293,8 @@ window.deleteResume = function(resumeId, resumeName) {
                     updateResumeCount();
                     console.log('🗑️ Resume card removed from DOM');
                 } else {
-                    if (window.utilityTab) {
-                        window.utilityTab.loadContent('resumes');
-                    }
+                    // Refresh the resume list if card not found
+                    location.reload();
                 }
                 showDeleteSuccess(resumeName);
             } else {

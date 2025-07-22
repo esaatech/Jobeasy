@@ -149,91 +149,153 @@
 </style>
 
 <div id="coverLetterTab" class="cover-letter-tab">
-    {% if cover_letters %}
+    <!-- Generated Cover Letter Display Section -->
+    <div id="generatedCoverLetterSection" style="display: none;">
         <div class="mb-4">
-            <h3 class="text-lg font-medium text-gray-900 mb-2">Your Cover Letters ({{ cover_letters.count }})</h3>
-            <p class="text-sm text-gray-600">Click on a cover letter to view or edit it</p>
+            <button class="cover-letter-action-btn" onclick="showCoverLetterList()" style="margin-bottom: 16px;">
+                <i class="fas fa-arrow-left mr-1"></i>
+                Back to Cover Letter List
+            </button>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Generated Cover Letter</h3>
         </div>
         
-        {% for cover_letter in cover_letters %}
-        <div class="cover-letter-card" data-cover-letter-id="{{ cover_letter.id }}" onclick="selectCoverLetterForAI({{ cover_letter.id }}, '{{ cover_letter.name|escapejs }}', '{{ cover_letter.template_id|escapejs }}')">
-            <div class="cover-letter-card-header">
-                <h4 class="cover-letter-card-title">{{ cover_letter.name }}</h4>
-                <span class="cover-letter-card-status {% if cover_letter.draft %}draft{% else %}ready{% endif %}">
-                    {% if cover_letter.draft %}Draft{% else %}Ready{% endif %}
-                </span>
-            </div>
-            <div class="cover-letter-card-meta">
-                <span>
-                    <i class="fas fa-palette text-gray-400 mr-1"></i>
-                    {{ cover_letter.template_id|title }} Template
-                </span>
-                <span>
-                    <i class="fas fa-clock text-gray-400 mr-1"></i>
-                    Updated {{ cover_letter.updated_at|timesince }} ago
-                </span>
-                {% if cover_letter.personal_info.full_name %}
-                <span>
-                    <i class="fas fa-user text-gray-400 mr-1"></i>
-                    {{ cover_letter.personal_info.full_name }}
-                </span>
-                {% endif %}
-            </div>
-            <div class="cover-letter-card-actions">
-                <button class="cover-letter-action-btn select-btn" 
-                        onclick="event.stopPropagation(); selectCoverLetter({{ cover_letter.id }}, '{{ cover_letter.name|escapejs }}', '{{ cover_letter.template_id|escapejs }}')"
-                        data-cover-letter-id="{{ cover_letter.id }}">
-                    Select
-                </button>
-                <button class="cover-letter-action-btn primary" 
-                        onclick="event.stopPropagation(); editCoverLetter({{ cover_letter.id }})">
-                    <i class="fas fa-edit mr-1"></i>
-                    Edit
-                </button>
-                <button class="cover-letter-action-btn" 
-                        onclick="event.stopPropagation(); previewCoverLetter({{ cover_letter.id }})">
-                    <i class="fas fa-eye mr-1"></i>
-                    Preview
-                </button>
-                <a href="{% url 'resume_builder:download_cover_letter_file' cover_letter.id 'pdf' %}" 
-                   class="cover-letter-action-btn"
-                   onclick="event.stopPropagation();">
-                    <i class="fas fa-download mr-1"></i>
-                    Download
-                </a>
-                <button class="cover-letter-action-btn danger" 
-                        onclick="event.stopPropagation(); deleteCoverLetter({{ cover_letter.id }}, '{{ cover_letter.name|escapejs }}')">
-                    <i class="fas fa-trash mr-1"></i>
-                    Delete
-                </button>
-            </div>
+        <!-- Job Description Context -->
+        <div id="jobDescriptionContext" class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg" style="display: none;">
+            <h4 class="text-sm font-medium text-blue-900 mb-2">
+                <i class="fas fa-briefcase mr-1"></i>
+                Job Description
+            </h4>
+            <div id="jobDescriptionContent" class="text-sm text-blue-800"></div>
         </div>
-        {% endfor %}
-        <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h4 class="text-sm font-medium text-blue-900 mb-2">💡 AI Assistant Tips</h4>
-            <ul class="text-sm text-blue-800 space-y-1">
-                <li>• Click on any cover letter card to tell the AI to work with that cover letter</li>
-                <li>• Say "edit my Software Engineer cover letter" to work with a specific cover letter</li>
-                <li>• Ask "show me my cover letters" anytime to see this list again</li>
-                <li>• The AI can help you edit, improve, or create new cover letters</li>
-            </ul>
+        
+        <!-- Personal Story Context -->
+        <div id="personalStoryContext" class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg" style="display: none;">
+            <h4 class="text-sm font-medium text-green-900 mb-2">
+                <i class="fas fa-heart mr-1"></i>
+                Personal Story
+            </h4>
+            <div id="personalStoryContent" class="text-sm text-green-800"></div>
         </div>
-    {% else %}
-        <div class="text-center py-8">
-            <div class="bg-gray-100 rounded-full p-6 mb-4 mx-auto w-16 h-16 flex items-center justify-center">
-                <i class="fas fa-envelope text-2xl text-gray-400"></i>
-            </div>
-            <h3 class="text-lg font-medium text-gray-900 mb-2">No Cover Letters Found</h3>
-            <p class="text-gray-600 mb-4">
-                You haven't created any cover letters yet. Let's create your first one!
-            </p>
-            <button class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                    onclick="tellAI('I want to create a new cover letter')">
-                <i class="fas fa-plus mr-2"></i>
-                Create New Cover Letter
+        
+        <!-- Cover Letter Content -->
+        <div id="coverLetterContent" class="bg-white border border-gray-200 rounded-lg p-6">
+            <!-- Generated cover letter content will be inserted here -->
+        </div>
+        
+        <!-- Action Buttons -->
+        <div id="coverLetterActions" class="mt-6 flex gap-3 justify-center">
+            <button class="btn-edit" style="background: #667eea; color: white; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer;">
+                <i class="fas fa-edit mr-1"></i>Edit
+            </button>
+            <button class="btn-copy" style="background: #6b7280; color: white; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer;">
+                <i class="fas fa-copy mr-1"></i>Copy
+            </button>
+            <button class="btn-download" style="background: #10b981; color: white; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer;">
+                <i class="fas fa-download mr-1"></i>Download PDF
             </button>
         </div>
-    {% endif %}
+    </div>
+    
+    <!-- Existing Cover Letter List Section -->
+    <div id="coverLetterListSection">
+        <!-- Action Buttons for List View -->
+        <div id="coverLetterListActions" class="mb-6 flex gap-3 justify-center">
+            <button class="btn-edit" style="background: #667eea; color: white; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer;">
+                <i class="fas fa-edit mr-1"></i>Edit
+            </button>
+            <button class="btn-copy" style="background: #6b7280; color: white; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer;">
+                <i class="fas fa-copy mr-1"></i>Copy
+            </button>
+            <button class="btn-download" style="background: #10b981; color: white; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer;">
+                <i class="fas fa-download mr-1"></i>Download PDF
+            </button>
+        </div>
+        {% if cover_letters %}
+            <div class="mb-4">
+                <h3 class="text-lg font-medium text-gray-900 mb-2">Your Cover Letters ({{ cover_letters.count }})</h3>
+                <p class="text-sm text-gray-600">Click on a cover letter to view or edit it</p>
+            </div>
+            
+            {% for cover_letter in cover_letters %}
+            <div class="cover-letter-card" data-cover-letter-id="{{ cover_letter.id }}" onclick="selectCoverLetterForAI({{ cover_letter.id }}, '{{ cover_letter.name|escapejs }}', '{{ cover_letter.template_id|escapejs }}')">
+                <div class="cover-letter-card-header">
+                    <h4 class="cover-letter-card-title">{{ cover_letter.name }}</h4>
+                    <span class="cover-letter-card-status {% if cover_letter.draft %}draft{% else %}ready{% endif %}">
+                        {% if cover_letter.draft %}Draft{% else %}Ready{% endif %}
+                    </span>
+                </div>
+                <div class="cover-letter-card-meta">
+                    <span>
+                        <i class="fas fa-palette text-gray-400 mr-1"></i>
+                        {{ cover_letter.template_id|title }} Template
+                    </span>
+                    <span>
+                        <i class="fas fa-clock text-gray-400 mr-1"></i>
+                        Updated {{ cover_letter.updated_at|timesince }} ago
+                    </span>
+                    {% if cover_letter.personal_info.full_name %}
+                    <span>
+                        <i class="fas fa-user text-gray-400 mr-1"></i>
+                        {{ cover_letter.personal_info.full_name }}
+                    </span>
+                    {% endif %}
+                </div>
+                <div class="cover-letter-card-actions">
+                    <button class="cover-letter-action-btn select-btn" 
+                            onclick="event.stopPropagation(); selectCoverLetter({{ cover_letter.id }}, '{{ cover_letter.name|escapejs }}', '{{ cover_letter.template_id|escapejs }}')"
+                            data-cover-letter-id="{{ cover_letter.id }}">
+                        Select
+                    </button>
+                    <button class="cover-letter-action-btn primary" 
+                            onclick="event.stopPropagation(); editCoverLetter({{ cover_letter.id }})">
+                        <i class="fas fa-edit mr-1"></i>
+                        Edit
+                    </button>
+                    <button class="cover-letter-action-btn" 
+                            onclick="event.stopPropagation(); previewCoverLetter({{ cover_letter.id }})">
+                        <i class="fas fa-eye mr-1"></i>
+                        Preview
+                    </button>
+                    <a href="{% url 'resume_builder:download_cover_letter_file' cover_letter.id 'pdf' %}" 
+                       class="cover-letter-action-btn"
+                       onclick="event.stopPropagation();">
+                        <i class="fas fa-download mr-1"></i>
+                        Download
+                    </a>
+                    <button class="cover-letter-action-btn danger" 
+                            onclick="event.stopPropagation(); deleteCoverLetter({{ cover_letter.id }}, '{{ cover_letter.name|escapejs }}')">
+                        <i class="fas fa-trash mr-1"></i>
+                        Delete
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+            <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h4 class="text-sm font-medium text-blue-900 mb-2">💡 AI Assistant Tips</h4>
+                <ul class="text-sm text-blue-800 space-y-1">
+                    <li>• Click on any cover letter card to tell the AI to work with that cover letter</li>
+                    <li>• Say "edit my Software Engineer cover letter" to work with a specific cover letter</li>
+                    <li>• Ask "show me my cover letters" anytime to see this list again</li>
+                    <li>• The AI can help you edit, improve, or create new cover letters</li>
+                </ul>
+            </div>
+        {% else %}
+            <div class="text-center py-8">
+                <div class="bg-gray-100 rounded-full p-6 mb-4 mx-auto w-16 h-16 flex items-center justify-center">
+                    <i class="fas fa-envelope text-2xl text-gray-400"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No Cover Letters Found</h3>
+                <p class="text-gray-600 mb-4">
+                    You haven't created any cover letters yet. Let's create your first one!
+                </p>
+                <button class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                        onclick="tellAI('I want to create a new cover letter')">
+                    <i class="fas fa-plus mr-2"></i>
+                    Create New Cover Letter
+                </button>
+            </div>
+        {% endif %}
+    </div>
 </div>
 
 <script>
@@ -414,4 +476,226 @@ function getSelectedCoverLetter() {
 function isCoverLetterSelected(coverLetterId) {
     return window.selectedCoverLetter && window.selectedCoverLetter.id == coverLetterId;
 }
+
+// Function to show the cover letter list section
+function showCoverLetterList() {
+    document.getElementById('generatedCoverLetterSection').style.display = 'none';
+    document.getElementById('coverLetterListSection').style.display = 'block';
+    // Optionally, reset the chat input or clear messages if switching back to list
+    if (window.chatUI) {
+        window.chatUI.clearMessages();
+        window.chatUI.updateSendButton();
+    }
+}
+
+// Function to show the generated cover letter section
+function showGeneratedCoverLetter(coverLetterContent, jobDescription, personalStory) {
+    document.getElementById('coverLetterListSection').style.display = 'none';
+    document.getElementById('generatedCoverLetterSection').style.display = 'block';
+
+    document.getElementById('coverLetterContent').innerHTML = coverLetterContent;
+    
+    // Show job description if provided
+    if (jobDescription && jobDescription.trim() !== '') {
+        document.getElementById('jobDescriptionContext').style.display = 'block';
+        document.getElementById('jobDescriptionContent').textContent = jobDescription;
+    } else {
+        document.getElementById('jobDescriptionContext').style.display = 'none';
+    }
+    
+    // Show personal story if provided
+    if (personalStory && personalStory.trim() !== '') {
+        document.getElementById('personalStoryContext').style.display = 'block';
+        document.getElementById('personalStoryContent').textContent = personalStory;
+    } else {
+        document.getElementById('personalStoryContext').style.display = 'none';
+    }
+
+    // Update send button state in chat
+    if (window.chatUI) {
+        window.chatUI.updateSendButton();
+    }
+}
+
+// Function to clear the generated cover letter section
+function clearGeneratedCoverLetter() {
+    document.getElementById('coverLetterContent').innerHTML = '';
+    document.getElementById('jobDescriptionContext').style.display = 'none';
+    document.getElementById('personalStoryContext').style.display = 'none';
+    document.getElementById('generatedCoverLetterSection').style.display = 'none';
+    document.getElementById('coverLetterListSection').style.display = 'block'; // Ensure list is visible
+    
+    // Hide action buttons
+    const actionButtons = document.getElementById('coverLetterActions');
+    if (actionButtons) {
+        actionButtons.style.display = 'none';
+    }
+
+    // Update send button state in chat
+    if (window.chatUI) {
+        window.chatUI.updateSendButton();
+    }
+}
+
+// Function to add event listeners to cover letter action buttons
+function addCoverLetterActionListeners() {
+    // Add listeners to buttons in generated section
+    const editBtn = document.querySelector('#coverLetterActions .btn-edit');
+    const copyBtn = document.querySelector('#coverLetterActions .btn-copy');
+    const downloadBtn = document.querySelector('#coverLetterActions .btn-download');
+    
+    if (editBtn) {
+        editBtn.addEventListener('click', editGeneratedCoverLetter);
+    }
+    
+    if (copyBtn) {
+        copyBtn.addEventListener('click', copyGeneratedCoverLetter);
+    }
+    
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', downloadGeneratedCoverLetter);
+    }
+    
+    // Add listeners to buttons in list section
+    const editBtnList = document.querySelector('#coverLetterListActions .btn-edit');
+    const copyBtnList = document.querySelector('#coverLetterListActions .btn-copy');
+    const downloadBtnList = document.querySelector('#coverLetterListActions .btn-download');
+    
+    if (editBtnList) {
+        editBtnList.addEventListener('click', editGeneratedCoverLetter);
+    }
+    
+    if (copyBtnList) {
+        copyBtnList.addEventListener('click', copyGeneratedCoverLetter);
+    }
+    
+    if (downloadBtnList) {
+        downloadBtnList.addEventListener('click', downloadGeneratedCoverLetter);
+    }
+}
+
+// Function to edit the generated cover letter
+function editGeneratedCoverLetter() {
+    console.log('✏️ Edit generated cover letter clicked');
+    
+    const coverLetterContent = document.getElementById('coverLetterContent');
+    if (!coverLetterContent || !coverLetterContent.innerHTML.trim()) {
+        showNotification('No cover letter content available to edit. Please generate a cover letter first.', 'warning');
+        return;
+    }
+    
+    // Switch to chat tab to allow user to edit via AI
+    if (window.tabManager) {
+        window.tabManager.switchToTab('template-preview');
+    }
+    
+    // Send message to AI to edit the cover letter
+    const message = 'I want to edit the cover letter that was just generated. Please help me make changes to it.';
+    
+    if (window.chatUI) {
+        const chatInput = document.getElementById('chatInput');
+        if (chatInput) {
+            chatInput.value = message;
+            chatInput.style.height = 'auto';
+            chatInput.style.height = Math.min(chatInput.scrollHeight, 100) + 'px';
+            
+            if (window.chatUI.updateSendButton) {
+                window.chatUI.updateSendButton();
+            }
+        }
+    }
+}
+
+// Function to copy the generated cover letter to clipboard
+function copyGeneratedCoverLetter() {
+    console.log('📋 Copy generated cover letter clicked');
+    
+    const coverLetterContent = document.getElementById('coverLetterContent');
+    if (!coverLetterContent || !coverLetterContent.innerHTML.trim()) {
+        showNotification('No cover letter content available to copy. Please generate a cover letter first.', 'warning');
+        return;
+    }
+    
+    // Get the text content (without HTML tags)
+    const textContent = coverLetterContent.innerText || coverLetterContent.textContent;
+    
+    // Copy to clipboard
+    navigator.clipboard.writeText(textContent).then(() => {
+        showNotification('Cover letter copied to clipboard!', 'success');
+    }).catch(err => {
+        console.error('Failed to copy: ', err);
+        showNotification('Failed to copy to clipboard', 'error');
+    });
+}
+
+// Function to download the generated cover letter as PDF
+function downloadGeneratedCoverLetter() {
+    console.log('📥 Download generated cover letter clicked');
+    
+    const coverLetterContent = document.getElementById('coverLetterContent');
+    if (!coverLetterContent || !coverLetterContent.innerHTML.trim()) {
+        showNotification('No cover letter content available to download. Please generate a cover letter first.', 'warning');
+        return;
+    }
+    
+    // Create a temporary container with the cover letter content
+    const tempContainer = document.createElement('div');
+    tempContainer.innerHTML = coverLetterContent.innerHTML;
+    
+    // Add some basic styling for PDF generation
+    tempContainer.style.cssText = `
+        font-family: Arial, sans-serif;
+        font-size: 12px;
+        line-height: 1.6;
+        color: #000;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 40px;
+    `;
+    
+    // Use html2pdf library if available, otherwise fallback to print
+    if (typeof html2pdf !== 'undefined') {
+        const opt = {
+            margin: 1,
+            filename: 'cover_letter.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+        
+        html2pdf().set(opt).from(tempContainer).save();
+        showNotification('Cover letter PDF download started!', 'success');
+    } else {
+        // Fallback: open print dialog
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Cover Letter</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; font-size: 12px; line-height: 1.6; }
+                        @media print { body { margin: 0; } }
+                    </style>
+                </head>
+                <body>
+                    ${tempContainer.innerHTML}
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+        printWindow.print();
+        showNotification('Print dialog opened for PDF creation', 'info');
+    }
+}
+
+// Initialize cover letter component
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔧 Cover Letter Tab: Initializing component');
+    
+    // Add event listeners to action buttons
+    setTimeout(() => {
+        addCoverLetterActionListeners();
+    }, 100);
+});
+
 </script>

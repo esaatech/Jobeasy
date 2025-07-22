@@ -42,9 +42,6 @@ urlpatterns = [
     # AI summary generation endpoint
     path('generate-ai-summary/', views.generate_ai_summary, name='generate_ai_summary'),
 
-    # Utility content loading
-    path('utility/<str:content_type>/', views.load_utility_content, name='load_utility_content'),
-
     # Misc
     path('save-resume/', views.save_resume, name='save_resume'),
     path('my-resumes/', views.my_resumes, name='my_resumes'),
