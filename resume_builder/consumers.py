@@ -217,8 +217,8 @@ class ResumeBuilderConsumer(AsyncWebsocketConsumer):
 
     def _prepare_message_with_smart_resume_context(self, message, resume_id=None):
         """
-        Smart function to determine when resume data is needed and include it only when necessary.
-        This reduces token usage by not sending full resume data for general chat.
+        Prepare message with resume context if needed.
+        Only includes resume data if a specific resume_id is provided.
         """
         from datetime import datetime  # Import datetime here since we use it
         
@@ -236,7 +236,6 @@ class ResumeBuilderConsumer(AsyncWebsocketConsumer):
             'cover letter', 'cover', 'letter', 'job application', 'apply', 'position'
         ]
         
-        # Check if message contains resume-related keywords
         message_lower = message.lower()
         is_resume_related = any(keyword in message_lower for keyword in resume_keywords)
         
@@ -249,35 +248,42 @@ class ResumeBuilderConsumer(AsyncWebsocketConsumer):
             print(f"📄 No resume data needed for general chat")
             return message
         
-        # Try to get resume data using the provided resume_id first
-        current_resume = None
-        if resume_id:
-            print(f"📄 Looking for specific resume ID: {resume_id}")
-            try:
-                current_resume = Resume.objects.filter(
-                    user=self.user, 
-                    id=resume_id
-                ).first()
-                if current_resume:
-                    print(f"✅ Found resume with ID {resume_id}: {current_resume.name}")
-                else:
-                    print(f"❌ Resume with ID {resume_id} not found for user {self.user.id}")
-            except Exception as e:
-                print(f"⚠️ Error looking up resume ID {resume_id}: {e}")
+        # Only proceed if a specific resume_id is provided
+        if not resume_id:
+            print(f"📄 No resume ID provided for resume-related operation")
+            enhanced_message = f"""
+User Request: {message}
+
+IMPORTANT: This request requires working with a specific resume, but no resume has been selected.
+
+Please do one of the following:
+1. **Select a resume from your resume list** - Ask the user to view their resume list and select a specific resume to work with
+2. **Create a new resume** - If they want to start fresh, guide them through creating a new resume
+3. **Ask for clarification** - If they mentioned editing something but didn't specify which resume, ask them to clarify
+
+DO NOT automatically assume which resume to use. Always ask the user to explicitly select or create a resume first.
+
+Example responses:
+- "I'd be happy to help you with that! First, let me show you your resume list so you can select which resume to work with."
+- "To help you with that, I need to know which resume you'd like to work with. Would you like me to show you your resume list?"
+- "I can help you edit your resume! Do you want to work with an existing resume, or would you like to create a new one?"
+"""
+            return enhanced_message
         
-        # If no resume found by ID, fall back to most recent resume
-        if not current_resume:
-            print(f"📄 No specific resume ID provided or not found, looking for most recent resume")
-            try:
-                current_resume = Resume.objects.filter(
-                    user=self.user
-                ).order_by('-updated_at').first()
-                if current_resume:
-                    print(f"✅ Found most recent resume: {current_resume.name} (ID: {current_resume.id})")
-                else:
-                    print(f"❌ No resumes found for user {self.user.id}")
-            except Exception as e:
-                print(f"⚠️ Error looking up most recent resume: {e}")
+        # Try to get resume data using the provided resume_id
+        current_resume = None
+        print(f"📄 Looking for specific resume ID: {resume_id}")
+        try:
+            current_resume = Resume.objects.filter(
+                user=self.user, 
+                id=resume_id
+            ).first()
+            if current_resume:
+                print(f"✅ Found resume with ID {resume_id}: {current_resume.name}")
+            else:
+                print(f"❌ Resume with ID {resume_id} not found for user {self.user.id}")
+        except Exception as e:
+            print(f"⚠️ Error looking up resume ID {resume_id}: {e}")
         
         # If we found a resume, include its data
         if current_resume:
@@ -338,6 +344,21 @@ CRITICAL: Before calling edit_education or delete_education, you MUST:
             
             return enhanced_message
         else:
-            # No resume found - this is likely a new conversation
-            print(f"📄 No resume found - treating as new conversation")
-            return message 
+            # Resume ID provided but not found
+            print(f"📄 Resume ID {resume_id} not found - prompting user to select valid resume")
+            enhanced_message = f"""
+User Request: {message}
+
+ERROR: The specified resume (ID: {resume_id}) was not found or is not accessible.
+
+Please ask the user to:
+1. **Select a different resume** from their resume list
+2. **Create a new resume** if they want to start fresh
+3. **Check their resume list** to see available resumes
+
+DO NOT proceed with the operation until a valid resume is selected.
+
+Example response:
+"I couldn't find the resume you're trying to work with. Let me show you your available resumes so you can select the correct one, or we can create a new resume if you prefer."
+"""
+            return enhanced_message 
