@@ -725,10 +725,22 @@ IMPORTANT: Always use user_id: {user_id} when calling any functions that require
                                 # Extract resume ID if available
                                 if result.get("success") and result.get("data", {}).get("resume_id"):
                                     resume_ids.append(result["data"]["resume_id"])
-                            elif tool_call.function.name == "cover_letter_completed":
-                                result = handler.cover_letter_completed(**args)
                             elif tool_call.function.name == "get_current_date":
                                 result = handler.get_current_date(**args)
+                            elif tool_call.function.name == "create_cover_letter":
+                                result = handler.create_cover_letter(**args)
+                            elif tool_call.function.name == "save_cover_letter_user_info":
+                                result = handler.save_cover_letter_user_info(**args)
+                            elif tool_call.function.name == "save_cover_letter_employer_info":
+                                result = handler.save_cover_letter_employer_info(**args)
+                            elif tool_call.function.name == "save_cover_letter_greeting":
+                                result = handler.save_cover_letter_greeting(**args)
+                            elif tool_call.function.name == "save_cover_letter_introduction":
+                                result = handler.save_cover_letter_introduction(**args)
+                            elif tool_call.function.name == "save_cover_letter_body":
+                                result = handler.save_cover_letter_body(**args)
+                            elif tool_call.function.name == "finalize_cover_letter":
+                                result = handler.finalize_cover_letter(**args)
                             else:
                                 print(f"❌ Unknown function: {tool_call.function.name}")
                                 result = {"error": f"Unknown function: {tool_call.function.name}"}

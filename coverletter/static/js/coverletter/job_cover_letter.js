@@ -2,10 +2,8 @@
  * Job Cover Letter Generator
  * 
  * This script manages a dynamic form for generating cover letters with the following features:
- * - Dual input methods for resume (manual entry or file upload)
- * - Dual input methods for job details (structured or unstructured)
- * - Drag and drop file upload support
- * - Real-time form field toggling
+ * - Resume selection from user's existing resumes OR file upload
+ * - Job description input via text area
  * - Asynchronous form submission with loading states
  * - Error handling with visual feedback
  * 
@@ -13,231 +11,59 @@
  * #coverLetterForm - Main form container
  * #results - Results display container
  * #coverLetterContent - Generated cover letter container
- * #manual-entry-section - Manual resume entry section
- * #upload-section - Resume file upload section
- * #structured-job-section - Structured job details section
- * #unstructured-job-section - Unstructured job details section
  * 
  * Input Elements:
- * input[name="input_method"] - Resume input method radio buttons
- * input[name="job_input_method"] - Job input method radio buttons
- * 
- * File Upload Elements:
- * #file-preview - File preview container
- * #file-name - Filename display element
- * #dropzone-content - Dropzone content container
+ * input[name="selected_resume"] - Selected resume radio button
+ * input[name="resume"] - File upload input
+ * textarea[name="job_posting"] - Job description text area
  */
 
-/* Function Documentation:
-
-handleResumeUpload(input)
-- Processes file selection
-- Updates UI with file preview
-- Parameters: input (HTMLInputElement) - File input element
-
-removeResume()
-- Clears file input value
-- Resets file preview UI
-- Cleans up FormData if present
-
-handleFileUpload(event)
-- Handles file input change events
-- Triggers file preview update
-- Parameters: event (Event) - File input change event
-
-showFilePreview(file)
-- Updates UI with file information
-- Parameters: file (File) - Selected file object
-
-getCookie(name)
-- Retrieves cookie value by name
-- Used for CSRF token
-- Parameters: name (string) - Cookie name to retrieve
-
-showError(message)
-- Displays error message with styling
-- Auto-removes after 5 seconds
-- Parameters: message (string) - Error message to display
-
-updateCoverLetterContent(coverLetter)
-- Formats and updates cover letter display
-- Handles line breaks and spacing
-- Parameters: coverLetter (string) - Cover letter content
-
-Event Handlers:
-- Resume input method toggle
-- Job input method toggle
-- Form submission
-- File drag and drop
-- File selection
-
-Form Submission Process:
-1. Prevents default form submission
-2. Shows loading state
-3. Collects form data
-4. Sends to backend endpoint
-5. Handles response/errors
-6. Updates UI with results
-
-Error Handling:
-- Network errors
-- Form validation
-- File upload errors
-- Server response errors
-
-Dependencies:
-- Modern browser with FormData support
-- CSRF token implementation
-- Tailwind CSS for styling classes
-*/
-
 console.log("job cover letter page loaded");
-
-
 
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('coverLetterForm');
     const results = document.getElementById('results');
     const coverLetterContent = document.getElementById('coverLetterContent');
-    
-    // Elements for resume input method toggle
-    const manualEntrySection = document.getElementById('manual-entry-section');
-    const uploadSection = document.getElementById('upload-section');
-    const resumeInputs = document.querySelectorAll('input[name="input_method"]');
 
-    // Elements for job input method toggle
-    const structuredJobSection = document.getElementById('structured-job-section');
-    const unstructuredJobSection = document.getElementById('unstructured-job-section');
-    const jobInputs = document.querySelectorAll('input[name="job_input_method"]');
-
-    // Handle resume input method toggle
-    resumeInputs.forEach(input => {
-        input.addEventListener('change', function() {
-            if (this.value === 'manual') {
-                manualEntrySection.classList.remove('hidden');
-                uploadSection.classList.add('hidden');
-                // Enable manual entry fields
-                manualEntrySection.querySelectorAll('input, textarea').forEach(field => {
-                    field.disabled = false;
-                });
-                // Disable upload fields
-                uploadSection.querySelectorAll('input').forEach(field => {
-                    field.disabled = true;
-                });
-            } else {
-                manualEntrySection.classList.add('hidden');
-                uploadSection.classList.remove('hidden');
-                // Disable manual entry fields
-                manualEntrySection.querySelectorAll('input, textarea').forEach(field => {
-                    field.disabled = true;
-                });
-                // Enable upload fields
-                uploadSection.querySelectorAll('input').forEach(field => {
-                    field.disabled = false;
-                });
-            }
-        });
-    });
-
-    // Handle job input method toggle
-    jobInputs.forEach(input => {
-        input.addEventListener('change', function() {
-            if (this.value === 'structured') {
-                structuredJobSection.classList.remove('hidden');
-                unstructuredJobSection.classList.add('hidden');
-                // Enable structured fields
-                structuredJobSection.querySelectorAll('input, textarea').forEach(field => {
-                    field.disabled = false;
-                });
-                // Disable unstructured fields
-                unstructuredJobSection.querySelectorAll('textarea').forEach(field => {
-                    field.disabled = true;
-                });
-            } else {
-                structuredJobSection.classList.add('hidden');
-                unstructuredJobSection.classList.remove('hidden');
-                // Disable structured fields
-                structuredJobSection.querySelectorAll('input, textarea').forEach(field => {
-                    field.disabled = true;
-                });
-                // Enable unstructured fields
-                unstructuredJobSection.querySelectorAll('textarea').forEach(field => {
-                    field.disabled = false;
-                });
-            }
-        });
-    });
-
-    // Handle resume file upload
-    function handleResumeUpload(input) {
-        const filePreview = document.getElementById('file-preview');
-        const fileName = document.getElementById('file-name');
-        const dropzoneContent = document.getElementById('dropzone-content');
-
-        if (input.files && input.files[0]) {
-            const file = input.files[0];
-            fileName.textContent = file.name;
-            filePreview.classList.remove('hidden');
-            dropzoneContent.classList.add('hidden');
-        }
-    }
-
-    // Handle resume removal
-    function removeResume() {
-        // Get the file input and preview elements
-        const fileInput = document.querySelector('input[type="file"]');
-        const filePreview = document.getElementById('file-preview');
-        const fileName = document.getElementById('file-name');
-
-        // Clear the file input value
-        fileInput.value = '';
-
-        // Hide the file preview
-        filePreview.classList.add('hidden');
-        
-        // Clear the filename display
-        fileName.textContent = '';
-
-        // If using FormData, you might want to clear that as well
-        if (window.formData) {
-            window.formData.delete('resume');
-        }
-    }
-
-    // Make these functions globally available
-    window.handleResumeUpload = handleResumeUpload;
-    window.removeResume = removeResume;
-
-    const resultsModal = document.getElementById('resultsModal');
-    const closeModalBtn = document.getElementById('closeModalBtn');
-    const saveButton = document.getElementById('saveButton');
-
-    // Show modal function
-    function showModal() {
-        resultsModal.classList.remove('hidden');
-        document.body.classList.add('overflow-hidden'); // Prevent background scroll
-    }
-
-    // Hide modal function
-    function hideModal() {
-        resultsModal.classList.add('hidden');
-        document.body.classList.remove('overflow-hidden');
-    }
-
-    // Close modal on close button click
-    closeModalBtn.addEventListener('click', hideModal);
-    // Close modal on overlay click (but not when clicking inside modal)
-    resultsModal.addEventListener('click', function(e) {
-        if (e.target === resultsModal) hideModal();
-    });
-
-    // Save button placeholder
-    saveButton.addEventListener('click', function() {
-        alert('Save functionality coming soon!');
-    });
-
+    // Handle form submission
     form.addEventListener('submit', async function(e) {
         e.preventDefault();
+        
+        // Check which tab is active
+        const activeTab = document.querySelector('.resume-tab-button.active');
+        if (!activeTab) {
+            showError('Please select a resume input method.');
+            return;
+        }
+        
+        const activeTabName = activeTab.getAttribute('data-tab');
+        
+        // Check validation based on active tab
+        let isValid = false;
+        if (activeTabName === 'saved-resume') {
+            // Check if a resume is selected
+            const selectedResume = document.querySelector('input[name="selected_resume"]:checked');
+            if (selectedResume) {
+                isValid = true;
+            } else {
+                showError('Please select a resume from your saved resumes.');
+                return;
+            }
+        } else if (activeTabName === 'upload-resume') {
+            // Check if a file is uploaded
+            const uploadedFile = document.querySelector('input[name="resume"]').files[0];
+            if (uploadedFile) {
+                isValid = true;
+            } else {
+                showError('Please upload a resume file.');
+                return;
+            }
+        }
+        
+        if (!isValid) {
+            showError('Please provide a resume using the selected method.');
+            return;
+        }
         
         // Show loading state
         const submitButton = form.querySelector('button[type="submit"]');
@@ -255,12 +81,14 @@ document.addEventListener('DOMContentLoaded', function() {
             // Get form data
             const formData = new FormData(form);
             
-            // Determine which endpoint to use based on input method
-            const inputMethod = form.querySelector('input[name="input_method"]:checked').value;
-            const endpoint = '/job-cover-letter/';
-
+            // Debug: Log form data
+            console.log('Form data being sent:');
+            for (let [key, value] of formData.entries()) {
+                console.log(`${key}: ${value}`);
+            }
+            
             // Send request to backend
-            const response = await fetch(endpoint, {
+            const response = await fetch('/coverletter/job-cover-letter/', {
                 method: 'POST',
                 headers: {
                     'X-CSRFToken': getCookie('csrftoken'),
@@ -268,12 +96,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: formData
             });
 
+            if (response.redirected) {
+                // Handle redirect to response page
+                window.location.href = response.url;
+                return;
+            }
+
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
                 console.error('Server response:', errorData);
                 throw new Error(errorData.error || 'Failed to generate cover letter');
             }
 
+            // If we get here, it means no redirect (shouldn't happen with current setup)
             const data = await response.json();
             
             if (!data.success) {
@@ -281,9 +116,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 throw new Error(data.error || 'Failed to generate cover letter');
             }
 
-            // Display the generated cover letter in the modal
-            coverLetterContent.innerHTML = data.cover_letter;
-            showModal();
+            // This should not be reached with current redirect setup
+            console.log('Unexpected response format');
 
         } catch (error) {
             console.error('Error:', error);
@@ -331,57 +165,6 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(() => errorDiv.remove(), 5000);
     }
 
-    // Add this to your existing file input handling code
-    function handleFileUpload(event) {
-        const file = event.target.files[0];
-        if (file) {
-            showFilePreview(file);
-        }
-    }
-
-    function showFilePreview(file) {
-        const filePreview = document.getElementById('file-preview');
-        const fileName = document.getElementById('file-name');
-        
-        // Show the preview container
-        filePreview.classList.remove('hidden');
-        
-        // Update the filename display
-        fileName.textContent = file.name;
-    }
-
-    // Add event listeners when the document loads
-    document.addEventListener('DOMContentLoaded', function() {
-        const fileInput = document.querySelector('input[type="file"]');
-        
-        // Handle file selection
-        fileInput.addEventListener('change', handleFileUpload);
-
-        // Handle drag and drop
-        const dropZone = fileInput.parentElement;
-        
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('border-blue-500');
-        });
-
-        dropZone.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('border-blue-500');
-        });
-
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('border-blue-500');
-            
-            const files = e.dataTransfer.files;
-            if (files.length) {
-                fileInput.files = files;
-                showFilePreview(files[0]);
-            }
-        });
-    });
-
     function updateCoverLetterContent(coverLetter) {
         const contentDiv = document.getElementById('coverLetterContent');
         if (contentDiv) {
@@ -397,4 +180,92 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Content updated:', contentDiv.innerHTML);
         }
     }
+
+    // Handle copy button
+    const copyButton = document.getElementById('copyButton');
+    if (copyButton) {
+        copyButton.addEventListener('click', function() {
+            const content = document.getElementById('coverLetterContent');
+            if (content) {
+                const textToCopy = content.innerText || content.textContent;
+                navigator.clipboard.writeText(textToCopy).then(function() {
+                    // Show success message
+                    const originalText = copyButton.textContent;
+                    copyButton.textContent = 'Copied!';
+                    copyButton.classList.add('bg-green-500');
+                    setTimeout(() => {
+                        copyButton.textContent = originalText;
+                        copyButton.classList.remove('bg-green-500');
+                    }, 2000);
+                }).catch(function(err) {
+                    console.error('Could not copy text: ', err);
+                    showError('Failed to copy to clipboard');
+                });
+            }
+        });
+    }
+
+    // Handle edit button
+    const editButton = document.getElementById('editButton');
+    if (editButton) {
+        editButton.addEventListener('click', function() {
+            // Scroll back to form
+            form.scrollIntoView({ behavior: 'smooth' });
+        });
+    }
+
+    // Handle drag and drop for file upload
+    const dropZone = document.querySelector('input[type="file"]').parentElement;
+    
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('border-blue-500');
+    });
+
+    dropZone.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('border-blue-500');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('border-blue-500');
+        
+        const files = e.dataTransfer.files;
+        if (files.length) {
+            const fileInput = document.querySelector('input[type="file"]');
+            fileInput.files = files;
+            handleResumeUpload(fileInput);
+        }
+    });
 });
+
+// Global functions for file upload handling
+function handleResumeUpload(input) {
+    const filePreview = document.getElementById('file-preview');
+    const fileName = document.getElementById('file-name');
+    const dropzoneContent = document.getElementById('dropzone-content');
+
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        fileName.textContent = file.name;
+        filePreview.classList.remove('hidden');
+        dropzoneContent.classList.add('hidden');
+    }
+}
+
+function removeResume() {
+    const fileInput = document.querySelector('input[type="file"]');
+    const filePreview = document.getElementById('file-preview');
+    const fileName = document.getElementById('file-name');
+    const dropzoneContent = document.getElementById('dropzone-content');
+
+    fileInput.value = '';
+    filePreview.classList.add('hidden');
+    fileName.textContent = '';
+    dropzoneContent.classList.remove('hidden');
+
+    if (window.formData) {
+        window.formData.delete('resume');
+    }
+}

@@ -582,6 +582,10 @@
                 <i class="fas fa-download"></i>
                 Preview Resume
             </button>
+            <button class="tab-button" data-tab="cover-letter">
+                <i class="fas fa-envelope"></i>
+                Cover Letters
+            </button>
         </div>
         
         <!-- Tab Content -->
@@ -593,6 +597,11 @@
         <div class="tab-content" id="resume-preview-tab">
             <!-- Resume Preview Component -->
             {% include 'resume_builder/component/resume_preview_tab.html' %}
+        </div>
+        
+        <div class="tab-content" id="cover-letter-tab">
+            <!-- Cover Letter Component -->
+            {% include 'resume_builder/component/cover_letter_tab.html' %}
         </div>
     </div>
 </div>

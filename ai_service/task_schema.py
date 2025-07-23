@@ -308,21 +308,6 @@ TASK_SCHEMAS = {
                 'additionalProperties': False
             }
         },
-        'cover_letter_completed': {
-            'name': 'cover_letter_completed',
-            'description': 'Notify the frontend that a cover letter has been generated and is ready for display. Only call this function after you have generated a complete cover letter in Markdown format.',
-            'parameters': {
-                'type': 'object',
-                'properties': {
-                    'user_id': {'type': 'string', 'description': 'ID of the user to notify'},
-                    'cover_letter_markdown': {'type': 'string', 'description': 'The generated cover letter content in Markdown format'},
-                    'job_description': {'type': 'string', 'description': 'The job description used for the cover letter'},
-                    'resume_id': {'type': 'string', 'description': 'The resume ID used as context for the cover letter'}
-                },
-                'required': ['user_id', 'cover_letter_markdown', 'job_description', 'resume_id'],
-                'additionalProperties': False
-            }
-        },
         'get_current_date': {
             'name': 'get_current_date',
             'description': 'Get the current date in a format suitable for cover letters and formal documents.',
@@ -333,6 +318,106 @@ TASK_SCHEMAS = {
                     'format': {'type': 'string', 'description': 'Date format preference: "formal" (e.g., "January 15, 2024"), "short" (e.g., "Jan 15, 2024"), or "numeric" (e.g., "01/15/2024"). Default is "formal".'}
                 },
                 'required': ['user_id', 'format'],
+                'additionalProperties': False
+            }
+        },
+        'create_cover_letter': {
+            'name': 'create_cover_letter',
+            'description': 'Create a new cover letter for the user',
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'user_id': {'type': 'string', 'description': 'ID of the user creating the cover letter'},
+                    'cover_letter_name': {'type': 'string', 'description': 'Name for the cover letter'}
+                },
+                'required': ['user_id', 'cover_letter_name'],
+                'additionalProperties': False
+            }
+        },
+        'save_cover_letter_user_info': {
+            'name': 'save_cover_letter_user_info',
+            'description': 'Save user information for cover letter (name, address, email, phone)',
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'user_id': {'type': 'string', 'description': 'ID of the user'},
+                    'cover_letter_id': {'type': 'string', 'description': 'ID of the cover letter to update'},
+                    'full_name': {'type': 'string', 'description': 'Full name of the person'},
+                    'address': {'type': 'string', 'description': 'Address (City, State/Country)'},
+                    'email': {'type': 'string', 'description': 'Email address'},
+                    'phone': {'type': 'string', 'description': 'Phone number'}
+                },
+                'required': ['user_id', 'cover_letter_id', 'full_name', 'address', 'email', 'phone'],
+                'additionalProperties': False
+            }
+        },
+        'save_cover_letter_employer_info': {
+            'name': 'save_cover_letter_employer_info',
+            'description': 'Save employer information for cover letter (company, position, hiring manager)',
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'user_id': {'type': 'string', 'description': 'ID of the user'},
+                    'cover_letter_id': {'type': 'string', 'description': 'ID of the cover letter to update'},
+                    'company_name': {'type': 'string', 'description': 'Name of the company'},
+                    'position_title': {'type': 'string', 'description': 'Title of the position being applied for'}
+                },
+                'required': ['user_id', 'cover_letter_id', 'company_name', 'position_title'],
+                'additionalProperties': False
+            }
+        },
+        'save_cover_letter_greeting': {
+            'name': 'save_cover_letter_greeting',
+            'description': 'Save the greeting/salutation for the cover letter',
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'user_id': {'type': 'string', 'description': 'ID of the user'},
+                    'cover_letter_id': {'type': 'string', 'description': 'ID of the cover letter to update'},
+                    'greeting': {'type': 'string', 'description': 'The greeting text (e.g., "Dear Hiring Manager," or "Dear Mr. Smith,")'}
+                },
+                'required': ['user_id', 'cover_letter_id', 'greeting'],
+                'additionalProperties': False
+            }
+        },
+        'save_cover_letter_introduction': {
+            'name': 'save_cover_letter_introduction',
+            'description': 'Save the introduction paragraph for the cover letter',
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'user_id': {'type': 'string', 'description': 'ID of the user'},
+                    'cover_letter_id': {'type': 'string', 'description': 'ID of the cover letter to update'},
+                    'introduction': {'type': 'string', 'description': 'The introduction paragraph text'}
+                },
+                'required': ['user_id', 'cover_letter_id', 'introduction'],
+                'additionalProperties': False
+            }
+        },
+        'save_cover_letter_body': {
+            'name': 'save_cover_letter_body',
+            'description': 'Save the main body content for the cover letter',
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'user_id': {'type': 'string', 'description': 'ID of the user'},
+                    'cover_letter_id': {'type': 'string', 'description': 'ID of the cover letter to update'},
+                    'body': {'type': 'string', 'description': 'The main body content of the cover letter'}
+                },
+                'required': ['user_id', 'cover_letter_id', 'body'],
+                'additionalProperties': False
+            }
+        },
+        'finalize_cover_letter': {
+            'name': 'finalize_cover_letter',
+            'description': 'Mark a cover letter as complete and ready for use',
+            'parameters': {
+                'type': 'object',
+                'properties': {
+                    'user_id': {'type': 'string', 'description': 'ID of the user'},
+                    'cover_letter_id': {'type': 'string', 'description': 'ID of the cover letter to finalize'}
+                },
+                'required': ['user_id', 'cover_letter_id'],
                 'additionalProperties': False
             }
         }

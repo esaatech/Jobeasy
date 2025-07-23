@@ -8,16 +8,27 @@ load_dotenv()
 # Initialize the client
 client = OpenAI()  # Make sure OPENAI_API_KEY is set in your environment
 
-def generate_cover_letter_from_raw_text(job_posting, resume_text, applicant_name):
+def generate_cover_letter_from_raw_text(job_posting, resume_text, applicant_name=None):
     """
     Generate a cover letter from raw job posting and resume text.
     For use with uploaded CV and/or unstructured job posting.
     """
+    # If no applicant name provided, instruct AI to extract it from resume
+    name_instruction = ""
+    if not applicant_name or applicant_name.strip() == "":
+        name_instruction = """
+        IMPORTANT: No applicant name was provided. You must extract the applicant's full name from the resume text.
+        Look for the name at the top of the resume, typically in the first few lines.
+        Common patterns: "JOHN DOE", "John Doe", "J. Doe", etc.
+        Use the most professional/complete version of the name you find.
+        """
+        applicant_name = "[EXTRACT_NAME_FROM_RESUME]"
+    
     try:
         cover_letter = client.chat.completions.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": "You are a professional cover letter writer who creates compelling, tailored cover letters."},
+                {"role": "system", "content": "You are a professional cover letter writer who creates compelling, tailored cover letters. Generate ONLY the cover letter content without any additional formatting, headers, extra text, or appendices. Do not include any sections like 'Experience:', 'Skills:', or any other structured content at the end."},
                 {"role": "user", "content": f"""
                 Create a professional cover letter based on the following resume and job posting:
 
@@ -26,6 +37,8 @@ def generate_cover_letter_from_raw_text(job_posting, resume_text, applicant_name
 
                 JOB POSTING:
                 {job_posting}
+
+                {name_instruction}
 
                 The cover letter should:
                 1. Start with "Dear Hiring Manager,"
@@ -43,9 +56,57 @@ def generate_cover_letter_from_raw_text(job_posting, resume_text, applicant_name
             temperature=0.7
         )
 
+        # Clean the response to ensure no extra content
+        cover_letter_content = cover_letter.choices[0].message.content.strip()
+        
+        # Remove any potential markdown formatting or extra content
+        # Remove common AI response artifacts
+        if cover_letter_content.startswith('```'):
+            cover_letter_content = cover_letter_content.split('```', 2)[1] if '```' in cover_letter_content else cover_letter_content
+        
+        # Remove any structured sections that might be added at the end
+        lines = cover_letter_content.split('\n')
+        cleaned_lines = []
+        found_closing = False
+        signature_added = False
+        
+        for i, line in enumerate(lines):
+            line = line.strip()
+            
+            # Skip markdown headers and formatting
+            if line.startswith('#') or line.startswith('**') or line.startswith('*'):
+                continue
+                
+            # Stop processing if we find structured content sections
+            if any(section in line.lower() for section in ['experience:', 'skills:', 'education:', 'background:', 'qualifications:', 'summary:']):
+                break
+                
+            # If we've found the closing, include it and look for the signature
+            if 'sincerely,' in line.lower():
+                found_closing = True
+                cleaned_lines.append(line)
+                continue
+                
+            # If we found closing and this is the signature line, include it
+            if found_closing and line and not line.startswith('experience:') and not line.startswith('skills:'):
+                cleaned_lines.append(line)
+                signature_added = True
+                break
+                
+            # Include normal content lines
+            if line:
+                cleaned_lines.append(line)
+        
+        # If we didn't find a proper signature, add it
+        if found_closing and not signature_added:
+            cleaned_lines.append(applicant_name)
+        
+        # Join the lines back together
+        cover_letter_content = '\n'.join(cleaned_lines)
+        
         return {
             'success': True,
-            'cover_letter': cover_letter.choices[0].message.content
+            'cover_letter': cover_letter_content
         }
 
     except Exception as e:

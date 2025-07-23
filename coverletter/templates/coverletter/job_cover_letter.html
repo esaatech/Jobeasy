@@ -3,7 +3,7 @@
 
 {% block content %}
 <section class="bg-gradient-to-r from-blue-50 to-white py-16">
-    <div class="max-w-7xl mx-auto px-4">
+    <div class="page-width">
         <div class="text-center">
             <h1 class="text-4xl lg:text-5xl font-bold mb-4">
                 AI Cover Letter Generator
@@ -16,277 +16,208 @@
 </section>
 
 <section class="py-12">
-    <div class="max-w-4xl mx-auto px-4">
+    <div class="page-width-narrow">
         <form id="coverLetterForm" class="space-y-8">
             {% csrf_token %}
             
-            <!-- Personal Information -->
-            <div class="bg-white rounded-lg shadow-lg p-6">
-                <h2 class="text-xl font-bold mb-6">Personal Information</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Full Name
-                        </label>
-                        <input type="text" name="full_name" required
-                               class="w-full p-3 border border-gray-300 rounded-lg">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Email
-                        </label>
-                        <input type="email" name="email" required
-                               class="w-full p-3 border border-gray-300 rounded-lg">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Phone
-                        </label>
-                        <input type="tel" name="phone" required
-                               class="w-full p-3 border border-gray-300 rounded-lg">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Location
-                        </label>
-                        <input type="text" name="location" required
-                               class="w-full p-3 border border-gray-300 rounded-lg"
-                               placeholder="City, Province">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Mode Selection -->
-            <div class="bg-white rounded-lg shadow-lg p-6">
-                <h2 class="text-xl font-bold mb-6">Choose Input Method</h2>
-                <div class="flex items-center space-x-4">
-                    <label class="flex items-center">
-                        <input type="radio" name="input_method" value="manual" checked
-                               class="form-radio text-blue-600">
-                        <span class="ml-2 text-sm text-gray-700">Enter Experience Manually</span>
-                        <span class="ml-2 text-sm font-semibold text-green-600">{{ manual_credit_cost }} credits</span>
-                    </label>
-                    <label class="flex items-center">
-                        <input type="radio" name="input_method" value="upload"
-                               class="form-radio text-blue-600">
-                        <span class="ml-2 text-sm text-gray-700">Upload CV for Automated Extraction</span>
-                        <span class="ml-2 text-sm font-semibold text-red-600">{{ automated_credit_cost }} credits</span>
-                    </label>
-                </div>
-            </div>
-
-            <!-- Experience Highlights (Manual Entry) -->
-            <div id="manual-entry-section" class="bg-white rounded-lg shadow-lg p-6">
-                <h2 class="text-xl font-bold mb-6">Experience Highlights</h2>
-                <div class="space-y-6">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Current Role
-                        </label>
-                        <input type="text" name="current_role" required
-                               class="w-full p-3 border border-gray-300 rounded-lg"
-                               placeholder="Your current job title...">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Years of Experience
-                        </label>
-                        <input type="number" name="experience" required
-                               class="w-full p-3 border border-gray-300 rounded-lg"
-                               placeholder="Total years of experience...">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Key Skills
-                        </label>
-                        <textarea name="key_skills" rows="3"
-                                  class="w-full p-3 border border-gray-300 rounded-lg"
-                                  placeholder="List your relevant skills..."></textarea>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Notable Achievements
-                        </label>
-                        <textarea name="achievements" rows="4"
-                                  class="w-full p-3 border border-gray-300 rounded-lg"
-                                  placeholder="Highlight your key achievements..."></textarea>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Resume Upload (Automated Extraction) -->
-            <div id="upload-section" class="bg-white rounded-lg shadow-lg p-6 hidden">
-                <h2 class="text-xl font-bold mb-6">Resume Upload</h2>
-                <div class="space-y-4">
-                    <div class="flex items-center justify-between">
-                        <label class="block text-sm font-medium text-gray-700">
-                            Upload Your Resume (PDF, DOC, DOCX)
-                        </label>
-                        <span class="text-xs text-gray-500">Optional but recommended</span>
-                    </div>
-                    
-                    <div class="relative border-2 border-dashed border-gray-300 rounded-lg p-6">
-                        <input type="file" 
-                               id="resume" 
-                               name="resume" 
-                               accept=".pdf,.doc,.docx"
-                               class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                               onchange="handleResumeUpload(this)">
-                        
-                        <div class="text-center" id="dropzone-content">
-                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            <!-- Resume Input Method Tabs -->
+            <div class="bg-white rounded-lg shadow-lg">
+                <!-- Tab Navigation -->
+                <div class="border-b border-gray-200">
+                    <nav class="-mb-px flex space-x-8 px-6" aria-label="Tabs">
+                        <button type="button" 
+                                class="resume-tab-button active border-b-2 border-blue-500 py-4 px-1 text-sm font-medium text-blue-600" 
+                                data-tab="saved-resume">
+                            <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                             </svg>
-                            <p class="mt-1 text-sm text-gray-600">
-                                Drag and drop your resume here, or click to select
+                            Saved Resumes
+                        </button>
+                        <button type="button" 
+                                class="resume-tab-button border-b-2 border-transparent py-4 px-1 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300" 
+                                data-tab="upload-resume">
+                            <svg class="w-5 h-5 mr-2 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
+                            Upload File
+                        </button>
+                    </nav>
+                </div>
+                
+                <!-- Tab Content -->
+                <div class="p-6">
+                    <!-- Saved Resume Tab -->
+                    <div id="saved-resume-tab" class="resume-tab-content">
+                        <h2 class="headline-secondary mb-4">Select from Saved Resumes</h2>
+                        <!-- Using resume selection partial from resume_builder app for consistency -->
+                        {% include 'resume_builder/partials/resume_selection.html' %}
+                    </div>
+                        
+                        <!-- Upload Resume Tab -->
+                        <div id="upload-resume-tab" class="resume-tab-content hidden">
+                            <h2 class="headline-secondary mb-4">Upload Resume File</h2>
+                            <p class="text-gray-600 mb-4">
+                                Upload a resume file to use for cover letter generation.
                             </p>
-                            <p class="mt-1 text-xs text-gray-500">
-                                PDF, DOC, or DOCX up to 5MB
-                            </p>
-                        </div>
+                            <div class="space-y-4">
+                                <div class="relative border-2 border-dashed border-gray-300 rounded-lg p-6">
+                                    <input type="file" 
+                                           id="resume" 
+                                           name="resume" 
+                                           accept=".pdf,.doc,.docx,.txt"
+                                           class="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                           onchange="handleResumeUpload(this)">
+                                    
+                                    <div class="text-center" id="dropzone-content">
+                                        <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                        </svg>
+                                        <p class="mt-1 text-sm text-gray-600">
+                                            Drag and drop your resume here, or click to select
+                                        </p>
+                                        <p class="mt-1 text-xs text-gray-500">
+                                            PDF, DOC, DOCX, or TXT up to 5MB
+                                        </p>
+                                    </div>
 
-                        <div id="file-preview" class="hidden mt-4">
-                            <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
-                                <div class="flex items-center">
-                                    <svg class="h-6 w-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" />
-                                    </svg>
-                                    <span id="file-name" class="ml-2 text-sm text-gray-600"></span>
+                                    <div id="file-preview" class="hidden mt-4">
+                                        <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                                            <div class="flex items-center">
+                                                <svg class="h-6 w-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" />
+                                                </svg>
+                                                <span id="file-name" class="ml-2 text-sm text-gray-600"></span>
+                                            </div>
+                                            <button type="button" 
+                                                    onclick="removeResume()"
+                                                    class="text-red-500 hover:text-red-700">
+                                                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
-                                <button type="button" 
-                                        onclick="removeResume()"
-                                        class="text-red-500 hover:text-red-700">
-                                    <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
-                                    </svg>
-                                </button>
+
+                                <div id="parse-status" class="hidden mt-4">
+                                    <div class="flex items-center text-sm text-gray-600">
+                                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Parsing resume...
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div id="parse-status" class="hidden mt-4">
-                        <div class="flex items-center text-sm text-gray-600">
-                            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                            </svg>
-                            Parsing resume...
+                <!-- Job Details Section -->
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="headline-secondary mb-6">Job Details</h2>
+                    
+                    <!-- Job Description -->
+                    <div class="space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Job Description
+                            </label>
+                            <textarea name="job_posting" rows="8" required
+                                      class="w-full p-3 border border-gray-300 rounded-lg"
+                                      placeholder="Paste the complete job posting here. Our AI will automatically extract the relevant information..."></textarea>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Job Details Section -->
-            <div class="bg-white rounded-lg shadow-lg p-6">
-                <h2 class="text-xl font-bold mb-6">Job Details</h2>
-                
-                <!-- Job Input Method Selection -->
-                <div class="mb-6">
-                    <div class="flex items-center space-x-4 mb-4">
-                        <label class="flex items-center">
-                            <input type="radio" name="job_input_method" value="structured" checked
-                                   class="form-radio text-blue-600">
-                            <span class="ml-2 text-sm text-gray-700">Enter Details Manually</span>
-                            <span class="ml-2 text-sm font-semibold text-green-600">({{ manual_job_credit_cost }} credits)</span>
-                        </label>
-                        <label class="flex items-center">
-                            <input type="radio" name="job_input_method" value="unstructured"
-                                   class="form-radio text-blue-600">
-                            <span class="ml-2 text-sm text-gray-700">Paste Full Job Description</span>
-                            <span class="ml-2 text-sm font-semibold text-red-600">({{ automated_job_credit_cost }} credits)</span>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Structured Job Details -->
-                <div id="structured-job-section" class="space-y-6">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Position Title
-                        </label>
-                        <input type="text" name="position" required
-                               class="w-full p-3 border border-gray-300 rounded-lg"
-                               placeholder="e.g., Senior Software Engineer">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Company Name
-                        </label>
-                        <input type="text" name="company" required
-                               class="w-full p-3 border border-gray-300 rounded-lg"
-                               placeholder="e.g., Tech Corp">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Department/Team
-                        </label>
-                        <input type="text" name="department"
-                               class="w-full p-3 border border-gray-300 rounded-lg"
-                               placeholder="e.g., Engineering">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Job Description
-                        </label>
-                        <textarea name="description" required rows="4"
-                                  class="w-full p-3 border border-gray-300 rounded-lg"
-                                  placeholder="Enter the key responsibilities and requirements..."></textarea>
-                    </div>
-                </div>
-
-                <!-- Unstructured Job Details -->
-                <div id="unstructured-job-section" class="space-y-6 hidden">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">
-                            Full Job Posting
-                        </label>
-                        <textarea name="job_posting" rows="8"
-                                  class="w-full p-3 border border-gray-300 rounded-lg"
-                                  placeholder="Paste the complete job posting here. Our AI will automatically extract the relevant information..."></textarea>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Generate Button -->
-            <div class="text-center">
-                <button type="submit" 
-                        class="bg-blue-600 text-white px-8 py-4 rounded-full hover:bg-blue-700 transition-colors">
-                    Generate Cover Letter
-                </button>
-            </div>
-        </form>
-
-        <!-- Results Section -->
-        <div id="results" class="mt-8 hidden">
-            <div class="bg-white rounded-lg shadow-lg p-6">
-                <h2 class="text-xl font-bold mb-4">Your Cover Letter</h2>
-                <div id="coverLetterContent" class="prose max-w-none whitespace-pre-line" style="min-height: 200px;">
-                    <!-- Content will be inserted here -->
-                </div>
-                <div class="mt-6 flex justify-center space-x-4">
-                    <button id="copyButton" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
-                        Copy to Clipboard
+                <!-- Generate Button -->
+                <div class="text-center">
+                    <button type="submit" 
+                            class="btn btn-primary btn-lg">
+                        Generate Cover Letter
                     </button>
-                    <button id="downloadPdfBtn" onclick="coverLetterUtils.downloadAsPDF()" 
-                            class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                        Download as PDF
-                    </button>
-                    <button id="emailBtn" onclick="coverLetterUtils.emailCoverLetter()" 
-                            class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded inline-flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
-                            <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                </div>
+            </form>
+
+            <!-- Results Section -->
+            <div id="results" class="mt-8 hidden">
+                <div class="bg-white rounded-lg shadow-lg p-6">
+                    <h2 class="headline-secondary mb-4">Your Cover Letter</h2>
+                    <div id="coverLetterContent" class="prose max-w-none whitespace-pre-line" style="min-height: 200px;">
+                        <!-- Content will be inserted here -->
+                    </div>
+                    <div class="mt-6 flex justify-center space-x-4">
+                        <button id="copyButton" class="btn btn-secondary">
+                            Copy to Clipboard
+                        </button>
+                        <button id="downloadPdfBtn" onclick="coverLetterUtils.downloadAsPDF()" 
+                                class="btn btn-primary">
+                            Download as PDF
+                        </button>
+                        <button id="emailBtn" onclick="coverLetterUtils.emailCoverLetter()" 
+                                class="btn btn-primary inline-flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+                                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+                            </svg>
+                            Email
+                        </button>
+                        <button id="editButton" class="btn btn-secondary">
+                            Edit Letter
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Cover Letter Response Dialog -->
+    <div id="coverLetterDialog" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-20 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <!-- Dialog Header -->
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-medium text-gray-900">Cover Letter Generated</h3>
+                    <button onclick="closeCoverLetterDialog()" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                         </svg>
-                        Email
                     </button>
-                    <button id="editButton" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
-                        Edit Letter
+                </div>
+                
+                <!-- Dialog Content -->
+                <div id="dialogContent" class="max-h-96 overflow-y-auto">
+                    <!-- Content will be loaded here -->
+                </div>
+                
+                <!-- Dialog Footer -->
+                <div class="flex justify-end space-x-3 mt-4 pt-4 border-t">
+                    <button onclick="closeCoverLetterDialog()" class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400">
+                        Close
+                    </button>
+                    <button onclick="openFullPage()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                        Open Full Page
                     </button>
                 </div>
             </div>
         </div>
     </div>
-</section>
+
+    <!-- Loading Dialog -->
+    <div id="loadingDialog" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-blue-100">
+                    <svg class="animate-spin h-6 w-6 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mt-4">Generating Cover Letter...</h3>
+                <p class="text-sm text-gray-500 mt-2">Please wait while our AI creates your personalized cover letter.</p>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -294,4 +225,136 @@
 <script src="{% static 'js/coverletter/cover_letter_utils.js' %}"></script>
 <script src="{% static 'js/coverletter/job_cover_letter.js' %}"></script>
 
+<script>
+// Handle resume selection and auto-fill personal information
+document.addEventListener('resumeSelected', function(event) {
+    const resumeId = event.detail.resumeId;
+    const resumeName = event.detail.resumeName;
+    
+    console.log('Resume selected:', resumeId, resumeName);
+    
+    // Store selected resume ID for form submission
+    document.getElementById('coverLetterForm').setAttribute('data-selected-resume', resumeId);
+});
+
+// Handle resume tab switching
+document.addEventListener('DOMContentLoaded', function() {
+    const tabButtons = document.querySelectorAll('.resume-tab-button');
+    const tabContents = document.querySelectorAll('.resume-tab-content');
+    
+    function switchTab(tabName) {
+        // Update tab buttons
+        tabButtons.forEach(button => {
+            button.classList.remove('active', 'border-blue-500', 'text-blue-600');
+            button.classList.add('border-transparent', 'text-gray-500');
+        });
+        
+        // Update active tab button
+        const activeButton = document.querySelector(`[data-tab="${tabName}"]`);
+        if (activeButton) {
+            activeButton.classList.add('active', 'border-blue-500', 'text-blue-600');
+            activeButton.classList.remove('border-transparent', 'text-gray-500');
+        }
+        
+        // Update tab content
+        tabContents.forEach(content => {
+            content.classList.add('hidden');
+        });
+        
+        const activeContent = document.getElementById(`${tabName}-tab`);
+        if (activeContent) {
+            activeContent.classList.remove('hidden');
+        }
+        
+        // Clear other tab's data when switching
+        if (tabName === 'saved-resume') {
+            // Clear file input when switching to saved resume
+            const fileInput = document.querySelector('input[name="resume"]');
+            if (fileInput) fileInput.value = '';
+            removeResume(); // Clear file preview
+        } else if (tabName === 'upload-resume') {
+            // Clear selected resume when switching to upload
+            const selectedResume = document.querySelector('input[name="selected_resume"]:checked');
+            if (selectedResume) selectedResume.checked = false;
+            // Clear resume selection visual state
+            document.querySelectorAll('.resume-card').forEach(card => {
+                card.classList.remove('border-blue-500', 'bg-blue-50');
+                card.classList.add('border-transparent', 'bg-gray-50');
+                const indicator = card.querySelector('.radio-indicator');
+                if (indicator) {
+                    indicator.classList.remove('border-blue-500', 'bg-blue-500');
+                    indicator.classList.add('border-gray-300');
+                }
+            });
+        }
+    }
+    
+    // Add event listeners to tab buttons
+    tabButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const tabName = this.getAttribute('data-tab');
+            switchTab(tabName);
+        });
+    });
+    
+    // Initialize with saved resume tab active
+    switchTab('saved-resume');
+});
+
+// Handle resume file upload
+function handleResumeUpload(input) {
+    const filePreview = document.getElementById('file-preview');
+    const fileName = document.getElementById('file-name');
+    const dropzoneContent = document.getElementById('dropzone-content');
+
+    if (input.files && input.files[0]) {
+        const file = input.files[0];
+        fileName.textContent = file.name;
+        filePreview.classList.remove('hidden');
+        dropzoneContent.classList.add('hidden');
+    }
+}
+
+// Handle resume removal
+function removeResume() {
+    const fileInput = document.querySelector('input[name="resume"]');
+    const filePreview = document.getElementById('file-preview');
+    const fileName = document.getElementById('file-name');
+    const dropzoneContent = document.getElementById('dropzone-content');
+
+    if (fileInput) fileInput.value = '';
+    if (filePreview) filePreview.classList.add('hidden');
+    if (fileName) fileName.textContent = '';
+    if (dropzoneContent) dropzoneContent.classList.remove('hidden');
+
+    if (window.formData) {
+        window.formData.delete('resume');
+    }
+}
+
+// Dialog functions
+function showLoadingDialog() {
+    document.getElementById('loadingDialog').classList.remove('hidden');
+}
+
+function hideLoadingDialog() {
+    document.getElementById('loadingDialog').classList.add('hidden');
+}
+
+function showCoverLetterDialog(content) {
+    const dialog = document.getElementById('coverLetterDialog');
+    const dialogContent = document.getElementById('dialogContent');
+    
+    dialogContent.innerHTML = content;
+    dialog.classList.remove('hidden');
+}
+
+function closeCoverLetterDialog() {
+    document.getElementById('coverLetterDialog').classList.add('hidden');
+}
+
+function openFullPage() {
+    window.open('/coverletter/response/', '_blank');
+}
+</script>
 {% endblock %} 

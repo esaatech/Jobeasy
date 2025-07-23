@@ -1,0 +1,1 @@
+# Browser simulation tests for cover letter functionality 

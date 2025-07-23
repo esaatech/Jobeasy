@@ -1939,41 +1939,6 @@ class FunctionHandlers:
             } 
 
     @staticmethod
-    def cover_letter_completed(user_id: str, cover_letter_markdown: str, job_description: str, resume_id: str) -> Dict[str, Any]:
-        """
-        Notify the frontend that a cover letter has been generated and is ready for display.
-        This function does NOT save the cover letter to the database; it simply emits an event
-        to the user's WebSocket group so the UI can display the cover letter in a tab.
-
-        Args:
-            user_id: ID of the user to notify
-            cover_letter_markdown: The generated cover letter content in Markdown format
-            job_description: The job description used for the cover letter
-            resume_id: The resume ID used as context for the cover letter
-
-        Returns:
-            dict: Confirmation of event emission
-        """
-        # Ensure all required parameters are present
-        if not user_id or not cover_letter_markdown or not job_description or not resume_id:
-            return {
-                "success": False, 
-                "error": "Missing required parameters: user_id, cover_letter_markdown, job_description, and resume_id are required"
-            }
-            
-        EventEmitter.emit_event(
-            user_id=user_id,
-            event_type="cover_letter_completed",
-            data={
-                "cover_letter_markdown": cover_letter_markdown,
-                "job_description": job_description,
-                "resume_id": resume_id,
-                "personal_story": None,  # Personal story will be handled by the AI in the cover letter content
-            }
-        )
-        return {"success": True, "message": "Cover letter event emitted to frontend."}
-
-    @staticmethod
     def get_current_date(user_id: str, format: str = "formal") -> Dict[str, Any]:
         """
         Get the current date in a format suitable for cover letters and formal documents.
@@ -2004,4 +1969,468 @@ class FunctionHandlers:
             "date": formatted_date,
             "format": format,
             "timestamp": current_date.isoformat()
-        } 
+        }
+
+    @staticmethod
+    def create_cover_letter(user_id: str, cover_letter_name: str) -> Dict[str, Any]:
+        """
+        Create a new cover letter for the user.
+
+        Args:
+            user_id: ID of the user creating the cover letter
+            cover_letter_name: Name for the cover letter
+
+        Returns:
+            dict: Result of cover letter creation
+        """
+        try:
+            from coverletter.models import CoverLetter
+            
+            # Create the cover letter
+            cover_letter = CoverLetter.objects.create(
+                user_id=user_id,
+                title=cover_letter_name,
+                status='pending'
+            )
+            
+            # Emit event to frontend
+            EventEmitter.emit_event(
+                user_id=user_id,
+                event_type="cover_letter_created",
+                data={
+                    "cover_letter_id": str(cover_letter.id),
+                    "cover_letter_name": cover_letter.title,
+                    "user_id": user_id
+                }
+            )
+            
+            return {
+                "success": True,
+                "cover_letter_id": str(cover_letter.id),
+                "cover_letter_name": cover_letter.title,
+                "message": f"Cover letter '{cover_letter_name}' created successfully."
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Failed to create cover letter: {str(e)}"
+            }
+
+    @staticmethod
+    def save_cover_letter_user_info(user_id: str, cover_letter_id: str, full_name: str, address: str, email: str, phone: str) -> Dict[str, Any]:
+        """
+        Save user information for cover letter.
+
+        Args:
+            user_id: ID of the user
+            cover_letter_id: ID of the cover letter to update
+            full_name: Full name of the person
+            address: Address (City, State/Country)
+            email: Email address
+            phone: Phone number
+
+        Returns:
+            dict: Result of saving user info
+        """
+        try:
+            from coverletter.models import CoverLetter
+            
+            # Validate required fields
+            if not all([full_name, address, email, phone]):
+                return {
+                    "success": False,
+                    "error": "All fields (full_name, address, email, phone) are required."
+                }
+            
+            # Get the cover letter
+            try:
+                cover_letter = CoverLetter.objects.get(id=cover_letter_id, user_id=user_id)
+            except CoverLetter.DoesNotExist:
+                return {
+                    "success": False,
+                    "error": f"Cover letter with ID {cover_letter_id} not found."
+                }
+            
+            # Store user info in content field as structured data
+            user_info = {
+                "full_name": full_name,
+                "address": address,
+                "email": email,
+                "phone": phone
+            }
+            
+            # Update the cover letter content with user info
+            current_content = cover_letter.content or "{}"
+            try:
+                content_data = eval(current_content) if current_content else {}
+            except:
+                content_data = {}
+            
+            content_data['user_info'] = user_info
+            cover_letter.content = str(content_data)
+            cover_letter.save()
+            
+            # Emit event to frontend
+            EventEmitter.emit_event(
+                user_id=user_id,
+                event_type="cover_letter_user_info_saved",
+                data={
+                    "cover_letter_id": str(cover_letter.id),
+                    "user_info": user_info,
+                    "user_id": user_id
+                }
+            )
+            
+            return {
+                "success": True,
+                "message": "User information saved successfully.",
+                "user_info": user_info
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Failed to save user info: {str(e)}"
+            }
+
+    @staticmethod
+    def save_cover_letter_employer_info(user_id: str, cover_letter_id: str, company_name: str, position_title: str, hiring_manager: str = None, company_address: str = None) -> Dict[str, Any]:
+        """
+        Save employer information for cover letter.
+
+        Args:
+            user_id: ID of the user
+            cover_letter_id: ID of the cover letter to update
+            company_name: Name of the company
+            position_title: Title of the position being applied for
+            hiring_manager: Name of hiring manager (optional)
+            company_address: Company address (optional)
+
+        Returns:
+            dict: Result of saving employer info
+        """
+        try:
+            from coverletter.models import CoverLetter
+            
+            # Validate required fields
+            if not all([company_name, position_title]):
+                return {
+                    "success": False,
+                    "error": "Company name and position title are required."
+                }
+            
+            # Get the cover letter
+            try:
+                cover_letter = CoverLetter.objects.get(id=cover_letter_id, user_id=user_id)
+            except CoverLetter.DoesNotExist:
+                return {
+                    "success": False,
+                    "error": f"Cover letter with ID {cover_letter_id} not found."
+                }
+            
+            # Store employer info in content field
+            employer_info = {
+                "company_name": company_name,
+                "position_title": position_title,
+                "hiring_manager": hiring_manager or "",
+                "company_address": company_address or ""
+            }
+            
+            # Update the cover letter content with employer info
+            current_content = cover_letter.content or "{}"
+            try:
+                content_data = eval(current_content) if current_content else {}
+            except:
+                content_data = {}
+            
+            content_data['employer_info'] = employer_info
+            cover_letter.content = str(content_data)
+            cover_letter.save()
+            
+            # Emit event to frontend
+            EventEmitter.emit_event(
+                user_id=user_id,
+                event_type="cover_letter_employer_info_saved",
+                data={
+                    "cover_letter_id": str(cover_letter.id),
+                    "employer_info": employer_info,
+                    "user_id": user_id
+                }
+            )
+            
+            return {
+                "success": True,
+                "message": "Employer information saved successfully.",
+                "employer_info": employer_info
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Failed to save employer info: {str(e)}"
+            }
+
+    @staticmethod
+    def save_cover_letter_greeting(user_id: str, cover_letter_id: str, greeting: str) -> Dict[str, Any]:
+        """
+        Save the greeting/salutation for the cover letter.
+
+        Args:
+            user_id: ID of the user
+            cover_letter_id: ID of the cover letter to update
+            greeting: The greeting text (e.g., "Dear Hiring Manager," or "Dear Mr. Smith,")
+
+        Returns:
+            dict: Result of saving greeting
+        """
+        try:
+            from coverletter.models import CoverLetter
+            
+            # Validate required fields
+            if not greeting:
+                return {
+                    "success": False,
+                    "error": "Greeting text is required."
+                }
+            
+            # Get the cover letter
+            try:
+                cover_letter = CoverLetter.objects.get(id=cover_letter_id, user_id=user_id)
+            except CoverLetter.DoesNotExist:
+                return {
+                    "success": False,
+                    "error": f"Cover letter with ID {cover_letter_id} not found."
+                }
+            
+            # Store greeting in content field
+            current_content = cover_letter.content or "{}"
+            try:
+                content_data = eval(current_content) if current_content else {}
+            except:
+                content_data = {}
+            
+            content_data['greeting'] = greeting
+            cover_letter.content = str(content_data)
+            cover_letter.save()
+            
+            # Emit event to frontend
+            EventEmitter.emit_event(
+                user_id=user_id,
+                event_type="cover_letter_greeting_saved",
+                data={
+                    "cover_letter_id": str(cover_letter.id),
+                    "greeting": greeting,
+                    "user_id": user_id
+                }
+            )
+            
+            return {
+                "success": True,
+                "message": "Greeting saved successfully.",
+                "greeting": greeting
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Failed to save greeting: {str(e)}"
+            }
+
+    @staticmethod
+    def save_cover_letter_introduction(user_id: str, cover_letter_id: str, introduction: str) -> Dict[str, Any]:
+        """
+        Save the introduction paragraph for the cover letter.
+
+        Args:
+            user_id: ID of the user
+            cover_letter_id: ID of the cover letter to update
+            introduction: The introduction paragraph text
+
+        Returns:
+            dict: Result of saving introduction
+        """
+        try:
+            from coverletter.models import CoverLetter
+            
+            # Validate required fields
+            if not introduction:
+                return {
+                    "success": False,
+                    "error": "Introduction text is required."
+                }
+            
+            # Get the cover letter
+            try:
+                cover_letter = CoverLetter.objects.get(id=cover_letter_id, user_id=user_id)
+            except CoverLetter.DoesNotExist:
+                return {
+                    "success": False,
+                    "error": f"Cover letter with ID {cover_letter_id} not found."
+                }
+            
+            # Store introduction in content field
+            current_content = cover_letter.content or "{}"
+            try:
+                content_data = eval(current_content) if current_content else {}
+            except:
+                content_data = {}
+            
+            content_data['introduction'] = introduction
+            cover_letter.content = str(content_data)
+            cover_letter.save()
+            
+            # Emit event to frontend
+            EventEmitter.emit_event(
+                user_id=user_id,
+                event_type="cover_letter_introduction_saved",
+                data={
+                    "cover_letter_id": str(cover_letter.id),
+                    "introduction": introduction,
+                    "user_id": user_id
+                }
+            )
+            
+            return {
+                "success": True,
+                "message": "Introduction saved successfully.",
+                "introduction": introduction
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Failed to save introduction: {str(e)}"
+            }
+
+    @staticmethod
+    def save_cover_letter_body(user_id: str, cover_letter_id: str, body: str) -> Dict[str, Any]:
+        """
+        Save the main body content for the cover letter.
+
+        Args:
+            user_id: ID of the user
+            cover_letter_id: ID of the cover letter to update
+            body: The main body content of the cover letter
+
+        Returns:
+            dict: Result of saving body content
+        """
+        try:
+            from coverletter.models import CoverLetter
+            
+            # Validate required fields
+            if not body:
+                return {
+                    "success": False,
+                    "error": "Body content is required."
+                }
+            
+            # Get the cover letter
+            try:
+                cover_letter = CoverLetter.objects.get(id=cover_letter_id, user_id=user_id)
+            except CoverLetter.DoesNotExist:
+                return {
+                    "success": False,
+                    "error": f"Cover letter with ID {cover_letter_id} not found."
+                }
+            
+            # Store body in content field
+            current_content = cover_letter.content or "{}"
+            try:
+                content_data = eval(current_content) if current_content else {}
+            except:
+                content_data = {}
+            
+            content_data['body'] = body
+            cover_letter.content = str(content_data)
+            cover_letter.save()
+            
+            # Emit event to frontend
+            EventEmitter.emit_event(
+                user_id=user_id,
+                event_type="cover_letter_body_saved",
+                data={
+                    "cover_letter_id": str(cover_letter.id),
+                    "body": body,
+                    "user_id": user_id
+                }
+            )
+            
+            return {
+                "success": True,
+                "message": "Body content saved successfully.",
+                "body": body
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Failed to save body content: {str(e)}"
+            }
+
+    @staticmethod
+    def finalize_cover_letter(user_id: str, cover_letter_id: str) -> Dict[str, Any]:
+        """
+        Mark a cover letter as complete and ready for use.
+
+        Args:
+            user_id: ID of the user
+            cover_letter_id: ID of the cover letter to finalize
+
+        Returns:
+            dict: Result of finalizing cover letter
+        """
+        try:
+            from coverletter.models import CoverLetter
+            
+            # Get the cover letter
+            try:
+                cover_letter = CoverLetter.objects.get(id=cover_letter_id, user_id=user_id)
+            except CoverLetter.DoesNotExist:
+                return {
+                    "success": False,
+                    "error": f"Cover letter with ID {cover_letter_id} not found."
+                }
+            
+            # Check if all required sections are complete
+            current_content = cover_letter.content or "{}"
+            try:
+                content_data = eval(current_content) if current_content else {}
+            except:
+                content_data = {}
+            
+            required_sections = ['user_info', 'employer_info', 'greeting', 'introduction', 'body']
+            missing_sections = [section for section in required_sections if section not in content_data or not content_data[section]]
+            
+            if missing_sections:
+                return {
+                    "success": False,
+                    "error": f"Missing required sections: {', '.join(missing_sections)}"
+                }
+            
+            # Mark as completed
+            cover_letter.status = 'completed'
+            cover_letter.save()
+            
+            # Emit event to frontend
+            EventEmitter.emit_event(
+                user_id=user_id,
+                event_type="cover_letter_finalized",
+                data={
+                    "cover_letter_id": str(cover_letter.id),
+                    "user_id": user_id
+                }
+            )
+            
+            return {
+                "success": True,
+                "message": "Cover letter finalized successfully.",
+                "cover_letter_id": str(cover_letter.id)
+            }
+            
+        except Exception as e:
+            return {
+                "success": False,
+                "error": f"Failed to finalize cover letter: {str(e)}"
+            } 

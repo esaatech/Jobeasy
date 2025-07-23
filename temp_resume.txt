@@ -1,0 +1,30 @@
+
+John Doe
+Senior Software Engineer
+john.doe@email.com
+(555) 123-4567
+San Francisco, CA
+
+EXPERIENCE:
+Senior Software Engineer | TechStart Inc. | 2020-2023
+• Led development of scalable web applications using React, Node.js, and Python
+• Implemented microservices architecture improving system performance by 40%
+• Mentored 3 junior developers and conducted code reviews
+• Collaborated with cross-functional teams to deliver features on time
+
+Software Engineer | WebCorp | 2018-2020
+• Developed full-stack applications using JavaScript, Python, and PostgreSQL
+• Optimized database queries reducing load times by 60%
+• Participated in agile development processes and sprint planning
+
+SKILLS:
+• Programming Languages: JavaScript, TypeScript, Python, Java, SQL
+• Frontend: React, Vue.js, HTML5, CSS3, Tailwind CSS
+• Backend: Node.js, Django, Flask, Express.js
+• Databases: PostgreSQL, MongoDB, Redis
+• Cloud: AWS, Docker, Kubernetes, CI/CD
+• Tools: Git, VS Code, Postman, Jira
+
+EDUCATION:
+Bachelor of Science in Computer Science
+University of Technology | 2018

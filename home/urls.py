@@ -9,7 +9,6 @@ app_name = 'home'
 urlpatterns = [
     path('', views.index, name='index'),
     path('about/', views.about, name='about'),
-    path('job-cover-letter/', views.job_cover_letter, name='job_cover_letter'),
     path('contact/', views.contact, name='contact'),
     path('careers/', views.careers, name='careers'),
     path('terms/', views.terms, name='terms'),

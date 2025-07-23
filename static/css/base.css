@@ -411,3 +411,43 @@
         margin-bottom: 0.5rem;
     }
 } 
+
+/* ========================================
+   PAGE WIDTH UTILITIES
+   ======================================== */
+
+/* Standard page width for consistent layout across the app */
+.page-width {
+    max-width: 1280px; /* 80rem - matches Tailwind's max-w-7xl */
+    margin: 0 auto;
+    padding: 0 1rem; /* 16px padding on sides */
+}
+
+.page-width-wide {
+    max-width: 1440px; /* 90rem - for wider layouts */
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+.page-width-narrow {
+    max-width: 800px; /* 50rem - for focused content like cover letters */
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .page-width,
+    .page-width-wide,
+    .page-width-narrow {
+        padding: 0 0.75rem; /* 12px padding on smaller screens */
+    }
+}
+
+@media (max-width: 480px) {
+    .page-width,
+    .page-width-wide,
+    .page-width-narrow {
+        padding: 0 0.5rem; /* 8px padding on mobile */
+    }
+} 

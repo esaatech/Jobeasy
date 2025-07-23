@@ -1,0 +1,119 @@
+<!-- Resume Selection Partial -->
+<!-- This partial provides a reusable resume selection component -->
+<!-- Used in: dashboard, cover letter generation, and other resume-dependent features -->
+
+<div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+    <h2 class="headline-secondary mb-4">Select Resume</h2>
+    <div class="relative">
+        <div class="flex space-x-4 overflow-x-auto pb-4" id="resume-carousel">
+            {% for resume in resumes %}
+            <div class="resume-card flex-shrink-0 w-48 bg-gray-50 rounded-lg p-4 border-2 border-transparent hover:border-blue-300 cursor-pointer transition-all" data-resume-id="{{ resume.id }}">
+                <div class="text-center">
+                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="font-medium text-gray-900 text-sm mb-1">{{ resume.name|truncatechars:20 }}</h3>
+                    <p class="text-xs text-gray-500">{{ resume.updated_at|date:"M d, Y" }}</p>
+                    <div class="mt-2">
+                        <input type="radio" name="selected_resume" value="{{ resume.id }}" class="resume-radio hidden">
+                        <div class="radio-indicator w-4 h-4 border-2 border-gray-300 rounded-full mx-auto"></div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="flex-shrink-0 w-48 bg-gray-50 rounded-lg p-4 border-2 border-dashed border-gray-300">
+                <div class="text-center">
+                    <p class="text-gray-500 text-sm">No resumes yet</p>
+                    <a href="{% url 'resume_builder:create_resume' %}" class="text-blue-600 text-sm hover:underline">Create one</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Navigation arrows -->
+        <button class="absolute left-0 top-1/2 transform -translate-y-1/2 bg-white rounded-full p-2 shadow-lg hover:shadow-xl transition-shadow" id="prev-btn">
+            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+            </svg>
+        </button>
+        <button class="absolute right-0 top-1/2 transform -translate-y-1/2 bg-white rounded-full p-2 shadow-lg hover:shadow-xl transition-shadow" id="next-btn">
+            <svg class="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+            </svg>
+        </button>
+    </div>
+</div>
+
+<script>
+// Resume Selection JavaScript
+document.addEventListener('DOMContentLoaded', function() {
+    const carousel = document.getElementById('resume-carousel');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const resumeCards = document.querySelectorAll('.resume-card');
+
+    // Resume selection functionality
+    resumeCards.forEach(card => {
+        card.addEventListener('click', function() {
+            // Remove selection from all cards
+            resumeCards.forEach(c => {
+                c.classList.remove('border-blue-500', 'bg-blue-50');
+                c.classList.add('border-transparent', 'bg-gray-50');
+                const radio = c.querySelector('.resume-radio');
+                const indicator = c.querySelector('.radio-indicator');
+                if (radio) radio.checked = false;
+                if (indicator) {
+                    indicator.classList.remove('border-blue-500', 'bg-blue-500');
+                    indicator.classList.add('border-gray-300');
+                }
+            });
+
+            // Select clicked card
+            this.classList.remove('border-transparent', 'bg-gray-50');
+            this.classList.add('border-blue-500', 'bg-blue-50');
+            
+            const radio = this.querySelector('.resume-radio');
+            const indicator = this.querySelector('.radio-indicator');
+            if (radio) radio.checked = true;
+            if (indicator) {
+                indicator.classList.remove('border-gray-300');
+                indicator.classList.add('border-blue-500', 'bg-blue-500');
+            }
+
+            // Trigger custom event for resume selection
+            const event = new CustomEvent('resumeSelected', {
+                detail: {
+                    resumeId: this.dataset.resumeId,
+                    resumeName: this.querySelector('h3').textContent.trim()
+                }
+            });
+            document.dispatchEvent(event);
+        });
+    });
+
+    // Carousel navigation
+    if (prevBtn && nextBtn && carousel) {
+        const scrollAmount = 200;
+        
+        prevBtn.addEventListener('click', () => {
+            carousel.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+        });
+        
+        nextBtn.addEventListener('click', () => {
+            carousel.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+        });
+
+        // Show/hide navigation buttons based on scroll position
+        carousel.addEventListener('scroll', () => {
+            prevBtn.style.display = carousel.scrollLeft > 0 ? 'block' : 'none';
+            nextBtn.style.display = carousel.scrollLeft < (carousel.scrollWidth - carousel.clientWidth) ? 'block' : 'none';
+        });
+
+        // Initial button visibility
+        prevBtn.style.display = 'none';
+        nextBtn.style.display = carousel.scrollWidth > carousel.clientWidth ? 'block' : 'none';
+    }
+});
+</script> 

@@ -511,6 +511,201 @@ The cover letter has been tailored to match the job description and incorporates
                 }
                 break;
                 
+            case 'cover_letter_created':
+                // Auto-switch to cover letter tab
+                if (window.dynamicTabs && window.dynamicTabs.openTab) {
+                    window.dynamicTabs.openTab('cover-letter');
+                }
+                
+                // Set the cover letter ID in the manager
+                if (window.coverLetterManager) {
+                    window.coverLetterManager.setCoverLetterId(data.cover_letter_id);
+                }
+                
+                // Initialize structured cover letter creation
+                if (window.startCoverLetterCreation) {
+                    window.startCoverLetterCreation();
+                }
+                this.addMessage(`
+## 📝 Cover Letter Created!
+
+**Cover Letter:** ${data.cover_letter_name}
+
+I've created your cover letter and I'm ready to guide you through each section step by step. Let's start with your **personal information**!
+
+**What I need from you:**
+• Full name
+• Address (City, State/Country)
+• Email address
+• Phone number
+                `);
+                break;
+                
+            case 'cover_letter_user_info_saved':
+                console.log('🔍 CHAT_UI: Received cover_letter_user_info_saved event');
+                console.log('🔍 CHAT_UI: Event data:', data);
+                console.log('🔍 CHAT_UI: user_info data:', data.user_info);
+                console.log('🔍 CHAT_UI: window.updateCoverLetterSection exists?', typeof window.updateCoverLetterSection);
+                
+                // Update user info section
+                if (window.updateCoverLetterSection) {
+                    console.log('🔍 CHAT_UI: Calling window.updateCoverLetterSection with:', 'user_info', data.user_info);
+                    window.updateCoverLetterSection('user_info', data.user_info);
+                    console.log('🔍 CHAT_UI: window.updateCoverLetterSection call completed');
+                } else {
+                    console.error('❌ CHAT_UI: window.updateCoverLetterSection function not found!');
+                }
+                
+                this.addMessage(`
+## ✅ User Information Saved!
+
+**Name:** ${data.user_info.full_name}
+**Address:** ${data.user_info.address}
+**Email:** ${data.user_info.email}
+**Phone:** ${data.user_info.phone}
+
+Great! Now let's add the **employer information** for your cover letter.
+
+**What I need from you:**
+• Company name
+• Position title
+• Hiring manager name (optional)
+• Company address (optional)
+                `);
+                break;
+                
+            case 'cover_letter_employer_info_saved':
+                console.log('🔍 CHAT_UI: Received cover_letter_employer_info_saved event');
+                console.log('🔍 CHAT_UI: Event data:', data);
+                console.log('🔍 CHAT_UI: employer_info data:', data.employer_info);
+                console.log('🔍 CHAT_UI: window.updateCoverLetterSection exists?', typeof window.updateCoverLetterSection);
+                
+                // Update employer info section
+                if (window.updateCoverLetterSection) {
+                    console.log('🔍 CHAT_UI: Calling window.updateCoverLetterSection with:', 'employer_info', data.employer_info);
+                    window.updateCoverLetterSection('employer_info', data.employer_info);
+                    console.log('🔍 CHAT_UI: window.updateCoverLetterSection call completed');
+                } else {
+                    console.error('❌ CHAT_UI: window.updateCoverLetterSection function not found!');
+                }
+                
+                this.addMessage(`
+## ✅ Employer Information Saved!
+
+**Company:** ${data.employer_info.company_name}
+**Position:** ${data.employer_info.position_title}
+${data.employer_info.hiring_manager ? `**Hiring Manager:** ${data.employer_info.hiring_manager}` : ''}
+
+Perfect! Now let's add the **greeting** for your cover letter.
+
+**How would you like to address the hiring manager?**
+• "Dear Hiring Manager,"
+• "Dear Mr./Ms. [Last Name],"
+• "Dear [First Name] [Last Name],"
+                `);
+                break;
+                
+            case 'cover_letter_greeting_saved':
+                console.log('🔍 CHAT_UI: Received cover_letter_greeting_saved event');
+                console.log('🔍 CHAT_UI: Event data:', data);
+                console.log('🔍 CHAT_UI: greeting data:', data.greeting);
+                console.log('🔍 CHAT_UI: window.updateCoverLetterSection exists?', typeof window.updateCoverLetterSection);
+                
+                // Update greeting section - pass as object with 'text' field
+                if (window.updateCoverLetterSection) {
+                    console.log('🔍 CHAT_UI: Calling window.updateCoverLetterSection with:', 'greeting', { text: data.greeting });
+                    window.updateCoverLetterSection('greeting', { text: data.greeting });
+                    console.log('🔍 CHAT_UI: window.updateCoverLetterSection call completed');
+                } else {
+                    console.error('❌ CHAT_UI: window.updateCoverLetterSection function not found!');
+                }
+                
+                this.addMessage(`
+## ✅ Greeting Saved!
+
+**Greeting:** ${data.greeting}
+
+Excellent! Now let's write the **introduction paragraph** for your cover letter.
+
+**Tell me about:**
+• Why you're interested in this position
+• What excites you about the company
+• Your enthusiasm for the opportunity
+                `);
+                break;
+                
+            case 'cover_letter_introduction_saved':
+                console.log('🔍 CHAT_UI: Received cover_letter_introduction_saved event');
+                console.log('🔍 CHAT_UI: Event data:', data);
+                console.log('🔍 CHAT_UI: introduction data:', data.introduction);
+                console.log('🔍 CHAT_UI: window.updateCoverLetterSection exists?', typeof window.updateCoverLetterSection);
+                
+                // Update introduction section - pass as object with 'text' field
+                if (window.updateCoverLetterSection) {
+                    console.log('🔍 CHAT_UI: Calling window.updateCoverLetterSection with:', 'introduction', { text: data.introduction });
+                    window.updateCoverLetterSection('introduction', { text: data.introduction });
+                    console.log('🔍 CHAT_UI: window.updateCoverLetterSection call completed');
+                } else {
+                    console.error('❌ CHAT_UI: window.updateCoverLetterSection function not found!');
+                }
+                
+                this.addMessage(`
+## ✅ Introduction Saved!
+
+Your introduction paragraph has been saved successfully.
+
+Now let's write the **main body** of your cover letter.
+
+**What I need from you:**
+• Your relevant experience and skills
+• How your background matches the job requirements
+• Specific achievements or projects that relate to the position
+• Why you're the ideal candidate
+                `);
+                break;
+                
+            case 'cover_letter_body_saved':
+                console.log('🔍 CHAT_UI: Received cover_letter_body_saved event');
+                console.log('🔍 CHAT_UI: Event data:', data);
+                console.log('🔍 CHAT_UI: body data:', data.body);
+                console.log('🔍 CHAT_UI: window.updateCoverLetterSection exists?', typeof window.updateCoverLetterSection);
+                
+                // Update body section - pass as object with 'text' field
+                if (window.updateCoverLetterSection) {
+                    console.log('🔍 CHAT_UI: Calling window.updateCoverLetterSection with:', 'body', { text: data.body });
+                    window.updateCoverLetterSection('body', { text: data.body });
+                    console.log('🔍 CHAT_UI: window.updateCoverLetterSection call completed');
+                } else {
+                    console.error('❌ CHAT_UI: window.updateCoverLetterSection function not found!');
+                }
+                
+                this.addMessage(`
+## ✅ Body Content Saved!
+
+Your cover letter body has been saved successfully.
+
+**Your cover letter is almost complete!** All sections have been filled out. I can now finalize your cover letter and mark it as ready for use.
+
+Would you like me to finalize your cover letter now?
+                `);
+                break;
+                
+            case 'cover_letter_finalized':
+                this.addMessage(`
+## 🎉 Cover Letter Complete!
+
+**Congratulations!** Your cover letter "${data.cover_letter_name}" is now complete and ready for use.
+
+**What you can do now:**
+• **Preview Cover Letter** - View your final cover letter in the Cover Letter tab
+• **Download** - Get your cover letter in PDF format
+• **Edit** - Make any final adjustments if needed
+• **Create Another** - Start building another cover letter
+
+Your cover letter is ready to help you land your next job! 🚀
+                `);
+                break;
+                
             default:
                 console.log('🔧 ChatUI: Unknown backend event type:', eventType);
         }

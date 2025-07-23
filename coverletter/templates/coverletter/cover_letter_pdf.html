@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cover Letter</title>
+    <style>
+        @page {
+            margin: 0.75in;
+            size: letter;
+        }
+        
+        body {
+            font-family: 'Times New Roman', serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            font-size: 12pt;
+        }
+        
+        .cover-letter-container {
+            max-width: 100%;
+            margin: 0 auto;
+        }
+        
+        .cover-letter-content {
+            white-space: pre-line;
+            font-size: 12pt;
+            line-height: 1.6;
+            text-align: left;
+        }
+        
+        .cover-letter-content p {
+            margin-bottom: 1em;
+            text-indent: 0;
+        }
+        
+        /* Print-specific styles */
+        @media print {
+            body {
+                font-size: 12pt;
+                line-height: 1.6;
+            }
+            
+            .cover-letter-container {
+                max-width: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="cover-letter-container">
+        <div class="cover-letter-content">
+            {{ cover_letter|safe|linebreaksbr }}
+        </div>
+    </div>
+</body>
+</html> 
