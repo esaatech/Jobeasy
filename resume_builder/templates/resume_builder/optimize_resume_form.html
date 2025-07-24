@@ -1,58 +1,60 @@
 {% load static %}
 
-<form method="POST" enctype="multipart/form-data" class="space-y-8 font-sans" id="uploadResumeForm">
-    {% csrf_token %}
-    
-    <!-- Template Selection Section -->
-   {% include 'partials/template_selection.html' %}
+<div class="page-width">
+    <form method="POST" enctype="multipart/form-data" class="space-y-8 font-sans" id="uploadResumeForm">
+        {% csrf_token %}
+        
+        <!-- Template Selection Section -->
+       {% include 'partials/template_selection.html' %}
 
-    <!-- Resume Upload Section -->
-    <div class="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
-        <h2 class="headline-secondary mb-6">Upload Your Resume</h2>
-        <div class="border-b-2 border-emerald-500 mb-6"></div>
-        <div class="space-y-4">
-            <!-- Drag & Drop Zone -->
-            <div class="drag-drop-zone">
-                <div id="drop-zone" 
-                     class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-emerald-500 transition-colors duration-200 cursor-pointer">
-                    <input type="file" 
-                           name="resume_file" 
-                           id="resume-file" 
-                           accept=".pdf,.doc,.docx" 
-                           class="hidden">
-                    <div class="space-y-4">
-                        <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                            <path d="M28 8H12a4 4 0 00-4 4v20m0 0v4a4 4 0 004 4h20a4 4 0 004-4V28m-4-4h4a4 4 0 004-4V12a4 4 0 00-4-4h-4m-12 8v-4m0 4v4m0-4h12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                        <div class="flex flex-col items-center text-sm text-gray-600">
-                            <label for="resume-file" class="font-medium text-emerald-600 hover:text-emerald-500 cursor-pointer">
-                                Click to upload
-                            </label>
-                            <span class="mt-1">or drag and drop</span>
+        <!-- Resume Upload Section -->
+        <div class="bg-white p-8 border border-gray-200">
+            <h2 class="headline-secondary mb-6">Upload Your Resume</h2>
+            <div class="border-b-2 border-emerald-500 mb-6"></div>
+            <div class="space-y-4">
+                <!-- Drag & Drop Zone -->
+                <div class="drag-drop-zone">
+                    <div id="drop-zone" 
+                         class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-emerald-500 transition-colors duration-200 cursor-pointer">
+                        <input type="file" 
+                               name="resume_file" 
+                               id="resume-file" 
+                               accept=".pdf,.doc,.docx" 
+                               class="hidden">
+                        <div class="space-y-4">
+                            <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                                <path d="M28 8H12a4 4 0 00-4 4v20m0 0v4a4 4 0 004 4h20a4 4 0 004-4V28m-4-4h4a4 4 0 004-4V12a4 4 0 00-4-4h-4m-12 8v-4m0 4v4m0-4h12" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <div class="flex flex-col items-center text-sm text-gray-600">
+                                <label for="resume-file" class="font-medium text-emerald-600 hover:text-emerald-500 cursor-pointer">
+                                    Click to upload
+                                </label>
+                                <span class="mt-1">or drag and drop</span>
+                            </div>
+                            <p class="text-xs text-gray-500">
+                                PDF, DOC, or DOCX (up to 10MB)
+                            </p>
                         </div>
-                        <p class="text-xs text-gray-500">
-                            PDF, DOC, or DOCX (up to 10MB)
-                        </p>
-                    </div>
-                    <div id="file-info" class="hidden mt-4 text-sm text-gray-600">
-                        <span class="file-name font-medium"></span>
-                        <button type="button" id="remove-file" class="ml-2 text-red-500 hover:text-red-700">
-                            Remove
-                        </button>
+                        <div id="file-info" class="hidden mt-4 text-sm text-gray-600">
+                            <span class="file-name font-medium"></span>
+                            <button type="button" id="remove-file" class="ml-2 text-red-500 hover:text-red-700">
+                                Remove
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Submit Button -->
-    <div class="flex justify-center">
-        <button type="submit" 
-                class="btn btn-primary btn-lg">
-            Update Resume
-        </button>
-    </div>
-</form>
+        <!-- Submit Button -->
+        <div class="flex justify-center">
+            <button type="submit" 
+                    class="btn btn-primary btn-lg">
+                Update Resume
+            </button>
+        </div>
+    </form>
+</div>
 
 <script>
 // Network Error Handling Utilities

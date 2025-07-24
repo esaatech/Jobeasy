@@ -1,0 +1,280 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Resume Templates - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="page-width">
+        <!-- Hero Section -->
+        <div class="text-center mb-12">
+            <h1 class="text-4xl font-bold text-gray-900 mb-4">Resume Templates</h1>
+            <p class="text-xl text-gray-600 max-w-3xl mx-auto">
+                Choose from our professional resume templates designed to help you stand out to employers.
+            </p>
+        </div>
+
+        <!-- Templates Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- Professional Template Card -->
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 group">
+                <div class="relative">
+                    <!-- Template Preview Image -->
+                    <img src="{% static 'img/resume_templates/professional.png' %}" 
+                         alt="Professional Template" 
+                         class="w-full h-64 object-cover">
+                    
+                    <!-- Overlay on Hover -->
+                    <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                        <button onclick="showTemplatePreview('professional')" 
+                                class="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-200">
+                            View Template
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="p-6">
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Professional</h3>
+                    <p class="text-gray-600 mb-4">Clean and traditional design suitable for corporate environments</p>
+                    
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                ATS-Friendly
+                            </span>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                Popular
+                            </span>
+                        </div>
+                        <button onclick="useTemplate('professional')" 
+                                class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors duration-200">
+                            Use Template
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modern Template Card -->
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 group">
+                <div class="relative">
+                    <!-- Template Preview Image -->
+                    <img src="{% static 'img/resume_templates/modern.png' %}" 
+                         alt="Modern Template" 
+                         class="w-full h-64 object-cover">
+                    
+                    <!-- Overlay on Hover -->
+                    <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                        <button onclick="showTemplatePreview('modern')" 
+                                class="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-200">
+                            View Template
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="p-6">
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Modern</h3>
+                    <p class="text-gray-600 mb-4">Contemporary design with modern styling and layout</p>
+                    
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                Modern
+                            </span>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                Creative
+                            </span>
+                        </div>
+                        <button onclick="useTemplate('modern')" 
+                                class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors duration-200">
+                            Use Template
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Creative Template Card -->
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 group">
+                <div class="relative">
+                    <!-- Template Preview Image -->
+                    <img src="{% static 'img/resume_templates/creative.png' %}" 
+                         alt="Creative Template" 
+                         class="w-full h-64 object-cover">
+                    
+                    <!-- Overlay on Hover -->
+                    <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                        <button onclick="showTemplatePreview('creative')" 
+                                class="bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-200">
+                            View Template
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="p-6">
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">Creative</h3>
+                    <p class="text-gray-600 mb-4">Unique and eye-catching design for creative industries</p>
+                    
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                Creative
+                            </span>
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-pink-100 text-pink-800">
+                                Stand Out
+                            </span>
+                        </div>
+                        <button onclick="useTemplate('creative')" 
+                                class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors duration-200">
+                            Use Template
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Template Preview Modal -->
+<div id="templatePreviewModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            <!-- Modal Header -->
+            <div class="flex items-center justify-between p-6 border-b border-gray-200">
+                <h3 class="text-xl font-bold text-gray-800">Template Preview</h3>
+                <button onclick="closeTemplatePreview()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <!-- Template Navigation -->
+            <div class="flex justify-center space-x-4 p-4 bg-gray-50 border-b border-gray-200">
+                <button onclick="switchPreviewTemplate('professional')" 
+                        class="preview-tab px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                        data-template="professional">
+                    Professional
+                </button>
+                <button onclick="switchPreviewTemplate('modern')" 
+                        class="preview-tab px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                        data-template="modern">
+                    Modern
+                </button>
+                <button onclick="switchPreviewTemplate('creative')" 
+                        class="preview-tab px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                        data-template="creative">
+                    Creative
+                </button>
+            </div>
+            
+            <!-- Preview Content -->
+            <div class="p-6 overflow-y-auto max-h-[60vh]">
+                <div id="previewContent" class="resume-preview">
+                    <!-- Template content will be loaded here -->
+                </div>
+            </div>
+            
+            <!-- Modal Footer -->
+            <div class="flex justify-end space-x-3 p-6 border-t border-gray-200">
+                <button onclick="closeTemplatePreview()" 
+                        class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
+                    Close
+                </button>
+                <button onclick="useTemplateFromModal()" 
+                        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                    Use This Template
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Template Preview Modal Logic
+let currentPreviewTemplate = 'professional';
+
+function showTemplatePreview(templateId) {
+    currentPreviewTemplate = templateId;
+    document.getElementById('templatePreviewModal').classList.remove('hidden');
+    loadTemplatePreview(templateId);
+    updatePreviewTabs(templateId);
+}
+
+function closeTemplatePreview() {
+    document.getElementById('templatePreviewModal').classList.add('hidden');
+}
+
+function switchPreviewTemplate(templateId) {
+    currentPreviewTemplate = templateId;
+    loadTemplatePreview(templateId);
+    updatePreviewTabs(templateId);
+}
+
+function updatePreviewTabs(activeTemplate) {
+    document.querySelectorAll('.preview-tab').forEach(tab => {
+        const template = tab.dataset.template;
+        if (template === activeTemplate) {
+            tab.classList.add('bg-blue-100', 'text-blue-700');
+            tab.classList.remove('bg-white', 'text-gray-600', 'hover:bg-gray-100');
+        } else {
+            tab.classList.remove('bg-blue-100', 'text-blue-700');
+            tab.classList.add('bg-white', 'text-gray-600', 'hover:bg-gray-100');
+        }
+    });
+}
+
+function useTemplate(templateId) {
+    // Redirect to create resume with selected template
+    window.location.href = `/resume/create-resume/?template=${templateId}`;
+}
+
+function useTemplateFromModal() {
+    useTemplate(currentPreviewTemplate);
+}
+
+function loadTemplatePreview(templateId) {
+    const previewContent = document.getElementById('previewContent');
+    
+    // Get user's locale (could be from user preferences, browser settings, etc.)
+    const userLocale = navigator.language || 'en-US';
+    
+    // Load template content from backend with locale support
+    fetch(`{% url 'resume_builder:preview_template' 'professional' %}`.replace('professional', templateId) + `?locale=${userLocale}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to load template');
+            }
+            return response.text();
+        })
+        .then(html => {
+            previewContent.innerHTML = html;
+        })
+        .catch(error => {
+            console.error('Error loading template:', error);
+            // Show a simple error message instead of duplicate sample data
+            previewContent.innerHTML = `
+                <div class="text-center py-8">
+                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <h3 class="mt-2 text-sm font-medium text-gray-900">Template Preview Unavailable</h3>
+                    <p class="mt-1 text-sm text-gray-500">Unable to load template preview. Please try again later.</p>
+                </div>
+            `;
+        });
+}
+
+// Close modal when clicking outside
+document.getElementById('templatePreviewModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeTemplatePreview();
+    }
+});
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeTemplatePreview();
+    }
+});
+</script>
+{% endblock %} 

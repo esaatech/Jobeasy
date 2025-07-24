@@ -37,9 +37,6 @@ class ResumeBuilder {
             title: document.querySelector('[name="title"]').value,
             email: document.querySelector('[name="email"]').value,
             phone: document.querySelector('[name="phone"]').value,
-            summary: (window.ckeditor5Instances['summary-editor'])
-                ? window.ckeditor5Instances['summary-editor'].getData()
-                : document.querySelector('[name="summary"]').value,
             template_id: document.querySelector('input[name="template_id"]:checked')?.value || 'professional'
         };
         this.templateId = this.personalInfo.template_id;
@@ -177,7 +174,8 @@ class ResumeBuilder {
 
     // Validation methods (copied from your existing code)
     validatePersonalInfo() {
-        const requiredFields = ['resume_name', 'fullName', 'title', 'email', 'summary'];
+        const requiredFields = ['resume_name', 'fullName', 'title', 'email'];
+        
         for (let field of requiredFields) {
             let value;
             if (field === 'summary' && window.ckeditor5Instances['summary-editor']) {

@@ -118,6 +118,12 @@ class Command(BaseCommand):
                 'description': 'Generate optimized cover letters with AI',
                 'type': 'TOOL',
             },
+            {
+                'name': 'AI Writing Assistant',
+                'identifier': 'ai_writing_assistant',
+                'description': 'Access to AI-powered resume writing assistant with natural language interface',
+                'type': 'TOOL',
+            },
             
             # Ultimate features
             {
@@ -250,6 +256,7 @@ class Command(BaseCommand):
             'ats_optimization',
             'all_resume_templates',
             'enhanced_cover_letters',
+            'ai_writing_assistant',
         ]
         
         # Ultimate Plan Features (includes all Plus features plus:)
@@ -265,6 +272,7 @@ class Command(BaseCommand):
             'interview_preparation',
             'priority_support',
             'advanced_analytics',
+            'ai_writing_assistant',
         ]
         
         # Assign features to plans

@@ -5,34 +5,36 @@
     {% include 'resume_builder/partials/progress_bar.html' %}
 
     <!-- Form Container -->
-    <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg border border-gray-200">
-        <form id="resumeForm" class="p-8 space-y-8">
-            {% csrf_token %}
+    <div class="page-width">
+        <div class="bg-white border border-gray-200">
+            <form id="resumeForm" class="p-8 space-y-8">
+                {% csrf_token %}
 
-            <!-- Form Header (Resume Name and Template Selection) -->
-            {% include 'resume_builder/partials/form_header.html' %}
+                <!-- Form Header (Resume Name and Template Selection) -->
+                {% include 'resume_builder/partials/form_header.html' %}
 
-            <!-- Step 1: Personal Information -->
-            {% include 'resume_builder/partials/step_personal_info.html' %}
+                <!-- Step 1: Personal Information -->
+                {% include 'resume_builder/partials/step_personal_info.html' %}
 
-            <!-- Step 2: Work Experience -->
-            {% include 'resume_builder/partials/step_experience.html' %}
+                <!-- Step 2: Work Experience -->
+                {% include 'resume_builder/partials/step_experience.html' %}
 
-            <!-- Step 3: Education -->
-            {% include 'resume_builder/partials/step_education.html' %}
+                <!-- Step 3: Education -->
+                {% include 'resume_builder/partials/step_education.html' %}
 
-            <!-- Step 4: Skills -->
-            {% include 'resume_builder/partials/step_skills.html' %}
+                <!-- Step 4: Skills -->
+                {% include 'resume_builder/partials/step_skills.html' %}
 
-            <!-- Step 5: Additional Information -->
-            {% include 'resume_builder/partials/step_additional.html' %}
+                <!-- Step 5: Additional Information -->
+                {% include 'resume_builder/partials/step_additional.html' %}
 
-            <!-- Step 6: Professional Summary -->
-            {% include 'resume_builder/partials/step_summary.html' %}
+                <!-- Step 6: Professional Summary -->
+                {% include 'resume_builder/partials/step_summary.html' %}
 
-            <!-- Navigation Buttons -->
-            {% include 'resume_builder/partials/form_navigation.html' %}
-        </form>
+                <!-- Navigation Buttons -->
+                {% include 'resume_builder/partials/form_navigation.html' %}
+            </form>
+        </div>
     </div>
 </div>
 
@@ -1130,9 +1132,13 @@ console.log('isAuthenticated:', window.isAuthenticated);
     function initializeCKEditor5(id) {
         if (!document.getElementById(id)) return;
         if (window.ckeditor5Instances[id]) return; // Prevent double init
-        ClassicEditor.create(document.getElementById(id), {
+        
+        // Special configuration for summary editor
+        const config = {
             toolbar: ['bold', 'bulletedList', 'numberedList']
-        }).then(editor => {
+        };
+        
+        ClassicEditor.create(document.getElementById(id), config).then(editor => {
             window.ckeditor5Instances[id] = editor;
         }).catch(error => {
             console.error('CKEditor5 error for', id, error);
@@ -1188,60 +1194,4 @@ console.log('isAuthenticated:', window.isAuthenticated);
 
 <!-- CKEditor 5 Local Build -->
 <script src="{% static 'ckeditor5/ckeditor.js' %}"></script>
-
-<!-- AI Summary Button Handler -->
-<script>
-// AI Summary Button Handler
-(function() {
-    const btn = document.getElementById('aiSummaryBtn');
-    if (!btn) return;
-    btn.addEventListener('click', async function() {
-        const resumeIdInput = document.getElementById('resumeId');
-        const resumeId = resumeIdInput ? resumeIdInput.value : null;
-        if (!resumeId) {
-            window.Alert && window.Alert.error
-                ? window.Alert.error('Resume ID not found. Please save your resume first.')
-                : alert('Resume ID not found. Please save your resume first.');
-            return;
-        }
-        btn.disabled = true;
-        btn.classList.add('opacity-60', 'pointer-events-none');
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<span class="animate-spin mr-2">⏳</span>Generating...';
-        try {
-            const response = await fetch('/resume/generate-ai-summary/', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': window.CSRF_TOKEN || document.querySelector('[name=csrfmiddlewaretoken]').value
-                },
-                body: JSON.stringify({ resume_id: resumeId })
-            });
-            const data = await response.json();
-            if (data.success) {
-                if (window.ckeditor5Instances && window.ckeditor5Instances['summary-editor']) {
-                    window.ckeditor5Instances['summary-editor'].setData(data.summary);
-                } else {
-                    document.getElementById('summary-editor').value = data.summary;
-                }
-                window.Alert && window.Alert.success
-                    ? window.Alert.success('AI summary generated!')
-                    : alert('AI summary generated!');
-            } else {
-                window.Alert && window.Alert.error
-                    ? window.Alert.error(data.error || 'Failed to generate summary.')
-                    : alert(data.error || 'Failed to generate summary.');
-            }
-        } catch (err) {
-            window.Alert && window.Alert.error
-                ? window.Alert.error('An error occurred while generating the summary.')
-                : alert('An error occurred while generating the summary.');
-        } finally {
-            btn.disabled = false;
-            btn.classList.remove('opacity-60', 'pointer-events-none');
-            btn.innerHTML = originalText;
-        }
-    });
-})();
-</script>
 

@@ -52,6 +52,7 @@ urlpatterns = [
     path('create-from-data/', views.create_resume_from_data, name='create_resume_from_data'),
     path('create-after-auth/', views.create_resume_after_auth, name='create_resume_after_auth'),
     path('templates/', views.get_available_templates, name='get_available_templates'),
+    path('resume_templates/', views.resume_templates, name='resume_templates'),
 
 
 

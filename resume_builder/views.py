@@ -38,7 +38,6 @@ from utils.date_utils import get_month_year_options
 from utils.error import get_network_timeout_dialog, get_network_connection_dialog, get_network_generic_dialog
 
 # Import subscription utilities
-from subscriptions.decorators import require_plus_subscription, check_subscription_access
 from utils.subscription import get_resume_update_plus_dialog, get_resume_update_ultimate_dialog
 
 # Load environment variables from .env file
@@ -2339,3 +2338,13 @@ def templates_tab(request):
         'templates': templates,
     }
     return render(request, 'resume_builder/component/templates_tab.html', context)
+
+def resume_templates(request):
+    """Display available resume templates with preview cards"""
+    context = {
+        'hero_content': {
+            'page_title': 'Resume Templates',
+            'page_description': 'Choose from our professional resume templates designed to help you stand out to employers.'
+        }
+    }
+    return render(request, 'resume_templates/resume_templates.html', context)
