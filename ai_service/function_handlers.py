@@ -1590,9 +1590,16 @@ class FunctionHandlers:
                 # Fallback if response doesn't have content attribute
                 data = response.json() if hasattr(response, 'json') else {}
 
+            # Build template list
+            template_list = []
+            for template in data.get("templates", []):
+                template_list.append(f"**{template['name']}** - {template['description']}")
+            
+            template_text = "\n".join(template_list)
+            
             return {
                 "success": data.get("success", False),
-                "message": f"## 📋 Available Resume Templates\n\nHere are the templates you can choose from:\n\n{chr(10).join([f'**{template["name"]}** - {template["description"]}' for template in data.get("templates", [])])}\n\n**Features:**\n• **Professional:** Clean and traditional design suitable for corporate environments\n• **Modern:** Contemporary design with modern styling and layout\n• **Creative:** Unique and eye-catching design for creative industries\n\nWhich template would you like to use for your resume?",
+                "message": f"## 📋 Available Resume Templates\n\nHere are the templates you can choose from:\n\n{template_text}\n\n**Features:**\n• **Professional:** Clean and traditional design suitable for corporate environments\n• **Modern:** Contemporary design with modern styling and layout\n• **Creative:** Unique and eye-catching design for creative industries\n\nWhich template would you like to use for your resume?",
                 "templates": data.get("templates", []),
                 "count": data.get("count", 0),
                 "action": "list_templates"
