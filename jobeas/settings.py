@@ -108,24 +108,31 @@ ASGI_APPLICATION = 'jobeas.asgi.application'
 # Environment configuration
 DJANGO_ENV = config("DJANGO_ENV", default="development")
 
+""" 
 # Channel Layers Configuration
-if DJANGO_ENV == "production":
-    # Production: Use Railway Redis
+if DJANGO_ENV == "production" and config('REDIS_URL', default=None):
+    # Production with Redis available: Use Railway Redis
     CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels_redis.core.RedisChannelLayer",
             "CONFIG": {
-                "hosts": [config('REDIS_URL', default='redis://localhost:6379')],
+                "hosts": [config('REDIS_URL')],
             },
         },
     }
 else:
-    # Development: Use in-memory channel layer (no Redis needed)
+    # Development or Cloud Run: Use in-memory channel layer (no Redis needed)
     CHANNEL_LAYERS = {
         "default": {
             "BACKEND": "channels.layers.InMemoryChannelLayer"
         }
     }
+"""
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
+    }
+}
 
 
 # Database
