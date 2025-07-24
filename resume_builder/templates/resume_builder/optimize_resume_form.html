@@ -74,9 +74,10 @@ const NETWORK_ERROR_MESSAGES = {
     }
 };
 
-function showNetworkErrorDialog(errorType = "network_generic", customMessage = null) {
+function showNetworkErrorDialog(errorType = "network_generic", customMessage = null, customTitle = null) {
     const error = NETWORK_ERROR_MESSAGES[errorType] || NETWORK_ERROR_MESSAGES.network_generic;
     const message = customMessage || error.message;
+    const title = customTitle || error.title;
     
     // Create error dialog element
     const dialog = document.createElement("div");
@@ -94,7 +95,7 @@ function showNetworkErrorDialog(errorType = "network_generic", customMessage = n
                 </svg>
             </div>
         </div>
-        <h3 class="text-lg font-bold mb-2 text-gray-900">${error.title}</h3>
+        <h3 class="text-lg font-bold mb-2 text-gray-900">${title}</h3>
         <p class="text-gray-700 mb-4">${message}</p>
         <button onclick="this.parentElement.remove()" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">
             Close
@@ -209,6 +210,13 @@ function handleNetworkError(response, errorType = "network_generic") {
 document.getElementById('uploadResumeForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     
+    // Client-side validation: Check if a file is selected
+    const fileInput = document.getElementById('resume-file');
+    if (!fileInput.files || fileInput.files.length === 0) {
+        showNetworkErrorDialog("network_generic", "Please upload a resume file to continue. You can upload PDF, DOC, or DOCX files.", "Resume File Required");
+        return;
+    }
+    
     const formData = new FormData(this);
     const submitButton = this.querySelector('button[type="submit"]');
     
@@ -246,9 +254,12 @@ document.getElementById('uploadResumeForm').addEventListener('submit', async fun
             } else if (data.error && data.error.title && data.error.message) {
                 // Backend returned a structured error dialog
                 showNetworkErrorDialog(data.error.error_type || "network_generic", data.error.message, data.error.title);
+            } else if (data.error) {
+                // Backend returned a simple error message (like validation errors)
+                showNetworkErrorDialog("network_generic", data.error, "Validation Error");
             } else {
                 // Fallback to generic error
-                showNetworkErrorDialog("network_generic", data.error || 'Upload failed');
+                showNetworkErrorDialog("network_generic", 'Upload failed');
             }
             return;
         }

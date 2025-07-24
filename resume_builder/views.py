@@ -603,7 +603,7 @@ def upload_resume(request):
             if not resume_file:
                 return JsonResponse({
                     'success': False,
-                    'error': 'Resume file is required.'
+                    'error': 'Please upload a resume file to continue. You can upload PDF, DOC, or DOCX files.'
                 }, status=400)
             
             # Validate file type
