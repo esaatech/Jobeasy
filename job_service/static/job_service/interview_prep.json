@@ -448,5 +448,45 @@
     "category": "Crisis Management",
     "question": "How do you handle a crisis situation, such as a PR disaster or financial downturn?",
     "answer": "A crisis requires swift, strategic decision-making and transparent communication: 1. Assess the situation: Identify the root cause and potential impact on stakeholders.  2. Develop a rapid response plan: Assign roles, set clear actions, and ensure alignment across leadership.  3. Communicate with transparency: Issue clear, fact based statements to customers, investors, and employees.  4. Implement long-term strategies: Introduce policies that prevent recurrence and strengthen company resilience.  For instance, at [Company Name], a negative media report threatened brand reputation.  I worked with PR and leadership to craft a transparent response strategy, addressed concerns head-on, and launched a corporate responsibility campaign, which restored trust and increased positive brand sentiment by 40%. "
+  },
+  {
+    "category": "System Design",
+    "question": "What should you ask before designing any system?",
+    "answer": "Before diving into architecture, I always ask foundational questions: What's the expected number of users and traffic patterns? Where are users located (geographically)? What availability is expected (e.g., 99.9%)? What's the budget, and how large is the engineering team? These factors help decide between trade-offs like latency vs cost, complexity vs simplicity, or consistency vs availability."
+  },
+  {
+    "category": "System Design",
+    "question": "When would you prefer a monolith over microservices?",
+    "answer": "I'd start with a monolith when: The system is relatively simple. The team is small. We don't need to scale different parts of the app independently. A monolith is easier to build, deploy, and maintain at the early stages. I'd only consider microservices when there's a strong reason—like scaling bottlenecks or the need for independent deployments by multiple teams."
+  },
+  {
+    "category": "System Design",
+    "question": "What are good indicators that it's time to move to microservices?",
+    "answer": "I consider microservices when: Vertical scaling hits limits or becomes too costly. Different teams need to work on different parts of the system and deploy independently. Specific services require different scaling patterns (e.g., 3 auth services vs 50 video processors). These scenarios justify the complexity of distributed systems."
+  },
+  {
+    "category": "System Design",
+    "question": "What database patterns would you use at scale?",
+    "answer": "At large scale, I avoid relying solely on traditional ACID-compliant RDBMS. I usually: Use key-value or document stores like Redis, DynamoDB, or Cassandra. Apply the Saga Pattern to handle distributed transactions safely across microservices. Keep local transactions isolated and eventually consistent rather than attempting global consistency."
+  },
+  {
+    "category": "System Design",
+    "question": "What is the Saga Pattern, and when would you use it?",
+    "answer": "The Saga Pattern is used to manage distributed transactions in microservices. Instead of a global transaction, each service performs a local transaction and publishes an event. If something fails, compensating actions are triggered to undo previous steps. It's especially useful in e-commerce workflows (e.g., reserve inventory → charge card → confirm order)."
+  },
+  {
+    "category": "System Design",
+    "question": "How would you manage secrets securely in your system?",
+    "answer": "Secrets should never be committed to code or encoded in base64 and pushed to GitHub. Instead, I: Use a secret manager like AWS Secrets Manager, HashiCorp Vault, or GCP Secret Manager. Load secrets via environment variables at runtime. Rotate secrets periodically and ensure proper access controls are in place."
+  },
+  {
+    "category": "System Design",
+    "question": "What deployment strategies do you follow for reliability?",
+    "answer": "It depends on the complexity and scale: For small projects: simple bash scripts and .env files. Mid-tier: GitHub Actions or Cloud Build for CI/CD. Large systems: Helm, ArgoCD, and GitOps for versioned, repeatable deployments. Regardless of scale, I always define a rollback plan and monitor deployments with metrics and alerting tools."
+  },
+  {
+    "category": "System Design",
+    "question": "What observability tools or metrics do you implement?",
+    "answer": "I focus on the three pillars: logs, metrics, and tracing. Metrics: Latency, error rates, request throughput. Logs: Structured logs (JSON) for better filtering and analysis. Tracing: Tools like OpenTelemetry or Jaeger to track request flow. I also configure alerts based on thresholds and SLIs."
   }
 ]
