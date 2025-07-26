@@ -78,61 +78,7 @@
             <p class="subheadline">Practice common interview questions. Choose a category to get started.</p>
         </div>
         
-        <div class="category-filter">
-            <select id="categorySelect" name="category" hx-get="{% url 'qa:load_questions' %}" hx-target="#qaContent" hx-trigger="change" hx-indicator="#loadingSpinner">
-                <option value="">Select a category...</option>
-                <option value="General">General Questions</option>
-                <option value="Leadership">Leadership</option>
-                <option value="Teamwork">Teamwork</option>
-                <option value="Problem Solving">Problem Solving</option>
-                <option value="Time Management">Time Management</option>
-                <option value="Communication">Communication</option>
-                <option value="Career Aspirations">Career Aspirations</option>
-                <option value="Motivation">Motivation</option>
-                <option value="Adaptability">Adaptability</option>
-                <option value="Ethics">Ethics</option>
-                <option value="Project Management">Project Management</option>
-                <option value="Conflict Resolution">Conflict Resolution</option>
-                <option value="Learning Agility">Learning Agility</option>
-                <option value="Company Knowledge">Company Knowledge</option>
-                <option value="Initiative">Initiative</option>
-                <option value="Feedback">Feedback</option>
-                <option value="Decision Making">Decision Making</option>
-                <option value="Quality Assurance">Quality Assurance</option>
-                <option value="Continuous Learning">Continuous Learning</option>
-                <option value="Resourcefulness">Resourcefulness</option>
-                <option value="Compensation">Compensation</option>
-                <option value="Process Improvement">Process Improvement</option>
-                <option value="Accountability">Accountability</option>
-                <option value="Professional Reputation">Professional Reputation</option>
-                <option value="Efficiency">Efficiency</option>
-                <option value="Team Management">Team Management</option>
-                <option value="Ethics & Confidentiality">Ethics & Confidentiality</option>
-                <option value="Prioritization & Communication">Prioritization & Communication</option>
-                <option value="Client Management">Client Management</option>
-                <option value="Resource Management">Resource Management</option>
-                <option value="Organization & Time Management">Organization & Time Management</option>
-                <option value="Team Efficiency">Team Efficiency</option>
-                <option value="Stakeholder Management">Stakeholder Management</option>
-                <option value="Resilience">Resilience</option>
-                <option value="Budget Management">Budget Management</option>
-                <option value="Team Motivation">Team Motivation</option>
-                <option value="Performance Measurement">Performance Measurement</option>
-                <option value="Team Collaboration">Team Collaboration</option>
-                <option value="Leadership & Morale">Leadership & Morale</option>
-                <option value="Policy Adherence & Improvement">Policy Adherence & Improvement</option>
-                <option value="Learning & Development">Learning & Development</option>
-                <option value="Interpersonal Skills">Interpersonal Skills</option>
-                <option value="Presentation Skills">Presentation Skills</option>
-                <option value="Work-Life Balance">Work-Life Balance</option>
-                <option value="Professional Development">Professional Development</option>
-                <option value="Leadership & Ethics">Leadership & Ethics</option>
-                <option value="Digital Transformation">Digital Transformation</option>
-                <option value="Risk Management">Risk Management</option>
-                <option value="Performance Improvement">Performance Improvement</option>
-                <option value="Crisis Management">Crisis Management</option>
-            </select>
-        </div>
+        {% include 'question_answer/partials/category_dropdown.html' %}
         
         <div id="qaContent" class="qa-content" hx-get="{% url 'qa:load_questions' %}?category=General" hx-trigger="load" hx-indicator="#loadingSpinner">
             <!-- Content will be loaded here -->

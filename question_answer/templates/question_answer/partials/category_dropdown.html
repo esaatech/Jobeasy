@@ -1,0 +1,9 @@
+<div class="category-filter">
+    <select id="categorySelect" name="category" hx-get="{% url 'qa:load_questions' %}" hx-target="#qaContent" hx-trigger="change" hx-indicator="#loadingSpinner">
+        <option value="">Select a category from the list</option>
+        
+        {% for category in categories %}
+            <option value="{{ category.name }}">{{ category.name }}</option>
+        {% endfor %}
+    </select>
+</div> 

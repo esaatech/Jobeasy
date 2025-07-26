@@ -477,4 +477,13 @@ def get_recommended_jobs(user, limit=6):
 
 def interview_prep(request):
     """Render the interview prep page."""
-    return render(request, 'job_service/interview_prep.html')
+    from question_answer.models import Category
+    
+    # Get all categories for the dropdown
+    categories = Category.objects.all().order_by('name')
+    
+    context = {
+        'categories': categories,
+    }
+    
+    return render(request, 'job_service/interview_prep.html', context)
