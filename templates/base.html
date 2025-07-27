@@ -23,6 +23,9 @@
     <!-- Base CSS -->
     <link rel="stylesheet" href="{% static 'css/base.css' %}">
     
+    <!-- Chat Dialog CSS - Available globally -->
+    <link rel="stylesheet" href="{% static 'question_answer/css/chat_dialog.css' %}">
+    
     <!-- Custom CSS -->
     {% block extra_css %}{% endblock %}
     
@@ -153,6 +156,9 @@
     
     <!-- Subscription Dialog System -->
     <script src="{% static 'subscriptions/js/subscription_dialog.js' %}"></script>
+
+    <!-- Chat Dialog JavaScript - Available globally -->
+    <script src="{% static 'question_answer/js/chat_dialog.js' %}"></script>
 
     <!-- Extra JavaScript -->
     {% block extra_scripts %}{% endblock %}

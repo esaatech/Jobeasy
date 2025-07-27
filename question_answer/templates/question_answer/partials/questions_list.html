@@ -35,6 +35,9 @@
                     <button class="btn btn-secondary show-sample-btn" data-question-id="{{ question.id }}">
                         Show Sample Answer
                     </button>
+                    <button class="btn btn-primary ask-coach-btn" data-question-id="{{ question.id }}" data-question-text="{{ question.text }}">
+                        Ask Interview Coach
+                    </button>
                 </div>
                 
                 <div id="feedback-{{ question.id }}" class="feedback-section" style="display: none;">
@@ -62,6 +65,9 @@
     </div>
     -->
 </div>
+
+<!-- Include the chat dialog -->
+{% include 'question_answer/partials/chat_dialog.html' %}
 
 <style>
     .questions-container {
@@ -160,6 +166,22 @@
             } else {
                 feedbackSection.style.display = 'none';
                 this.textContent = 'Show Sample Answer';
+            }
+        });
+    });
+    
+    // Ask Interview Coach functionality - updated to use chat dialog
+    document.querySelectorAll('.ask-coach-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const questionId = this.getAttribute('data-question-id');
+            const questionText = this.getAttribute('data-question-text');
+            
+            // Check if chat dialog functions are available
+            if (typeof openChatDialog === 'function') {
+                openChatDialog(questionId, questionText);
+            } else {
+                // Fallback: show alert if chat dialog is not loaded
+                alert(`Interview Coach: I'm here to help you with this question: "${questionText}"\n\nThis feature will open an AI chat interface to guide you through answering this question effectively.`);
             }
         });
     });
