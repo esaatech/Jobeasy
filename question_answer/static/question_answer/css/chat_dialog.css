@@ -127,10 +127,94 @@
     color: #333;
 }
 
+/* Chat Message Text with Markdown Support */
 .chat-message-text {
     margin: 0;
     line-height: 1.5;
     font-size: 0.9rem;
+}
+
+/* Markdown Content Styling */
+.chat-message-text h3 {
+    color: #2c3e50;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 1rem 0 0.5rem 0;
+    padding-bottom: 0.25rem;
+    border-bottom: 2px solid #3498db;
+}
+
+.chat-message-text h4 {
+    color: #34495e;
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0.75rem 0 0.5rem 0;
+}
+
+.chat-message-text p {
+    margin: 0.5rem 0;
+    line-height: 1.6;
+}
+
+.chat-message-text ul, .chat-message-text ol {
+    margin: 0.5rem 0;
+    padding-left: 1.5rem;
+}
+
+.chat-message-text li {
+    margin: 0.25rem 0;
+    line-height: 1.5;
+}
+
+.chat-message-text strong, .chat-message-text b {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.chat-message-text em, .chat-message-text i {
+    font-style: italic;
+    color: #7f8c8d;
+}
+
+.chat-message-text blockquote {
+    border-left: 4px solid #3498db;
+    margin: 0.75rem 0;
+    padding-left: 1rem;
+    color: #7f8c8d;
+    font-style: italic;
+}
+
+.chat-message-text code {
+    background: #f8f9fa;
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    color: #e74c3c;
+}
+
+.chat-message-text pre {
+    background: #f8f9fa;
+    padding: 0.75rem;
+    border-radius: 6px;
+    overflow-x: auto;
+    margin: 0.5rem 0;
+}
+
+.chat-message-text pre code {
+    background: none;
+    padding: 0;
+    color: #2c3e50;
+}
+
+/* Special styling for AI messages with markdown */
+.chat-message.ai .chat-message-text h3 {
+    color: #27ae60;
+    border-bottom-color: #27ae60;
+}
+
+.chat-message.ai .chat-message-text strong {
+    color: #27ae60;
 }
 
 .chat-message-time {
@@ -265,5 +349,18 @@
     
     .quick-action-btn {
         text-align: center;
+    }
+
+    /* Responsive markdown */
+    .chat-message-text h3 {
+        font-size: 1rem;
+    }
+    
+    .chat-message-text h4 {
+        font-size: 0.9rem;
+    }
+    
+    .chat-message-text ul, .chat-message-text ol {
+        padding-left: 1rem;
     }
 } 

@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.contrib.auth.models import User
 
 # Create your models here.
 
@@ -50,3 +51,18 @@ class Answer(models.Model):
 
     def __str__(self):
         return f"Answer by {self.user.username} to Q{self.question.id}"
+
+class InterviewAssistant(models.Model):
+    """Model to store user-specific interview assistant data"""
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    interview_thread_id = models.CharField(max_length=100, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_used = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        db_table = 'interview_assistants'
+        verbose_name = 'Interview Assistant'
+        verbose_name_plural = 'Interview Assistants'
+    
+    def __str__(self):
+        return f"Interview Assistant for {self.user.username}"

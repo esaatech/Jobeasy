@@ -1,4 +1,5 @@
 <div class="questions-container">
+    {% csrf_token %}
     <div class="questions-header">
         <h2 class="headline-secondary">{{ category }} Questions</h2>
         <p class="body-text-small">{{ questions.count }} question{{ questions.count|pluralize }} available</p>

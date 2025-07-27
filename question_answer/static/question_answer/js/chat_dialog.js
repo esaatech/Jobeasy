@@ -74,15 +74,26 @@ class InterviewCoachChat {
         this.clearMessages();
 
         // Add welcome message
-        this.addAIMessage(`Hello! I'm your interview coach. I'm here to help you answer this question: "${questionText}"
+        this.addAIMessage(`# 🤖 Welcome to Your Interview Coach!
 
-What would you like to know about crafting your response? I can help you with:
-• Structuring your answer
-• Providing specific examples
-• Avoiding common pitfalls
-• Practicing your response
+I'm here to help you ace your interview questions! I can see you're working on:
 
-Feel free to ask me anything!`);
+**"${questionText}"**
+
+## How I Can Help You:
+
+• **📋 Answer Structure** - Get guidance on how to organize your response
+• **💡 Examples** - See specific examples and scenarios
+• **⚠️ What to Avoid** - Learn common mistakes and how to avoid them
+• **🎯 Practice Response** - Get a sample answer to practice with
+
+## Quick Tips:
+- Be specific and use concrete examples
+- Structure your answers clearly
+- Practice your responses out loud
+- Stay confident and authentic
+
+**Ready to get started?** Ask me anything about this question or use the quick action buttons below!`);
 
         // Focus on input
         setTimeout(() => {
@@ -144,9 +155,26 @@ Feel free to ask me anything!`);
         const content = document.createElement('div');
         content.className = 'chat-message-content';
 
-        const text = document.createElement('p');
+        const text = document.createElement('div');
         text.className = 'chat-message-text';
-        text.textContent = message.text;
+        
+        // Render markdown for AI messages, plain text for user messages
+        if (message.type === 'ai' && typeof marked !== 'undefined') {
+            try {
+                // Configure marked.js for safe rendering
+                marked.setOptions({
+                    breaks: true,
+                    gfm: true,
+                    sanitize: false // We trust our AI responses
+                });
+                text.innerHTML = marked.parse(message.text);
+            } catch (error) {
+                console.warn('Markdown rendering failed, falling back to plain text:', error);
+                text.textContent = message.text;
+            }
+        } else {
+            text.textContent = message.text;
+        }
 
         const time = document.createElement('div');
         time.className = 'chat-message-time';
@@ -241,18 +269,31 @@ Feel free to ask me anything!`);
     }
 
     async getAIResponse(userMessage) {
-        // TODO: Replace with actual AI API call
-        // For now, return a mock response
-        await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate API delay
-
-        const responses = [
-            "Great question! Here's how you can approach this: [AI guidance would go here]",
-            "I'd recommend structuring your answer like this: [AI structure would go here]",
-            "Here are some key points to include: [AI points would go here]",
-            "Let me help you craft a strong response: [AI response would go here]"
-        ];
-
-        return responses[Math.floor(Math.random() * responses.length)];
+        // Get real AI response from Django backend
+        try {
+            const response = await fetch('/qa/api/interview-coach/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+                },
+                body: JSON.stringify({
+                    question_id: this.currentQuestion.id,
+                    user_message: userMessage
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                return data.response;
+            } else {
+                throw new Error(data.error || 'Failed to get response');
+            }
+        } catch (error) {
+            console.error('Error getting AI response:', error);
+            return 'Sorry, I encountered an error. Please try again.';
+        }
     }
 }
 
