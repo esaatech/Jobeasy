@@ -328,4 +328,39 @@ function sendQuickMessage(message) {
     if (interviewCoachChat) {
         interviewCoachChat.sendMessage(message);
     }
+}
+
+function sendQuickMessageAndClose(message) {
+    if (interviewCoachChat) {
+        interviewCoachChat.sendMessage(message);
+        // Close the common questions section after sending
+        closeCommonQuestions();
+    }
+}
+
+function toggleCommonQuestions() {
+    const toggle = document.querySelector('.common-questions-toggle');
+    const content = document.getElementById('commonQuestionsContent');
+    
+    if (content.classList.contains('open')) {
+        closeCommonQuestions();
+    } else {
+        openCommonQuestions();
+    }
+}
+
+function openCommonQuestions() {
+    const toggle = document.querySelector('.common-questions-toggle');
+    const content = document.getElementById('commonQuestionsContent');
+    
+    toggle.classList.add('active');
+    content.classList.add('open');
+}
+
+function closeCommonQuestions() {
+    const toggle = document.querySelector('.common-questions-toggle');
+    const content = document.getElementById('commonQuestionsContent');
+    
+    toggle.classList.remove('active');
+    content.classList.remove('open');
 } 
