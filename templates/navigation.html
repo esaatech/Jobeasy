@@ -22,6 +22,23 @@
                 Interview Prep
             </a>
             
+            <!-- Resume Dropdown - Available to all users -->
+            <a href="#" class="nav-item" onclick="toggleResumeDropdown(event)">
+                <span class="icon">📄</span>
+                Resume
+                <span class="dropdown-arrow">▼</span>
+            </a>
+            <div class="dropdown-menu" id="resume-dropdown">
+                <a href="{% url 'resume_builder:create_resume' %}" class="dropdown-item">Create Resume</a>
+                <a href="{% url 'resume_builder:resume_templates' %}" class="dropdown-item">Resume Templates</a>
+                {% if user.is_authenticated %}
+                    <a href="{% url 'resume_builder:ai_resume_assistant' %}" 
+                       onclick="return checkSubscriptionAccess('Plus')"
+                       class="dropdown-item">AI Assistant</a>
+                    <a href="{% url 'resume_builder:my_resumes' %}" class="dropdown-item">My Resumes</a>
+                {% endif %}
+            </div>
+            
             <!-- Cover Letter Link -->
             {% if user.is_authenticated %}
                 <a href="{% url 'coverletter:job_cover_letter' %}" class="nav-item">
@@ -29,25 +46,6 @@
                     Cover Letter
                 </a>
             {% endif %}
-            
-            <!-- Resume Dropdown -->
-            <div class="dropdown">
-                <a href="#" class="nav-item">
-                    <span class="icon">📄</span>
-                    Resume
-                    <span class="dropdown-arrow">▼</span>
-                </a>
-                <div class="dropdown-menu">
-                    <a href="{% url 'resume_builder:create_resume' %}" class="dropdown-item">Create Resume</a>
-                    <a href="{% url 'resume_builder:resume_templates' %}" class="dropdown-item">Resume Templates</a>
-                    {% if user.is_authenticated %}
-                        <a href="{% url 'resume_builder:ai_resume_assistant' %}" 
-                           onclick="return checkSubscriptionAccess('Plus')"
-                           class="dropdown-item">AI Assistant</a>
-                        <a href="{% url 'resume_builder:my_resumes' %}" class="dropdown-item">My Resumes</a>
-                    {% endif %}
-                </div>
-            </div>
             
             <!-- Pricing Link -->
             {% if user.is_authenticated %}
@@ -97,27 +95,28 @@
                 Interview Prep
             </a>
             
+            <!-- Resume Dropdown - Available to all users -->
+            <button class="mobile-nav-item mobile-dropdown-btn" onclick="toggleMobileDropdown(this)">
+                <span class="icon">📄</span>
+                Resume
+                <span class="dropdown-arrow">▼</span>
+            </button>
+            <div class="mobile-dropdown-menu">
+                <a href="{% url 'resume_builder:create_resume' %}" class="mobile-dropdown-item">Create Resume</a>
+                <a href="{% url 'resume_builder:resume_templates' %}" class="mobile-dropdown-item">Resume Templates</a>
+                {% if user.is_authenticated %}
+                    <a href="{% url 'resume_builder:ai_resume_assistant' %}" 
+                       onclick="return checkSubscriptionAccess('Plus')"
+                       class="mobile-dropdown-item">AI Assistant</a>
+                    <a href="{% url 'resume_builder:my_resumes' %}" class="mobile-dropdown-item">My Resumes</a>
+                {% endif %}
+            </div>
+            
             {% if user.is_authenticated %}
                 <a href="{% url 'coverletter:job_cover_letter' %}" class="mobile-nav-item">
                     <span class="icon">✉️</span>
                     Cover Letter
                 </a>
-                
-                <div class="mobile-dropdown">
-                    <button class="mobile-nav-item mobile-dropdown-btn" onclick="toggleMobileDropdown(this)">
-                        <span class="icon">📄</span>
-                        Resume
-                        <span class="dropdown-arrow">▼</span>
-                    </button>
-                    <div class="mobile-dropdown-menu">
-                        <a href="{% url 'resume_builder:create_resume' %}" class="mobile-dropdown-item">Create Resume</a>
-                        <a href="{% url 'resume_builder:resume_templates' %}" class="mobile-dropdown-item">Resume Templates</a>
-                        <a href="{% url 'resume_builder:ai_resume_assistant' %}" 
-                           onclick="return checkSubscriptionAccess('Plus')"
-                           class="mobile-dropdown-item">AI Assistant</a>
-                        <a href="{% url 'resume_builder:my_resumes' %}" class="mobile-dropdown-item">My Resumes</a>
-                    </div>
-                </div>
                 
                 <a href="{% url 'subscriptions:pricing' %}" class="mobile-nav-item">
                     <span class="icon">💰</span>
@@ -151,15 +150,18 @@
         position: sticky;
         top: 0;
         z-index: 100;
+        width: 100%;
     }
 
     .nav-container {
-        max-width: 1200px;
-        margin: 0 auto;
+        width: 100%;
+        max-width: none;
+        margin: 0;
         display: flex;
         align-items: center;
         justify-content: space-between;
         height: 70px;
+        padding: 0 2rem;
     }
 
     .logo {
@@ -184,7 +186,7 @@
 
     .nav-main {
         display: flex;
-        align-items: center;
+        align-items: baseline;
         gap: 0.5rem;
     }
 
@@ -198,8 +200,10 @@
         border-radius: 8px;
         transition: all 0.25s ease;
         display: flex;
-        align-items: center;
+        align-items: baseline;
         gap: 0.5rem;
+        line-height: 1.2;
+        vertical-align: baseline;
     }
 
     .nav-item:hover {
@@ -226,18 +230,17 @@
         border-radius: 2px;
     }
 
-    .dropdown {
-        position: relative;
-    }
-
     .dropdown-arrow {
         margin-left: 0.25rem;
         font-size: 0.75rem;
         transition: transform 0.25s ease;
-    }
-
-    .dropdown:hover .dropdown-arrow {
-        transform: rotate(180deg);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        vertical-align: baseline;
+        position: relative;
+        top: 0;
     }
 
     .dropdown-menu {
@@ -255,12 +258,14 @@
         transform: translateY(-10px);
         transition: all 0.25s ease;
         z-index: 200;
+        display: none;
     }
 
-    .dropdown:hover .dropdown-menu {
+    .dropdown-menu.show {
         opacity: 1;
         visibility: visible;
         transform: translateY(0);
+        display: block;
     }
 
     .dropdown-item {
@@ -344,6 +349,11 @@
 
     .icon {
         font-size: 1rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        vertical-align: baseline;
     }
 
     .mobile-menu-btn {
@@ -363,9 +373,9 @@
     }
 
     .mobile-menu-content {
-        padding: 1rem;
-        max-width: 1200px;
-        margin: 0 auto;
+        padding: 1rem 2rem;
+        width: 100%;
+        margin: 0;
     }
 
     .mobile-nav-item {
@@ -389,10 +399,10 @@
 
     .mobile-dropdown-btn {
         width: 100%;
-        justify-content: space-between;
         background: none;
         border: none;
         cursor: pointer;
+        text-align: left;
     }
 
     .mobile-dropdown-menu {
@@ -441,6 +451,12 @@
         color: white !important;
     }
 
+    .mobile-dropdown-btn .dropdown-arrow {
+        margin-left: auto;
+        font-size: 0.75rem;
+        transition: transform 0.25s ease;
+    }
+
     /* Mobile Responsiveness */
     @media (max-width: 768px) {
         .nav-container {
@@ -472,12 +488,33 @@
             display: block;
         }
     }
+
+    /* Simple overlap prevention */
+    @media (max-width: 1100px) {
+        .nav-welcome {
+            display: none;
+        }
+    }
 </style>
 
 <script>
     function toggleMobileMenu() {
         const mobileMenu = document.getElementById('mobile-menu');
         mobileMenu.classList.toggle('show');
+    }
+
+    function toggleResumeDropdown(event) {
+        event.preventDefault();
+        const dropdownMenu = document.getElementById('resume-dropdown');
+        const arrow = event.currentTarget.querySelector('.dropdown-arrow');
+        
+        if (dropdownMenu.classList.contains('show')) {
+            dropdownMenu.classList.remove('show');
+            arrow.style.transform = 'rotate(0deg)';
+        } else {
+            dropdownMenu.classList.add('show');
+            arrow.style.transform = 'rotate(180deg)';
+        }
     }
 
     function toggleMobileDropdown(button) {
@@ -502,6 +539,18 @@
             !mobileMenu.contains(event.target) && 
             !mobileMenuBtn.contains(event.target)) {
             mobileMenu.classList.remove('show');
+        }
+
+        // Close resume dropdown when clicking outside
+        const resumeDropdown = document.getElementById('resume-dropdown');
+        const dropdownTrigger = document.querySelector('.nav-item[onclick*="toggleResumeDropdown"]');
+        
+        if (resumeDropdown && resumeDropdown.classList.contains('show') && 
+            !resumeDropdown.contains(event.target) && 
+            !dropdownTrigger.contains(event.target)) {
+            resumeDropdown.classList.remove('show');
+            const arrow = dropdownTrigger.querySelector('.dropdown-arrow');
+            if (arrow) arrow.style.transform = 'rotate(0deg)';
         }
     });
 
