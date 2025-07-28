@@ -1,170 +1,480 @@
 <!-- Hero Section Partial -->
 {% load static %}
-<div class="w-full flex flex-col items-center justify-center py-16 px-4 bg-white">
-    <div class="flex flex-col md:flex-row md:items-center md:justify-between w-full mb-12">
-        <div class="flex-1 mb-8 md:mb-0">
-            <!-- Part 1: Main Headline -->
-            <h1 class="headline-primary mb-1 text-center" style="margin-bottom: 0.25rem;">Land Your Dream Job Fast Using AI </h1>
-            
-            <!-- Part 2-4: Product Features -->
-            <div class="hero-features mb-1 text-center" style="margin-bottom: 0.25rem;">
-                <span class="hero-feature">Generate ATS-Optimized Resumes</span>,
-                <span class="hero-feature">Customized Cover Letter</span>
-                <span class="hero-feature">and Smart Interview Prep</span>
+<div class="hero-v3">
+    <div class="container">
+        <div class="content">
+            <div>
+                <h1>Transform Your Job Search with <span class="highlight">AI-Powered Tools</span></h1>
+                <p>Stop getting rejected by ATS systems. Our intelligent platform creates optimized resumes, personalized cover letters, and provides interview coaching that gets you hired faster.</p>
+                
+                <div class="button-group">
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'dashboard:dashboard' %}" class="btn-primary">Get Started Free</a>
+                    {% else %}
+                        <a href="{% url 'authentication:register' %}" class="btn-primary">Get Started Free</a>
+                    {% endif %}
+                    <a href="{% url 'resume_builder:create_resume' %}" class="btn-secondary">Upload Resume</a>
+                </div>
             </div>
             
-            <!-- Part 5: Benefit Statement & Secondary CTA -->
-            <div class="hero-benefit mb-0 text-center" style="margin-bottom: 0;">
-                Beat the bots and impress humans. 
-                <span class="hero-secondary-cta">Or Upload your resume and we'll handle the rest.</span>
+            <div class="carousel-container">
+                <div class="carousel-3d" id="carousel3d">
+                    <div class="carousel-slide center" data-slide="0">
+                        <div class="slide-icon">📄</div>
+                        <h3 class="slide-title">ATS-Optimized Resume</h3>
+                        <p class="slide-description">Create professional resumes that pass through Applicant Tracking Systems and catch recruiters' attention.</p>
+                        <div class="slide-features">
+                            <span class="feature-tag">Keyword Optimization</span>
+                            <span class="feature-tag">ATS-Friendly Format</span>
+                            <span class="feature-tag">Professional Templates</span>
+                        </div>
+                    </div>
+                    
+                    <div class="carousel-slide left" data-slide="1">
+                        <div class="slide-icon">✉️</div>
+                        <h3 class="slide-title">Customized Cover Letter</h3>
+                        <p class="slide-description">Generate personalized cover letters tailored to each job application that showcase your unique value.</p>
+                        <div class="slide-features">
+                            <span class="feature-tag">Job-Specific Content</span>
+                            <span class="feature-tag">Personalized Tone</span>
+                            <span class="feature-tag">Compelling Copy</span>
+                        </div>
+                    </div>
+                    
+                    <div class="carousel-slide right" data-slide="2">
+                        <div class="slide-icon">🎤</div>
+                        <h3 class="slide-title">Smart Interview Prep</h3>
+                        <p class="slide-description">Practice with AI-powered mock interviews and get personalized feedback to ace your next interview.</p>
+                        <div class="slide-features">
+                            <span class="feature-tag">Mock Interviews</span>
+                            <span class="feature-tag">AI-Powered Feedback</span>
+                            <span class="feature-tag">Industry-Specific</span>
+                        </div>
+                    </div>
+                </div>
             </div>
-            
-            <div class="flex flex-wrap items-center justify-center mb-4 mt-10">
-                {% if user.is_authenticated %}
-                    <a href="{% url 'dashboard:dashboard' %}" class="hero-btn-primary">Start for Free</a>
-                {% else %}
-                    <a href="{% url 'authentication:register' %}" class="hero-btn-primary">Start for Free</a>
-                {% endif %}
-                <a href="{% url 'resume_builder:create_resume' %}" class="hero-btn-secondary">Create Resume</a>
-            </div>
-        </div>
-        <div class="flex-1 flex items-center justify-center">
-            <img src="{% static 'home/img/hero_home.png' %}" alt="Resume, Cover Letter, Interview Questions" class="w-full max-w-md mx-auto" />
-        </div>
-    </div>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 w-full mt-8">
-        <div class="feature-card min-h-[180px]">
-            <div class="headline-tertiary flex items-center mb-2" style="color: #7c3aed;">
-                <svg class="w-5 h-5 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                Resume Generator
-            </div>
-            <div class="hero-benefit">Build a professional, ATS-compliant resume from scratch or by uploading your existing one.</div>
-        </div>
-        <div class="feature-card min-h-[180px]">
-            <div class="headline-tertiary flex items-center mb-2" style="color: #7c3aed;">
-                <svg class="w-5 h-5 mr-2 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V4a2 2 0 012-2h4a2 2 0 012 2v3"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h8"></path></svg>
-                Cover Letter Writer
-            </div>
-            <div class="hero-benefit">Instantly create and optimize your cover letter to match specific job description.</div>
-        </div>
-        
-        <div class="feature-card min-h-[180px]">
-            <div class="headline-tertiary flex items-center mb-2" style="color: #7c3aed;">
-                <svg class="w-5 h-5 mr-2 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                One-Click Interview Prep
-            </div>
-            <div class="hero-benefit">When you select a job, generate targeted interview questions based on the role.</div>
-        </div>
-
-        <div class="feature-card min-h-[180px]">
-            <div class="headline-tertiary flex items-center mb-2" style="color: #7c3aed;">
-                <svg class="w-5 h-5 mr-2 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h2l1 2h13l1-2h2"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16h10"></path></svg>
-                Job Service
-            </div>
-            <div class="hero-benefit">Let us handle your entire job application process—from start to submit—so you can focus on preparing for interviews and landing your next role.</div>
         </div>
     </div>
 </div>
 
 <style>
-    .hero-btn-primary {
-        background: linear-gradient(90deg, #6366f1 0%, #06b6d4 100%);
-        color: #fff;
-        font-family: 'Inter', sans-serif;
-        font-weight: 600;
-        border-radius: 0.5rem;
-        padding: 0.75rem 2rem;
-        font-size: 1rem;
-        margin-right: 1rem;
-        box-shadow: 0 2px 8px rgba(99,102,241,0.08);
-        transition: background 0.2s;
-        margin-bottom: 0;
-    }
-    .hero-btn-primary:hover {
-        background: linear-gradient(90deg, #06b6d4 0%, #6366f1 100%);
-    }
-    .hero-btn-secondary {
-        background: #fff;
-        color: #6366f1;
-        font-family: 'Inter', sans-serif;
-        font-weight: 600;
-        border: 2px solid #6366f1;
-        border-radius: 0.5rem;
-        padding: 0.75rem 2rem;
-        font-size: 1rem;
-        transition: background 0.2s, color 0.2s;
-    }
-    .hero-btn-secondary:hover {
-        background: #6366f1;
-        color: #fff;
-    }
-    
-    /* New hero text styling */
-    .hero-features {
-        font-family: 'Inter', sans-serif;
-        font-size: 1.25rem;
-        font-weight: 500;
-        color: #374151;
-        line-height: 1.5;
-        text-align: center;
-        background: #181026;
-        border-radius: 1.5rem;
-        padding: 0.5rem 1.5rem;
-        display: inline-block;
-        margin-left: auto;
-        margin-right: auto;
-    }
-    .hero-feature {
-        color: #c6ff3a;
-        font-weight: 700;
-    }
-    .hero-benefit {
-        font-family: 'Inter', sans-serif;
-        font-size: 1.125rem;
-        color: #6b7280;
+    .hero-v3 {
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         line-height: 1.6;
-        font-style: italic;
-        text-align: center;
     }
-    .hero-secondary-cta {
-        color: #6366f1;
-        font-family: 'Montserrat', sans-serif;
+
+    .hero-v3 .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+    }
+
+    .hero-v3 .content {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 80px;
+        align-items: center;
+    }
+
+    .hero-v3 h1 {
+        font-size: 3rem;
+        font-weight: 700;
+        color: #2d3748;
+        margin-bottom: 30px;
+        line-height: 1.2;
+    }
+
+    .hero-v3 .highlight {
+        color: #667eea;
+        position: relative;
+    }
+
+    .hero-v3 .highlight::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 3px;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        border-radius: 2px;
+    }
+
+    .hero-v3 p {
+        font-size: 1.2rem;
+        color: #4a5568;
+        margin-bottom: 40px;
+        line-height: 1.6;
+    }
+
+    .button-group {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 15px 30px;
+        border-radius: 50px;
+        text-decoration: none;
         font-weight: 600;
-        font-style: normal;
-        letter-spacing: 0.01em;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
     }
-    
-    .feature-card {
-        background: #f8fafc;
-        border-radius: 1rem;
-        box-shadow: 0 2px 8px rgba(30,41,59,0.04);
-        padding: 2rem 1.5rem;
-        text-align: left;
-        font-family: 'Inter', sans-serif;
-        transition: box-shadow 0.2s;
-        border: 1px solid #e0e7ef;
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 15px 40px rgba(102, 126, 234, 0.4);
     }
-    .feature-card:hover {
-        box-shadow: 0 6px 24px rgba(99,102,241,0.10);
+
+    .btn-secondary {
+        background: white;
+        color: #667eea;
+        padding: 15px 30px;
+        border-radius: 50px;
+        text-decoration: none;
+        font-weight: 600;
+        border: 2px solid #667eea;
+        transition: all 0.3s ease;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
     }
-    @media (max-width: 640px) {
-        .hero-btn-primary {
-            margin-right: 0;
-            margin-bottom: 1rem;
-            width: 100%;
+
+    .btn-secondary:hover {
+        background: #667eea;
+        color: white;
+        transform: translateY(-2px);
+    }
+
+    /* 3D Carousel Styles */
+    .carousel-container {
+        position: relative;
+        width: 100%;
+        height: 450px;
+        perspective: 1200px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: visible;
+    }
+
+    .carousel-3d {
+        position: relative;
+        width: 450px;
+        height: 380px;
+        transform-style: preserve-3d;
+        transition: transform 1.2s ease-in-out;
+    }
+
+    .carousel-slide {
+        position: absolute;
+        width: 280px;
+        height: 360px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        border: 1px solid #e2e8f0;
+        padding: 20px;
+        backface-visibility: visible;
+        transition: all 0.3s ease;
+        left: 50%;
+        margin-left: -110px;
+        /* Ensure consistent height regardless of content */
+        min-height: 460px;
+        max-height: 460px;
+        overflow: hidden;
+    }
+
+    .carousel-slide:nth-child(1) {
+        transform: rotateY(0deg) translateZ(150px);
+    }
+
+    .carousel-slide:nth-child(2) {
+        transform: rotateY(120deg) translateZ(150px);
+    }
+
+    .carousel-slide:nth-child(3) {
+        transform: rotateY(240deg) translateZ(150px);
+    }
+
+    .slide-icon {
+        font-size: 3.2rem;
+        margin-bottom: 18px;
+        filter: drop-shadow(0 5px 15px rgba(0,0,0,0.1));
+        transition: all 0.3s ease;
+        flex-shrink: 0;
+    }
+
+    .slide-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #2d3748;
+        margin-bottom: 12px;
+        transition: all 0.3s ease;
+        flex-shrink: 0;
+        line-height: 1.2;
+    }
+
+    .slide-description {
+        font-size: 0.8rem;
+        color: #4a5568;
+        line-height: 1.4;
+        margin-bottom: 15px;
+        max-width: 180px;
+        transition: all 0.3s ease;
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .slide-features {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        width: 100%;
+        flex-shrink: 0;
+    }
+
+    .feature-tag {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 5px 10px;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: 500;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    .carousel-slide.center {
+        transform: rotateY(0deg) translateZ(170px) scale(1.0);
+        z-index: 10;
+        box-shadow: 0 25px 50px rgba(102, 126, 234, 0.3);
+        opacity: 1;
+    }
+
+    .carousel-slide.left {
+        transform: rotateY(120deg) translateZ(150px) scale(0.85);
+        opacity: 0.85;
+        z-index: 5;
+    }
+
+    .carousel-slide.right {
+        transform: rotateY(-120deg) translateZ(150px) scale(0.85);
+        opacity: 0.85;
+        z-index: 5;
+    }
+
+    .carousel-slide.center .slide-icon {
+        font-size: 3.2rem;
+    }
+
+    .carousel-slide.center .slide-title {
+        font-size: 1.3rem;
+    }
+
+    .carousel-slide.center .slide-description {
+        font-size: 0.8rem;
+    }
+
+    .carousel-slide.center .feature-tag {
+        font-size: 0.7rem;
+        padding: 5px 10px;
+    }
+
+    .carousel-slide.left .slide-icon,
+    .carousel-slide.right .slide-icon {
+        font-size: 2.8rem;
+    }
+
+    .carousel-slide.left .slide-title,
+    .carousel-slide.right .slide-title {
+        font-size: 1.1rem;
+    }
+
+    .carousel-slide.left .slide-description,
+    .carousel-slide.right .slide-description {
+        font-size: 0.75rem;
+    }
+
+    .carousel-slide.left .feature-tag,
+    .carousel-slide.right .feature-tag {
+        font-size: 0.65rem;
+        padding: 4px 8px;
+    }
+
+    .carousel-slide:hover {
+        cursor: pointer;
+    }
+
+    .carousel-slide.left:hover,
+    .carousel-slide.right:hover {
+        opacity: 0.95;
+        transform: scale(0.95);
+    }
+
+    @media (max-width: 768px) {
+        .hero-v3 .content {
+            grid-template-columns: 1fr;
+            gap: 40px;
+            text-align: center;
         }
-        .hero-btn-secondary {
-            width: 100%;
+
+        .hero-v3 h1 {
+            font-size: 2.4rem;
         }
-        .flex.flex-wrap.items-center.mb-4 {
-            flex-direction: column;
-            align-items: stretch;
+
+        .hero-v3 p {
+            font-size: 1.15rem;
+            margin-bottom: 30px;
         }
-        .hero-features {
-            font-size: 1.125rem;
+
+        .carousel-container {
+            height: 380px;
         }
-        .hero-benefit {
-            font-size: 1rem;
+
+        .carousel-3d {
+            width: 380px;
+            height: 320px;
+        }
+
+        .carousel-slide {
+            width: 200px;
+            height: 300px;
+            margin-left: -100px;
+            padding: 20px;
+            min-height: 300px;
+            max-height: 300px;
+        }
+
+        .carousel-slide .slide-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+        }
+
+        .carousel-slide .slide-title {
+            font-size: 1.3rem;
+            margin-bottom: 12px;
+        }
+
+        .carousel-slide .slide-description {
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+            max-width: 160px;
+            line-height: 1.4;
+        }
+
+        .carousel-slide .feature-tag {
+            font-size: 0.8rem;
+            padding: 6px 10px;
+        }
+
+        .carousel-slide.center .slide-icon {
+            font-size: 3.2rem;
+        }
+
+        .carousel-slide.center .slide-title {
+            font-size: 1.4rem;
+        }
+
+        .carousel-slide.center .slide-description {
+            font-size: 0.95rem;
+        }
+
+        .carousel-slide.center .feature-tag {
+            font-size: 0.85rem;
+            padding: 7px 12px;
+        }
+
+        .carousel-slide.left .slide-icon,
+        .carousel-slide.right .slide-icon {
+            font-size: 2.8rem;
+        }
+
+        .carousel-slide.left .slide-title,
+        .carousel-slide.right .slide-title {
+            font-size: 1.2rem;
+        }
+
+        .carousel-slide.left .slide-description,
+        .carousel-slide.right .slide-description {
+            font-size: 0.85rem;
+        }
+
+        .carousel-slide.left .feature-tag,
+        .carousel-slide.right .feature-tag {
+            font-size: 0.75rem;
+            padding: 5px 8px;
+        }
+
+        .button-group {
+            justify-content: center;
         }
     }
-</style> 
+</style>
+
+<script>
+    // 3D Carousel functionality
+    let currentSlide = 0;
+    const carousel = document.getElementById('carousel3d');
+    const slides = document.querySelectorAll('.carousel-slide');
+    const totalSlides = 3;
+
+    function updateSlideClasses(activeIndex) {
+        slides.forEach((slide, index) => {
+            slide.classList.remove('center', 'left', 'right');
+            
+            if (index === activeIndex) {
+                slide.classList.add('center');
+            } else if (index === (activeIndex - 1 + totalSlides) % totalSlides) {
+                slide.classList.add('right');
+            } else {
+                slide.classList.add('left');
+            }
+        });
+    }
+
+    function rotate3DCarousel(index) {
+        const angle = -index * 120;
+        carousel.style.transform = `rotateY(${angle}deg)`;
+        
+        updateSlideClasses(index);
+    }
+
+    function nextSlide() {
+        currentSlide = (currentSlide + 1) % totalSlides;
+        rotate3DCarousel(currentSlide);
+    }
+
+    // Auto-rotate every 4 seconds
+    let autoRotate = setInterval(nextSlide, 4000);
+
+    // Allow clicking on slides to focus them
+    slides.forEach((slide, index) => {
+        slide.addEventListener('click', () => {
+            const slideIndex = parseInt(slide.dataset.slide);
+            if (slideIndex !== currentSlide) {
+                currentSlide = slideIndex;
+                rotate3DCarousel(currentSlide);
+                clearInterval(autoRotate);
+                autoRotate = setInterval(nextSlide, 4000);
+            }
+        });
+    });
+
+    // Initialize the carousel
+    rotate3DCarousel(0);
+</script> 
