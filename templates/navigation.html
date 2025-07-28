@@ -1,238 +1,507 @@
 {% load static %}
-<nav class="bg-white shadow-sm">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-            <!-- Logo and Brand -->
-            <div class="flex items-center">
-                <a href="{% url 'home:index' %}" class="flex items-center">
-                    <img src="{% static 'img/logo.png' %}" alt="Jobeas Logo" class="h-10 w-auto" />
-                </a>
-            </div>
-
-            <!-- Desktop Navigation -->
-            <div class="hidden sm:flex sm:items-center sm:space-x-8">
-                <!-- Authenticated user links - Dashboard first -->
-                {% if user.is_authenticated %}
-                    <a href="{% url 'dashboard:dashboard' %}" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
-                        Dashboard
-                    </a>
-                {% endif %}
-                
-                <!-- Always visible links -->
-                <a href="{% url 'job_service:interview_prep' %}" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
-                    Interview Prep
-                </a>
-                
-                <!-- Cover Letter Link -->
-                {% if user.is_authenticated %}
-                    <a href="{% url 'coverletter:job_cover_letter' %}" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
-                        Cover Letter
-                    </a>
-                {% endif %}
-                
-                <!-- Resume Dropdown - shows different options based on authentication -->
-                <div class="relative group inline-block">
-                    <button tabindex="0" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium flex items-center focus:outline-none">
-                        Resume
-                        <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                    </button>
-                    <div class="absolute left-0 pt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50 hidden group-hover:block group-focus-within:block">
-                        <a href="{% url 'resume_builder:create_resume' %}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 flex items-center">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            Create Resume
-                        </a>
-                        <a href="{% url 'resume_builder:resume_templates' %}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">📋 Resume Templates</a>
-                        {% if user.is_authenticated %}
-                            <a href="{% url 'resume_builder:ai_resume_assistant' %}" 
-                               onclick="return checkSubscriptionAccess('Plus')"
-                               class="block px-4 py-2 text-gray-700 hover:bg-gray-100">🤖 AI Assistant</a>
-                            <a href="{% url 'resume_builder:my_resumes' %}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">My Resumes</a>
-                        {% endif %}
-                    </div>
-                </div>
-                
-                <!-- Other authenticated user links -->
-                {% if user.is_authenticated %}
-                    <a href="{% url 'subscriptions:pricing' %}" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
-                        Pricing
-                    </a>
-                    <a href="{% url 'settings:dashboard' %}" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
-                        Settings
-                    </a>
-                {% endif %}
-                
-                <!-- Authentication Links -->
-                {% if user.is_authenticated %}
-                    <div class="flex items-center space-x-4">
-                        <span class="text-sm text-gray-500">Welcome, {{ user.username }}</span>
-                        <a href="{% url 'authentication:logout' %}" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
-                            Logout
-                        </a>
-                    </div>
-                {% else %}
-                    <div class="flex items-center space-x-4">
-                        <a href="{% url 'authentication:login' %}" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium">
-                            Login
-                        </a>
-                        <a href="{% url 'authentication:register' %}" class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700">
-                            Sign Up
-                        </a>
-                    </div>
-                {% endif %}
-                
-                <!-- Language Switcher Dropdown - moved to far right 
-                <div class="relative group inline-block">
-                    <button tabindex="0" class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium flex items-center focus:outline-none">
-                        <!-- Flag icon
-                        <svg class="w-5 h-5 mr-1" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.94-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
-                        </svg>
-                        <span class="language-text">EN</span>
-                        <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                    </button>
-                    <div class="absolute right-0 pt-2 w-32 bg-white border border-gray-200 rounded-md shadow-lg z-50 hidden group-hover:block group-focus-within:block">
-                        <button onclick="changeLanguageAndClose('en', this)" class="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 flex items-center">
-                            <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                                <rect width="24" height="16" fill="#012169"/>
-                                <path d="M0 0 L24 16 M24 0 L0 16" stroke="white" stroke-width="3"/>
-                                <path d="M0 0 L24 16 M24 0 L0 16" stroke="#C8102E" stroke-width="2"/>
-                                <path d="M12 0 V24 M0 8 H24" stroke="white" stroke-width="5"/>
-                                <path d="M12 0 V24 M0 8 H24" stroke="#C8102E" stroke-width="3"/>
-                            </svg>
-                            English
-                        </button>
-                        <button onclick="changeLanguageAndClose('fr', this)" class="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 flex items-center">
-                            <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                                <rect width="8" height="16" fill="#002395"/>
-                                <rect x="8" width="8" height="16" fill="white"/>
-                                <rect x="16" width="8" height="16" fill="#ED2939"/>
-                            </svg>
-                            Français
-                        </button>
-                        <button onclick="changeLanguageAndClose('es', this)" class="w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 flex items-center">
-                            <svg class="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
-                                <rect width="24" height="8" fill="#AA151B"/>
-                                <rect y="8" width="24" height="8" fill="yellow"/>
-                                <rect y="16" width="24" height="8" fill="#AA151B"/>
-                            </svg>
-                            Español
-                        </button>
-                    </div>
-                </div>
-                -->
-            </div>
-
-            <!-- Mobile menu button -->
-            <div class="sm:hidden flex items-center">
-                <button type="button" 
-                        class="mobile-menu-button inline-flex items-center justify-center p-2 rounded-md text-gray-700 hover:text-blue-600 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
-                        aria-controls="mobile-menu" 
-                        aria-expanded="false">
-                    <span class="sr-only">Open main menu</span>
-                    <!-- Icon when menu is closed -->
-                    <svg class="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-                    </svg>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Mobile menu -->
-    <div class="sm:hidden hidden" id="mobile-menu">
-        <div class="px-2 pt-2 pb-3 space-y-1">
+<nav class="navbar">
+    <div class="nav-container">
+        <!-- Logo and Brand -->
+        <a href="{% url 'home:index' %}" class="logo">
+            <span class="logo-emoji">💼</span>
+            <img src="{% static 'img/logo.png' %}" alt="Jobeas Logo" class="logo-image" />
+        </a>
+        
+        <div class="nav-main">
             <!-- Authenticated user links - Dashboard first -->
             {% if user.is_authenticated %}
-                <a href="{% url 'dashboard:dashboard' %}" class="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
+                <a href="{% url 'dashboard:dashboard' %}" class="nav-item {% if request.resolver_match.namespace == 'dashboard' %}active{% endif %}">
+                    <span class="icon">📊</span>
                     Dashboard
                 </a>
             {% endif %}
             
             <!-- Always visible links -->
-            <a href="{% url 'job_service:interview_prep' %}" class="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
+            <a href="{% url 'job_service:interview_prep' %}" class="nav-item">
+                <span class="icon">💬</span>
                 Interview Prep
             </a>
             
-            <!-- Cover Letter Link for Mobile -->
+            <!-- Cover Letter Link -->
             {% if user.is_authenticated %}
-                <a href="{% url 'coverletter:job_cover_letter' %}" class="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
+                <a href="{% url 'coverletter:job_cover_letter' %}" class="nav-item">
+                    <span class="icon">✉️</span>
                     Cover Letter
                 </a>
             {% endif %}
             
-            <!-- Resume Dropdown for Mobile -->
-            <div class="block">
-                <button type="button" class="w-full text-left text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium flex items-center focus:outline-none" onclick="this.nextElementSibling.classList.toggle('hidden')">
+            <!-- Resume Dropdown -->
+            <div class="dropdown">
+                <a href="#" class="nav-item">
+                    <span class="icon">📄</span>
                     Resume
-                    <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
-                </button>
-                <div class="hidden ml-4">
-                    <a href="{% url 'resume_builder:create_resume' %}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100 flex items-center">
-                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
-                        Create Resume
-                    </a>
-                    <a href="{% url 'resume_builder:resume_templates' %}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">📋 Resume Templates</a>
+                    <span class="dropdown-arrow">▼</span>
+                </a>
+                <div class="dropdown-menu">
+                    <a href="{% url 'resume_builder:create_resume' %}" class="dropdown-item">Create Resume</a>
+                    <a href="{% url 'resume_builder:resume_templates' %}" class="dropdown-item">Resume Templates</a>
                     {% if user.is_authenticated %}
                         <a href="{% url 'resume_builder:ai_resume_assistant' %}" 
                            onclick="return checkSubscriptionAccess('Plus')"
-                           class="block px-4 py-2 text-gray-700 hover:bg-gray-100">🤖 AI Assistant</a>
-                        <a href="{% url 'resume_builder:my_resumes' %}" class="block px-4 py-2 text-gray-700 hover:bg-gray-100">My Resumes</a>
+                           class="dropdown-item">AI Assistant</a>
+                        <a href="{% url 'resume_builder:my_resumes' %}" class="dropdown-item">My Resumes</a>
                     {% endif %}
                 </div>
             </div>
             
-            <!-- Other authenticated user links -->
+            <!-- Pricing Link -->
             {% if user.is_authenticated %}
-                <a href="{% url 'subscriptions:pricing' %}" class="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
+                <a href="{% url 'subscriptions:pricing' %}" class="nav-item">
+                    <span class="icon">💰</span>
                     Pricing
                 </a>
-                <a href="{% url 'settings:dashboard' %}" class="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
-                    Settings
+            {% endif %}
+        </div>
+
+        <div class="nav-separator"></div>
+
+        <div class="nav-user">
+            {% if user.is_authenticated %}
+                <span class="nav-welcome">Welcome, <strong>{{ user.username }}</strong></span>
+                <div class="nav-user-actions">
+                    <a href="{% url 'settings:dashboard' %}" class="btn-secondary">
+                        <span class="icon">⚙️</span>
+                        Settings
+                    </a>
+                    <a href="{% url 'authentication:logout' %}" class="btn-primary">Logout</a>
+                </div>
+            {% else %}
+                <div class="nav-user-actions">
+                    <a href="{% url 'authentication:login' %}" class="btn-secondary">Login</a>
+                    <a href="{% url 'authentication:register' %}" class="btn-primary">Sign Up</a>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Mobile menu button -->
+        <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+    </div>
+
+    <!-- Mobile menu -->
+    <div class="mobile-menu" id="mobile-menu">
+        <div class="mobile-menu-content">
+            {% if user.is_authenticated %}
+                <a href="{% url 'dashboard:dashboard' %}" class="mobile-nav-item">
+                    <span class="icon">📊</span>
+                    Dashboard
                 </a>
             {% endif %}
             
-            <!-- Mobile Authentication Links -->
+            <a href="{% url 'job_service:interview_prep' %}" class="mobile-nav-item">
+                <span class="icon">💬</span>
+                Interview Prep
+            </a>
+            
             {% if user.is_authenticated %}
-                <div class="border-t border-gray-200 pt-4">
-                    <div class="px-3 py-2 text-sm text-gray-500">Welcome, {{ user.username }}</div>
-                    <a href="{% url 'authentication:logout' %}" class="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
-                        Logout
+                <a href="{% url 'coverletter:job_cover_letter' %}" class="mobile-nav-item">
+                    <span class="icon">✉️</span>
+                    Cover Letter
+                </a>
+                
+                <div class="mobile-dropdown">
+                    <button class="mobile-nav-item mobile-dropdown-btn" onclick="toggleMobileDropdown(this)">
+                        <span class="icon">📄</span>
+                        Resume
+                        <span class="dropdown-arrow">▼</span>
+                    </button>
+                    <div class="mobile-dropdown-menu">
+                        <a href="{% url 'resume_builder:create_resume' %}" class="mobile-dropdown-item">Create Resume</a>
+                        <a href="{% url 'resume_builder:resume_templates' %}" class="mobile-dropdown-item">Resume Templates</a>
+                        <a href="{% url 'resume_builder:ai_resume_assistant' %}" 
+                           onclick="return checkSubscriptionAccess('Plus')"
+                           class="mobile-dropdown-item">AI Assistant</a>
+                        <a href="{% url 'resume_builder:my_resumes' %}" class="mobile-dropdown-item">My Resumes</a>
+                    </div>
+                </div>
+                
+                <a href="{% url 'subscriptions:pricing' %}" class="mobile-nav-item">
+                    <span class="icon">💰</span>
+                    Pricing
+                </a>
+                
+                <div class="mobile-user-section">
+                    <div class="mobile-welcome">Welcome, {{ user.username }}</div>
+                    <a href="{% url 'settings:dashboard' %}" class="mobile-nav-item">
+                        <span class="icon">⚙️</span>
+                        Settings
                     </a>
+                    <a href="{% url 'authentication:logout' %}" class="mobile-nav-item mobile-logout">Logout</a>
                 </div>
             {% else %}
-                <div class="border-t border-gray-200 pt-4">
-                    <a href="{% url 'authentication:login' %}" class="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
-                        Login
-                    </a>
-                    <a href="{% url 'authentication:register' %}" class="bg-blue-600 text-white block px-3 py-2 rounded-md text-base font-medium hover:bg-blue-700">
-                        Sign Up
-                    </a>
+                <div class="mobile-user-section">
+                    <a href="{% url 'authentication:login' %}" class="mobile-nav-item">Login</a>
+                    <a href="{% url 'authentication:register' %}" class="mobile-nav-item mobile-signup">Sign Up</a>
                 </div>
             {% endif %}
         </div>
     </div>
 </nav>
 
+<style>
+    .navbar {
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border-bottom: 1px solid #e2e8f0;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+        padding: 0 2rem;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+
+    .nav-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 70px;
+    }
+
+    .logo {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #2563eb;
+        text-decoration: none;
+        letter-spacing: -0.5px;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .logo-emoji {
+        font-size: 1.5rem;
+    }
+
+    .logo-image {
+        height: 2rem;
+        width: auto;
+    }
+
+    .nav-main {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .nav-item {
+        position: relative;
+        padding: 0.75rem 1.25rem;
+        color: #64748b;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 0.95rem;
+        border-radius: 8px;
+        transition: all 0.25s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .nav-item:hover {
+        color: #2563eb;
+        background: rgba(37, 99, 235, 0.05);
+        transform: translateY(-1px);
+    }
+
+    .nav-item.active {
+        color: #2563eb;
+        background: rgba(37, 99, 235, 0.1);
+        font-weight: 600;
+    }
+
+    .nav-item.active::after {
+        content: "";
+        position: absolute;
+        bottom: -2px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 20px;
+        height: 3px;
+        background: #2563eb;
+        border-radius: 2px;
+    }
+
+    .dropdown {
+        position: relative;
+    }
+
+    .dropdown-arrow {
+        margin-left: 0.25rem;
+        font-size: 0.75rem;
+        transition: transform 0.25s ease;
+    }
+
+    .dropdown:hover .dropdown-arrow {
+        transform: rotate(180deg);
+    }
+
+    .dropdown-menu {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        padding: 0.75rem 0;
+        min-width: 180px;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-10px);
+        transition: all 0.25s ease;
+        z-index: 200;
+    }
+
+    .dropdown:hover .dropdown-menu {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+
+    .dropdown-item {
+        display: block;
+        padding: 0.75rem 1.25rem;
+        color: #64748b;
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: all 0.2s ease;
+    }
+
+    .dropdown-item:hover {
+        background: #f8fafc;
+        color: #2563eb;
+    }
+
+    .nav-separator {
+        width: 1px;
+        height: 24px;
+        background: #e2e8f0;
+        margin: 0 1rem;
+    }
+
+    .nav-user {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .nav-welcome {
+        font-size: 0.9rem;
+        color: #64748b;
+        font-weight: 500;
+    }
+
+    .nav-user-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-secondary {
+        padding: 0.5rem 1rem;
+        color: #64748b;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 0.9rem;
+        border-radius: 6px;
+        transition: all 0.25s ease;
+        border: 1px solid #e2e8f0;
+        background: white;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-secondary:hover {
+        color: #374151;
+        border-color: #d1d5db;
+        background: #f9fafb;
+    }
+
+    .btn-primary {
+        padding: 0.5rem 1rem;
+        background: #dc2626;
+        color: white;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 0.9rem;
+        border-radius: 6px;
+        transition: all 0.25s ease;
+        border: 1px solid #dc2626;
+    }
+
+    .btn-primary:hover {
+        background: #b91c1c;
+        border-color: #b91c1c;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(220, 38, 38, 0.2);
+    }
+
+    .icon {
+        font-size: 1rem;
+    }
+
+    .mobile-menu-btn {
+        display: none;
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        color: #64748b;
+        cursor: pointer;
+    }
+
+    .mobile-menu {
+        display: none;
+        background: white;
+        border-top: 1px solid #e2e8f0;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .mobile-menu-content {
+        padding: 1rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .mobile-nav-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        color: #64748b;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 1rem;
+        border-radius: 8px;
+        transition: all 0.2s ease;
+        margin-bottom: 0.25rem;
+    }
+
+    .mobile-nav-item:hover {
+        background: #f8fafc;
+        color: #2563eb;
+    }
+
+    .mobile-dropdown-btn {
+        width: 100%;
+        justify-content: space-between;
+        background: none;
+        border: none;
+        cursor: pointer;
+    }
+
+    .mobile-dropdown-menu {
+        display: none;
+        margin-left: 1rem;
+        border-left: 2px solid #e2e8f0;
+        padding-left: 1rem;
+    }
+
+    .mobile-dropdown-item {
+        display: block;
+        padding: 0.5rem 1rem;
+        color: #64748b;
+        text-decoration: none;
+        font-size: 0.9rem;
+        border-radius: 6px;
+        margin-bottom: 0.25rem;
+        transition: all 0.2s ease;
+    }
+
+    .mobile-dropdown-item:hover {
+        background: #f8fafc;
+        color: #2563eb;
+    }
+
+    .mobile-user-section {
+        border-top: 1px solid #e2e8f0;
+        padding-top: 1rem;
+        margin-top: 1rem;
+    }
+
+    .mobile-welcome {
+        font-size: 0.9rem;
+        color: #64748b;
+        font-weight: 500;
+        margin-bottom: 0.75rem;
+        padding: 0 1rem;
+    }
+
+    .mobile-logout {
+        color: #dc2626 !important;
+    }
+
+    .mobile-signup {
+        background: #2563eb;
+        color: white !important;
+    }
+
+    /* Mobile Responsiveness */
+    @media (max-width: 768px) {
+        .nav-container {
+            padding: 0 1rem;
+            height: 60px;
+        }
+
+        .nav-main {
+            display: none;
+        }
+
+        .nav-separator {
+            display: none;
+        }
+
+        .nav-welcome {
+            display: none;
+        }
+
+        .nav-user-actions {
+            display: none;
+        }
+
+        .mobile-menu-btn {
+            display: block;
+        }
+
+        .mobile-menu.show {
+            display: block;
+        }
+    }
+</style>
+
 <script>
-    // Mobile menu toggle
-    document.querySelector('.mobile-menu-button').addEventListener('click', function() {
-        document.getElementById('mobile-menu').classList.toggle('hidden');
-    });
+    function toggleMobileMenu() {
+        const mobileMenu = document.getElementById('mobile-menu');
+        mobileMenu.classList.toggle('show');
+    }
+
+    function toggleMobileDropdown(button) {
+        const dropdownMenu = button.nextElementSibling;
+        const arrow = button.querySelector('.dropdown-arrow');
+        
+        if (dropdownMenu.style.display === 'block') {
+            dropdownMenu.style.display = 'none';
+            arrow.style.transform = 'rotate(0deg)';
+        } else {
+            dropdownMenu.style.display = 'block';
+            arrow.style.transform = 'rotate(180deg)';
+        }
+    }
 
     // Close mobile menu when clicking outside
     document.addEventListener('click', function(event) {
         const mobileMenu = document.getElementById('mobile-menu');
-        const mobileMenuButton = document.querySelector('.mobile-menu-button');
+        const mobileMenuBtn = document.querySelector('.mobile-menu-btn');
         
-        // Check if mobile menu is open and click is outside of it
-        if (!mobileMenu.classList.contains('hidden') && 
+        if (mobileMenu.classList.contains('show') && 
             !mobileMenu.contains(event.target) && 
-            !mobileMenuButton.contains(event.target)) {
-            mobileMenu.classList.add('hidden');
+            !mobileMenuBtn.contains(event.target)) {
+            mobileMenu.classList.remove('show');
         }
     });
 
@@ -240,83 +509,9 @@
     document.addEventListener('keydown', function(event) {
         if (event.key === 'Escape') {
             const mobileMenu = document.getElementById('mobile-menu');
-            if (!mobileMenu.classList.contains('hidden')) {
-                mobileMenu.classList.add('hidden');
+            if (mobileMenu.classList.contains('show')) {
+                mobileMenu.classList.remove('show');
             }
         }
-    });
-
-    // Language switcher function
-    async function changeLanguage(lang) {
-        try {
-            // Update the displayed language text
-            const languageTexts = document.querySelectorAll('.language-text');
-            const langLabels = {
-                'en': 'EN',
-                'fr': 'FR', 
-                'es': 'ES'
-            };
-            
-            languageTexts.forEach(text => {
-                text.textContent = langLabels[lang];
-            });
-
-            // Wait for i18next to be ready
-            if (window.i18next && i18next.isInitialized) {
-                await i18next.changeLanguage(lang);
-                
-                // Update all elements with data-i18n attributes
-                document.querySelectorAll('[data-i18n]').forEach(element => {
-                    const key = element.getAttribute('data-i18n');
-                    const translation = i18next.t(key);
-                    if (translation && translation !== key) {
-                        element.textContent = translation;
-                    }
-                });
-            } else {
-                console.log('i18next not ready yet, will retry...');
-                // Retry after a short delay
-                setTimeout(() => changeLanguage(lang), 100);
-                return;
-            }
-
-            // Store the language preference
-            localStorage.setItem('preferred-language', lang);
-            
-            console.log('Language changed to:', lang);
-        } catch (error) {
-            console.error('Error changing language:', error);
-        }
-    }
-
-    // Desktop language change with dropdown close
-    async function changeLanguageAndClose(lang, buttonElement) {
-        await changeLanguage(lang);
-        // Close the dropdown by removing focus
-        buttonElement.closest('.group').querySelector('button').blur();
-    }
-
-    // Mobile language change with dropdown close
-    async function changeLanguageAndCloseMobile(lang) {
-        await changeLanguage(lang);
-        // Close the mobile dropdown
-        const mobileDropdown = document.querySelector('#mobile-menu .block:has(button[onclick*="changeLanguageAndCloseMobile"]) .hidden');
-        if (mobileDropdown) {
-            mobileDropdown.classList.add('hidden');
-        }
-    }
-
-    // Initialize language on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        // Wait for i18next to be ready before trying to change language
-        const checkI18next = () => {
-            if (window.i18next && i18next.isInitialized) {
-                const savedLang = localStorage.getItem('preferred-language') || 'en';
-                changeLanguage(savedLang);
-            } else {
-                setTimeout(checkI18next, 100);
-            }
-        };
-        checkI18next();
     });
 </script> 
