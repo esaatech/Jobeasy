@@ -3,7 +3,7 @@
 <div class="hero-v3">
     <div class="container">
         <div class="content">
-            <div>
+            <div class="hero-text">
                 <h1>Transform Your Job Search with <span class="highlight">AI-Powered Tools</span></h1>
                 <p>Stop getting rejected by ATS systems. Our intelligent platform creates optimized resumes, personalized cover letters, and provides interview coaching that gets you hired faster.</p>
                 
@@ -17,50 +17,58 @@
                 </div>
             </div>
             
-            <div class="carousel-container">
-                <div class="carousel" id="carousel">
-                    <div class="carousel-slide active" data-slide="0">
-                        <div class="slide-icon">📄</div>
-                        <h3 class="slide-title">ATS-Optimized Resume</h3>
-                        <p class="slide-description">Create professional resumes that pass through Applicant Tracking Systems and catch recruiters' attention.</p>
-                        <div class="slide-features">
-                            <span class="feature-tag">Keyword Optimization</span>
-                            <span class="feature-tag">ATS-Friendly Format</span>
-                            <span class="feature-tag">Professional Templates</span>
+            <div class="carousel-section">
+                <div class="carousel-container">
+                    <div class="carousel" id="carousel">
+                        <div class="carousel-slide active" data-slide="0">
+                            <div class="slide-content">
+                                <div class="slide-icon">📄</div>
+                                <h3 class="slide-title">ATS-Optimized Resume</h3>
+                                <p class="slide-description">Create professional resumes that pass through Applicant Tracking Systems and catch recruiters' attention.</p>
+                                <div class="slide-features">
+                                    <span class="feature-tag">Keyword Optimization</span>
+                                    <span class="feature-tag">ATS-Friendly Format</span>
+                                    <span class="feature-tag">Professional Templates</span>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <div class="carousel-slide" data-slide="1">
-                        <div class="slide-icon">✉️</div>
-                        <h3 class="slide-title">Customized Cover Letter</h3>
-                        <p class="slide-description">Generate personalized cover letters tailored to each job application that showcase your unique value.</p>
-                        <div class="slide-features">
-                            <span class="feature-tag">Job-Specific Content</span>
-                            <span class="feature-tag">Personalized Tone</span>
-                            <span class="feature-tag">Compelling Copy</span>
+                        
+                        <div class="carousel-slide" data-slide="1">
+                            <div class="slide-content">
+                                <div class="slide-icon">✉️</div>
+                                <h3 class="slide-title">Customized Cover Letter</h3>
+                                <p class="slide-description">Generate personalized cover letters tailored to each job application that showcase your unique value.</p>
+                                <div class="slide-features">
+                                    <span class="feature-tag">Job-Specific Content</span>
+                                    <span class="feature-tag">Personalized Tone</span>
+                                    <span class="feature-tag">Compelling Copy</span>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <div class="carousel-slide" data-slide="2">
-                        <div class="slide-icon">🎤</div>
-                        <h3 class="slide-title">Smart Interview Prep</h3>
-                        <p class="slide-description">Practice with AI-powered mock interviews and get personalized feedback to ace your next interview.</p>
-                        <div class="slide-features">
-                            <span class="feature-tag">Mock Interviews</span>
-                            <span class="feature-tag">AI-Powered Feedback</span>
-                            <span class="feature-tag">Industry-Specific</span>
+                        
+                        <div class="carousel-slide" data-slide="2">
+                            <div class="slide-content">
+                                <div class="slide-icon">🎤</div>
+                                <h3 class="slide-title">Smart Interview Prep</h3>
+                                <p class="slide-description">Practice with AI-powered mock interviews and get personalized feedback to ace your next interview.</p>
+                                <div class="slide-features">
+                                    <span class="feature-tag">Mock Interviews</span>
+                                    <span class="feature-tag">AI-Powered Feedback</span>
+                                    <span class="feature-tag">Industry-Specific</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
                 
                 <div class="carousel-controls">
-                    <button class="carousel-btn prev" onclick="prevSlide()">‹</button>
+                    <button class="carousel-btn prev" onclick="prevSlide()" aria-label="Previous slide">‹</button>
                     <div class="carousel-dots">
-                        <span class="dot active" onclick="goToSlide(0)"></span>
-                        <span class="dot" onclick="goToSlide(1)"></span>
-                        <span class="dot" onclick="goToSlide(2)"></span>
+                        <span class="dot active" onclick="goToSlide(0)" aria-label="Go to slide 1"></span>
+                        <span class="dot" onclick="goToSlide(1)" aria-label="Go to slide 2"></span>
+                        <span class="dot" onclick="goToSlide(2)" aria-label="Go to slide 3"></span>
                     </div>
-                    <button class="carousel-btn next" onclick="nextSlide()">›</button>
+                    <button class="carousel-btn next" onclick="nextSlide()" aria-label="Next slide">›</button>
                 </div>
             </div>
         </div>
@@ -75,13 +83,15 @@
         align-items: center;
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         line-height: 1.6;
-        overflow: hidden; /* Prevent horizontal overflow */
+        padding: 1rem 0;
+        box-sizing: border-box;
+        overflow-x: hidden;
     }
 
     .hero-v3 .container {
         max-width: 1200px;
         margin: 0 auto;
-        padding: 0 2rem;
+        padding: 0 1.5rem;
         width: 100%;
         box-sizing: border-box;
     }
@@ -89,35 +99,24 @@
     .hero-v3 .content {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 80px;
+        gap: 3rem;
         align-items: center;
         max-width: 100%;
-        overflow-wrap: break-word;
-        word-break: break-word;
-        min-height: 600px;
     }
 
-    .hero-v3 .content > div:first-child {
+    .hero-text {
         display: flex;
         flex-direction: column;
         justify-content: center;
     }
 
-    .hero-v3 .content > div:last-child {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-
     .hero-v3 h1 {
-        font-size: 3rem;
+        font-size: clamp(2.5rem, 4.5vw, 3.5rem);
         font-weight: 700;
         color: #2d3748;
-        margin-bottom: 30px;
-        line-height: 1.2;
+        margin-bottom: 1.5rem;
+        line-height: 1.1;
         max-width: 100%;
-        overflow-wrap: break-word;
-        word-break: break-word;
     }
 
     .hero-v3 .highlight {
@@ -137,18 +136,16 @@
     }
 
     .hero-v3 p {
-        font-size: 1.2rem;
+        font-size: clamp(1.1rem, 2vw, 1.3rem);
         color: #4a5568;
-        margin-bottom: 40px;
-        line-height: 1.6;
+        margin-bottom: 2rem;
+        line-height: 1.5;
         max-width: 100%;
-        overflow-wrap: break-word;
-        word-break: break-word;
     }
 
     .button-group {
         display: flex;
-        gap: 20px;
+        gap: 1rem;
         flex-wrap: wrap;
         max-width: 100%;
         justify-content: flex-start;
@@ -157,7 +154,7 @@
     .btn-primary {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
-        padding: 15px 30px;
+        padding: 1rem 2rem;
         border-radius: 50px;
         text-decoration: none;
         font-weight: 600;
@@ -168,6 +165,7 @@
         white-space: nowrap;
         text-align: center;
         min-width: fit-content;
+        font-size: clamp(0.9rem, 1.5vw, 1rem);
     }
 
     .btn-primary:hover {
@@ -178,7 +176,7 @@
     .btn-secondary {
         background: white;
         color: #667eea;
-        padding: 15px 30px;
+        padding: 1rem 2rem;
         border-radius: 50px;
         text-decoration: none;
         font-weight: 600;
@@ -188,6 +186,7 @@
         white-space: nowrap;
         text-align: center;
         min-width: fit-content;
+        font-size: clamp(0.9rem, 1.5vw, 1rem);
     }
 
     .btn-secondary:hover {
@@ -196,24 +195,30 @@
         transform: translateY(-2px);
     }
 
-    /* Regular Carousel Styles */
-    .carousel-container {
-        position: relative;
-        width: 100%;
-        max-width: 400px;
-        height: 500px;
-        margin: 0 auto;
-        overflow: visible;
+    /* Carousel Section */
+    .carousel-section {
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
+        width: 100%;
+        max-width: 450px;
+        margin: 0 auto;
+    }
+
+    .carousel-container {
+        position: relative;
+        width: 100%;
+        max-width: 400px;
+        aspect-ratio: 1/1.2;
+        margin: 0 auto 1.5rem auto;
+        overflow: visible;
     }
 
     .carousel {
         position: relative;
         width: 100%;
-        height: 450px;
+        height: 100%;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -222,17 +227,14 @@
     .carousel-slide {
         position: absolute;
         width: 100%;
-        max-width: 350px;
+        height: 100%;
         display: flex;
-        flex-direction: column;
         align-items: center;
         justify-content: center;
-        text-align: center;
         background: white;
         border-radius: 20px;
         box-shadow: 0 15px 35px rgba(0,0,0,0.15);
         border: 1px solid #e2e8f0;
-        padding: 30px 20px;
         transition: all 0.5s ease-in-out;
         opacity: 0;
         transform: translateX(100%);
@@ -240,7 +242,8 @@
         left: 0;
         right: 0;
         margin: 0 auto;
-        min-height: 400px;
+        box-sizing: border-box;
+        overflow: hidden;
     }
 
     .carousel-slide.active {
@@ -248,48 +251,74 @@
         transform: translateX(0);
     }
 
+    .slide-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+        text-align: center;
+        width: 100%;
+        height: 100%;
+        padding: 1.5rem;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+
     .slide-icon {
-        font-size: 3.5rem;
-        margin-bottom: 20px;
+        font-size: min(4rem, 12vw);
+        margin-bottom: 0.75rem;
         filter: drop-shadow(0 5px 15px rgba(0,0,0,0.1));
         transition: all 0.3s ease;
+        flex-shrink: 0;
+        line-height: 1;
     }
 
     .slide-title {
-        font-size: 1.5rem;
+        font-size: min(1.6rem, 4.5vw);
         font-weight: 700;
         color: #2d3748;
-        margin-bottom: 15px;
+        margin-bottom: 0.5rem;
         transition: all 0.3s ease;
         line-height: 1.2;
+        flex-shrink: 0;
     }
 
     .slide-description {
-        font-size: 1rem;
+        font-size: min(1rem, 2.8vw);
         color: #4a5568;
-        line-height: 1.5;
-        margin-bottom: 20px;
-        max-width: 280px;
+        line-height: 1.4;
+        margin-bottom: 1rem;
+        max-width: 100%;
         transition: all 0.3s ease;
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 0;
     }
 
     .slide-features {
         display: flex;
         flex-direction: column;
-        gap: 8px;
+        gap: 0.5rem;
         width: 100%;
-        max-width: 250px;
+        max-width: 100%;
+        flex-shrink: 0;
     }
 
     .feature-tag {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
-        padding: 8px 12px;
+        padding: 0.5rem 0.75rem;
         border-radius: 12px;
-        font-size: 0.8rem;
+        font-size: min(0.9rem, 2.5vw);
         font-weight: 500;
         text-align: center;
         transition: all 0.3s ease;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: 1.2;
     }
 
     /* Carousel Controls */
@@ -297,8 +326,10 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        gap: 20px;
-        margin-top: 20px;
+        gap: 1.5rem;
+        width: 100%;
+        max-width: 400px;
+        margin: 0 auto;
     }
 
     .carousel-btn {
@@ -306,9 +337,9 @@
         color: white;
         border: none;
         border-radius: 50%;
-        width: 40px;
-        height: 40px;
-        font-size: 1.2rem;
+        width: min(3rem, 8vw);
+        height: min(3rem, 8vw);
+        font-size: min(1.5rem, 4vw);
         font-weight: bold;
         cursor: pointer;
         transition: all 0.3s ease;
@@ -316,6 +347,7 @@
         align-items: center;
         justify-content: center;
         box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        flex-shrink: 0;
     }
 
     .carousel-btn:hover {
@@ -325,16 +357,18 @@
 
     .carousel-dots {
         display: flex;
-        gap: 8px;
+        gap: 0.75rem;
+        align-items: center;
     }
 
     .dot {
-        width: 12px;
-        height: 12px;
+        width: min(0.875rem, 2.5vw);
+        height: min(0.875rem, 2.5vw);
         border-radius: 50%;
         background: #cbd5e0;
         cursor: pointer;
         transition: all 0.3s ease;
+        flex-shrink: 0;
     }
 
     .dot.active {
@@ -342,36 +376,63 @@
         transform: scale(1.2);
     }
 
+    /* Tablet Styles */
+    @media (max-width: 1024px) {
+        .hero-v3 .content {
+            gap: 2.5rem;
+        }
+        
+        .carousel-container {
+            max-width: 380px;
+        }
+    }
+
+    /* Mobile Styles */
     @media (max-width: 768px) {
+        .hero-v3 {
+            min-height: auto;
+            padding: 2rem 0;
+        }
+
         .hero-v3 .container {
             padding: 0 1rem;
         }
 
         .hero-v3 .content {
             grid-template-columns: 1fr;
-            gap: 40px;
+            gap: 2.5rem;
             text-align: center;
-            padding: 0 1rem;
+        }
+
+        .hero-text {
+            order: 1;
+        }
+
+        .carousel-section {
+            order: 2;
+            max-width: 100%;
+        }
+
+        .carousel-container {
+            max-width: 320px;
+        }
+
+        .slide-content {
+            padding: 1.25rem;
         }
 
         .hero-v3 h1 {
-            font-size: 2.4rem;
-            line-height: 1.3;
-            margin-bottom: 20px;
-            padding: 0 0.5rem;
+            margin-bottom: 1rem;
         }
 
         .hero-v3 p {
-            font-size: 1.15rem;
-            margin-bottom: 30px;
-            padding: 0 0.5rem;
-            line-height: 1.5;
+            margin-bottom: 1.5rem;
         }
 
         .button-group {
             flex-direction: column;
             align-items: center;
-            gap: 15px;
+            gap: 1rem;
             width: 100%;
             max-width: 300px;
             margin: 0 auto;
@@ -381,164 +442,70 @@
         .btn-secondary {
             width: 100%;
             max-width: 280px;
-            padding: 12px 24px;
-            font-size: 0.95rem;
-        }
-
-        .carousel-container {
-            max-width: 350px;
-            height: 480px;
-            margin: 0 auto;
-        }
-
-        .carousel {
-            height: 430px;
-        }
-
-        .carousel-slide {
-            padding: 25px 15px;
-            min-height: 380px;
-        }
-
-        .slide-icon {
-            font-size: 3rem;
-            margin-bottom: 15px;
-        }
-
-        .slide-title {
-            font-size: 1.3rem;
-            margin-bottom: 12px;
-        }
-
-        .slide-description {
-            font-size: 0.9rem;
-            margin-bottom: 15px;
-            max-width: 250px;
-        }
-
-        .slide-features {
-            gap: 6px;
-            max-width: 220px;
-        }
-
-        .feature-tag {
-            font-size: 0.75rem;
-            padding: 6px 10px;
-        }
-
-        .carousel-controls {
-            margin-top: 15px;
-            gap: 15px;
-        }
-
-        .carousel-btn {
-            width: 35px;
-            height: 35px;
-            font-size: 1rem;
-        }
-
-        .dot {
-            width: 10px;
-            height: 10px;
+            padding: 1rem 1.5rem;
         }
     }
 
+    /* Small Mobile Styles */
     @media (max-width: 480px) {
+        .hero-v3 {
+            padding: 1.5rem 0;
+        }
+
         .hero-v3 .container {
             padding: 0 0.75rem;
         }
 
         .hero-v3 .content {
-            padding: 0 0.5rem;
-            gap: 30px;
+            gap: 2rem;
         }
 
         .hero-v3 h1 {
-            font-size: 2rem;
-            line-height: 1.4;
-            margin-bottom: 15px;
-            padding: 0 0.25rem;
+            margin-bottom: 0.75rem;
         }
 
         .hero-v3 p {
-            font-size: 1rem;
-            margin-bottom: 25px;
-            padding: 0 0.25rem;
-            line-height: 1.6;
+            margin-bottom: 1.25rem;
         }
 
         .button-group {
             max-width: 260px;
-            gap: 12px;
+            gap: 0.75rem;
         }
 
         .btn-primary,
         .btn-secondary {
             max-width: 240px;
-            padding: 10px 20px;
-            font-size: 0.9rem;
+            padding: 0.875rem 1.25rem;
         }
 
         .carousel-container {
-            max-width: 300px;
-            height: 450px;
+            max-width: 280px;
         }
 
-        .carousel {
-            height: 400px;
+        .slide-content {
+            padding: 1rem;
+        }
+    }
+
+    /* Extra Small Mobile Styles */
+    @media (max-width: 360px) {
+        .hero-v3 .container {
+            padding: 0 0.5rem;
         }
 
-        .carousel-slide {
-            padding: 20px 12px;
-            min-height: 350px;
+        .carousel-container {
+            max-width: 260px;
         }
 
-        .slide-icon {
-            font-size: 2.5rem;
-            margin-bottom: 12px;
-        }
-
-        .slide-title {
-            font-size: 1.1rem;
-            margin-bottom: 10px;
-        }
-
-        .slide-description {
-            font-size: 0.8rem;
-            margin-bottom: 12px;
-            max-width: 220px;
-        }
-
-        .slide-features {
-            gap: 5px;
-            max-width: 200px;
-        }
-
-        .feature-tag {
-            font-size: 0.7rem;
-            padding: 5px 8px;
-        }
-
-        .carousel-controls {
-            margin-top: 12px;
-            gap: 12px;
-        }
-
-        .carousel-btn {
-            width: 30px;
-            height: 30px;
-            font-size: 0.9rem;
-        }
-
-        .dot {
-            width: 8px;
-            height: 8px;
+        .slide-content {
+            padding: 0.875rem;
         }
     }
 </style>
 
 <script>
-    // Simple Carousel functionality
+    // Enhanced Carousel functionality
     let currentSlide = 0;
     const carousel = document.getElementById('carousel');
     const slides = document.querySelectorAll('.carousel-slide');
@@ -594,6 +561,34 @@
     carousel.addEventListener('mouseleave', () => {
         autoRotate = setInterval(nextSlide, 4000);
     });
+
+    // Touch support for mobile
+    let touchStartX = 0;
+    let touchEndX = 0;
+
+    carousel.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+    });
+
+    carousel.addEventListener('touchend', (e) => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe();
+    });
+
+    function handleSwipe() {
+        const swipeThreshold = 50;
+        const diff = touchStartX - touchEndX;
+        
+        if (Math.abs(diff) > swipeThreshold) {
+            if (diff > 0) {
+                // Swipe left - next slide
+                nextSlide();
+            } else {
+                // Swipe right - previous slide
+                prevSlide();
+            }
+        }
+    }
 
     // Initialize the carousel
     showSlide(0);
