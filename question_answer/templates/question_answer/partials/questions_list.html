@@ -171,19 +171,22 @@
         });
     });
     
-    // Ask Interview Coach functionality - updated to use chat dialog
+    // Ask Interview Coach functionality - updated to use chat dialog with subscription check
     document.querySelectorAll('.ask-coach-btn').forEach(btn => {
         btn.addEventListener('click', function() {
             const questionId = this.getAttribute('data-question-id');
             const questionText = this.getAttribute('data-question-text');
             
-            // Check if chat dialog functions are available
-            if (typeof openChatDialog === 'function') {
-                openChatDialog(questionId, questionText);
-            } else {
-                // Fallback: show alert if chat dialog is not loaded
-                alert(`Interview Coach: I'm here to help you with this question: "${questionText}"\n\nThis feature will open an AI chat interface to guide you through answering this question effectively.`);
-            }
+            // Check subscription access for Plus plan
+            return withSubscriptionCheck('Plus', function() {
+                // Check if chat dialog functions are available
+                if (typeof openChatDialog === 'function') {
+                    openChatDialog(questionId, questionText);
+                } else {
+                    // Fallback: show alert if chat dialog is not loaded
+                    alert(`Interview Coach: I'm here to help you with this question: "${questionText}"\n\nThis feature will open an AI chat interface to guide you through answering this question effectively.`);
+                }
+            })();
         });
     });
     

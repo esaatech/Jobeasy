@@ -86,7 +86,7 @@ function showSubscriptionDialog(requiredPlan) {
     
     // Create subscription dialog element
     const dialogElement = document.createElement("div");
-    dialogElement.className = "fixed inset-0 z-50 overflow-y-auto";
+    dialogElement.className = "fixed inset-0 z-[9999] overflow-y-auto";
     dialogElement.id = "subscription-dialog";
     
     const dialogContent = `

@@ -83,7 +83,7 @@ function showNetworkErrorDialog(errorType = "network_generic", customMessage = n
     
     // Create error dialog element
     const dialog = document.createElement("div");
-    dialog.className = `fixed top-8 left-1/2 transform -translate-x-1/2 z-50 bg-white border border-gray-300 shadow-lg rounded-lg p-6 max-w-sm w-full text-center ${
+    dialog.className = `fixed top-8 left-1/2 transform -translate-x-1/2 z-[9999] bg-white border border-gray-300 shadow-lg rounded-lg p-6 max-w-sm w-full text-center ${
         error.level === "warning" ? "border-yellow-400" : "border-red-400"
     }`;
     
@@ -118,7 +118,7 @@ function showNetworkErrorDialog(errorType = "network_generic", customMessage = n
 function showSubscriptionDialogFromBackend(dialogData) {
     // Create subscription dialog element
     const dialogElement = document.createElement("div");
-    dialogElement.className = "fixed inset-0 z-50 overflow-y-auto";
+    dialogElement.className = "fixed inset-0 z-[9999] overflow-y-auto";
     dialogElement.id = "subscription-dialog";
     
     const dialogContent = `
