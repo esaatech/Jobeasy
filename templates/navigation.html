@@ -23,20 +23,19 @@
             </a>
             
             <!-- Resume Dropdown - Available to all users -->
-            <a href="#" class="nav-item" onclick="toggleResumeDropdown(event)">
-                <span class="icon">📄</span>
-                Resume
-                <span class="dropdown-arrow">▼</span>
-            </a>
-            <div class="dropdown-menu" id="resume-dropdown">
-                <a href="{% url 'resume_builder:create_resume' %}" class="dropdown-item">Create Resume</a>
-                <a href="{% url 'resume_builder:resume_templates' %}" class="dropdown-item">Resume Templates</a>
-                {% if user.is_authenticated %}
-                    <a href="{% url 'resume_builder:ai_resume_assistant' %}" 
-                       onclick="return checkSubscriptionAccess('Plus')"
-                       class="dropdown-item">AI Assistant</a>
-                    <a href="{% url 'resume_builder:my_resumes' %}" class="dropdown-item">My Resumes</a>
-                {% endif %}
+            <div class="nav-item-dropdown">
+                <a href="#" class="nav-item" onclick="toggleResumeDropdown(event)">
+                    <span class="icon">📄</span>
+                    Resume
+                    <span class="dropdown-arrow">▼</span>
+                </a>
+                <div class="dropdown-menu" id="resume-dropdown">
+                    <a href="{% url 'resume_builder:create_resume' %}" class="dropdown-item">Create Resume</a>
+                    <a href="{% url 'resume_builder:resume_templates' %}" class="dropdown-item">Resume Templates</a>
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'resume_builder:my_resumes' %}" class="dropdown-item">My Resumes</a>
+                    {% endif %}
+                </div>
             </div>
             
             <!-- Cover Letter Link -->
@@ -105,9 +104,6 @@
                 <a href="{% url 'resume_builder:create_resume' %}" class="mobile-dropdown-item">Create Resume</a>
                 <a href="{% url 'resume_builder:resume_templates' %}" class="mobile-dropdown-item">Resume Templates</a>
                 {% if user.is_authenticated %}
-                    <a href="{% url 'resume_builder:ai_resume_assistant' %}" 
-                       onclick="return checkSubscriptionAccess('Plus')"
-                       class="mobile-dropdown-item">AI Assistant</a>
                     <a href="{% url 'resume_builder:my_resumes' %}" class="mobile-dropdown-item">My Resumes</a>
                 {% endif %}
             </div>
@@ -188,6 +184,10 @@
         display: flex;
         align-items: baseline;
         gap: 0.5rem;
+    }
+
+    .nav-item-dropdown {
+        position: relative;
     }
 
     .nav-item {
