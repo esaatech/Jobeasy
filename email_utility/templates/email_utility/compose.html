@@ -1,0 +1,453 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ page_title|default:"Email Document" }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .email-compose-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+    
+    .page-header {
+        text-align: center;
+        margin-bottom: 3rem;
+        padding-bottom: 2rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .page-header h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 0.5rem;
+    }
+    
+    .page-header p {
+        font-size: 1.125rem;
+        color: #6b7280;
+        margin: 0;
+    }
+    
+    .gmail-status {
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        border: 2px solid;
+        font-size: 1rem;
+    }
+    
+    .gmail-connected {
+        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+        border-color: #10b981;
+        color: #065f46;
+        box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.1);
+    }
+    
+    .gmail-not-connected {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        border-color: #f59e0b;
+        color: #92400e;
+        box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.1);
+    }
+    
+    .gmail-status .flex {
+        display: flex;
+        align-items: center;
+    }
+    
+    .gmail-status .flex.items-center {
+        align-items: center;
+    }
+    
+    .gmail-status .flex.justify-between {
+        justify-content: space-between;
+    }
+    
+    .gmail-status .w-5 {
+        width: 1.25rem;
+    }
+    
+    .gmail-status .h-5 {
+        height: 1.25rem;
+    }
+    
+    .gmail-status .mr-2 {
+        margin-right: 0.5rem;
+    }
+    
+    .document-preview {
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        padding: 1.5rem;
+        border-radius: 12px;
+        margin-bottom: 2rem;
+        border: 1px solid #e2e8f0;
+        box-shadow: 0 2px 4px -1px rgba(0, 0, 0, 0.05);
+    }
+    
+    .document-preview h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .document-preview h3::before {
+        content: "📄";
+        margin-right: 0.5rem;
+        font-size: 1.5rem;
+    }
+    
+    .document-preview p {
+        margin-bottom: 0.5rem;
+        color: #4b5563;
+        font-size: 1rem;
+    }
+    
+    .document-preview strong {
+        color: #1f2937;
+        font-weight: 600;
+    }
+    
+    .email-form {
+        background: white;
+        padding: 2.5rem;
+        border-radius: 16px;
+        box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        border: 1px solid #f3f4f6;
+    }
+    
+    .form-group {
+        margin-bottom: 2rem;
+    }
+    
+    .form-label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        color: #374151;
+        font-size: 1rem;
+    }
+    
+    .form-input {
+        width: 100%;
+        padding: 1rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: all 0.2s ease;
+        background-color: #fafafa;
+    }
+    
+    .form-input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        background-color: white;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    }
+    
+    .form-textarea {
+        min-height: 180px;
+        resize: vertical;
+        line-height: 1.6;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+        padding: 1rem 2rem;
+        border: none;
+        border-radius: 8px;
+        font-size: 1.125rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.2);
+        min-width: 200px;
+    }
+    
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 12px -1px rgba(59, 130, 246, 0.3);
+    }
+    
+    .btn-primary:disabled {
+        background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+        cursor: not-allowed;
+        transform: none;
+        box-shadow: none;
+    }
+    
+    .loading {
+        display: none;
+        text-align: center;
+        padding: 3rem;
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .spinner {
+        border: 4px solid #f3f4f6;
+        border-top: 4px solid #3b82f6;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 1.5rem;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .alert {
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        border: 1px solid;
+        font-weight: 500;
+    }
+    
+    .alert-success {
+        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+        border-color: #10b981;
+        color: #065f46;
+    }
+    
+    .alert-error {
+        background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+        border-color: #ef4444;
+        color: #991b1b;
+    }
+    
+    .connect-prompt {
+        text-align: center;
+        padding: 3rem 2rem;
+        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+        border-radius: 16px;
+        border: 2px dashed #cbd5e1;
+    }
+    
+    .connect-prompt p {
+        font-size: 1.125rem;
+        color: #6b7280;
+        margin-bottom: 2rem;
+    }
+    
+    .connect-prompt::before {
+        content: "📧";
+        font-size: 3rem;
+        display: block;
+        margin-bottom: 1rem;
+    }
+    
+    @media (max-width: 768px) {
+        .email-compose-container {
+            padding: 1rem;
+        }
+        
+        .page-header h1 {
+            font-size: 2rem;
+        }
+        
+        .email-form {
+            padding: 1.5rem;
+        }
+        
+        .gmail-status .flex.justify-between {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="email-compose-container">
+    <div class="page-header">
+        <h1>Email {{ document_type|title }}</h1>
+        <p>Send your {{ document_type }} directly from your Gmail account</p>
+    </div>
+
+    <!-- Gmail Connection Status -->
+    <div class="gmail-status {% if is_gmail_connected %}gmail-connected{% else %}gmail-not-connected{% endif %}">
+        {% if is_gmail_connected %}
+            <div class="flex items-center">
+                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                </svg>
+                <span><strong>Gmail Connected:</strong> {{ gmail_address }}</span>
+            </div>
+        {% else %}
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                    </svg>
+                    <span><strong>Gmail Not Connected:</strong> Connect your Gmail account to send emails</span>
+                </div>
+                <a href="{% url 'email_utility:gmail_authorize' %}?next={{ request.path }}" class="btn-primary">
+                    Connect Gmail
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Document Preview -->
+    <div class="document-preview">
+        <h3>Document Preview</h3>
+        <p><strong>Name:</strong> {{ document_name }}</p>
+        <p><strong>Type:</strong> {{ attachment_type|title }}</p>
+        <p><strong>Will be attached as:</strong> {{ document_name }}.pdf</p>
+    </div>
+
+    <!-- Email Composition Form -->
+    {% if is_gmail_connected %}
+        <form id="emailForm" class="email-form">
+            {% csrf_token %}
+            
+            <div id="alertContainer"></div>
+            
+            <div class="form-group">
+                <label for="recipient_email" class="form-label">Recipient Email *</label>
+                <input type="email" id="recipient_email" name="recipient_email" class="form-input" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="subject" class="form-label">Subject *</label>
+                <input type="text" id="subject" name="subject" class="form-input" 
+                       value="My {{ attachment_type|title }} - {{ document_name }}" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="message" class="form-label">Message *</label>
+                <textarea id="message" name="message" class="form-input form-textarea" required>Dear Hiring Manager,
+
+I am writing to express my interest in the position and have attached my {{ attachment_type }} for your review.
+
+{{ document_name }}
+
+I look forward to hearing from you.
+
+Best regards,
+{{ user.get_full_name|default:user.username }}</textarea>
+            </div>
+            
+            <div class="text-center">
+                <button type="submit" id="sendButton" class="btn-primary">
+                    Send Email
+                </button>
+            </div>
+        </form>
+        
+        <!-- Loading State -->
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Sending email...</p>
+        </div>
+    {% else %}
+        <div class="connect-prompt">
+            <p>Please connect your Gmail account to send emails.</p>
+            <a href="{% url 'email_utility:gmail_authorize' %}?next={{ request.path }}" class="btn-primary">
+                Connect Gmail Account
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const emailForm = document.getElementById('emailForm');
+    const sendButton = document.getElementById('sendButton');
+    const loading = document.getElementById('loading');
+    const alertContainer = document.getElementById('alertContainer');
+    
+    if (emailForm) {
+        emailForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Show loading state
+            sendButton.disabled = true;
+            loading.style.display = 'block';
+            emailForm.style.display = 'none';
+            
+            // Clear previous alerts
+            alertContainer.innerHTML = '';
+            
+            // Get form data
+            const formData = {
+                recipient_email: document.getElementById('recipient_email').value,
+                subject: document.getElementById('subject').value,
+                message: document.getElementById('message').value,
+                document_type: '{{ attachment_type }}',
+                document_id: {{ document.id }}
+            };
+            
+            // Send email
+            fetch('{% url "email_utility:send_email" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Hide loading state
+                loading.style.display = 'none';
+                emailForm.style.display = 'block';
+                sendButton.disabled = false;
+                
+                if (data.success) {
+                    // Show success message
+                    alertContainer.innerHTML = `
+                        <div class="alert alert-success">
+                            <strong>Success!</strong> ${data.message}
+                        </div>
+                    `;
+                    
+                    // Reset form
+                    emailForm.reset();
+                    
+                    // Redirect to email history after 2 seconds
+                    setTimeout(() => {
+                        window.location.href = '{% url "email_utility:email_history" %}';
+                    }, 2000);
+                    
+                } else {
+                    // Show error message
+                    alertContainer.innerHTML = `
+                        <div class="alert alert-error">
+                            <strong>Error:</strong> ${data.error}
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                // Hide loading state
+                loading.style.display = 'none';
+                emailForm.style.display = 'block';
+                sendButton.disabled = false;
+                
+                // Show error message
+                alertContainer.innerHTML = `
+                    <div class="alert alert-error">
+                        <strong>Error:</strong> Failed to send email. Please try again.
+                    </div>
+                `;
+                console.error('Error:', error);
+            });
+        });
+    }
+});
+</script>
+{% endblock %} 

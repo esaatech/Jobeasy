@@ -32,6 +32,7 @@ urlpatterns = [
     path('subscriptions/', include('subscriptions.urls')),
     path('settings/', include('settings.urls')),
     path('qa/', include('question_answer.urls')),
+    path('email/', include('email_utility.urls')),
 ]
 
 # Serve media files in development

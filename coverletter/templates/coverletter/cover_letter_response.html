@@ -188,7 +188,7 @@
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                 </svg>
-                Email
+                Email via Gmail
             </button>
             
             <button onclick="editCoverLetter()" class="btn btn-secondary">
@@ -323,12 +323,35 @@ function downloadAsPDF() {
 
 // Email functionality
 function emailCoverLetter() {
+    // Save the current cover letter content to session first
     const content = document.getElementById('coverLetterContent');
     const textToEmail = content.innerText || content.textContent;
-    const subject = 'Cover Letter for Job Application';
-    const body = encodeURIComponent(textToEmail);
     
-    window.open(`mailto:?subject=${encodeURIComponent(subject)}&body=${body}`);
+    // Save the content to session via AJAX
+    fetch('/coverletter/save-edited-content/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: JSON.stringify({
+            cover_letter: textToEmail
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Redirect to email composition page
+            window.location.href = '{% url "email_utility:email_compose" "cover_letter" cover_letter.id %}';
+        } else {
+            console.error('Failed to save cover letter:', data.error);
+            alert('Failed to prepare cover letter for email. Please try again.');
+        }
+    })
+    .catch(error => {
+        console.error('Error saving cover letter:', error);
+        alert('Failed to prepare cover letter for email. Please try again.');
+    });
 }
 
 // Edit functionality
