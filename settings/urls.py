@@ -8,6 +8,7 @@ urlpatterns = [
     path('profile/', views.profile_settings, name='profile'),
     path('notifications/', views.notification_settings, name='notifications'),
     path('integrations/', views.integration_settings, name='integrations'),
+    path('integrations/gmail/', views.gmail_settings, name='gmail_settings'),
     path('billing/', views.billing_settings, name='billing'),
     path('security/', views.security_settings, name='security'),
     path('delete-account/', views.delete_account, name='delete_account'),

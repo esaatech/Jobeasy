@@ -4,8 +4,8 @@ from . import views  # Import directly from views.py
 app_name = 'email_utility'
 
 urlpatterns = [
-    # Gmail OAuth2
-    path('auth/gmail/authorize/', views.gmail_authorize, name='gmail_authorize'),
+    # Gmail OAuth endpoints
+    path('auth/gmail/', views.gmail_authorize, name='gmail_authorize'),
     path('auth/gmail/callback/', views.gmail_callback, name='gmail_callback'),
     
     # Email composition and sending

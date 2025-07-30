@@ -1,14 +1,17 @@
 import os
 import json
 import tempfile
+from datetime import datetime
 from urllib.parse import urlencode
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from django.contrib.auth.models import User
+from django.contrib.auth import login
 from django.urls import reverse
-from django.contrib import messages
 from django.utils import timezone
 
 from google_auth_oauthlib.flow import Flow
@@ -20,16 +23,14 @@ from resume_builder.models import Resume
 from coverletter.models import CoverLetter
 
 
-@login_required
 def gmail_authorize(request):
     """Start Gmail OAuth2 authorization flow"""
     try:
-        # Store the intended destination URL
-        next_url = request.GET.get('next')
-        if next_url:
-            request.session['gmail_redirect_after_auth'] = next_url
+        # Store the next URL to redirect back after OAuth
+        next_url = request.GET.get('next', 'dashboard:dashboard')
+        request.session['gmail_redirect_after_auth'] = next_url
         
-        # Create OAuth2 flow
+        # Create OAuth2 flow with updated scopes
         flow = Flow.from_client_config(
             {
                 "web": {
@@ -40,7 +41,12 @@ def gmail_authorize(request):
                     "redirect_uris": [os.getenv('GOOGLE_REDIRECT_URI')]
                 }
             },
-            scopes=['https://www.googleapis.com/auth/gmail.send']
+            scopes=[
+                'openid',
+                'https://www.googleapis.com/auth/userinfo.email',
+                'https://www.googleapis.com/auth/userinfo.profile',
+                'https://www.googleapis.com/auth/gmail.send'
+            ]
         )
         
         # Set the redirect URI
@@ -63,9 +69,8 @@ def gmail_authorize(request):
         return redirect('dashboard:dashboard')
 
 
-@login_required
 def gmail_callback(request):
-    """Handle Gmail OAuth2 callback"""
+    """Handle Gmail OAuth2 callback with login support"""
     try:
         # Get authorization code from request
         code = request.GET.get('code')
@@ -87,7 +92,12 @@ def gmail_callback(request):
                     "redirect_uris": [os.getenv('GOOGLE_REDIRECT_URI')]
                 }
             },
-            scopes=['https://www.googleapis.com/auth/gmail.send']
+            scopes=[
+                'openid',
+                'https://www.googleapis.com/auth/userinfo.email',
+                'https://www.googleapis.com/auth/userinfo.profile',
+                'https://www.googleapis.com/auth/gmail.send'
+            ]
         )
         
         flow.redirect_uri = os.getenv('GOOGLE_REDIRECT_URI')
@@ -96,22 +106,59 @@ def gmail_callback(request):
         flow.fetch_token(code=code)
         credentials = flow.credentials
         
-        # Get user's Gmail address first
-        gmail_service = GmailService(request.user)
-        user_info = gmail_service.get_user_info_with_credentials(credentials)
+        # Get user's profile information
+        gmail_service = GmailService(request.user if request.user.is_authenticated else None)
+        user_info = gmail_service.verify_user_identity(credentials)
         
         if not user_info or not user_info.get('email'):
-            messages.error(request, "Could not retrieve Gmail address")
+            messages.error(request, "Could not retrieve user information from Google")
             return redirect('dashboard:dashboard')
         
         gmail_address = user_info['email']
+        user_name = user_info.get('name', '')
+        google_id = user_info.get('google_id', '')
         
-        # Create GmailAuth record with the actual email address
-        gmail_service.gmail_auth = create_gmail_auth_from_credentials(
-            request.user, credentials, gmail_address
-        )
-        
-        messages.success(request, f"Gmail connected successfully! You can now send emails from {gmail_address}")
+        # Check if user is already logged in
+        if request.user.is_authenticated:
+            # Existing user - just connect Gmail
+            user = request.user
+            gmail_service.user = user
+            gmail_service.gmail_auth = create_gmail_auth_from_credentials(
+                user, credentials, gmail_address
+            )
+            messages.success(request, f"Gmail connected successfully! You can now send emails from {gmail_address}")
+        else:
+            # New user - create account and log them in
+            # Check if user with this email already exists
+            try:
+                user = User.objects.get(email=gmail_address)
+                messages.info(request, f"Welcome back! Logged in as {user.username}")
+            except User.DoesNotExist:
+                # Create new user
+                username = gmail_address.split('@')[0]  # Use email prefix as username
+                # Ensure username is unique
+                base_username = username
+                counter = 1
+                while User.objects.filter(username=username).exists():
+                    username = f"{base_username}{counter}"
+                    counter += 1
+                
+                user = User.objects.create_user(
+                    username=username,
+                    email=gmail_address,
+                    first_name=user_name.split()[0] if user_name else '',
+                    last_name=' '.join(user_name.split()[1:]) if user_name and len(user_name.split()) > 1 else ''
+                )
+                messages.success(request, f"Account created successfully! Welcome to JobEas, {user_name or username}")
+            
+            # Log the user in
+            login(request, user)
+            
+            # Create GmailAuth for the user
+            gmail_service.user = user
+            gmail_service.gmail_auth = create_gmail_auth_from_credentials(
+                user, credentials, gmail_address
+            )
         
         # Redirect back to the original page or dashboard
         return_url = request.session.get('gmail_redirect_after_auth', 'dashboard:dashboard')

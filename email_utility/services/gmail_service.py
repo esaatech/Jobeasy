@@ -1,27 +1,32 @@
 import os
 import base64
-from email.mime.text import MIMEText
+import mimetypes
+from datetime import datetime, timedelta
+from typing import Dict, Any, Optional
 from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 from email.mime.base import MIMEBase
 from email import encoders
-from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
 
-from google.auth.transport.requests import Request
+from django.utils import timezone
 from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-from django.conf import settings
-from django.utils import timezone
-from ..models import GmailAuth, EmailHistory
+from ..models import GmailAuth
 
 
 class GmailService:
     """Service class for Gmail API operations"""
     
-    SCOPES = ['https://www.googleapis.com/auth/gmail.send']
+    # Updated scopes to support both login and email sending
+    SCOPES = [
+        'openid',
+        'https://www.googleapis.com/auth/userinfo.email',
+        'https://www.googleapis.com/auth/userinfo.profile',
+        'https://www.googleapis.com/auth/gmail.send'
+    ]
     
     def __init__(self, user):
         self.user = user
@@ -88,6 +93,79 @@ class GmailService:
         )
         
         return build('gmail', 'v1', credentials=credentials)
+    
+    def get_user_profile(self, credentials: Credentials) -> Optional[Dict[str, str]]:
+        """
+        Get user's Google profile information using credentials
+        
+        Args:
+            credentials: Google OAuth2 credentials
+            
+        Returns:
+            Dict with user profile info (email, name, picture, etc.)
+        """
+        try:
+            # Build the people service to get profile info
+            service = build('people', 'v1', credentials=credentials)
+            
+            # Get the user's profile
+            profile = service.people().get(
+                resourceName='people/me',
+                personFields='emailAddresses,names,photos'
+            ).execute()
+            
+            # Extract relevant information
+            email = None
+            name = None
+            picture = None
+            
+            if 'emailAddresses' in profile:
+                email = profile['emailAddresses'][0]['value']
+            
+            if 'names' in profile:
+                name = profile['names'][0]['displayName']
+            
+            if 'photos' in profile:
+                picture = profile['photos'][0]['url']
+            
+            return {
+                'email': email,
+                'name': name,
+                'picture': picture,
+                'google_id': profile.get('resourceName', '').replace('people/', '')
+            }
+            
+        except Exception as e:
+            print(f"Error getting user profile: {e}")
+            return None
+    
+    def verify_user_identity(self, credentials: Credentials) -> Optional[Dict[str, str]]:
+        """
+        Verify user identity and get basic info (simpler than get_user_profile)
+        
+        Args:
+            credentials: Google OAuth2 credentials
+            
+        Returns:
+            Dict with basic user info (email, name)
+        """
+        try:
+            # Build the oauth2 service to get user info
+            service = build('oauth2', 'v2', credentials=credentials)
+            
+            # Get user info
+            user_info = service.userinfo().get().execute()
+            
+            return {
+                'email': user_info.get('email'),
+                'name': user_info.get('name'),
+                'picture': user_info.get('picture'),
+                'google_id': user_info.get('id')
+            }
+            
+        except Exception as e:
+            print(f"Error verifying user identity: {e}")
+            return None
     
     def send_email(self, to_email: str, subject: str, body: str, 
                    attachment_path: Optional[str] = None, 

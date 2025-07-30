@@ -52,14 +52,44 @@ def notification_settings(request):
 
 @login_required
 def integration_settings(request):
+    # Get Gmail connection status
+    from email_utility.services.gmail_service import GmailService
+    gmail_service = GmailService(request.user)
+    gmail_connected = gmail_service.is_authenticated()
+    gmail_address = gmail_service.gmail_auth.gmail_address if gmail_connected else None
+    
     context = {
         'active_section': 'integrations',
-        'page_title': 'Platform Integrations'
+        'page_title': 'Platform Integrations',
+        'gmail_connected': gmail_connected,
+        'gmail_address': gmail_address,
     }
     
     # Check if this is an HTMX request
     if request.headers.get('HX-Request'):
         return render(request, 'settings/partials/integrations_content.html', context)
+    
+    return render(request, 'settings/settings.html', context)
+
+
+@login_required
+def gmail_settings(request):
+    # Get Gmail connection status
+    from email_utility.services.gmail_service import GmailService
+    gmail_service = GmailService(request.user)
+    gmail_connected = gmail_service.is_authenticated()
+    gmail_address = gmail_service.gmail_auth.gmail_address if gmail_connected else None
+    
+    context = {
+        'active_section': 'integrations',
+        'page_title': 'Gmail Settings',
+        'gmail_connected': gmail_connected,
+        'gmail_address': gmail_address,
+    }
+    
+    # Check if this is an HTMX request
+    if request.headers.get('HX-Request'):
+        return render(request, 'settings/partials/gmail_settings_content.html', context)
     
     return render(request, 'settings/settings.html', context)
 
