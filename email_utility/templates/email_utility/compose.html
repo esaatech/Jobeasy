@@ -329,7 +329,7 @@
             
             <div class="form-group">
                 <label for="message" class="form-label">Message *</label>
-                <textarea id="message" name="message" class="form-input form-textarea" required>Dear Hiring Manager,
+                <textarea id="message" name="message" class="form-input form-textarea" required>{% if email_body %}{{ email_body }}{% else %}Dear Hiring Manager,
 
 I am writing to express my interest in the position and have attached my {{ attachment_type }} for your review.
 
@@ -338,7 +338,7 @@ I am writing to express my interest in the position and have attached my {{ atta
 I look forward to hearing from you.
 
 Best regards,
-{{ user.get_full_name|default:user.username }}</textarea>
+{{ user.get_full_name|default:user.username }}{% endif %}</textarea>
             </div>
             
             <div class="text-center">

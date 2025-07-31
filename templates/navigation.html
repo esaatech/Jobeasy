@@ -61,16 +61,16 @@
             {% if user.is_authenticated %}
                 <span class="nav-welcome">Welcome, <strong>{{ user.username }}</strong></span>
                 <div class="nav-user-actions">
-                    <a href="{% url 'settings:dashboard' %}" class="btn-secondary">
+                    <a href="{% url 'settings:dashboard' %}" class="btn btn-secondary btn-sm">
                         <span class="icon">⚙️</span>
                         Settings
                     </a>
-                    <a href="{% url 'authentication:logout' %}" class="btn-primary">Logout</a>
+                    <a href="{% url 'authentication:logout' %}" class="btn btn-danger btn-sm">Logout</a>
                 </div>
             {% else %}
                 <div class="nav-user-actions">
-                    <a href="{% url 'authentication:login' %}" class="btn-secondary">Login</a>
-                    <a href="{% url 'authentication:register' %}" class="btn-primary">Sign Up</a>
+                    <a href="{% url 'authentication:login' %}" class="btn btn-secondary btn-sm">Login</a>
+                    <a href="{% url 'authentication:register' %}" class="btn btn-primary btn-sm">Sign Up</a>
                 </div>
             {% endif %}
         </div>
@@ -305,46 +305,6 @@
         display: flex;
         align-items: center;
         gap: 0.5rem;
-    }
-
-    .btn-secondary {
-        padding: 0.5rem 1rem;
-        color: #64748b;
-        text-decoration: none;
-        font-weight: 500;
-        font-size: 0.9rem;
-        border-radius: 6px;
-        transition: all 0.25s ease;
-        border: 1px solid #e2e8f0;
-        background: white;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .btn-secondary:hover {
-        color: #374151;
-        border-color: #d1d5db;
-        background: #f9fafb;
-    }
-
-    .btn-primary {
-        padding: 0.5rem 1rem;
-        background: #dc2626;
-        color: white;
-        text-decoration: none;
-        font-weight: 500;
-        font-size: 0.9rem;
-        border-radius: 6px;
-        transition: all 0.25s ease;
-        border: 1px solid #dc2626;
-    }
-
-    .btn-primary:hover {
-        background: #b91c1c;
-        border-color: #b91c1c;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(220, 38, 38, 0.2);
     }
 
     .icon {

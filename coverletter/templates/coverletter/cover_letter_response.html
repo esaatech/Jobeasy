@@ -66,47 +66,6 @@
         font-size: 0.95rem;
     }
     
-    .btn-primary {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-    }
-    
-    .btn-primary:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-    }
-    
-    .btn-secondary {
-        background: #f3f4f6;
-        color: #374151;
-        border: 1px solid #d1d5db;
-    }
-    
-    .btn-secondary:hover {
-        background: #e5e7eb;
-        transform: translateY(-1px);
-    }
-    
-    .btn-success {
-        background: #10b981;
-        color: white;
-    }
-    
-    .btn-success:hover {
-        background: #059669;
-        transform: translateY(-1px);
-    }
-    
-    .btn-danger {
-        background: #ef4444;
-        color: white;
-    }
-    
-    .btn-danger:hover {
-        background: #dc2626;
-        transform: translateY(-1px);
-    }
-    
     .success-indicator {
         display: flex;
         align-items: center;
@@ -147,7 +106,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="page-width-narrow">
+<div class="page-width">
     <div class="cover-letter-content">
         <!-- Success Indicator -->
         <div class="success-indicator">
@@ -177,19 +136,21 @@
                 Copy to Clipboard
             </button>
             
-            <button onclick="downloadAsPDF()" class="btn btn-primary">
+            <button onclick="downloadAsPDF()" class="btn btn-secondary">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                 </svg>
                 Download PDF
             </button>
             
+            {% if cover_letter.id %}
             <button onclick="emailCoverLetter()" class="btn btn-success">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
                 </svg>
-                Email via Gmail
+                Email
             </button>
+            {% endif %}
             
             <button onclick="editCoverLetter()" class="btn btn-secondary">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -198,7 +159,7 @@
                 Edit Letter
             </button>
             
-            <button onclick="generateNew()" class="btn btn-danger">
+            <button onclick="generateNew()" class="btn btn-primary">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
                 </svg>
@@ -289,13 +250,13 @@ function downloadAsPDF() {
             </svg>
             Downloaded!
         `;
-        button.classList.remove('btn-primary');
+        button.classList.remove('btn-secondary');
         button.classList.add('btn-success');
         
         setTimeout(() => {
             button.innerHTML = originalText;
             button.classList.remove('btn-success');
-            button.classList.add('btn-primary');
+            button.classList.add('btn-secondary');
             button.disabled = false;
         }, 2000);
     })
@@ -309,13 +270,13 @@ function downloadAsPDF() {
             </svg>
             Failed!
         `;
-        button.classList.remove('btn-primary');
+        button.classList.remove('btn-secondary');
         button.classList.add('btn-danger');
         
         setTimeout(() => {
             button.innerHTML = originalText;
             button.classList.remove('btn-danger');
-            button.classList.add('btn-primary');
+            button.classList.add('btn-secondary');
             button.disabled = false;
         }, 2000);
     });
@@ -323,35 +284,13 @@ function downloadAsPDF() {
 
 // Email functionality
 function emailCoverLetter() {
-    // Save the current cover letter content to session first
-    const content = document.getElementById('coverLetterContent');
-    const textToEmail = content.innerText || content.textContent;
-    
-    // Save the content to session via AJAX
-    fetch('/coverletter/save-edited-content/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-        },
-        body: JSON.stringify({
-            cover_letter: textToEmail
-        })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Redirect to email composition page
-            window.location.href = '{% url "email_utility:email_compose" "cover_letter" cover_letter.id %}';
-        } else {
-            console.error('Failed to save cover letter:', data.error);
-            alert('Failed to prepare cover letter for email. Please try again.');
-        }
-    })
-    .catch(error => {
-        console.error('Error saving cover letter:', error);
-        alert('Failed to prepare cover letter for email. Please try again.');
-    });
+    {% if cover_letter.id %}
+    // We have a cover letter object with ID, redirect directly
+    window.location.href = '{% url "email_utility:email_compose" "cover_letter" cover_letter.id %}';
+    {% else %}
+    // Fallback: we don't have a cover letter object with ID, so we can't email it
+    alert('Email functionality is not available for this cover letter. Please save it first.');
+    {% endif %}
 }
 
 // Edit functionality

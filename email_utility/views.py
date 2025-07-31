@@ -181,15 +181,56 @@ def gmail_callback(request):
 def email_compose(request, document_type, document_id):
     """Show email composition form"""
     try:
-        # Get the document (resume or cover letter)
+        # Get the document (resume, cover letter, or job application)
         if document_type == 'resume':
             document = get_object_or_404(Resume, id=document_id, user=request.user)
             document_name = document.name
             attachment_type = 'resume'
+            email_body = None
         elif document_type == 'cover_letter':
             document = get_object_or_404(CoverLetter, id=document_id, user=request.user)
             document_name = document.title
             attachment_type = 'cover_letter'
+            # Use the cover letter content as the email body
+            email_body = document.content
+        elif document_type == 'job_application':
+            # For job applications, we'll email the cover letter if it exists, otherwise the resume
+            from dashboard.models import JobApplication as DashboardJobApplication
+            from job_service.models import JobApplication as JobServiceJobApplication
+            
+            # Try dashboard JobApplication first
+            try:
+                document = DashboardJobApplication.objects.get(id=document_id, user=request.user)
+                if document.cover_letter:
+                    # Email the cover letter
+                    return redirect('email_utility:email_compose', 'cover_letter', document.cover_letter.id)
+                elif document.resume:
+                    # Email the resume
+                    return redirect('email_utility:email_compose', 'resume', document.resume.id)
+                else:
+                    messages.error(request, "No cover letter or resume found for this job application")
+                    return redirect('dashboard:dashboard')
+            except DashboardJobApplication.DoesNotExist:
+                # Try job service JobApplication
+                try:
+                    document = JobServiceJobApplication.objects.get(id=document_id, user=request.user)
+                    if document.cover_letter_used:
+                        # For job service, we can't email the cover letter directly since it's text
+                        # So we'll email the resume if it exists
+                        if document.resume_used:
+                            return redirect('email_utility:email_compose', 'resume', document.resume_used.id)
+                        else:
+                            messages.error(request, "No resume found for this job application")
+                            return redirect('dashboard:dashboard')
+                    elif document.resume_used:
+                        # Email the resume
+                        return redirect('email_utility:email_compose', 'resume', document.resume_used.id)
+                    else:
+                        messages.error(request, "No cover letter or resume found for this job application")
+                        return redirect('dashboard:dashboard')
+                except JobServiceJobApplication.DoesNotExist:
+                    messages.error(request, "Job application not found")
+                    return redirect('dashboard:dashboard')
         else:
             messages.error(request, "Invalid document type")
             return redirect('dashboard:dashboard')
@@ -205,6 +246,7 @@ def email_compose(request, document_type, document_id):
             'attachment_type': attachment_type,
             'is_gmail_connected': is_gmail_connected,
             'gmail_address': gmail_service.gmail_auth.gmail_address if is_gmail_connected else None,
+            'email_body': email_body, # Pass the email_body to the context
         }
         
         return render(request, 'email_utility/compose.html', context)
