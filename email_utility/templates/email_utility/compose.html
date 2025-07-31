@@ -306,7 +306,11 @@
         <h3>Document Preview</h3>
         <p><strong>Name:</strong> {{ document_name }}</p>
         <p><strong>Type:</strong> {{ attachment_type|title }}</p>
-        <p><strong>Will be attached as:</strong> {{ document_name }}.pdf</p>
+        {% if attachment_type == 'none' %}
+            <p><strong>Attachment:</strong> No attachment (content will be in email body)</p>
+        {% else %}
+            <p><strong>Will be attached as:</strong> {{ document_name }}.pdf</p>
+        {% endif %}
     </div>
 
     <!-- Email Composition Form -->
@@ -324,7 +328,7 @@
             <div class="form-group">
                 <label for="subject" class="form-label">Subject *</label>
                 <input type="text" id="subject" name="subject" class="form-input" 
-                       value="My {{ attachment_type|title }} - {{ document_name }}" required>
+                       value="{% if attachment_type == 'none' %}Cover Letter for {{ document_name }}{% else %}My {{ attachment_type|title }} - {{ document_name }}{% endif %}" required>
             </div>
             
             <div class="form-group">
@@ -387,7 +391,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 recipient_email: document.getElementById('recipient_email').value,
                 subject: document.getElementById('subject').value,
                 message: document.getElementById('message').value,
-                document_type: '{{ attachment_type }}',
+                document_type: '{{ document_type }}',
                 document_id: {{ document.id }}
             };
             

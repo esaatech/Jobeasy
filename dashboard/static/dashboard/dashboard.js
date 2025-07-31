@@ -164,36 +164,46 @@ function updateJobApplicationItem(jobId, data) {
                         </span>
                     </div>
                 </div>
-                <div class="flex items-center space-x-2">
-                    ${data.resume_id ? `
-                    <a href="${window.resumeViewUrlTemplate.replace('{resume_id}', data.resume_id)}" target="_blank" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Open Resume">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
-                        </svg>
-                    </a>
-                    <a href="${window.resumeDownloadUrlTemplate.replace('{resume_id}', data.resume_id)}" class="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Download Resume">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
-                    </a>
-                    ` : ''}
-                    ${data.cover_letter_id ? `
-                        <a href="/coverletter/view/${data.cover_letter_id}/" target="_blank" class="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors" title="Open Cover Letter">
+                <div class="flex flex-col gap-3">
+                    <div class="flex flex-wrap md:flex-nowrap gap-2">
+                        ${data.resume_id ? `
+                        <a href="${window.resumeViewUrlTemplate.replace('{resume_id}', data.resume_id)}" target="_blank" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Open Resume">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
                             </svg>
                         </a>
-                        <a href="/coverletter/download/${data.cover_letter_id}/" class="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors" title="Download Cover Letter">
+                        <a href="${window.resumeDownloadUrlTemplate.replace('{resume_id}', data.resume_id)}" class="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Download Resume">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                             </svg>
                         </a>
-                    ` : ''}
-                    <button onclick="deleteJobApplication(${data.job_id})" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete Job Application">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                        </svg>
-                    </button>
+                        ` : ''}
+                        ${data.cover_letter_id ? `
+                            <a href="/coverletter/view/${data.cover_letter_id}/" target="_blank" class="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors" title="Open Cover Letter">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                </svg>
+                            </a>
+                            <button onclick="downloadCoverLetterPDF('')" class="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors" title="Download Cover Letter">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                            </button>
+                        ` : ''}
+                        <button onclick="deleteJobApplication(${data.job_id})" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete Job Application">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="self-end">
+                        <button onclick="emailJobApplication(${data.job_id})" class="btn btn-success btn-sm">
+                            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                            </svg>
+                            Email
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
@@ -314,4 +324,9 @@ async function deleteJobApplication(jobId) {
         console.error('Error deleting job application:', error);
         alert('An error occurred while deleting the job application.');
     }
+}
+
+function emailJobApplication(jobApplicationId) {
+    // Redirect to email composition with job application context
+    window.location.href = `/email/compose/job_application/${jobApplicationId}/`;
 }

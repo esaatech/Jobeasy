@@ -190,8 +190,8 @@ def email_compose(request, document_type, document_id):
         elif document_type == 'cover_letter':
             document = get_object_or_404(CoverLetter, id=document_id, user=request.user)
             document_name = document.title
-            attachment_type = 'cover_letter'
-            # Use the cover letter content as the email body
+            attachment_type = 'none'  # For display purposes - no attachment
+            # Pass plain text to template for user-friendly display
             email_body = document.content
         elif document_type == 'job_application':
             # For job applications, we'll email the cover letter if it exists, otherwise the resume
@@ -291,7 +291,7 @@ def send_email(request):
             attachment_name = f"{document.name}.pdf"
         elif document_type == 'cover_letter':
             document = get_object_or_404(CoverLetter, id=document_id, user=request.user)
-            attachment_name = f"{document.title}.pdf"
+            attachment_name = None  # No attachment for cover letters
         else:
             return JsonResponse({
                 'success': False,
@@ -330,20 +330,21 @@ def send_email(request):
                     {'resume_data': resume_data},
                     options={'format': 'Letter', 'orientation': 'portrait'}
                 )
+                
+                # Save PDF to temporary file
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_file:
+                    temp_file.write(pdf_bytes)
+                    attachment_path = temp_file.name
+            elif document_type == 'cover_letter':
+                # No PDF generation for cover letters - content goes in email body
+                pdf_bytes = None
+                attachment_path = None
             else:
-                # Generate cover letter PDF
-                from pdf_generator.core.generator import PDFGenerator
-                pdf_bytes = PDFGenerator.generate_from_template(
-                    'coverletter/cover_letter_pdf.html',
-                    {'cover_letter': document.content},
-                    options={'format': 'Letter', 'orientation': 'portrait'}
-                )
-            
-            # Save PDF to temporary file
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_file:
-                temp_file.write(pdf_bytes)
-                attachment_path = temp_file.name
-            
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Invalid document type'
+                }, status=400)
+        
         except Exception as e:
             email_history.status = 'failed'
             email_history.error_message = f"Error generating PDF: {str(e)}"
@@ -355,10 +356,23 @@ def send_email(request):
         
         # Send email via Gmail API
         try:
+            # For cover letters, wrap the content in HTML tags for proper email formatting
+            if document_type == 'cover_letter':
+                html_body = f"""
+                <html>
+                <body style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #333;">
+                    {message.replace('\n', '<br>')}
+                </body>
+                </html>
+                """
+                email_body_to_send = html_body
+            else:
+                email_body_to_send = message
+            
             result = gmail_service.send_email(
                 to_email=recipient_email,
                 subject=subject,
-                body=message,
+                body=email_body_to_send,
                 attachment_path=attachment_path,
                 attachment_name=attachment_name
             )

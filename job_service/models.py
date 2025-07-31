@@ -63,7 +63,22 @@ class Job(models.Model):
         return f"{self.title} at {self.company}"
 
 class JobApplication(models.Model):
-    """Tracks job applications for users"""
+    """
+    JOB SERVICE JobApplication Model
+    
+    This model is used for tracking job applications to jobs found through the job
+    scraping service. It's different from dashboard.models.JobApplication.
+    
+    Key Differences from dashboard JobApplication:
+    - Purpose: Track applications to scraped jobs (not manual job application creation)
+    - Job Reference: Uses ForeignKey to Job model (not string job_name)
+    - Cover Letter: Uses TextField 'cover_letter_used' (not ForeignKey to CoverLetter model)
+    - Resume: Uses ForeignKey to Resume model (same as dashboard)
+    - Status: Detailed application tracking (applied, under_review, interviewed, etc.)
+    - Related Name: 'job_applications' (to avoid conflicts with dashboard)
+    
+    Usage: When users apply to jobs found through the job scraping service
+    """
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='job_applications')
     job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name='applications')
     status = models.CharField(max_length=50, choices=[
