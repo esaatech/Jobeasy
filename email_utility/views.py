@@ -194,39 +194,58 @@ def email_compose(request, document_type, document_id):
             # Pass plain text to template for user-friendly display
             email_body = document.content
         elif document_type == 'job_application':
-            # For job applications, we'll email the cover letter if it exists, otherwise the resume
+            # For job applications, handle all scenarios: cover letter only, resume only, or both
             from dashboard.models import JobApplication as DashboardJobApplication
             from job_service.models import JobApplication as JobServiceJobApplication
             
             # Try dashboard JobApplication first
             try:
-                document = DashboardJobApplication.objects.get(id=document_id, user=request.user)
-                if document.cover_letter:
-                    # Email the cover letter
-                    return redirect('email_utility:email_compose', 'cover_letter', document.cover_letter.id)
-                elif document.resume:
-                    # Email the resume
-                    return redirect('email_utility:email_compose', 'resume', document.resume.id)
+                job_app = DashboardJobApplication.objects.get(id=document_id, user=request.user)
+                cover_letter = job_app.cover_letter
+                resume = job_app.resume
+                
+                # Determine document name and attachment type based on what's available
+                if cover_letter and resume:
+                    # Both cover letter and resume - keep job application context
+                    document_name = f"Application for {job_app.job_name}"
+                    attachment_type = 'resume'
+                    email_body = cover_letter.content
+                    document = job_app  # Use job application as the main document
+                elif cover_letter:
+                    # Cover letter only
+                    document_name = cover_letter.title
+                    attachment_type = 'none'
+                    email_body = cover_letter.content
+                    document = cover_letter
+                    document_type = 'cover_letter'  # Update document_type for individual document
+                    resume = None
+                elif resume:
+                    # Resume only
+                    document_name = resume.name
+                    attachment_type = 'resume'
+                    email_body = None
+                    document = resume
+                    document_type = 'resume'  # Update document_type for individual document
+                    cover_letter = None
                 else:
                     messages.error(request, "No cover letter or resume found for this job application")
                     return redirect('dashboard:dashboard')
+                    
             except DashboardJobApplication.DoesNotExist:
                 # Try job service JobApplication
                 try:
-                    document = JobServiceJobApplication.objects.get(id=document_id, user=request.user)
-                    if document.cover_letter_used:
-                        # For job service, we can't email the cover letter directly since it's text
-                        # So we'll email the resume if it exists
-                        if document.resume_used:
-                            return redirect('email_utility:email_compose', 'resume', document.resume_used.id)
-                        else:
-                            messages.error(request, "No resume found for this job application")
-                            return redirect('dashboard:dashboard')
-                    elif document.resume_used:
-                        # Email the resume
-                        return redirect('email_utility:email_compose', 'resume', document.resume_used.id)
+                    job_app = JobServiceJobApplication.objects.get(id=document_id, user=request.user)
+                    # For job service, we can only handle resume since cover letter is text
+                    if job_app.resume_used:
+                        document_name = job_app.resume_used.name
+                        attachment_type = 'resume'
+                        email_body = None
+                        document = job_app.resume_used
+                        document_type = 'resume'  # Update document_type for individual document
+                        cover_letter = None
+                        resume = job_app.resume_used
                     else:
-                        messages.error(request, "No cover letter or resume found for this job application")
+                        messages.error(request, "No resume found for this job application")
                         return redirect('dashboard:dashboard')
                 except JobServiceJobApplication.DoesNotExist:
                     messages.error(request, "Job application not found")
@@ -247,6 +266,8 @@ def email_compose(request, document_type, document_id):
             'is_gmail_connected': is_gmail_connected,
             'gmail_address': gmail_service.gmail_auth.gmail_address if is_gmail_connected else None,
             'email_body': email_body, # Pass the email_body to the context
+            'cover_letter': cover_letter,  # Pass cover letter object if available
+            'resume': resume,  # Pass resume object if available
         }
         
         return render(request, 'email_utility/compose.html', context)
@@ -286,12 +307,66 @@ def send_email(request):
             }, status=400)
         
         # Get the document
+        
         if document_type == 'resume':
             document = get_object_or_404(Resume, id=document_id, user=request.user)
             attachment_name = f"{document.name}.pdf"
+            cover_letter = None
+            resume = document
         elif document_type == 'cover_letter':
             document = get_object_or_404(CoverLetter, id=document_id, user=request.user)
             attachment_name = None  # No attachment for cover letters
+            cover_letter = document
+            resume = None
+        elif document_type == 'job_application':
+            # Handle job application with potential cover letter and resume
+            from dashboard.models import JobApplication as DashboardJobApplication
+            from job_service.models import JobApplication as JobServiceJobApplication
+            
+            try:
+                job_app = DashboardJobApplication.objects.get(id=document_id, user=request.user)
+                cover_letter = job_app.cover_letter
+                resume = job_app.resume
+                
+                if cover_letter and resume:
+                    # Both cover letter and resume - use resume for attachment
+                    document = resume
+                    attachment_name = f"{resume.name}.pdf"
+                elif cover_letter:
+                    # Cover letter only
+                    document = cover_letter
+                    attachment_name = None
+                    resume = None
+                elif resume:
+                    # Resume only
+                    document = resume
+                    attachment_name = f"{resume.name}.pdf"
+                    cover_letter = None
+                else:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'No cover letter or resume found for this job application'
+                    }, status=400)
+                    
+            except DashboardJobApplication.DoesNotExist:
+                # Try job service JobApplication
+                try:
+                    job_app = JobServiceJobApplication.objects.get(id=document_id, user=request.user)
+                    if job_app.resume_used:
+                        document = job_app.resume_used
+                        attachment_name = f"{job_app.resume_used.name}.pdf"
+                        cover_letter = None
+                        resume = job_app.resume_used
+                    else:
+                        return JsonResponse({
+                            'success': False,
+                            'error': 'No resume found for this job application'
+                        }, status=400)
+                except JobServiceJobApplication.DoesNotExist:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Job application not found'
+                    }, status=400)
         else:
             return JsonResponse({
                 'success': False,
@@ -312,7 +387,7 @@ def send_email(request):
         # Generate PDF attachment
         attachment_path = None
         try:
-            if document_type == 'resume':
+            if document_type == 'resume' or (document_type == 'job_application' and resume):
                 # Generate resume PDF
                 from pdf_generator.core.generator import PDFGenerator
                 
@@ -356,8 +431,8 @@ def send_email(request):
         
         # Send email via Gmail API
         try:
-            # For cover letters, wrap the content in HTML tags for proper email formatting
-            if document_type == 'cover_letter':
+            # For cover letters or job applications with cover letter, wrap the content in HTML tags for proper email formatting
+            if document_type == 'cover_letter' or (document_type == 'job_application' and cover_letter):
                 html_body = f"""
                 <html>
                 <body style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #333;">

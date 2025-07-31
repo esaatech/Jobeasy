@@ -143,7 +143,7 @@
                 Download PDF
             </button>
             
-            {% if cover_letter.id %}
+            {% if cover_letter_obj and cover_letter_obj.id %}
             <button onclick="emailCoverLetter()" class="btn btn-success">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
@@ -284,9 +284,9 @@ function downloadAsPDF() {
 
 // Email functionality
 function emailCoverLetter() {
-    {% if cover_letter.id %}
+    {% if cover_letter_obj and cover_letter_obj.id %}
     // We have a cover letter object with ID, redirect directly
-    window.location.href = '{% url "email_utility:email_compose" "cover_letter" cover_letter.id %}';
+    window.location.href = '{% url "email_utility:email_compose" "cover_letter" cover_letter_obj.id %}';
     {% else %}
     // Fallback: we don't have a cover letter object with ID, so we can't email it
     alert('Email functionality is not available for this cover letter. Please save it first.');

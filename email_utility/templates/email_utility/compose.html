@@ -305,11 +305,23 @@
     <div class="document-preview">
         <h3>Document Preview</h3>
         <p><strong>Name:</strong> {{ document_name }}</p>
-        <p><strong>Type:</strong> {{ attachment_type|title }}</p>
-        {% if attachment_type == 'none' %}
-            <p><strong>Attachment:</strong> No attachment (content will be in email body)</p>
+        {% if document_type == 'job_application' and cover_letter and resume %}
+            <p><strong>Type:</strong> Cover Letter + Resume</p>
+            <p><strong>Cover Letter:</strong> {{ cover_letter.title }} (will be in email body)</p>
+            <p><strong>Resume:</strong> {{ resume.name }} (will be attached as PDF)</p>
+        {% elif document_type == 'job_application' and cover_letter %}
+            <p><strong>Type:</strong> Cover Letter Only</p>
+            <p><strong>Cover Letter:</strong> {{ cover_letter.title }} (will be in email body)</p>
+        {% elif document_type == 'job_application' and resume %}
+            <p><strong>Type:</strong> Resume Only</p>
+            <p><strong>Resume:</strong> {{ resume.name }} (will be attached as PDF)</p>
         {% else %}
-            <p><strong>Will be attached as:</strong> {{ document_name }}.pdf</p>
+            <p><strong>Type:</strong> {{ attachment_type|title }}</p>
+            {% if attachment_type == 'none' %}
+                <p><strong>Attachment:</strong> No attachment (content will be in email body)</p>
+            {% else %}
+                <p><strong>Will be attached as:</strong> {{ document_name }}.pdf</p>
+            {% endif %}
         {% endif %}
     </div>
 
@@ -328,12 +340,19 @@
             <div class="form-group">
                 <label for="subject" class="form-label">Subject *</label>
                 <input type="text" id="subject" name="subject" class="form-input" 
-                       value="{% if attachment_type == 'none' %}Cover Letter for {{ document_name }}{% else %}My {{ attachment_type|title }} - {{ document_name }}{% endif %}" required>
+                       value="{% if document_type == 'job_application' and cover_letter and resume %}Application for {{ document_name }}{% elif attachment_type == 'none' %}Cover Letter for {{ document_name }}{% else %}My {{ attachment_type|title }} - {{ document_name }}{% endif %}" required>
             </div>
             
             <div class="form-group">
                 <label for="message" class="form-label">Message *</label>
-                <textarea id="message" name="message" class="form-input form-textarea" required>{% if email_body %}{{ email_body }}{% else %}Dear Hiring Manager,
+                <textarea id="message" name="message" class="form-input form-textarea" required>{% if email_body %}{{ email_body }}{% elif document_type == 'job_application' and cover_letter and resume %}Dear Hiring Manager,
+
+I am writing to express my interest in the position and have attached my resume for your review.
+
+I look forward to hearing from you.
+
+Best regards,
+{{ user.get_full_name|default:user.username }}{% else %}Dear Hiring Manager,
 
 I am writing to express my interest in the position and have attached my {{ attachment_type }} for your review.
 
