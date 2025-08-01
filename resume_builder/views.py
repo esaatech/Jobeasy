@@ -1250,7 +1250,7 @@ def create_resume_submit(request):
 @login_required
 def my_resumes(request):
     """List all resumes for the current user, with ready resumes first."""
-    resumes = request.user.resumes.all().order_by('draft', '-updated_at')
+    resumes = request.user.resumes.filter(is_optimized=False).order_by('draft', '-updated_at')
     
     context = {
         'resumes': resumes,
