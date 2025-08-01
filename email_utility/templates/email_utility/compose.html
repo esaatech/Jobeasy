@@ -6,76 +6,7 @@
 {% block extra_css %}
 <style>
     .email-compose-container {
-        max-width: 800px;
-        margin: 0 auto;
-        padding: 2rem;
-    }
-    
-    .page-header {
-        text-align: center;
-        margin-bottom: 3rem;
-        padding-bottom: 2rem;
-        border-bottom: 1px solid #e5e7eb;
-    }
-    
-    .page-header h1 {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: #1f2937;
-        margin-bottom: 0.5rem;
-    }
-    
-    .page-header p {
-        font-size: 1.125rem;
-        color: #6b7280;
-        margin: 0;
-    }
-    
-    .gmail-status {
-        padding: 1.5rem;
-        border-radius: 12px;
-        margin-bottom: 2rem;
-        border: 2px solid;
-        font-size: 1rem;
-    }
-    
-    .gmail-connected {
-        background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
-        border-color: #10b981;
-        color: #065f46;
-        box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.1);
-    }
-    
-    .gmail-not-connected {
-        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-        border-color: #f59e0b;
-        color: #92400e;
-        box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.1);
-    }
-    
-    .gmail-status .flex {
-        display: flex;
-        align-items: center;
-    }
-    
-    .gmail-status .flex.items-center {
-        align-items: center;
-    }
-    
-    .gmail-status .flex.justify-between {
-        justify-content: space-between;
-    }
-    
-    .gmail-status .w-5 {
-        width: 1.25rem;
-    }
-    
-    .gmail-status .h-5 {
-        height: 1.25rem;
-    }
-    
-    .gmail-status .mr-2 {
-        margin-right: 0.5rem;
+        padding: 1rem;
     }
     
     .document-preview {
@@ -115,20 +46,20 @@
     
     .email-form {
         background: white;
-        padding: 2.5rem;
+        padding: 1rem;
         border-radius: 16px;
         box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         border: 1px solid #f3f4f6;
     }
     
     .form-group {
-        margin-bottom: 2rem;
+        margin-bottom: 1rem;
     }
     
     .form-label {
         display: block;
         font-weight: 600;
-        margin-bottom: 0.75rem;
+        margin-bottom: 0.5rem;
         color: #374151;
         font-size: 1rem;
     }
@@ -150,10 +81,25 @@
         box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
     }
     
+    .form-input[readonly] {
+        background-color: #f9fafb;
+        color: #6b7280;
+        cursor: not-allowed;
+        border-color: #d1d5db;
+    }
+    
+    .form-input[readonly]:focus {
+        border-color: #d1d5db;
+        box-shadow: none;
+        background-color: #f9fafb;
+    }
+    
     .form-textarea {
-        min-height: 180px;
-        resize: vertical;
+        min-height: 120px;
+        max-height: 60vh;
+        resize: none;
         line-height: 1.6;
+        overflow-y: auto;
     }
     
     .btn-primary {
@@ -253,54 +199,15 @@
             padding: 1rem;
         }
         
-        .page-header h1 {
-            font-size: 2rem;
-        }
-        
         .email-form {
             padding: 1.5rem;
-        }
-        
-        .gmail-status .flex.justify-between {
-            flex-direction: column;
-            gap: 1rem;
-            align-items: flex-start;
         }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="email-compose-container">
-    <div class="page-header">
-        <h1>Email {{ document_type|title }}</h1>
-        <p>Send your {{ document_type }} directly from your Gmail account</p>
-    </div>
-
-    <!-- Gmail Connection Status -->
-    <div class="gmail-status {% if is_gmail_connected %}gmail-connected{% else %}gmail-not-connected{% endif %}">
-        {% if is_gmail_connected %}
-            <div class="flex items-center">
-                <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                </svg>
-                <span><strong>Gmail Connected:</strong> {{ gmail_address }}</span>
-            </div>
-        {% else %}
-            <div class="flex items-center justify-between">
-                <div class="flex items-center">
-                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
-                    </svg>
-                    <span><strong>Gmail Not Connected:</strong> Connect your Gmail account to send emails</span>
-                </div>
-                <a href="{% url 'email_utility:gmail_authorize' %}?next={{ request.path }}" class="btn-primary">
-                    Connect Gmail
-                </a>
-            </div>
-        {% endif %}
-    </div>
-
+<div class="email-compose-container page-width">
     <!-- Document Preview -->
     <div class="document-preview">
         <h3>Document Preview</h3>
@@ -331,6 +238,11 @@
             {% csrf_token %}
             
             <div id="alertContainer"></div>
+            
+            <div class="form-group">
+                <label for="sender_email" class="form-label">From *</label>
+                <input type="email" id="sender_email" name="sender_email" class="form-input" value="{{ gmail_address }}" readonly>
+            </div>
             
             <div class="form-group">
                 <label for="recipient_email" class="form-label">Recipient Email *</label>
@@ -392,6 +304,41 @@ document.addEventListener('DOMContentLoaded', function() {
     const sendButton = document.getElementById('sendButton');
     const loading = document.getElementById('loading');
     const alertContainer = document.getElementById('alertContainer');
+    
+    // Prevent editing of readonly sender email field
+    const senderEmailField = document.getElementById('sender_email');
+    if (senderEmailField) {
+        senderEmailField.addEventListener('keydown', function(e) {
+            e.preventDefault();
+            return false;
+        });
+        senderEmailField.addEventListener('paste', function(e) {
+            e.preventDefault();
+            return false;
+        });
+        senderEmailField.addEventListener('input', function(e) {
+            e.preventDefault();
+            return false;
+        });
+    }
+    
+    // Auto-expand textarea to fit content
+    const messageTextarea = document.getElementById('message');
+    if (messageTextarea) {
+        function autoResizeTextarea() {
+            messageTextarea.style.height = 'auto';
+            messageTextarea.style.height = Math.min(messageTextarea.scrollHeight, window.innerHeight * 0.6) + 'px';
+        }
+        
+        // Initial resize
+        autoResizeTextarea();
+        
+        // Resize on input
+        messageTextarea.addEventListener('input', autoResizeTextarea);
+        
+        // Resize on window resize
+        window.addEventListener('resize', autoResizeTextarea);
+    }
     
     if (emailForm) {
         emailForm.addEventListener('submit', function(e) {
