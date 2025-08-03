@@ -1,0 +1,19 @@
+{% if email_body %}
+{{ email_body }}
+{% elif document_type == 'job_application' and cover_letter and resume %}
+Dear Hiring Manager,
+
+I am writing to express my interest in the position and have attached my resume for your review.
+
+I look forward to hearing from you.
+
+Best regards,
+{{ user.get_full_name|default:user.username }}
+{% else %}
+I am writing to express my interest in the position and have attached my resume for your review.
+
+I look forward to hearing from you.
+
+Best regards,
+{{ user.get_full_name|default:user.username }}
+{% endif %}
