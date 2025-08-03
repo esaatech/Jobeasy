@@ -25,6 +25,7 @@ class JobApplication(models.Model):
     cover_letter = models.ForeignKey('coverletter.CoverLetter', on_delete=models.SET_NULL, null=True, blank=True, related_name='job_applications')
     resume = models.ForeignKey(Resume, on_delete=models.SET_NULL, null=True, blank=True, related_name='job_applications')
     job_name = models.CharField(max_length=255)
+    email_subject = models.CharField(max_length=200, blank=True, null=True, help_text="AI-generated email subject line")
     created_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(
         max_length=20,

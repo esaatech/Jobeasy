@@ -8,7 +8,8 @@ import time
 import re
 from resume_builder.models import Resume
 from coverletter.models import CoverLetter
-from ai_service.open_ai import generate_cover_letter_from_raw_text, optimize_my_resume_for_job
+from ai_service.cover_letter import generate_cover_letter_from_raw_text
+from ai_service.open_ai import optimize_my_resume_for_job
 from .models import JobApplication
 from subscriptions.models import UserSubscription, SubscriptionPlan
 
@@ -248,17 +249,23 @@ def generate_job_application(request):
                 # Get resume content from structured fields
                 resume_content = _format_resume_content(resume)
                 
-                # Generate cover letter using AI
+                # Generate cover letter using AI (with email subject generation)
                 result = generate_cover_letter_from_raw_text(
                     job_description, 
                     resume_content, 
-                    applicant_name
+                    applicant_name,
+                    include_email_subject=True  # Generate email subject as well
                 )
                 
                 processing_time = time.time() - start_time
                 
                 if result['success']:
                     cover_letter.content = result['cover_letter']
+                    # Update title if provided by AI
+                    if result.get('title'):
+                        cover_letter.title = result['title']
+                        # Update job_name to use the AI-generated title
+                        job_name = result['title']
                     cover_letter.status = 'completed'
                     cover_letter.processing_time = processing_time
                     cover_letter.save()
@@ -287,6 +294,7 @@ def generate_job_application(request):
             job_name=job_name,
             cover_letter=cover_letter,
             resume=optimized_resume if optimize_resume and optimized_resume else None,
+            email_subject=result.get('email_subject') if cover_letter and result.get('success') else None,
             status='completed' if not error_message else 'failed'
         )
         
@@ -302,6 +310,7 @@ def generate_job_application(request):
             'created_at': job_application.created_at.strftime('%M %d, %Y - %g:%i %A'),
             'resume_id': job_application.resume.id if job_application.resume else None,
             'cover_letter_id': cover_letter.id if cover_letter else None,
+            'email_subject': job_application.email_subject,
             'error': error_message,
             'counts': {
                 'resumes': resume_count,
