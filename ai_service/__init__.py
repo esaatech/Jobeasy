@@ -1,6 +1,6 @@
 # AI Service Package
+from .cover_letter import generate_cover_letter_from_raw_text
 from .open_ai import (
-    generate_cover_letter_from_raw_text,
     optimize_resume_for_job,
     optimize_my_resume_for_job,
     generate_professional_summary
@@ -17,8 +17,10 @@ from .structured_resume import (
 )
 
 __all__ = [
-    # Legacy functions
+    # Cover letter functions
     'generate_cover_letter_from_raw_text',
+    
+    # Resume optimization functions
     'optimize_resume_for_job', 
     'optimize_my_resume_for_job',
     'generate_professional_summary',

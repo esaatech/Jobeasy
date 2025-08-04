@@ -14,7 +14,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
-from ai_service import generate_cover_letter_from_raw_text
+from ai_service.cover_letter import generate_cover_letter_from_raw_text
 from .models import CoverLetter
 import logging
 import json
@@ -44,9 +44,9 @@ def cover_letter_view(request, cover_letter_id):
 def job_cover_letter(request):
     print(f"........in job_cover_letter..........")
     if request.method == "GET":
-        # Get user's resumes for the selection component
+        # Get user's resumes for the selection component (excluding optimized resumes)
         from resume_builder.models import Resume
-        resumes = Resume.objects.filter(user=request.user).order_by('-updated_at')
+        resumes = Resume.objects.filter(user=request.user, is_optimized=False).order_by('-updated_at')
         
         context = {
             'page_title': 'Cover Letter AI',
@@ -221,8 +221,18 @@ def job_cover_letter(request):
         result = generate_cover_letter_from_raw_text(job_text, resume_text, applicant_name)
 
         if result['success']:
+            # Save the cover letter to the database
+            cover_letter_obj = CoverLetter.objects.create(
+                user=request.user,
+                title=f"Cover Letter for {job_text[:50]}..." if len(job_text) > 50 else job_text,
+                content=result['cover_letter'],
+                job_description=job_text,
+                status='completed'
+            )
+            
             # Store the cover letter in session for the response page
             request.session['generated_cover_letter'] = result['cover_letter']
+            request.session['cover_letter_id'] = cover_letter_obj.id
             
             # Redirect to the response page
             return redirect('coverletter:cover_letter_response')
@@ -243,12 +253,22 @@ def job_cover_letter(request):
 def cover_letter_response(request):
     """View to display the generated cover letter response."""
     cover_letter = request.session.get('generated_cover_letter', '')
+    cover_letter_id = request.session.get('cover_letter_id')
     
     if not cover_letter:
         return redirect('coverletter:job_cover_letter')
     
+    # Get the cover letter object if we have an ID
+    cover_letter_obj = None
+    if cover_letter_id:
+        try:
+            cover_letter_obj = CoverLetter.objects.get(id=cover_letter_id, user=request.user)
+        except CoverLetter.DoesNotExist:
+            pass
+    
     context = {
         'cover_letter': cover_letter,
+        'cover_letter_obj': cover_letter_obj,
         'page_title': 'Cover Letter Generated',
         'page_description': 'Your AI-generated cover letter is ready!'
     }
@@ -472,7 +492,7 @@ def edit_cover_letter(request, cover_letter_id):
 @require_http_methods(["POST"])
 def save_edited_content(request):
     """
-    Save the edited cover letter content to session.
+    Save the edited cover letter content to session and database.
     """
     try:
         import json
@@ -486,6 +506,16 @@ def save_edited_content(request):
         
         # Save to session
         request.session['generated_cover_letter'] = cover_letter_content
+        
+        # Also update the database record if we have a cover letter ID
+        cover_letter_id = request.session.get('cover_letter_id')
+        if cover_letter_id:
+            try:
+                cover_letter_obj = CoverLetter.objects.get(id=cover_letter_id, user=request.user)
+                cover_letter_obj.content = cover_letter_content
+                cover_letter_obj.save()
+            except CoverLetter.DoesNotExist:
+                pass  # If the cover letter doesn't exist, just save to session
         
         return JsonResponse({'success': True, 'message': 'Cover letter content saved successfully'})
         

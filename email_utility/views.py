@@ -181,18 +181,25 @@ def gmail_callback(request):
 def email_compose(request, document_type, document_id):
     """Show email composition form"""
     try:
+        # Initialize variables
+        cover_letter = None
+        resume = None
+        job_app = None
+        
         # Get the document (resume, cover letter, or job application)
         if document_type == 'resume':
             document = get_object_or_404(Resume, id=document_id, user=request.user)
             document_name = document.name
             attachment_type = 'resume'
             email_body = None
+            resume = document  # Set resume for context
         elif document_type == 'cover_letter':
             document = get_object_or_404(CoverLetter, id=document_id, user=request.user)
             document_name = document.title
             attachment_type = 'none'  # For display purposes - no attachment
             # Pass plain text to template for user-friendly display
             email_body = document.content
+            cover_letter = document  # Set cover_letter for context
         elif document_type == 'job_application':
             # For job applications, handle all scenarios: cover letter only, resume only, or both
             from dashboard.models import JobApplication as DashboardJobApplication
@@ -260,7 +267,9 @@ def email_compose(request, document_type, document_id):
         
         # Extract applicant name from resume if available
         applicant_name = None
-        if resume and resume.personal_info:
+        if document_type == 'resume' and document and hasattr(document, 'personal_info') and document.personal_info:
+            applicant_name = document.personal_info.get('full_name')
+        elif resume and resume.personal_info:
             applicant_name = resume.personal_info.get('full_name')
         
         context = {
