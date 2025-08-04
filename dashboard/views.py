@@ -9,7 +9,7 @@ import re
 from resume_builder.models import Resume
 from coverletter.models import CoverLetter
 from ai_service.cover_letter import generate_cover_letter_from_raw_text
-from ai_service.open_ai import optimize_my_resume_for_job
+from ai_service.resume_optimization import optimize_resume_for_job
 from .models import JobApplication
 from subscriptions.models import UserSubscription, SubscriptionPlan
 
@@ -136,10 +136,17 @@ def job_applications_list(request):
     
     return render(request, 'dashboard/job_applications_list.html', context)
 
-def _optimize_resume_for_job_application(user, job_description, resume, job_name):
+def _optimize_resume_for_job_application(user, job_description, resume, job_name, include_email_subject=True):
     """
     Helper to optimize a resume for a job application using AI and create a new Resume object.
-    Returns (optimized_resume, error_message)
+    Returns (optimized_resume, error_message, optimization_result)
+    
+    Args:
+        user: The user requesting the optimization
+        job_description: The job posting description
+        resume: The original resume object to optimize
+        job_name: The job name for the optimized resume title
+        include_email_subject: Whether to generate an email subject (default: True)
     """
     # Prepare structured resume data for the AI function
     # Extract skills from the existing skills structure using correct keys
@@ -157,10 +164,10 @@ def _optimize_resume_for_job_application(user, job_description, resume, job_name
         'projects': getattr(resume, 'projects', []),  # If you have a projects field
     }
     try:
-        result = optimize_my_resume_for_job(job_description, resume_data)
+        result = optimize_resume_for_job(job_description, resume_data, include_email_subject=include_email_subject)
         print(result)
         if not result:
-            return None, 'AI did not return a result.'
+            return None, 'AI did not return a result.', None
         # Build new personal_info with optimized summary
         new_personal_info = dict(resume.personal_info) if resume.personal_info else {}
         if result.get('optimized_summary'):
@@ -175,10 +182,14 @@ def _optimize_resume_for_job_application(user, job_description, resume, job_name
             combined_skills['languages'] = result['reordered_languages']
         # Use reordered projects if present
         new_projects = result.get('reordered_projects', getattr(resume, 'projects', []))
+        
+        # Get AI-generated title for the resume
+        resume_title = result.get('title', f"Optimized for {job_name}")
+        
         # Create the optimized Resume object
         optimized_resume = Resume.objects.create(
             user=user,
-            name=f"Optimized for {job_name}",
+            name=resume_title,  # Use AI-generated title
             original_content=resume.original_content,
             personal_info=new_personal_info,
             experience=resume.experience,  # Optionally, you could use result['relevant_experience'] here if you want to replace experience
@@ -197,9 +208,9 @@ def _optimize_resume_for_job_application(user, job_description, resume, job_name
         if hasattr(optimized_resume, 'projects'):
             optimized_resume.projects = new_projects
             optimized_resume.save()
-        return optimized_resume, None
+        return optimized_resume, None, result
     except Exception as e:
-        return None, str(e)
+        return None, str(e), None
 
 @login_required
 @csrf_exempt
@@ -283,10 +294,23 @@ def generate_job_application(request):
         
         optimized_resume = None
         error_message = None
+        resume_email_subject = None
+        resume_title = None
         if optimize_resume:
-            optimized_resume, error_message = _optimize_resume_for_job_application(
-                request.user, job_description, resume, job_name
+            # Only generate email subject for resume if no cover letter is being generated
+            # This ensures cover letter takes priority for email subject when both are selected
+            include_resume_email_subject = not generate_cover_letter
+            
+            optimized_resume, error_message, optimization_result = _optimize_resume_for_job_application(
+                request.user, job_description, resume, job_name, include_resume_email_subject
             )
+            # Get email subject and title from resume optimization if available
+            if optimized_resume and optimization_result:
+                resume_email_subject = optimization_result.get('email_subject')
+                resume_title = optimization_result.get('title')
+                # Update job_name to use the AI-generated title from resume optimization
+                if resume_title:
+                    job_name = resume_title
         
         # Create job application record
         job_application = JobApplication.objects.create(
@@ -294,7 +318,7 @@ def generate_job_application(request):
             job_name=job_name,
             cover_letter=cover_letter,
             resume=optimized_resume if optimize_resume and optimized_resume else None,
-            email_subject=result.get('email_subject') if cover_letter and result.get('success') else None,
+            email_subject=result.get('email_subject') if cover_letter and result.get('success') else resume_email_subject,
             status='completed' if not error_message else 'failed'
         )
         

@@ -258,6 +258,11 @@ def email_compose(request, document_type, document_id):
         gmail_service = GmailService(request.user)
         is_gmail_connected = gmail_service.is_authenticated()
         
+        # Extract applicant name from resume if available
+        applicant_name = None
+        if resume and resume.personal_info:
+            applicant_name = resume.personal_info.get('full_name')
+        
         context = {
             'document': document,
             'document_type': document_type,
@@ -269,27 +274,8 @@ def email_compose(request, document_type, document_id):
             'cover_letter': cover_letter,  # Pass cover letter object if available
             'resume': resume,  # Pass resume object if available
             'job_app': job_app,  # Always pass job_app when we have it
+            'applicant_name': applicant_name,  # Pass the applicant name from resume
         }
-        
-        print(f"DEBUG: job_app in context: {context.get('job_app')}")
-        print(f"DEBUG: document_type: {document_type}")
-        print(f"DEBUG: Rendering template: email_utility/compose.html")
-        
-        # Debug prints
-        if document_type == 'job_application' and job_app:
-            print(f"DEBUG: Job App ID: {job_app.id}")
-            print(f"DEBUG: Job App Email Subject: '{job_app.email_subject}'")
-            print(f"DEBUG: Job App Email Subject Type: {type(job_app.email_subject)}")
-            print(f"DEBUG: Has email_subject: {bool(job_app.email_subject)}")
-        else:
-            print(f"DEBUG: document_type = {document_type}")
-            print(f"DEBUG: job_app = {job_app}")
-            if job_app:
-                print(f"DEBUG: Job App ID: {job_app.id}")
-                print(f"DEBUG: Job App Email Subject: '{job_app.email_subject}'")
-                print(f"DEBUG: Job App Email Subject Type: {type(job_app.email_subject)}")
-                print(f"DEBUG: Has email_subject: {bool(job_app.email_subject)}")
-                print(f"DEBUG: Job App fields: {[f.name for f in job_app._meta.fields]}")
         
         return render(request, 'email_utility/compose.html', context)
         
