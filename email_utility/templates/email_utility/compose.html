@@ -207,6 +207,11 @@
 {% endblock %}
 
 {% block content %}
+
+
+
+<!-- ========================================== -->
+
 <div class="email-compose-container page-width">
     <!-- Document Preview -->
     <div class="document-preview">
@@ -250,9 +255,14 @@
             </div>
             
             <div class="form-group">
-                <label for="subject" class="form-label">Subject *</label>
+                <label for="subject" class="form-label">Subjects *</label>
+                <!-- Debug info -->
+                <!-- job_app: {{ job_app }} -->
+                <!-- job_app.email_subject: "{{ job_app.email_subject }}" -->
+                <!-- condition: {% if job_app and job_app.email_subject %}TRUE{% else %}FALSE{% endif %} -->
+                
                 <input type="text" id="subject" name="subject" class="form-input" 
-                       value="{% if document_type == 'job_application' and cover_letter and resume %}Application for {{ document_name }}{% elif attachment_type == 'none' %}Cover Letter for {{ document_name }}{% else %}My {{ attachment_type|title }} - {{ document_name }}{% endif %}" required>
+                       value="{{ job_app.email_subject }}" required>
             </div>
             
             <div class="form-group">
