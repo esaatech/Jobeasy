@@ -151,10 +151,15 @@
             {% endif %}
             <div class="plan-title">{{ plan.name }}</div>
             <div class="plan-desc">{{ plan.description }}</div>
-            {% if plan.durations.all %}
+            {% if plan.durations_with_stripe %}
                 <div class="plan-price">
-                    {% for duration in plan.durations.all %}
-                        ${{ duration.price|floatformat:0 }}<span class="plan-duration">/{{ duration.get_duration_type_display|lower }}</span>{% if not forloop.last %} <span style="color:#cbd5e1;">|</span> {% endif %}
+                    {% for duration in plan.durations_with_stripe %}
+                        {% if duration.has_stripe_price %}
+                            ${{ duration.stripe_price|floatformat:2 }}<span class="plan-duration">/{{ duration.get_duration_type_display|lower }}</span>
+                        {% else %}
+                            ${{ duration.price|floatformat:2 }}<span class="plan-duration">/{{ duration.get_duration_type_display|lower }}</span>
+                        {% endif %}
+                        {% if not forloop.last %} <span style="color:#cbd5e1;">|</span> {% endif %}
                     {% endfor %}
                 </div>
             {% else %}

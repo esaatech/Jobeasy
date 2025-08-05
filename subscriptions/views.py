@@ -17,6 +17,7 @@ load_dotenv()
 import os
 print('DEBUG: STRIPE_SECRET_KEY at runtime:', os.getenv('MYAPP_STRIPE_SECRET_KEY'))
 stripe.api_key = os.getenv('MYAPP_STRIPE_SECRET_KEY')  # Make sure this is the secret key
+from .utils import get_all_plans_with_stripe_prices
 
 class PlanPurchaseView(LoginRequiredMixin, DetailView):
     """
@@ -44,8 +45,9 @@ class PlanPurchaseView(LoginRequiredMixin, DetailView):
         # Add plan ID to context
         context['plan_id'] = plan.id
         
-        # Get active durations for this plan
-        context['durations'] = plan.durations.filter(is_active=True)
+        # Get active durations with Stripe prices for this plan
+        from .utils import get_plan_durations_with_stripe_prices
+        context['durations'] = get_plan_durations_with_stripe_prices(plan)
         
         # Separate features into tools and services
         context['tools'] = plan.features.filter(
@@ -259,7 +261,8 @@ def checkout_success(request, subscription_id):
         })
 
 def pricing(request):
-    plans = SubscriptionPlan.objects.filter(is_active=True).prefetch_related('features', 'durations')
+    # Get plans with real-time Stripe prices
+    plans = get_all_plans_with_stripe_prices()
     
     # Get user's current subscription if logged in
     current_subscription = None

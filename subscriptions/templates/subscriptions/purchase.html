@@ -103,7 +103,8 @@
                     {% for duration in durations %}
                     <div class="duration-select border rounded-lg p-4 cursor-pointer hover:border-[#1980e6] transition-colors"
                          data-duration-id="{{ duration.id }}"
-                         data-price="{{ duration.price }}">
+                         data-price="{% if duration.has_stripe_price %}{{ duration.stripe_price }}{% else %}{{ duration.price }}{% endif %}"
+                         data-stripe-price-id="{{ duration.stripe_price_id }}">
                         <div class="flex items-center justify-between">
                             <div>
                                 <h4 class="text-lg font-semibold text-gray-900">
@@ -111,7 +112,9 @@
                                 </h4>
                             </div>
                             <div class="text-right">
-                                <p class="text-2xl font-bold text-[#1980e6]">${{ duration.price }}</p>
+                                <p class="text-2xl font-bold text-[#1980e6]">
+                                    ${% if duration.has_stripe_price %}{{ duration.stripe_price|floatformat:2 }}{% else %}{{ duration.price|floatformat:2 }}{% endif %}
+                                </p>
                             </div>
                         </div>
                     </div>
