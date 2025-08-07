@@ -293,6 +293,23 @@
                         </label>
                     </div>
 
+                    <!-- Recurring Payment Disclosure -->
+                    <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <div class="flex items-start">
+                            <input type="checkbox" 
+                                   id="recurring-agreement" 
+                                   name="recurring-agreement"
+                                   required
+                                   class="h-4 w-4 text-[#1980e6] border-gray-300 rounded focus:ring-[#1980e6] mt-0.5">
+                            <label for="recurring-agreement" class="ml-2 block text-sm text-gray-700">
+                                <strong>I understand</strong> this is a recurring subscription. I will be charged 
+                                <span id="recurring-amount" class="font-semibold">$0.00</span> 
+                                <span id="recurring-frequency">monthly</span> until I cancel. 
+                                I can cancel anytime from my account settings.
+                            </label>
+                        </div>
+                    </div>
+
                     <!-- Total Amount -->
                     <div class="border-t border-gray-200 pt-4">
                         <div class="flex justify-between text-sm font-medium">
@@ -399,6 +416,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const paymentAmount = document.getElementById('payment-amount');
     const selectedDurationInput = document.getElementById('selected-duration');
     let selectedDurationId = null;
+    let selectedStripePriceId = null;
 
     durations.forEach(duration => {
         duration.addEventListener('click', function() {
@@ -411,6 +429,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Update selected duration and price
             selectedDurationId = this.dataset.durationId;
             const price = parseFloat(this.dataset.price);
+            selectedStripePriceId = this.dataset.stripePriceId;
             const formattedPrice = `$${price.toFixed(2)}`;
             
             // Update hidden input
@@ -419,16 +438,17 @@ document.addEventListener('DOMContentLoaded', function() {
             // Update both amount displays
             paymentAmount.textContent = formattedPrice;
             
-            // Update button text with amount
-            submitButton.innerHTML = `
-                <span id="spinner" class="hidden mr-2">
-                    <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                </span>
-                Pay ${formattedPrice}
-            `;
+            // Update recurring disclosure text
+            const recurringAmount = document.getElementById('recurring-amount');
+            const recurringFrequency = document.getElementById('recurring-frequency');
+            
+            if (recurringAmount && recurringFrequency) {
+                recurringAmount.textContent = formattedPrice;
+                
+                // Get frequency from duration type
+                const durationType = this.querySelector('h4').textContent.toLowerCase();
+                recurringFrequency.textContent = durationType;
+            }
             
             // Enable submit button only if Stripe is configured
             if (stripe) {
@@ -455,6 +475,13 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (!selectedDurationId) {
             alert('Please select a duration');
+            return;
+        }
+
+        // Check if recurring agreement is accepted
+        const recurringAgreement = document.getElementById('recurring-agreement');
+        if (!recurringAgreement.checked) {
+            alert('You must agree to the recurring payment terms to continue.');
             return;
         }
 
@@ -498,6 +525,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: JSON.stringify({
                     payment_method_id: paymentMethod.id,
                     save_card: document.getElementById('save-card').checked,
+                    stripe_price_id: selectedStripePriceId,  // Pass Stripe Price ID
                     return_url: '{{ return_url|safe }}'
                 })
             });

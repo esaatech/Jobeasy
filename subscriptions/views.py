@@ -16,8 +16,8 @@ load_dotenv()
 # Initialize Stripe with SECRET key (not publishable key)
 import os
 print('DEBUG: STRIPE_SECRET_KEY at runtime:', os.getenv('MYAPP_STRIPE_SECRET_KEY'))
-stripe.api_key = os.getenv('MYAPP_STRIPE_SECRET_KEY')  # Make sure this is the secret key
-from .utils import get_all_plans_with_stripe_prices
+stripe.api_key = os.getenv('MYAPP_STRIPE_SECRET_KEY')  # Use MYAPP_ prefix for live mode
+from .utils import get_all_plans_with_stripe_prices, get_stripe_price_info
 
 class PlanPurchaseView(LoginRequiredMixin, DetailView):
     """
@@ -77,19 +77,57 @@ class PlanPurchaseView(LoginRequiredMixin, DetailView):
 @login_required
 def process_payment(request, plan_id, duration_id):
     """Handle the payment processing and subscription creation."""
+    print("DEBUG: process_payment started")
+    
     if request.method != 'POST':
+        print("DEBUG: Invalid request method")
         return JsonResponse({'error': 'Invalid request method'}, status=400)
 
     try:
+        print("DEBUG: Parsing request data")
         # Get data from request
         data = json.loads(request.body)
         payment_method_id = data.get('payment_method_id')
-        save_card = data.get('save_card', False)
+        save_card = data.get('save_card', True)  # Default to True for subscriptions
+        frontend_stripe_price_id = data.get('stripe_price_id')  # Get from frontend
 
+        print(f"DEBUG: payment_method_id: {payment_method_id}")
+        print(f"DEBUG: save_card: {save_card}")
+        print(f"DEBUG: frontend_stripe_price_id: {frontend_stripe_price_id}")
+
+        # For subscriptions, we always need to save the card for renewals
+        if not save_card:
+            print("DEBUG: Card must be saved for subscriptions")
+            return JsonResponse({
+                'success': False,
+                'error': 'Card must be saved for subscription renewals.'
+            }, status=400)
+
+        print("DEBUG: Getting plan and duration")
         # Get plan and duration first
         plan = get_object_or_404(SubscriptionPlan, id=plan_id, is_active=True)
         duration = get_object_or_404(PlanDuration, id=duration_id, plan=plan, is_active=True)
 
+        print(f"DEBUG: Plan: {plan.name}, Duration: {duration.duration_type}")
+        print(f"DEBUG: Duration stripe_price_id: {duration.stripe_price_id}")
+
+        # Validate that we have a Stripe Price ID
+        if not duration.stripe_price_id:
+            print("DEBUG: No stripe_price_id found")
+            return JsonResponse({
+                'success': False,
+                'error': 'Pricing configuration error. Please contact support.'
+            }, status=400)
+
+        # Validate that frontend and backend Price IDs match
+        if frontend_stripe_price_id and frontend_stripe_price_id != duration.stripe_price_id:
+            print(f"DEBUG: Price mismatch - frontend: {frontend_stripe_price_id}, backend: {duration.stripe_price_id}")
+            return JsonResponse({
+                'success': False,
+                'error': 'Price mismatch detected. Please refresh the page and try again.'
+            }, status=400)
+
+        print("DEBUG: Creating pending subscription")
         # Create pending subscription
         subscription = UserSubscription.objects.create(
             user=request.user,
@@ -97,17 +135,22 @@ def process_payment(request, plan_id, duration_id):
             plan_duration=duration,
             status='PENDING'
         )
+        print(f"DEBUG: Created subscription ID: {subscription.id}")
 
         # Now we can build the success URL with the subscription ID
         success_url = request.build_absolute_uri(
             reverse('subscriptions:checkout_success', args=[subscription.id])
         )
+        print(f"DEBUG: Success URL: {success_url}")
 
+        print("DEBUG: Getting or creating stripe profile")
         # Get or create stripe profile
         stripe_profile, created = UserProfile.objects.get_or_create(user=request.user)
+        print(f"DEBUG: Stripe profile - created: {created}, customer_id: {stripe_profile.stripe_customer_id}")
 
         # Create or get Stripe customer
         if not stripe_profile.stripe_customer_id:
+            print("DEBUG: Creating new Stripe customer")
             customer = stripe.Customer.create(
                 email=request.user.email,
                 payment_method=payment_method_id if save_card else None,
@@ -115,61 +158,224 @@ def process_payment(request, plan_id, duration_id):
             )
             stripe_profile.stripe_customer_id = customer.id
             stripe_profile.save()
+            print(f"DEBUG: Created Stripe customer: {customer.id}")
         else:
+            print("DEBUG: Retrieving existing Stripe customer")
             customer = stripe.Customer.retrieve(stripe_profile.stripe_customer_id)
             if save_card:
+                print("DEBUG: Attaching payment method to customer")
                 stripe.PaymentMethod.attach(payment_method_id, customer=customer.id)
+            print(f"DEBUG: Retrieved Stripe customer: {customer.id}")
 
-        # Create payment intent
-        payment_intent = stripe.PaymentIntent.create(
-            amount=int(duration.price * 100),
-            currency='usd',
-            customer=customer.id,
-            payment_method=payment_method_id,
-            off_session=False,
-            confirm=True,
-            return_url=success_url,
-            metadata={
-                'subscription_id': subscription.id,
-                'plan_id': plan.id,
-                'duration_id': duration.id
-            }
-        )
-
-        # Handle different payment states
-        if payment_intent.status == 'succeeded':
-            # Create invoice for the subscription
-            invoice = stripe.Invoice.create(
+        print("DEBUG: Creating Stripe subscription")
+        # Create Stripe Subscription for recurring billing
+        try:
+            # Create a Stripe Subscription for recurring billing
+            stripe_subscription = stripe.Subscription.create(
                 customer=customer.id,
-                auto_advance=False,
-                collection_method='charge_automatically',
-                currency='usd',
-                pending_invoice_items_behavior='include',
+                items=[{'price': duration.stripe_price_id}],  # Use Price ID for recurring billing
+                payment_behavior='default_incomplete',  # Don't charge until payment is confirmed
+                payment_settings={'save_default_payment_method': 'on_subscription'},
+                expand=['latest_invoice.payment_intent'],
                 metadata={
-                    'payment_intent_id': payment_intent.id,
-                    'subscription_id': subscription.id
+                    'subscription_id': subscription.id,
+                    'plan_id': plan.id,
+                    'duration_id': duration.id,
+                    'stripe_price_id': duration.stripe_price_id
                 }
             )
+            
+            print(f"DEBUG: Stripe subscription created: {stripe_subscription.id}")
+            print(f"DEBUG: Subscription status: {stripe_subscription.status}")
+            
+            # For incomplete subscriptions, we need to handle the payment confirmation
+            if stripe_subscription.status == 'incomplete':
+                print("DEBUG: Subscription is incomplete, checking for payment intent")
+                
+                # Check if there's a payment intent on the latest invoice
+                if hasattr(stripe_subscription.latest_invoice, 'payment_intent') and stripe_subscription.latest_invoice.payment_intent:
+                    payment_intent = stripe_subscription.latest_invoice.payment_intent
+                    print(f"DEBUG: Found payment intent: {payment_intent.id}, status: {payment_intent.status}")
+                else:
+                    print("DEBUG: No payment intent found, creating one")
+                    # Create a payment intent for the subscription
+                    payment_intent = stripe.PaymentIntent.create(
+                        amount=stripe_subscription.latest_invoice.amount_due,
+                        currency=stripe_subscription.latest_invoice.currency,
+                        customer=customer.id,
+                        payment_method=payment_method_id,
+                        confirm=True,
+                        return_url=success_url,
+                        metadata={
+                            'subscription_id': subscription.id,
+                            'stripe_subscription_id': stripe_subscription.id
+                        }
+                    )
+                    print(f"DEBUG: Created payment intent: {payment_intent.id}, status: {payment_intent.status}")
+            elif stripe_subscription.status == 'active':
+                # Subscription is already active (payment was successful)
+                payment_intent = None
+                print("DEBUG: Subscription is already active - payment was successful")
+                
+                # Update our subscription with Stripe subscription details
+                subscription.status = 'ACTIVE'
+                subscription.stripe_subscription_id = stripe_subscription.id
+                subscription.stripe_invoice_id = stripe_subscription.latest_invoice.id
+                subscription.invoice_url = stripe_subscription.latest_invoice.hosted_invoice_url
+                
+                # Handle subscription period data safely
+                try:
+                    if hasattr(stripe_subscription, 'current_period_start') and stripe_subscription.current_period_start:
+                        subscription.current_period_start = timezone.datetime.fromtimestamp(
+                            stripe_subscription.current_period_start, tz=timezone.utc
+                        )
+                        print(f"DEBUG: Set current_period_start: {subscription.current_period_start}")
+                    else:
+                        subscription.current_period_start = timezone.now()
+                        print("DEBUG: Using current time for period start")
+                    
+                    if hasattr(stripe_subscription, 'current_period_end') and stripe_subscription.current_period_end:
+                        subscription.current_period_end = timezone.datetime.fromtimestamp(
+                            stripe_subscription.current_period_end, tz=timezone.utc
+                        )
+                        print(f"DEBUG: Set current_period_end: {subscription.current_period_end}")
+                    else:
+                        # Calculate period end based on duration
+                        if duration.duration_type == 'MONTHLY':
+                            subscription.current_period_end = subscription.current_period_start + timezone.timedelta(days=30)
+                        else:  # YEARLY
+                            subscription.current_period_end = subscription.current_period_start + timezone.timedelta(days=365)
+                        print(f"DEBUG: Calculated current_period_end: {subscription.current_period_end}")
+                        
+                except Exception as period_error:
+                    print(f"DEBUG: Error setting period data: {period_error}")
+                    # Use fallback period calculation
+                    subscription.current_period_start = timezone.now()
+                    if duration.duration_type == 'MONTHLY':
+                        subscription.current_period_end = timezone.now() + timezone.timedelta(days=30)
+                    else:  # YEARLY
+                        subscription.current_period_end = timezone.now() + timezone.timedelta(days=365)
+                    print("DEBUG: Used fallback period calculation")
+                
+                subscription.save()
+                print("DEBUG: Subscription updated and saved for active status")
 
-            # Add invoice item
-            stripe.InvoiceItem.create(
+                return JsonResponse({
+                    'success': True,
+                    'subscription_id': subscription.id,
+                    'redirect_url': success_url
+                })
+            else:
+                # Subscription is already active
+                payment_intent = None
+                print("DEBUG: Subscription is already active")
+        except stripe.error.InvalidRequestError as e:
+            print(f"DEBUG: InvalidRequestError: {e}")
+            # If Price ID approach fails, fallback to manual amount
+            stripe_amount, currency = get_stripe_price_info(duration)
+            if not stripe_amount:
+                print("DEBUG: Could not get stripe amount")
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Unable to fetch current pricing. Please try again.'
+                }, status=400)
+            
+            print(f"DEBUG: Fallback - amount: {stripe_amount}, currency: {currency}")
+            # Fallback: Create subscription with manual amount
+            stripe_subscription = stripe.Subscription.create(
                 customer=customer.id,
-                invoice=invoice.id,
-                amount=int(duration.price * 100),
-                currency='usd',
-                description=f"Subscription to {plan.name} - {duration.get_duration_type_display()}"
+                items=[{
+                    'price_data': {
+                        'unit_amount': int(stripe_amount * 100),
+                        'currency': currency.lower(),
+                        'recurring': {
+                            'interval': 'month' if duration.duration_type == 'MONTHLY' else 'year'
+                        },
+                        'product': 'prod_SegXaYLN4lwmr7'  # Your product ID
+                    }
+                }],
+                payment_behavior='default_incomplete',
+                payment_settings={'save_default_payment_method': 'on_subscription'},
+                expand=['latest_invoice.payment_intent'],
+                metadata={
+                    'subscription_id': subscription.id,
+                    'plan_id': plan.id,
+                    'duration_id': duration.id,
+                    'stripe_price_id': duration.stripe_price_id
+                }
             )
+            
+            # Handle fallback subscription the same way
+            if stripe_subscription.status == 'incomplete':
+                if hasattr(stripe_subscription.latest_invoice, 'payment_intent') and stripe_subscription.latest_invoice.payment_intent:
+                    payment_intent = stripe_subscription.latest_invoice.payment_intent
+                else:
+                    payment_intent = stripe.PaymentIntent.create(
+                        amount=stripe_subscription.latest_invoice.amount_due,
+                        currency=stripe_subscription.latest_invoice.currency,
+                        customer=customer.id,
+                        payment_method=payment_method_id,
+                        confirm=True,
+                        return_url=success_url,
+                        metadata={
+                            'subscription_id': subscription.id,
+                            'stripe_subscription_id': stripe_subscription.id
+                        }
+                    )
+            else:
+                payment_intent = None
+            
+            print(f"DEBUG: Fallback subscription created {stripe_subscription.id}, payment_intent status: {payment_intent.status if payment_intent else 'None'}")
 
-            # Finalize and pay invoice
-            finalized_invoice = stripe.Invoice.finalize_invoice(invoice.id)
-            paid_invoice = stripe.Invoice.pay(invoice.id, paid_out_of_band=True)
-
-            # Update subscription with invoice details
+        print("DEBUG: Handling payment states")
+        # Handle different payment states
+        if payment_intent and payment_intent.status == 'succeeded':
+            print("DEBUG: Payment succeeded")
+            
+            # Update our subscription with Stripe subscription details
             subscription.status = 'ACTIVE'
+            subscription.stripe_subscription_id = stripe_subscription.id  # Save Stripe subscription ID
             subscription.stripe_payment_intent = payment_intent.id
-            subscription.stripe_invoice_id = paid_invoice.id
-            subscription.invoice_url = paid_invoice.hosted_invoice_url
+            subscription.stripe_invoice_id = stripe_subscription.latest_invoice.id
+            subscription.invoice_url = stripe_subscription.latest_invoice.hosted_invoice_url
+            
+            # Handle subscription period data safely
+            try:
+                if hasattr(stripe_subscription, 'current_period_start') and stripe_subscription.current_period_start:
+                    subscription.current_period_start = timezone.datetime.fromtimestamp(
+                        stripe_subscription.current_period_start, tz=timezone.utc
+                    )
+                    print(f"DEBUG: Set current_period_start: {subscription.current_period_start}")
+                else:
+                    # If no period start, use current time
+                    subscription.current_period_start = timezone.now()
+                    print("DEBUG: Using current time for period start")
+                
+                if hasattr(stripe_subscription, 'current_period_end') and stripe_subscription.current_period_end:
+                    subscription.current_period_end = timezone.datetime.fromtimestamp(
+                        stripe_subscription.current_period_end, tz=timezone.utc
+                    )
+                    print(f"DEBUG: Set current_period_end: {subscription.current_period_end}")
+                else:
+                    # Calculate period end based on duration
+                    if duration.duration_type == 'MONTHLY':
+                        subscription.current_period_end = subscription.current_period_start + timezone.timedelta(days=30)
+                    else:  # YEARLY
+                        subscription.current_period_end = subscription.current_period_start + timezone.timedelta(days=365)
+                    print(f"DEBUG: Calculated current_period_end: {subscription.current_period_end}")
+                    
+            except Exception as period_error:
+                print(f"DEBUG: Error setting period data: {period_error}")
+                # Use fallback period calculation
+                subscription.current_period_start = timezone.now()
+                if duration.duration_type == 'MONTHLY':
+                    subscription.current_period_end = timezone.now() + timezone.timedelta(days=30)
+                else:  # YEARLY
+                    subscription.current_period_end = timezone.now() + timezone.timedelta(days=365)
+                print("DEBUG: Used fallback period calculation")
+            
             subscription.save()
+            print("DEBUG: Subscription updated and saved")
 
             return JsonResponse({
                 'success': True,
@@ -177,7 +383,8 @@ def process_payment(request, plan_id, duration_id):
                 'redirect_url': success_url
             })
 
-        elif payment_intent.status == 'requires_action':
+        elif payment_intent and payment_intent.status == 'requires_action':
+            print("DEBUG: Payment requires action")
             # Handle 3D Secure or other authentication
             return JsonResponse({
                 'success': False,
@@ -185,52 +392,74 @@ def process_payment(request, plan_id, duration_id):
                 'payment_intent_client_secret': payment_intent.client_secret
             })
 
-        else:
-            # Payment failed
+        elif payment_intent and payment_intent.status == 'requires_payment_method':
+            print("DEBUG: Payment method declined")
+            # Payment method was declined
             subscription.status = 'CANCELLED'
             subscription.save()
             
             return JsonResponse({
                 'success': False,
-                'error': f'Payment failed: {payment_intent.status}'
+                'error': 'Payment method was declined. Please try a different card.'
+            }, status=400)
+
+        else:
+            print(f"DEBUG: Payment failed - status: {payment_intent.status if payment_intent else 'None'}")
+            # Payment failed or unknown status
+            subscription.status = 'CANCELLED'
+            subscription.save()
+            
+            error_message = f'Payment failed: {payment_intent.status if payment_intent else "No payment intent"}'
+            return JsonResponse({
+                'success': False,
+                'error': error_message
             }, status=400)
 
     except stripe.error.CardError as e:
+        print(f"DEBUG: CardError: {e}")
         # Card was declined
         return JsonResponse({
             'success': False,
             'error': f'Card error: {e.error.message}'
         }, status=400)
     except stripe.error.InvalidRequestError as e:
+        print(f"DEBUG: InvalidRequestError: {e}")
         # Invalid parameters were supplied to Stripe's API
         return JsonResponse({
             'success': False,
             'error': f'Invalid request: {e.error.message}'
         }, status=400)
     except stripe.error.AuthenticationError as e:
+        print(f"DEBUG: AuthenticationError: {e}")
         # Authentication with Stripe's API failed
         return JsonResponse({
             'success': False,
             'error': f'Authentication error: {e.error.message}'
         }, status=400)
     except stripe.error.APIConnectionError as e:
+        print(f"DEBUG: APIConnectionError: {e}")
         # Network communication with Stripe failed
         return JsonResponse({
             'success': False,
             'error': f'Network error: {e.error.message}'
         }, status=400)
     except stripe.error.StripeError as e:
+        print(f"DEBUG: StripeError: {e}")
         # Generic error, something else happened
         return JsonResponse({
             'success': False,
             'error': f'Stripe error: {e.error.message}'
         }, status=400)
     except Exception as e:
+        print(f"DEBUG: Unexpected error: {e}")
+        print(f"DEBUG: Error type: {type(e)}")
+        import traceback
+        print(f"DEBUG: Traceback: {traceback.format_exc()}")
         # Something else happened, completely unrelated to Stripe
         return JsonResponse({
             'success': False,
             'error': f'Unexpected error: {str(e)}'
-        }, status=400)
+        }, status=500)
 
 @login_required
 def checkout_success(request, subscription_id):

@@ -19,7 +19,7 @@ else:
     print('Admin user already exists')
 "
 
-# Populate subscriptions plans
+# Populate subscriptions plans (includes Stripe Price ID setup if environment variables are set)
 python manage.py setup_subscription_plans
 
 # Populate home app testimonials and FAQs

@@ -171,6 +171,8 @@ class UserSubscription(BaseModel):
     stripe_payment_intent = models.CharField(max_length=255, blank=True, null=True)
     stripe_invoice_id = models.CharField(max_length=255, null=True, blank=True)
     invoice_url = models.URLField(max_length=500, null=True, blank=True)
+    current_period_start = models.DateTimeField(null=True, blank=True, help_text="Start of current billing period")
+    current_period_end = models.DateTimeField(null=True, blank=True, help_text="End of current billing period")
 
     class Meta:
         verbose_name = "User Subscription"
