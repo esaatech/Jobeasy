@@ -186,12 +186,81 @@ class NotificationService:
         """Send notification when a user deletes their account"""
         context = {
             'user_name': user_name,
-            'support_email': cls.SUPPORT_EMAIL,
         }
         
         return cls.send_email(
             to_email=user_email,
             subject="Your Account Has Been Deleted",
             template_name="email_utility/account_deletion_notification",
+            context=context
+        )
+
+    @classmethod
+    def send_subscription_confirmation(cls, subscription) -> bool:
+        """Send subscription confirmation email"""
+        user = subscription.user
+        plan = subscription.plan
+        duration = subscription.plan_duration
+        
+        context = {
+            'user': user,
+            'subscription': subscription,
+            'plan': plan,
+            'duration': duration,
+            'company_name': cls.COMPANY_NAME,
+            'support_email': cls.SUPPORT_EMAIL,
+            'dashboard_url': f"{settings.SITE_URL}/dashboard/" if hasattr(settings, 'SITE_URL') else '/dashboard/',
+        }
+        
+        return cls.send_email(
+            to_email=user.email,
+            subject=f"Welcome to {plan.name} Plan - {cls.COMPANY_NAME}",
+            template_name="subscriptions/emails/subscription_confirmation",
+            context=context
+        )
+
+    @classmethod
+    def send_subscription_renewal_reminder(cls, subscription) -> bool:
+        """Send subscription renewal reminder email"""
+        user = subscription.user
+        plan = subscription.plan
+        duration = subscription.plan_duration
+        
+        context = {
+            'user': user,
+            'subscription': subscription,
+            'plan': plan,
+            'duration': duration,
+            'company_name': cls.COMPANY_NAME,
+            'support_email': cls.SUPPORT_EMAIL,
+            'billing_url': f"{settings.SITE_URL}/subscriptions/billing/" if hasattr(settings, 'SITE_URL') else '/subscriptions/billing/',
+        }
+        
+        return cls.send_email(
+            to_email=user.email,
+            subject=f"Your {plan.name} subscription will renew soon - {cls.COMPANY_NAME}",
+            template_name="subscriptions/emails/subscription_renewal_reminder",
+            context=context
+        )
+
+    @classmethod
+    def send_subscription_cancelled(cls, subscription) -> bool:
+        """Send subscription cancellation confirmation"""
+        user = subscription.user
+        plan = subscription.plan
+        
+        context = {
+            'user': user,
+            'subscription': subscription,
+            'plan': plan,
+            'company_name': cls.COMPANY_NAME,
+            'support_email': cls.SUPPORT_EMAIL,
+            'pricing_url': f"{settings.SITE_URL}/subscriptions/pricing/" if hasattr(settings, 'SITE_URL') else '/subscriptions/pricing/',
+        }
+        
+        return cls.send_email(
+            to_email=user.email,
+            subject=f"Your {plan.name} subscription has been cancelled - {cls.COMPANY_NAME}",
+            template_name="subscriptions/emails/subscription_cancelled",
             context=context
         ) 

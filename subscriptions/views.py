@@ -18,6 +18,7 @@ import os
 print('DEBUG: STRIPE_SECRET_KEY at runtime:', os.getenv('MYAPP_STRIPE_SECRET_KEY'))
 stripe.api_key = os.getenv('MYAPP_STRIPE_SECRET_KEY')  # Use MYAPP_ prefix for live mode
 from .utils import get_all_plans_with_stripe_prices, get_stripe_price_info
+from email_utility.services.notification_service import NotificationService
 
 class PlanPurchaseView(LoginRequiredMixin, DetailView):
     """
@@ -260,6 +261,14 @@ def process_payment(request, plan_id, duration_id):
                 subscription.save()
                 print("DEBUG: Subscription updated and saved for active status")
 
+                # Send subscription confirmation email
+                try:
+                    NotificationService.send_subscription_confirmation(subscription)
+                    print("DEBUG: Subscription confirmation email sent successfully")
+                except Exception as e:
+                    print(f"DEBUG: Failed to send subscription confirmation email: {str(e)}")
+                    # Don't fail the payment if email fails
+
                 return JsonResponse({
                     'success': True,
                     'subscription_id': subscription.id,
@@ -376,6 +385,14 @@ def process_payment(request, plan_id, duration_id):
             
             subscription.save()
             print("DEBUG: Subscription updated and saved")
+
+            # Send subscription confirmation email
+            try:
+                NotificationService.send_subscription_confirmation(subscription)
+                print("DEBUG: Subscription confirmation email sent successfully")
+            except Exception as e:
+                print(f"DEBUG: Failed to send subscription confirmation email: {str(e)}")
+                # Don't fail the payment if email fails
 
             return JsonResponse({
                 'success': True,

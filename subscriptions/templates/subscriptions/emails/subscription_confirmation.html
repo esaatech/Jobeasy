@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to {{ plan.name }} Plan - {{ company_name }}</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; 
+            line-height: 1.6; 
+            color: #374151; 
+            margin: 0; 
+            padding: 0; 
+            background-color: #f9fafb;
+        }
+        .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        .header { 
+            background: #ffffff;
+            color: #1f2937; 
+            padding: 40px 30px; 
+            text-align: center; 
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .logo {
+            width: 120px;
+            height: auto;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .content { 
+            padding: 40px 30px; 
+            background-color: #ffffff;
+        }
+        .welcome-text {
+            font-size: 18px;
+            color: #1f2937;
+            margin-bottom: 30px;
+            font-weight: 500;
+        }
+        .subscription-details { 
+            background-color: #f8fafc; 
+            padding: 30px; 
+            border-radius: 12px; 
+            margin: 30px 0; 
+            border: 1px solid #e2e8f0;
+        }
+        .subscription-details h3 {
+            color: #1f2937;
+            font-size: 20px;
+            font-weight: 600;
+            margin: 0 0 20px 0;
+        }
+        .detail-item { 
+            margin: 12px 0; 
+            padding-left: 28px; 
+            position: relative; 
+            color: #4b5563;
+            font-size: 16px;
+        }
+        .detail-item:before { 
+            content: "✓"; 
+            color: #10b981; 
+            font-weight: bold; 
+            position: absolute; 
+            left: 0;
+            font-size: 18px;
+        }
+        .plan-name {
+            font-weight: 600;
+            color: #1f2937;
+        }
+        .price {
+            font-weight: 600;
+            color: #059669;
+        }
+        .button {
+            display: inline-block;
+            padding: 16px 32px;
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            margin: 30px 0;
+            font-weight: 600;
+            font-size: 16px;
+            text-align: center;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
+        }
+        .button:hover { 
+            transform: translateY(-1px);
+            box-shadow: 0 8px 15px -3px rgba(37, 99, 235, 0.4);
+        }
+        .footer { 
+            background-color: #f8fafc; 
+            padding: 30px; 
+            text-align: center; 
+            border-top: 1px solid #e5e7eb;
+        }
+        .footer p {
+            margin: 8px 0;
+            color: #6b7280;
+            font-size: 14px;
+        }
+        .support-link {
+            color: #2563eb;
+            text-decoration: none;
+        }
+        .support-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Welcome to {{ plan.name }} Plan!</h1>
+            <p style="color: #6b7280; margin: 10px 0 0 0;">Your subscription is now active</p>
+        </div>
+        
+        <div class="content">
+            <div class="welcome-text">
+                Hi {{ user.first_name|default:user.username }},
+            </div>
+            
+            <p style="font-size: 16px; color: #4b5563; margin-bottom: 20px;">
+                Thank you for subscribing to our <span class="plan-name">{{ plan.name }}</span> plan! Your subscription is now active and you have full access to all the features included in your plan.
+            </p>
+            
+            <div class="subscription-details">
+                <h3>Subscription Details</h3>
+                <div class="detail-item">
+                    <strong>Plan:</strong> <span class="plan-name">{{ plan.name }}</span>
+                </div>
+                <div class="detail-item">
+                    <strong>Billing Cycle:</strong> {{ duration.get_duration_type_display }}
+                </div>
+                <div class="detail-item">
+                    <strong>Amount:</strong> <span class="price">${{ duration.price|floatformat:2 }}</span> per {{ duration.get_duration_type_display|lower }}
+                </div>
+                <div class="detail-item">
+                    <strong>Next Billing:</strong> {{ subscription.current_period_end|date:"F j, Y" }}
+                </div>
+                <div class="detail-item">
+                    <strong>Subscription ID:</strong> {{ subscription.stripe_subscription_id|default:"N/A" }}
+                </div>
+            </div>
+            
+            <p style="font-size: 16px; color: #4b5563; margin-bottom: 20px;">
+                You can now access all the premium features included in your {{ plan.name }} plan. Start exploring and make the most of your subscription!
+            </p>
+            
+            <a href="{{ dashboard_url }}" class="button">Go to Dashboard</a>
+            
+            <p style="font-size: 14px; color: #6b7280; margin-top: 20px;">
+                If you have any questions about your subscription or need help getting started, please don't hesitate to contact our support team.
+            </p>
+        </div>
+        
+        <div class="footer">
+            <p>Thank you for choosing {{ company_name }}!</p>
+            <p>Need help? Contact us at <a href="mailto:{{ support_email }}" class="support-link">{{ support_email }}</a></p>
+            <p style="font-size: 12px; color: #9ca3af;">
+                This email was sent to {{ user.email }}. If you have any questions about your subscription, please contact our support team.
+            </p>
+        </div>
+    </div>
+</body>
+</html> 

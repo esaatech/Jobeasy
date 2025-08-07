@@ -449,10 +449,12 @@ def send_email(request):
         try:
             # For cover letters or job applications with cover letter, wrap the content in HTML tags for proper email formatting
             if document_type == 'cover_letter' or (document_type == 'job_application' and cover_letter):
+                # Replace newlines with HTML breaks before using in f-string
+                formatted_message = message.replace('\n', '<br>')
                 html_body = f"""
                 <html>
                 <body style="font-family: Arial, sans-serif; font-size: 14px; line-height: 1.6; color: #333;">
-                    {message.replace('\n', '<br>')}
+                    {formatted_message}
                 </body>
                 </html>
                 """
