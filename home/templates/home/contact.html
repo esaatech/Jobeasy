@@ -1,21 +1,19 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Contact Us - AI Cover Letter{% endblock %}
+{% block title %}Contact Us - Jobeas{% endblock %}
 
 {% block content %}
-<!-- Hero Section -->
-<div class="bg-gradient-to-br from-blue-50 to-indigo-100 py-16">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="text-center">
-            <h1 class="headline-primary mb-6" data-i18n="contact_us">Contact Us</h1>
-            <p class="subheadline max-w-3xl mx-auto" data-i18n="contact_us_hero">
-                Have a question, feedback, or need support? We're here to help! Reach out to us using the form below or email us directly.
-            </p>
-        </div>
+<div class="page-width py-12">
+    <!-- Header Section -->
+    <div class="text-center mb-12">
+        <h1 class="headline-primary mb-4">Contact Us</h1>
+        <p class="subheadline text-gray-600 max-w-3xl mx-auto">
+            Have a question, feedback, or need support? We're here to help! Reach out to us using the form below or email us directly.
+        </p>
     </div>
-</div>
 
-<!-- Contact Section (reused from home page) -->
-{% include 'home/partials/contact.html' %}
+    <!-- Contact Section -->
+    {% include 'home/partials/contact.html' %}
+</div>
 {% endblock %} 

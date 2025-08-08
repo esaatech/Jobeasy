@@ -1,65 +1,196 @@
 {% extends 'base.html' %}
 {% block title %}Terms & Conditions - Jobeas{% endblock %}
 {% block content %}
-<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-    <div class="max-w-4xl w-full px-4 sm:px-6 lg:px-8">
-        <div class="text-center">
-            <h1 class="headline-primary mb-6" data-i18n="terms_title">Terms & Conditions</h1>
-            <p class="subheadline max-w-2xl mx-auto" data-i18n="terms_hero">Please read these terms and conditions carefully before using our website and services.</p>
-        </div>
-        <div class="bg-white rounded-xl shadow-lg p-8 mt-8 prose mx-auto">
-            <h2 data-i18n="terms_acceptance_title">1. Acceptance of Terms</h2>
-            <p data-i18n="terms_acceptance_text">By accessing or using our website, you agree to be bound by these terms and conditions.</p>
-            <h2 data-i18n="terms_use_title">2. Use of Service</h2>
-            <p data-i18n="terms_use_text">You agree to use our services only for lawful purposes and in accordance with these terms.</p>
-            <h2 data-i18n="terms_ip_title">3. Intellectual Property</h2>
-            <p data-i18n="terms_ip_text">All content, trademarks, and data on this site are the property of Jobeas or its licensors.</p>
-            <h2 data-i18n="terms_liability_title">4. Limitation of Liability</h2>
-            <p data-i18n="terms_liability_text">We are not liable for any damages arising from the use or inability to use our services.</p>
-            <h2 data-i18n="terms_changes_title">5. Changes to Terms</h2>
-            <p data-i18n="terms_changes_text">We reserve the right to update these terms at any time. Continued use of the site constitutes acceptance of the new terms.</p>
-            <h2 data-i18n="terms_contact_title">6. Contact</h2>
-            <p>
-                <span data-i18n="terms_contact_text">If you have any questions about these terms, please</span>
-                <a href="mailto:support@jobeas.com" class="text-blue-500 underline">contact us</a>.
+<div class="page-width py-12">
+    <!-- Header Section -->
+    <div class="text-center mb-12">
+        <h1 class="headline-primary mb-4">Terms & Conditions</h1>
+        <p class="subheadline text-gray-600">Last updated: August 7, 2024</p>
+    </div>
+
+    <!-- Main Content -->
+    <div class="w-full">
+        <!-- Introduction -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <p class="body-text text-gray-700 leading-relaxed">
+                Welcome to Jobeas. These Terms and Conditions ("Terms") govern your use of our website and services. 
+                By accessing or using Jobeas, you agree to be bound by these Terms and our Privacy Policy.
             </p>
+        </div>
+
+        <!-- Services Overview -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <h2 class="headline-tertiary mb-6">Our Services</h2>
+            <p class="body-text text-gray-700 mb-6">Jobeas provides the following services:</p>
+            <div class="grid md:grid-cols-2 gap-4">
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <h4 class="font-semibold text-blue-800 mb-2">AI-Powered Resume Building</h4>
+                    <p class="text-sm text-blue-700">Create and optimize ATS-friendly resumes with AI suggestions</p>
+                </div>
+                <div class="bg-purple-50 p-4 rounded-lg">
+                    <h4 class="font-semibold text-purple-800 mb-2">Cover Letter Generation</h4>
+                    <p class="text-sm text-purple-700">Generate personalized cover letters for job applications</p>
+                </div>
+                <div class="bg-green-50 p-4 rounded-lg">
+                    <h4 class="font-semibold text-green-800 mb-2">Job Application Tracking</h4>
+                    <p class="text-sm text-green-700">Track and manage your job applications in one place</p>
+                </div>
+                <div class="bg-orange-50 p-4 rounded-lg">
+                    <h4 class="font-semibold text-orange-800 mb-2">Email Integration</h4>
+                    <p class="text-sm text-orange-700">Send job applications directly through Gmail integration</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Account Terms -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <h2 class="headline-tertiary mb-6">Account & Registration</h2>
+            <div class="space-y-6">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Account Creation</h3>
+                    <p class="body-text text-gray-700 mb-3">To access certain features, you must create an account. You agree to:</p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4">
+                        <li>Provide accurate, current, and complete information</li>
+                        <li>Maintain and update your account information</li>
+                        <li>Keep your password secure and confidential</li>
+                        <li>Notify us immediately of any unauthorized use</li>
+                        <li>Accept responsibility for all activities under your account</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Account Termination</h3>
+                    <p class="body-text text-gray-700">We reserve the right to terminate or suspend your account at any time for violations of these Terms or for any other reason at our sole discretion.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Acceptable Use -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <h2 class="headline-tertiary mb-6">Acceptable Use Policy</h2>
+            <p class="body-text text-gray-700 mb-4">You agree to use our services only for lawful purposes and in accordance with these Terms. You agree not to:</p>
+            <div class="grid md:grid-cols-2 gap-4">
+                <div class="space-y-2">
+                    <div class="flex items-start space-x-2">
+                        <svg class="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                        <span class="text-sm text-gray-700">Use services for illegal purposes</span>
+                    </div>
+                    <div class="flex items-start space-x-2">
+                        <svg class="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                        <span class="text-sm text-gray-700">Violate applicable laws or regulations</span>
+                    </div>
+                    <div class="flex items-start space-x-2">
+                        <svg class="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                        <span class="text-sm text-gray-700">Infringe upon the rights of others</span>
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <div class="flex items-start space-x-2">
+                        <svg class="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                        <span class="text-sm text-gray-700">Upload malicious code or harmful content</span>
+                    </div>
+                    <div class="flex items-start space-x-2">
+                        <svg class="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                        <span class="text-sm text-gray-700">Attempt unauthorized access to our systems</span>
+                    </div>
+                    <div class="flex items-start space-x-2">
+                        <svg class="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                        <span class="text-sm text-gray-700">Create multiple accounts for fraudulent purposes</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Subscription Terms -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <h2 class="headline-tertiary mb-6">Subscription & Payment Terms</h2>
+            <div class="space-y-6">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Subscription Plans</h3>
+                    <p class="body-text text-gray-700">We offer various subscription plans with different features and pricing. Subscription details are available on our pricing page.</p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Payment Processing</h3>
+                    <p class="body-text text-gray-700">Payments are processed securely through Stripe. By subscribing, you authorize us to charge your payment method for the applicable fees.</p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Billing & Renewal</h3>
+                    <p class="body-text text-gray-700">Subscriptions automatically renew unless cancelled before the renewal date. You may cancel your subscription at any time through your account settings.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Intellectual Property -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <h2 class="headline-tertiary mb-6">Intellectual Property Rights</h2>
+            <div class="space-y-6">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Our Intellectual Property</h3>
+                    <p class="body-text text-gray-700">All content, features, and functionality on Jobeas are owned by Jobeas or its licensors and are protected by copyright, trademark, and other intellectual property laws.</p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Your Content</h3>
+                    <p class="body-text text-gray-700 mb-3">You retain ownership of the content you create using our services. By using our services, you grant us a limited license to:</p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4">
+                        <li>Process and store your content to provide our services</li>
+                        <li>Use your content to improve our AI algorithms (anonymized)</li>
+                        <li>Generate and deliver documents as requested</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Disclaimers -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <h2 class="headline-tertiary mb-6">Disclaimers & Limitations</h2>
+            <div class="space-y-6">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Service Availability</h3>
+                    <p class="body-text text-gray-700">We strive to provide reliable services but cannot guarantee uninterrupted access. We may temporarily suspend services for maintenance or updates.</p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">AI-Generated Content</h3>
+                    <p class="body-text text-gray-700">Our AI-generated content is provided "as is" and may require review and customization. We do not guarantee the accuracy, completeness, or suitability of AI-generated content for your specific needs.</p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Limitation of Liability</h3>
+                    <p class="body-text text-gray-700">To the maximum extent permitted by law, Jobeas shall not be liable for any indirect, incidental, special, consequential, or punitive damages.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Section -->
+        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-8 text-center">
+            <h2 class="headline-tertiary mb-4">Contact Us</h2>
+            <p class="body-text text-gray-700 mb-6">
+                If you have any questions about these Terms and Conditions, please contact us:
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <a href="mailto:support@jobeas.com" class="btn btn-primary">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                    </svg>
+                    support@jobeas.com
+                </a>
+                <a href="https://jobeas.com" class="btn btn-secondary">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"></path>
+                    </svg>
+                    Visit Website
+                </a>
+            </div>
         </div>
     </div>
 </div>
-
-<script>
-// Set page title using i18next
-function setPageTitle() {
-    if (window.i18next && window.i18next.isInitialized) {
-        const title = window.i18next.t('terms_title_full');
-        if (title && title !== 'terms_title_full') {
-            document.title = title;
-        }
-    }
-}
-
-// Wait for i18next to be ready
-document.addEventListener('DOMContentLoaded', function() {
-    // Check if i18next is already initialized
-    if (window.i18next && window.i18next.isInitialized) {
-        setPageTitle();
-    } else {
-        // Wait for i18next to be initialized
-        const checkI18next = setInterval(function() {
-            if (window.i18next && window.i18next.isInitialized) {
-                setPageTitle();
-                clearInterval(checkI18next);
-            }
-        }, 100);
-        
-        // Fallback: stop checking after 5 seconds
-        setTimeout(function() {
-            clearInterval(checkI18next);
-        }, 5000);
-    }
-});
-
-// Also update title when language changes
-document.addEventListener('i18next:languageChanged', setPageTitle);
-</script>
 {% endblock %} 

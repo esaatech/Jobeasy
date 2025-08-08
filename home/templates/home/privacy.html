@@ -1,65 +1,165 @@
 {% extends 'base.html' %}
 {% block title %}Privacy Policy - Jobeas{% endblock %}
 {% block content %}
-<div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-    <div class="max-w-4xl w-full px-4 sm:px-6 lg:px-8">
-        <div class="text-center">
-            <h1 class="headline-primary mb-6" data-i18n="privacy_title">Privacy Policy</h1>
-            <p class="subheadline max-w-2xl mx-auto" data-i18n="privacy_hero">Your privacy is important to us. This policy explains how we collect, use, and protect your information.</p>
-        </div>
-        <div class="bg-white rounded-xl shadow-lg p-8 mt-8 prose mx-auto">
-            <h2 data-i18n="privacy_collect_title">1. Information We Collect</h2>
-            <p data-i18n="privacy_collect_text">We collect information you provide directly to us, such as when you sign up, contact us, or use our services.</p>
-            <h2 data-i18n="privacy_use_title">2. Use of Information</h2>
-            <p data-i18n="privacy_use_text">We use your information to provide, maintain, and improve our services, and to communicate with you.</p>
-            <h2 data-i18n="privacy_share_title">3. Sharing of Information</h2>
-            <p data-i18n="privacy_share_text">We do not share your personal information with third parties except as required by law or to provide our services.</p>
-            <h2 data-i18n="privacy_security_title">4. Data Security</h2>
-            <p data-i18n="privacy_security_text">We implement reasonable security measures to protect your information from unauthorized access.</p>
-            <h2 data-i18n="privacy_changes_title">5. Changes to This Policy</h2>
-            <p data-i18n="privacy_changes_text">We may update this policy from time to time. We encourage you to review it regularly.</p>
-            <h2 data-i18n="privacy_contact_title">6. Contact</h2>
-            <p>
-                <span data-i18n="privacy_contact_text">If you have any questions about this privacy policy, please</span>
-                <a href="mailto:support@jobeas.com" class="text-blue-500 underline">contact us</a>.
+<div class="page-width py-12">
+    <!-- Header Section -->
+    <div class="text-center mb-12">
+        <h1 class="headline-primary mb-4">Privacy Policy</h1>
+        <p class="subheadline text-gray-600">Last updated: August 7, 2024</p>
+    </div>
+
+    <!-- Main Content -->
+    <div class="w-full">
+        <!-- Introduction -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <p class="body-text text-gray-700 leading-relaxed">
+                At Jobeas, we are committed to protecting your privacy and ensuring the security of your personal information. 
+                This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our website and services.
             </p>
+        </div>
+
+        <!-- Information We Collect -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <h2 class="headline-tertiary mb-6">Information We Collect</h2>
+            
+            <div class="space-y-6">
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Personal Information</h3>
+                    <p class="body-text text-gray-700 mb-3">We collect information you provide directly to us, including:</p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4">
+                        <li>Name, email address, and contact information</li>
+                        <li>Resume content, work experience, education, and skills</li>
+                        <li>Cover letter content and job application materials</li>
+                        <li>Payment information (processed securely through Stripe)</li>
+                        <li>Communication preferences and settings</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Automatically Collected Information</h3>
+                    <p class="body-text text-gray-700 mb-3">We automatically collect certain information when you use our services:</p>
+                    <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4">
+                        <li>Device information (IP address, browser type, operating system)</li>
+                        <li>Usage data (pages visited, time spent, features used)</li>
+                        <li>Cookies and similar tracking technologies</li>
+                        <li>Error logs and performance data</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- How We Use Information -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <h2 class="headline-tertiary mb-6">How We Use Your Information</h2>
+            <p class="body-text text-gray-700 mb-4">We use your information for the following purposes:</p>
+            <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4">
+                <li>Provide, maintain, and improve our services</li>
+                <li>Process payments and manage subscriptions</li>
+                <li>Generate resumes, cover letters, and job applications</li>
+                <li>Send important service updates and notifications</li>
+                <li>Respond to your inquiries and provide customer support</li>
+                <li>Analyze usage patterns to enhance user experience</li>
+                <li>Comply with legal obligations and enforce our terms</li>
+            </ul>
+        </div>
+
+        <!-- Information Sharing -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <h2 class="headline-tertiary mb-6">Information Sharing and Disclosure</h2>
+            <p class="body-text text-gray-700 mb-4">
+                We do not sell, trade, or rent your personal information to third parties. We may share your information in the following circumstances:
+            </p>
+            <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4">
+                <li><strong>Service Providers:</strong> With trusted third-party services that help us operate our platform</li>
+                <li><strong>Legal Requirements:</strong> When required by law, court order, or government request</li>
+                <li><strong>Business Transfers:</strong> In connection with a merger, acquisition, or sale of assets</li>
+                <li><strong>Safety and Security:</strong> To protect our rights, property, or safety</li>
+                <li><strong>Consent:</strong> With your explicit consent for specific purposes</li>
+            </ul>
+        </div>
+
+        <!-- Data Security -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <h2 class="headline-tertiary mb-6">Data Security</h2>
+            <p class="body-text text-gray-700 mb-4">We implement comprehensive security measures to protect your information:</p>
+            <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4">
+                <li>Encryption of data in transit and at rest</li>
+                <li>Secure authentication and access controls</li>
+                <li>Regular security audits and vulnerability assessments</li>
+                <li>Employee training on data protection practices</li>
+                <li>Incident response procedures</li>
+            </ul>
+        </div>
+
+        <!-- Your Rights -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <h2 class="headline-tertiary mb-6">Your Rights and Choices</h2>
+            <p class="body-text text-gray-700 mb-4">You have the following rights regarding your personal information:</p>
+            <div class="grid md:grid-cols-2 gap-4">
+                <div class="space-y-2">
+                    <p class="font-semibold text-gray-800">Access</p>
+                    <p class="text-sm text-gray-600">Request a copy of your personal information</p>
+                </div>
+                <div class="space-y-2">
+                    <p class="font-semibold text-gray-800">Correction</p>
+                    <p class="text-sm text-gray-600">Update or correct inaccurate information</p>
+                </div>
+                <div class="space-y-2">
+                    <p class="font-semibold text-gray-800">Deletion</p>
+                    <p class="text-sm text-gray-600">Request deletion of your personal information</p>
+                </div>
+                <div class="space-y-2">
+                    <p class="font-semibold text-gray-800">Portability</p>
+                    <p class="text-sm text-gray-600">Receive your data in a portable format</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Third-Party Services -->
+        <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <h2 class="headline-tertiary mb-6">Third-Party Services</h2>
+            <p class="body-text text-gray-700 mb-4">Our services may integrate with third-party services, including:</p>
+            <div class="grid md:grid-cols-2 gap-4">
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h4 class="font-semibold text-gray-800 mb-2">Stripe</h4>
+                    <p class="text-sm text-gray-600">Payment processing and subscription management</p>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h4 class="font-semibold text-gray-800 mb-2">Google Services</h4>
+                    <p class="text-sm text-gray-600">Gmail integration for email functionality</p>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h4 class="font-semibold text-gray-800 mb-2">Analytics</h4>
+                    <p class="text-sm text-gray-600">Google Analytics for usage insights</p>
+                </div>
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h4 class="font-semibold text-gray-800 mb-2">Email Services</h4>
+                    <p class="text-sm text-gray-600">SendGrid for transactional emails</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contact Section -->
+        <div class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-8 text-center">
+            <h2 class="headline-tertiary mb-4">Contact Us</h2>
+            <p class="body-text text-gray-700 mb-6">
+                If you have any questions about this Privacy Policy or our data practices, please contact us:
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <a href="mailto:support@jobeas.com" class="btn btn-primary">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                    </svg>
+                    support@jobeas.com
+                </a>
+                <a href="https://jobeas.com" class="btn btn-secondary">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9v-9m0-9v9"></path>
+                    </svg>
+                    Visit Website
+                </a>
+            </div>
         </div>
     </div>
 </div>
-
-<script>
-// Set page title using i18next
-function setPageTitle() {
-    if (window.i18next && window.i18next.isInitialized) {
-        const title = window.i18next.t('privacy_title_full');
-        if (title && title !== 'privacy_title_full') {
-            document.title = title;
-        }
-    }
-}
-
-// Wait for i18next to be ready
-document.addEventListener('DOMContentLoaded', function() {
-    // Check if i18next is already initialized
-    if (window.i18next && window.i18next.isInitialized) {
-        setPageTitle();
-    } else {
-        // Wait for i18next to be initialized
-        const checkI18next = setInterval(function() {
-            if (window.i18next && window.i18next.isInitialized) {
-                setPageTitle();
-                clearInterval(checkI18next);
-            }
-        }, 100);
-        
-        // Fallback: stop checking after 5 seconds
-        setTimeout(function() {
-            clearInterval(checkI18next);
-        }, 5000);
-    }
-});
-
-// Also update title when language changes
-document.addEventListener('i18next:languageChanged', setPageTitle);
-</script>
 {% endblock %} 
