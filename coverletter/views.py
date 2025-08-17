@@ -32,7 +32,7 @@ def cover_letter_view(request, cover_letter_id):
     cover_letter = get_object_or_404(CoverLetter, id=cover_letter_id, user=request.user)
     
     context = {
-        'cover_letter': cover_letter.content,  # Pass the content directly
+        'cover_letter': cover_letter,  # Pass the full cover_letter object
         'page_title': 'Cover Letter Generated',
         'page_description': 'Your AI-generated cover letter is ready!'
     }
@@ -525,3 +525,28 @@ def save_edited_content(request):
             'success': False,
             'error': f'Error saving content: {str(e)}'
         }, status=500)
+
+@login_required
+def my_cover_letters(request):
+    """View to display all cover letters for the current user"""
+    cover_letters = CoverLetter.objects.filter(user=request.user).order_by('-generated_at')
+    
+    context = {
+        'cover_letters': cover_letters,
+        'page_title': 'My Cover Letters',
+        'page_description': 'View and manage your cover letters'
+    }
+    
+    return render(request, 'coverletter/my_cover_letters.html', context)
+
+@login_required
+@require_http_methods(["POST"])
+def delete_cover_letter(request, cover_letter_id):
+    """Delete a cover letter"""
+    try:
+        cover_letter = get_object_or_404(CoverLetter, id=cover_letter_id, user=request.user)
+        cover_letter.delete()
+        return JsonResponse({'success': True, 'message': 'Cover letter deleted successfully'})
+    except Exception as e:
+        logger.error(f"Error deleting cover letter {cover_letter_id}: {str(e)}")
+        return JsonResponse({'success': False, 'error': 'Failed to delete cover letter'}, status=500)

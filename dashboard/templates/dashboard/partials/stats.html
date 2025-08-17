@@ -1,6 +1,6 @@
 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
     <!-- Resume Stats Card -->
-    <div class="bg-white rounded-lg shadow-lg p-4">
+    <a href="{% url 'resume_builder:my_resumes' %}" class="bg-white rounded-lg shadow-lg p-4 hover:shadow-xl transition-shadow duration-200 cursor-pointer">
         <div class="flex items-center">
             <div class="p-2 rounded-full bg-blue-100 text-blue-600">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -12,10 +12,10 @@
                 <p id="resume-count" class="text-xl font-bold text-blue-600">{{ resumes.count }}</p>
             </div>
         </div>
-    </div> 
+    </a> 
 
     <!-- Cover Letter Stats Card -->
-    <div class="bg-white rounded-lg shadow-lg p-4">
+    <a href="{% url 'coverletter:my_cover_letters' %}" class="bg-white rounded-lg shadow-lg p-4 hover:shadow-xl transition-shadow duration-200 cursor-pointer">
         <div class="flex items-center">
             <div class="p-2 rounded-full bg-green-100 text-green-600">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -27,10 +27,10 @@
                 <p id="cover-letter-count" class="text-xl font-bold text-green-600">{{ cover_letters.count }}</p>
             </div>
         </div>
-    </div> 
+    </a> 
 
     <!-- Job Applications Stats Card -->
-    <div class="bg-white rounded-lg shadow-lg p-4">
+    <a href="{% url 'job_applications:job_applications_list' %}" class="bg-white rounded-lg shadow-lg p-4 hover:shadow-xl transition-shadow duration-200 cursor-pointer">
         <div class="flex items-center">
             <div class="p-2 rounded-full bg-purple-100 text-purple-600">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -42,5 +42,5 @@
                 <p id="job-application-count" class="text-xl font-bold text-purple-600">{{ job_applications.count }}</p>
             </div>
         </div>
-    </div> 
+    </a> 
 </div> 

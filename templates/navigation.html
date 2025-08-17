@@ -38,12 +38,19 @@
                 </div>
             </div>
             
-            <!-- Cover Letter Link -->
+            <!-- Cover Letter Dropdown -->
             {% if user.is_authenticated %}
-                <a href="{% url 'coverletter:job_cover_letter' %}" class="nav-item">
-                    <span class="icon">✉️</span>
-                    Cover Letter
-                </a>
+                <div class="nav-item-dropdown">
+                    <a href="#" class="nav-item" onclick="toggleCoverLetterDropdown(event)">
+                        <span class="icon">✉️</span>
+                        Cover Letter
+                        <span class="dropdown-arrow">▼</span>
+                    </a>
+                    <div class="dropdown-menu" id="cover-letter-dropdown">
+                        <a href="{% url 'coverletter:job_cover_letter' %}" class="dropdown-item">Create Cover Letter</a>
+                        <a href="{% url 'coverletter:my_cover_letters' %}" class="dropdown-item">My Cover Letters</a>
+                    </div>
+                </div>
             {% endif %}
             
             <!-- Pricing Link -->
@@ -109,10 +116,16 @@
             </div>
             
             {% if user.is_authenticated %}
-                <a href="{% url 'coverletter:job_cover_letter' %}" class="mobile-nav-item">
+                <!-- Cover Letter Dropdown - Mobile -->
+                <button class="mobile-nav-item mobile-dropdown-btn" onclick="toggleMobileDropdown(this)">
                     <span class="icon">✉️</span>
                     Cover Letter
-                </a>
+                    <span class="dropdown-arrow">▼</span>
+                </button>
+                <div class="mobile-dropdown-menu">
+                    <a href="{% url 'coverletter:job_cover_letter' %}" class="mobile-dropdown-item">Create Cover Letter</a>
+                    <a href="{% url 'coverletter:my_cover_letters' %}" class="mobile-dropdown-item">My Cover Letters</a>
+                </div>
                 
                 <a href="{% url 'subscriptions:pricing' %}" class="mobile-nav-item">
                     <span class="icon">💰</span>
@@ -477,6 +490,20 @@
         }
     }
 
+    function toggleCoverLetterDropdown(event) {
+        event.preventDefault();
+        const dropdownMenu = document.getElementById('cover-letter-dropdown');
+        const arrow = event.currentTarget.querySelector('.dropdown-arrow');
+        
+        if (dropdownMenu.classList.contains('show')) {
+            dropdownMenu.classList.remove('show');
+            arrow.style.transform = 'rotate(0deg)';
+        } else {
+            dropdownMenu.classList.add('show');
+            arrow.style.transform = 'rotate(180deg)';
+        }
+    }
+
     function toggleMobileDropdown(button) {
         const dropdownMenu = button.nextElementSibling;
         const arrow = button.querySelector('.dropdown-arrow');
@@ -503,13 +530,25 @@
 
         // Close resume dropdown when clicking outside
         const resumeDropdown = document.getElementById('resume-dropdown');
-        const dropdownTrigger = document.querySelector('.nav-item[onclick*="toggleResumeDropdown"]');
+        const resumeDropdownTrigger = document.querySelector('.nav-item[onclick*="toggleResumeDropdown"]');
         
         if (resumeDropdown && resumeDropdown.classList.contains('show') && 
             !resumeDropdown.contains(event.target) && 
-            !dropdownTrigger.contains(event.target)) {
+            !resumeDropdownTrigger.contains(event.target)) {
             resumeDropdown.classList.remove('show');
-            const arrow = dropdownTrigger.querySelector('.dropdown-arrow');
+            const arrow = resumeDropdownTrigger.querySelector('.dropdown-arrow');
+            if (arrow) arrow.style.transform = 'rotate(0deg)';
+        }
+
+        // Close cover letter dropdown when clicking outside
+        const coverLetterDropdown = document.getElementById('cover-letter-dropdown');
+        const coverLetterDropdownTrigger = document.querySelector('.nav-item[onclick*="toggleCoverLetterDropdown"]');
+        
+        if (coverLetterDropdown && coverLetterDropdown.classList.contains('show') && 
+            !coverLetterDropdown.contains(event.target) && 
+            !coverLetterDropdownTrigger.contains(event.target)) {
+            coverLetterDropdown.classList.remove('show');
+            const arrow = coverLetterDropdownTrigger.querySelector('.dropdown-arrow');
             if (arrow) arrow.style.transform = 'rotate(0deg)';
         }
     });

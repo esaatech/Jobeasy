@@ -68,6 +68,8 @@
         .btn-edit:hover { background-color: #d97706; }
         .btn-save { background-color: #10b981; color: white; }
         .btn-save:hover { background-color: #059669; }
+        .btn-email { background-color: #8b5cf6; color: white; }
+        .btn-email:hover { background-color: #7c3aed; }
         .btn-back { background-color: #6b7280; color: white; }
         .btn-back:hover { background-color: #4b5563; }
         .hidden { display: none; }
@@ -117,6 +119,9 @@
             </button>
             <a href="{% url 'coverletter:download_cover_letter_pdf' cover_letter.id %}" class="btn btn-download">
                 <span>Download PDF</span>
+            </a>
+            <a href="{% url 'email_utility:email_compose' 'cover_letter' cover_letter.id %}" class="btn btn-email">
+                <span>Email</span>
             </a>
         {% endif %}
         <a href="{% url 'dashboard:dashboard' %}" class="btn btn-back">

@@ -12,4 +12,6 @@ urlpatterns = [
     path('edit/<int:cover_letter_id>/', views.edit_cover_letter, name='edit_cover_letter'),
     path('generate-pdf/', views.generate_cover_letter_pdf, name='generate_cover_letter_pdf'),
     path('save-edited-content/', views.save_edited_content, name='save_edited_content'),
+    path('my-cover-letters/', views.my_cover_letters, name='my_cover_letters'),
+    path('delete/<int:cover_letter_id>/', views.delete_cover_letter, name='delete_cover_letter'),
 ] 
