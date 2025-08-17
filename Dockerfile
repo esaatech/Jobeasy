@@ -13,6 +13,24 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpq-dev \
+    wget \
+    gnupg \
+    # Playwright dependencies
+    libnss3 \
+    libatk-bridge2.0-0 \
+    libdrm2 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
+    libgbm1 \
+    libpango-1.0-0 \
+    libcairo2 \
+    libasound2 \
+    # Font dependencies
+    fonts-liberation \
+    fonts-unifont \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Poetry
@@ -21,18 +39,21 @@ RUN pip install "poetry==$POETRY_VERSION"
 # Copy only requirements to cache dependencies
 COPY pyproject.toml poetry.lock* /app/
 
-# Install dependencies
+# Install dependencies (skip installing the current project)
 RUN poetry config virtualenvs.create false \
-    && poetry install --no-interaction --no-ansi
-
-# Install Playwright browsers
-RUN poetry run playwright install --with-deps
+    && poetry install --no-interaction --no-ansi --no-root
 
 # Copy project
 COPY . /app/
 
-# Expose port 8009
+# Install Playwright browsers (non-blocking)
+RUN poetry run playwright install chromium || echo "Playwright installation failed, will install at runtime"
+
+# Make entrypoint executable
+RUN chmod +x /app/entrypoint.sh
+
+# Expose port 8009 to match Cloud Run configuration
 EXPOSE 8009
 
 # Set entrypoint
-ENTRYPOINT ["sh", "entrypoint.sh"] 
+ENTRYPOINT ["/app/entrypoint.sh"] 
