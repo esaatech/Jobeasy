@@ -15,7 +15,7 @@ django-mailbox = "^4.10.1"
 pypdf2 = "^3.0.1"
 python-docx = "^1.2.0"
 reportlab = "^4.4.2"
-playwright = "^1.52.0"
+playwright = "^1.40.0"
 gunicorn = "^21.2.0"
 uvicorn = {extras = ["standard"], version = "^0.32.1"}
 channels = "^4.0.0"
