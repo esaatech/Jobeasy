@@ -34,18 +34,42 @@
     
     {% block extra_head %}{% endblock %}
     
-    <!-- Base CSS -->
+    <!-- Flat Design System Overrides -->
     <style>
+        /* Global Variables - Flat Design */
+        :root {
+            --color-primary: #4A90E2;
+            --color-secondary: #50C878;
+            --bg-primary: #FFFFFF;
+            --bg-secondary: #F9FAFB;
+            --text-primary: #1F2937;
+            --text-secondary: #4B5563;
+            --text-muted: #6B7280;
+        }
+        
+        /* Global Body Styling */
+        body {
+            background-color: var(--bg-secondary) !important;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
+            color: var(--text-primary) !important;
+            line-height: 1.6 !important;
+        }
+        
+        /* Prose Styling */
         .prose {
             max-width: 65ch;
-            color: #374151;
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            line-height: 1.6;
         }
+        
         .prose p {
             margin-top: 1.25em;
             margin-bottom: 1.25em;
+            color: var(--text-secondary);
         }
         
-        /* Password toggle button styles */
+        /* Password Toggle Button - Flat Design */
         .password-toggle-btn {
             position: absolute;
             right: 0;
@@ -54,61 +78,126 @@
             padding-right: 0.75rem;
             display: flex;
             align-items: center;
-            color: #9CA3AF;
-            transition: color 0.2s ease-in-out;
+            color: var(--text-muted);
+            transition: color 0.2s ease;
             z-index: 20;
             pointer-events: auto;
+            background: none;
+            border: none;
+            cursor: pointer;
         }
         
         .password-toggle-btn:hover {
-            color: #4B5563;
+            color: var(--text-secondary);
         }
         
         .password-toggle-btn:focus {
             outline: none;
-            color: #4B5563;
+            color: var(--color-primary);
         }
         
-        /* Ensure password fields have proper padding for the toggle button */
-        input[type="password"], input[type="text"] {
+        /* Form Input Styling - Flat Design */
+        input[type="password"], 
+        input[type="text"],
+        input[type="email"],
+        textarea,
+        select {
             padding-right: 2.5rem !important;
+            border: 1px solid #E5E7EB !important;
+            border-radius: 0.5rem !important;
+            background-color: white !important;
+            color: var(--text-primary) !important;
+            font-family: 'Inter', sans-serif !important;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
         }
         
-        /* ========================================
-           PAGE WIDTH UTILITIES (HIGH PRIORITY)
-           ======================================== */
+        input[type="password"]:focus, 
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        textarea:focus,
+        select:focus {
+            outline: none !important;
+            border-color: var(--color-primary) !important;
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1) !important;
+        }
         
-        /* Standard page width for consistent layout across the app */
+        /* Page Width Override - Updated for flat design */
         .page-width {
-            max-width: 1280px !important; /* 80rem - matches Tailwind's max-w-7xl */
+            max-width: 1200px !important;
             margin: 0 auto !important;
-            padding: 0 1rem !important; /* 16px padding on sides */
+            padding: 0 1.5rem !important;
             width: 100% !important;
             box-sizing: border-box !important;
         }
         
         .page-width-wide {
-            max-width: 1440px !important; /* 90rem - for wider layouts */
+            max-width: 1400px !important;
             margin: 0 auto !important;
-            padding: 0 1rem !important;
+            padding: 0 1.5rem !important;
             width: 100% !important;
             box-sizing: border-box !important;
         }
         
         .page-width-narrow {
-            max-width: 800px !important; /* 50rem - for focused content like cover letters */
+            max-width: 800px !important;
             margin: 0 auto !important;
-            padding: 0 1rem !important;
+            padding: 0 1.5rem !important;
             width: 100% !important;
             box-sizing: border-box !important;
         }
         
-        /* Responsive adjustments */
+        /* Section Styling */
+        .section {
+            padding: 4rem 0;
+        }
+        
+        .section-hero {
+            background-color: var(--bg-primary);
+            border-bottom: 1px solid #E5E7EB;
+        }
+        
+        .section-alt {
+            background-color: var(--bg-secondary);
+        }
+        
+        /* Card Styling Override */
+        .card {
+            background-color: var(--bg-primary);
+            border: 1px solid #E5E7EB;
+            border-radius: 0.75rem;
+            box-shadow: none;
+            transition: all 0.2s ease;
+        }
+        
+        .card:hover {
+            border-color: #D1D5DB;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Navigation Overrides */
+        nav {
+            background-color: var(--bg-primary) !important;
+            border-bottom: 1px solid #E5E7EB !important;
+            box-shadow: none !important;
+        }
+        
+        /* Footer Overrides */
+        footer {
+            background-color: var(--text-primary) !important;
+            border-top: 1px solid #E5E7EB !important;
+        }
+        
+        /* Responsive Design */
         @media (max-width: 768px) {
             .page-width,
             .page-width-wide,
             .page-width-narrow {
-                padding: 0 0.75rem !important; /* 12px padding on smaller screens */
+                padding: 0 1rem !important;
+            }
+            
+            .section {
+                padding: 2.5rem 0;
             }
         }
         
@@ -116,7 +205,11 @@
             .page-width,
             .page-width-wide,
             .page-width-narrow {
-                padding: 0 0.5rem !important; /* 8px padding on mobile */
+                padding: 0 0.75rem !important;
+            }
+            
+            .section {
+                padding: 2rem 0;
             }
         }
     </style>
@@ -125,7 +218,7 @@
     <link rel="shortcut icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
     <link rel="apple-touch-icon" href="{% static 'img/favicon.png' %}">
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body class="min-h-screen">
     <!-- Navigation -->
     {% include 'navigation.html' %}
     

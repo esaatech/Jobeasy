@@ -1,37 +1,275 @@
-<!-- How It Works Section -->
-<div class="w-full flex flex-col items-center justify-center py-12 px-4 bg-transparent">
-    <h2 class="headline-primary mb-1 text-center">How It Works</h2>
-    <div class="flex flex-col md:flex-row justify-center items-center gap-8 md:gap-12 w-full">
-        <!-- Step 1 -->
-        <div class="flex flex-col items-center text-center mx-auto min-h-[220px] w-80">
-            <svg width="48" height="48" fill="none" stroke="#6366f1" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="20" rx="3" fill="#f3f4f6"/><path d="M8 8h8M8 12h8M8 16h4" stroke="#6366f1" stroke-width="2" stroke-linecap="round"/></svg>
-            <div class="headline-tertiary mt-4 mb-1">Create Resume</div>
-            <div class="body-text-small">Instantly build a personalized, keyword-optimized resume designed to pass hiring systems and attract employers.</div>
-        </div>
-        <!-- Arrow -->
-        <div class="hidden md:block"><svg width="32" height="32" fill="none" stroke="#cbd5e1" stroke-width="2" viewBox="0 0 24 24"><path d="M8 12h8m0 0l-3-3m3 3l-3 3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <!-- Step 2 -->
-        <div class="flex flex-col items-center text-center mx-auto min-h-[220px] w-80">
-            <svg width="48" height="48" fill="none" stroke="#06b6d4" stroke-width="2" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="20" rx="3" fill="#e0f2fe"/><path d="M8 8h8M8 12h8M8 16h4" stroke="#06b6d4" stroke-width="2" stroke-linecap="round"/><circle cx="18" cy="8" r="2" fill="#06b6d4"/></svg>
-            <div class="headline-tertiary mt-4 mb-1">Paste Job Description</div>
-            <div class="body-text-small">Effortlessly tailor your resume and cover letter to any job by pasting the job description for instant optimization.</div>
-        </div>
-        <!-- Arrow -->
-        <div class="hidden md:block"><svg width="32" height="32" fill="none" stroke="#cbd5e1" stroke-width="2" viewBox="0 0 24 24"><path d="M8 12h8m0 0l-3-3m3 3l-3 3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <!-- Step 3 -->
-        <div class="flex flex-col items-center text-center mx-auto min-h-[220px] w-80">
-            <svg width="48" height="48" fill="none" stroke="#10b981" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#ecfdf5"/><path d="M9 12l2 2l4-4" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="10" stroke="#10b981" stroke-width="2" fill="none"/></svg>
-            <div class="headline-tertiary mt-4 mb-1">Interview Prep</div>
-            <div class="body-text-small">Receive customized interview questions and preparation tips based on the specific job you’re targeting.</div>
-        </div>
-        <!-- Arrow -->
-        <div class="hidden md:block"><svg width="32" height="32" fill="none" stroke="#cbd5e1" stroke-width="2" viewBox="0 0 24 24"><path d="M8 12h8m0 0l-3-3m3 3l-3 3" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <!-- Step 4 -->
-        <div class="flex flex-col items-center text-center mx-auto min-h-[220px] w-80">
-            <svg width="48" height="48" fill="none" stroke="#f59e42" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="#fff7ed"/><path d="M8 16h8M8 12h8" stroke="#f59e42" stroke-width="2" stroke-linecap="round"/><circle cx="16" cy="8" r="2" fill="#f59e42"/></svg>
-            <div class="headline-tertiary mt-4 mb-1">Job Service</div>
-            <div class="body-text-small">Let us manage your entire job application process so you can focus on preparing for interviews and landing the role.</div>
+<!-- Everything you need to get hired Section -->
+<section class="section section-alt" id="how-it-works">
+    <div class="page-width">
+        <!-- Section Header -->
+        <div class="section-header">
+            <h2 class="heading-2 text-center">Everything you need to get hired</h2>
+            <p class="body-large text-center text-muted">One platform that handles every step of your job search</p>
         </div>
         
+        <!-- Features Grid -->
+        <div class="features-grid">
+            <!-- ATS-optimized resume -->
+            <div class="feature-card">
+                <div class="feature-icon blue">
+                    📄
+                </div>
+                <h3 class="feature-title">ATS-optimized resume</h3>
+                <p class="feature-description">
+                    Paste a job description and get a tailored resume that beats applicant tracking systems with the right keywords.
+                </p>
+            </div>
+            
+            <!-- Custom cover letters -->
+            <div class="feature-card">
+                <div class="feature-icon green">
+                    ✉️
+                </div>
+                <h3 class="feature-title">Custom cover letters</h3>
+                <p class="feature-description">
+                    Generate compelling, role-specific cover letters in seconds. Never stare at a blank page again.
+                </p>
+            </div>
+            
+            <!-- Smart interview prep -->
+            <div class="feature-card">
+                <div class="feature-icon orange">
+                    🎤
+                </div>
+                <h3 class="feature-title">Smart interview prep</h3>
+                <p class="feature-description">
+                    Get a personalized question bank based on the role, company, and your background. Practice until you're ready.
+                </p>
+            </div>
+            
+            <!-- Job tracker -->
+            <div class="feature-card">
+                <div class="feature-icon purple">
+                    ⏰
+                </div>
+                <h3 class="feature-title">Job tracker</h3>
+                <p class="feature-description">
+                    Keep all your applications in one place. Track statuses, deadlines, and follow-ups without spreadsheets.
+                </p>
+            </div>
+            
+            <!-- Score & feedback -->
+            <div class="feature-card">
+                <div class="feature-icon teal">
+                    📊
+                </div>
+                <h3 class="feature-title">Score & feedback</h3>
+                <p class="feature-description">
+                    Instant analysis of your resume quality, keyword gaps, and what to improve before you hit apply.
+                </p>
+            </div>
+            
+            <!-- LinkedIn optimizer -->
+            <div class="feature-card">
+                <div class="feature-icon indigo">
+                    🔗
+                </div>
+                <h3 class="feature-title">LinkedIn optimizer</h3>
+                <p class="feature-description">
+                    Rewrite your headline, summary, and experience sections to attract recruiters and match more searches.
+                </p>
+            </div>
+        </div>
     </div>
-</div> 
+</section>
+
+<style>
+/* Everything you need to get hired Section */
+.section-alt {
+    background-color: var(--bg-secondary);
+}
+
+.section-header {
+    text-align: center;
+    margin-bottom: 4rem;
+}
+
+.section-header h2 {
+    margin-bottom: 1rem;
+}
+
+.section-header p {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* Features Grid */
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.feature-card {
+    background-color: var(--bg-primary);
+    border: 1px solid #E5E7EB;
+    border-radius: 1rem;
+    padding: 2rem;
+    text-align: center;
+    transition: all 0.2s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.feature-card:hover {
+    border-color: var(--color-primary);
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.feature-icon {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+    flex-shrink: 0;
+}
+
+.feature-icon.blue {
+    background-color: #EBF8FF;
+    color: #3182CE;
+}
+
+.feature-icon.green {
+    background-color: #F0FFF4;
+    color: #38A169;
+}
+
+.feature-icon.orange {
+    background-color: #FFFAF0;
+    color: #DD6B20;
+}
+
+.feature-icon.purple {
+    background-color: #FAF5FF;
+    color: #9F7AEA;
+}
+
+.feature-icon.teal {
+    background-color: #E6FFFA;
+    color: #319795;
+}
+
+.feature-icon.indigo {
+    background-color: #EBF4FF;
+    color: #667EEA;
+}
+
+.feature-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    line-height: 1.3;
+}
+
+.feature-description {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    flex-grow: 1;
+    text-align: center;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .features-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+    }
+    
+    .feature-card {
+        padding: 1.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .section-header {
+        margin-bottom: 3rem;
+    }
+    
+    .section-header h2 {
+        font-size: 2rem;
+    }
+    
+    .features-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+    
+    .feature-card {
+        padding: 1.25rem;
+    }
+    
+    .feature-icon {
+        width: 3rem;
+        height: 3rem;
+        font-size: 1.25rem;
+        margin-bottom: 1rem;
+    }
+    
+    .feature-title {
+        font-size: 1.125rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .feature-description {
+        font-size: 0.875rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .features-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .feature-card {
+        padding: 1.5rem;
+    }
+    
+    .section-header h2 {
+        font-size: 1.75rem;
+    }
+    
+    .section-header p {
+        font-size: 1rem;
+    }
+}
+
+/* Animation for feature cards */
+.feature-card {
+    animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.feature-card:nth-child(1) { animation-delay: 0.1s; }
+.feature-card:nth-child(2) { animation-delay: 0.2s; }
+.feature-card:nth-child(3) { animation-delay: 0.3s; }
+.feature-card:nth-child(4) { animation-delay: 0.4s; }
+.feature-card:nth-child(5) { animation-delay: 0.5s; }
+.feature-card:nth-child(6) { animation-delay: 0.6s; }
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>

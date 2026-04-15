@@ -1,97 +1,254 @@
 <!-- FAQ Section -->
+<section class="section">
+    <div class="page-width">
+        <!-- Section Header -->
+        <div class="section-header">
+            <h2 class="heading-2 text-center">Frequently Asked Questions</h2>
+            <p class="body-large text-center text-muted">Everything you need to know about Jobeas</p>
+        </div>
+        
+        <!-- FAQ Accordion -->
+        <div class="faq-container">
+            <div id="faq-accordion" class="faq-accordion">
+                <!-- FAQ items will be injected here by JavaScript -->
+            </div>
+        </div>
+    </div>
+</section>
+
 <style>
-.faq-accordion {
-    width: 100%;
+/* FAQ Section - Flat Design */
+.faq-container {
+    max-width: 800px;
     margin: 0 auto;
-    background: #f8fafc;
-    border-radius: 1.25rem;
-    box-shadow: 0 4px 24px rgba(99,102,241,0.07);
-    padding: 2.5rem 1.5rem;
 }
+
+.faq-accordion {
+    background-color: var(--bg-primary);
+    border: 1px solid #E5E7EB;
+    border-radius: 1rem;
+    padding: 0;
+    overflow: hidden;
+}
+
 .faq-item {
-    border-bottom: 1px solid #e5e7eb;
-    padding: 1.25rem 0;
+    border-bottom: 1px solid #E5E7EB;
+    transition: all 0.2s ease;
 }
+
+.faq-item:last-child {
+    border-bottom: none;
+}
+
+.faq-item:hover {
+    background-color: #F9FAFB;
+}
+
 .faq-question {
     width: 100%;
     background: none;
     border: none;
     outline: none;
-    font-family: 'Playfair Display', serif;
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: #374151;
+    padding: 1.5rem 2rem;
+    font-family: 'Inter', sans-serif;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: left;
     display: flex;
     align-items: center;
     justify-content: space-between;
     cursor: pointer;
-    transition: color 0.2s;
+    transition: all 0.2s ease;
 }
+
 .faq-question:hover {
-    color: #7c3aed;
+    color: var(--color-primary);
 }
+
+.faq-question:focus {
+    color: var(--color-primary);
+}
+
 .faq-icon {
-    transition: transform 0.3s;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    background-color: #F3F4F6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 1.125rem;
+    font-weight: 400;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
     margin-left: 1rem;
 }
+
+.faq-item.open .faq-icon {
+    background-color: var(--color-primary);
+    color: white;
+    transform: rotate(45deg);
+}
+
 .faq-answer {
-    color: #64748b;
+    padding: 0 2rem 1.5rem 2rem;
+    color: var(--text-secondary);
     font-family: 'Inter', sans-serif;
     font-size: 1rem;
-    margin-top: 1rem;
     line-height: 1.6;
     max-height: 0;
     overflow: hidden;
-    transition: max-height 0.4s cubic-bezier(0.4,0,0.2,1), opacity 0.3s;
-    opacity: 0;
+    transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                padding 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
+
 .faq-item.open .faq-answer {
-    max-height: 200px;
-    opacity: 1;
+    max-height: 300px;
+    padding-bottom: 1.5rem;
 }
-.faq-item.open .faq-icon {
-    transform: rotate(45deg);
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .faq-question {
+        padding: 1.25rem 1.5rem;
+        font-size: 1rem;
+    }
+    
+    .faq-answer {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .faq-item.open .faq-answer {
+        padding-bottom: 1.25rem;
+    }
+    
+    .faq-icon {
+        width: 1.25rem;
+        height: 1.25rem;
+        font-size: 1rem;
+        margin-left: 0.75rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .faq-question {
+        padding: 1rem;
+        font-size: 0.9375rem;
+    }
+    
+    .faq-answer {
+        padding-left: 1rem;
+        padding-right: 1rem;
+        font-size: 0.8125rem;
+    }
+    
+    .faq-item.open .faq-answer {
+        padding-bottom: 1rem;
+    }
+}
+
+/* Animation for FAQ items */
+.faq-item {
+    animation: fadeInUp 0.6s ease-out forwards;
+}
+
+.faq-item:nth-child(1) { animation-delay: 0.1s; }
+.faq-item:nth-child(2) { animation-delay: 0.15s; }
+.faq-item:nth-child(3) { animation-delay: 0.2s; }
+.faq-item:nth-child(4) { animation-delay: 0.25s; }
+.faq-item:nth-child(5) { animation-delay: 0.3s; }
+.faq-item:nth-child(6) { animation-delay: 0.35s; }
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 </style>
-<div class="w-full flex flex-col items-center justify-center py-16 px-4 bg-gradient-to-b from-white to-blue-50">
-    <h2 class="headline-primary text-center">Frequently Asked Questions</h2>
-    <div class="faq-accordion" id="faq-accordion">
-        <!-- FAQ items will be injected here by JS -->
-    </div>
-</div>
+
 <script>
+// FAQ Accordion Functionality
 function renderFAQs(faqs) {
     const container = document.getElementById('faq-accordion');
     container.innerHTML = '';
-    faqs.forEach(faq => {
+    
+    faqs.forEach((faq, index) => {
         const item = document.createElement('div');
         item.className = 'faq-item';
+        
         item.innerHTML = `
-            <button class="faq-question" type="button">
-                ${faq.question}
-                <span class="faq-icon">&#43;</span>
+            <button class="faq-question" type="button" aria-expanded="false">
+                <span class="faq-question-text">${faq.question}</span>
+                <span class="faq-icon">+</span>
             </button>
-            <div class="faq-answer">${faq.answer}</div>
+            <div class="faq-answer">
+                ${faq.answer}
+            </div>
         `;
+        
         container.appendChild(item);
     });
+    
     // Add accordion behavior
-    container.querySelectorAll('.faq-question').forEach(btn => {
-        btn.addEventListener('click', function() {
+    container.querySelectorAll('.faq-question').forEach(button => {
+        button.addEventListener('click', function() {
             const item = this.closest('.faq-item');
-            item.classList.toggle('open');
-            container.querySelectorAll('.faq-item').forEach(other => {
-                if (other !== item) other.classList.remove('open');
+            const isOpen = item.classList.contains('open');
+            
+            // Close all other items
+            container.querySelectorAll('.faq-item').forEach(otherItem => {
+                if (otherItem !== item) {
+                    otherItem.classList.remove('open');
+                    const otherButton = otherItem.querySelector('.faq-question');
+                    otherButton.setAttribute('aria-expanded', 'false');
+                }
             });
+            
+            // Toggle current item
+            item.classList.toggle('open');
+            this.setAttribute('aria-expanded', !isOpen);
+            
+            // Smooth scroll to item if opening
+            if (!isOpen) {
+                setTimeout(() => {
+                    item.scrollIntoView({ 
+                        behavior: 'smooth', 
+                        block: 'nearest' 
+                    });
+                }, 200);
+            }
         });
     });
 }
 
-// Fetch FAQs from backend API (default to English)
+// Fetch FAQs from backend API
 fetch('/api/faqs/?language=en')
-    .then(res => res.json())
-    .then(data => renderFAQs(data))
-    .catch(() => {
-        document.getElementById('faq-accordion').innerHTML = '<div class="text-red-500">Failed to load FAQs.</div>';
+    .then(response => response.json())
+    .then(data => {
+        renderFAQs(data);
+    })
+    .catch(error => {
+        console.error('Failed to load FAQs:', error);
+        document.getElementById('faq-accordion').innerHTML = 
+            '<div style="text-align: center; color: var(--text-muted); padding: 2rem;">Unable to load FAQs at this time.</div>';
     });
-</script> 
+
+// Keyboard navigation for accessibility
+document.addEventListener('keydown', function(event) {
+    if (event.target.classList.contains('faq-question')) {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            event.target.click();
+        }
+    }
+});
+</script>

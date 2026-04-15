@@ -1,124 +1,123 @@
-<!-- Contact Section -->
-<div class="w-full">
-    <div class="bg-white rounded-xl shadow-lg p-8">
-        <div class="flex flex-col md:flex-row gap-8">
-            <!-- Contact Form -->
-            <div class="flex-1">
-                <h2 class="headline-tertiary mb-6">Send us a Message</h2>
-                <form id="contact-form" method="post" action="#">
-                    {% csrf_token %}
-                    <div class="mb-4">
-                        <label class="block text-gray-700 font-semibold mb-2" for="name" data-i18n="contact_form_name">Name</label>
-                        <input class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400" type="text" id="name" name="name" required data-i18n-placeholder="contact_form_name">
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-gray-700 font-semibold mb-2" for="email" data-i18n="contact_form_email">Email</label>
-                        <input class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400" type="email" id="email" name="email" required data-i18n-placeholder="contact_form_email">
-                    </div>
-                    <div class="mb-6">
-                        <label class="block text-gray-700 font-semibold mb-2" for="message" data-i18n="contact_form_message">Message</label>
-                        <textarea class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400" id="message" name="message" rows="4" required data-i18n-placeholder="contact_form_message"></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary" data-i18n="contact_form_send">Send Message</button>
-                    <div id="contact-status" class="mt-4 text-sm"></div>
-                </form>
-                <div class="text-gray-500 text-sm mt-6">
-                    <span data-i18n="contact_email_text">Or email us at</span> <a href="mailto:support@jobeas.com" class="text-blue-500 underline">support@jobeas.com</a>
+<!-- Final CTA Section -->
+<section class="section final-cta-section">
+    <div class="page-width">
+        <div class="cta-container">
+            <div class="cta-content">
+                <h2 class="cta-title">Your next job starts here</h2>
+                <p class="cta-subtitle">Free to start. No credit card needed.</p>
+                
+                <div class="cta-actions">
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'dashboard:dashboard' %}" class="btn btn-primary btn-lg">Create your free account</a>
+                    {% else %}
+                        <a href="{% url 'authentication:register' %}" class="btn btn-primary btn-lg">Create your free account</a>
+                    {% endif %}
+                    <a href="#how-it-works" class="btn btn-secondary btn-lg">See a demo</a>
                 </div>
-            </div>
-            
-            <!-- Newsletter Signup -->
-            <div class="flex-1 bg-gray-50 rounded-lg p-6">
-                <h3 class="headline-tertiary mb-4" data-i18n="newsletter_title">Stay Updated</h3>
-                <p class="body-text-small mb-6" data-i18n="newsletter_sub">Get the latest job search tips, product updates, and exclusive offers straight to your inbox.</p>
-                <form id="newsletter-form" method="post" action="#" class="space-y-4">
-                    {% csrf_token %}
-                    <input type="email" name="newsletter_email" id="newsletter_email" placeholder="Your email address" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400" data-i18n-placeholder="newsletter_placeholder">
-                    <button type="submit" class="btn btn-secondary w-full" data-i18n="newsletter_subscribe">Subscribe</button>
-                    <div id="newsletter-status" class="text-sm"></div>
-                </form>
             </div>
         </div>
     </div>
-</div>
+</section>
 
-<script>
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
+<style>
+/* Final CTA Section */
+.final-cta-section {
+    background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%);
+    border-top: 1px solid #E5E7EB;
 }
-const csrftoken = getCookie('csrftoken');
 
-document.getElementById('contact-form').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const statusDiv = document.getElementById('contact-status');
-    statusDiv.textContent = '';
-    const form = e.target;
-    const data = {
-        name: form.name.value,
-        email: form.email.value,
-        message: form.message.value
-    };
-    fetch('/api/contact/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRFToken': csrftoken,
-        },
-        body: JSON.stringify(data)
-    })
-    .then(res => {
-        if (!res.ok) throw new Error('Failed to send message.');
-        return res.json();
-    })
-    .then(() => {
-        statusDiv.textContent = i18next.t('contact_form_success');
-        statusDiv.className = 'mt-4 text-green-600 text-sm';
-        form.reset();
-    })
-    .catch(() => {
-        statusDiv.textContent = i18next.t('contact_form_error');
-        statusDiv.className = 'mt-4 text-red-600 text-sm';
-    });
-});
+.cta-container {
+    text-align: center;
+    padding: 3rem 0;
+}
 
-document.getElementById('newsletter-form').addEventListener('submit', function(e) {
-    e.preventDefault();
-    const statusDiv = document.getElementById('newsletter-status');
-    statusDiv.textContent = '';
-    const email = document.getElementById('newsletter_email').value;
-    fetch('/api/newsletter/', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRFToken': csrftoken,
-        },
-        body: JSON.stringify({ email })
-    })
-    .then(res => {
-        if (!res.ok) throw new Error('Failed to subscribe.');
-        return res.json();
-    })
-    .then(() => {
-        statusDiv.textContent = i18next.t('newsletter_success');
-        statusDiv.className = 'text-green-600 text-sm';
-        document.getElementById('newsletter-form').reset();
-    })
-    .catch(() => {
-        statusDiv.textContent = i18next.t('newsletter_error');
-        statusDiv.className = 'text-red-600 text-sm';
-    });
-});
-</script>
+.cta-content {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.cta-title {
+    font-family: 'Inter', sans-serif;
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    line-height: 1.1;
+}
+
+.cta-subtitle {
+    font-size: 1.25rem;
+    color: var(--text-secondary);
+    margin-bottom: 2.5rem;
+    font-weight: 400;
+}
+
+.cta-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .cta-container {
+        padding: 2.5rem 0;
+    }
+    
+    .cta-title {
+        font-size: 2.25rem;
+    }
+    
+    .cta-subtitle {
+        font-size: 1.125rem;
+        margin-bottom: 2rem;
+    }
+    
+    .cta-actions {
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .btn-lg {
+        width: 100%;
+        max-width: 300px;
+    }
+}
+
+@media (max-width: 480px) {
+    .cta-container {
+        padding: 2rem 0;
+    }
+    
+    .cta-title {
+        font-size: 1.875rem;
+    }
+    
+    .cta-subtitle {
+        font-size: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .btn-lg {
+        max-width: 280px;
+    }
+}
+
+/* Animation */
+.cta-content {
+    animation: fadeInUp 0.8s ease-out forwards;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+</style>

@@ -151,13 +151,13 @@ if DJANGO_ENV == "production":
         )
     }
 else:
-    # Use SQLite locally
+    # Use local PostgreSQL for development
     DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'default': dj_database_url.config(
+            default=config("DATABASE_URL_LOCAL", default="postgresql://engrjoel:local_password@localhost:5432/jobeas_local"),
+            conn_max_age=600,
+        )
     }
-}
 
 
 
