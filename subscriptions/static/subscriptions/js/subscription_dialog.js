@@ -180,7 +180,7 @@ function closeSubscriptionDialog() {
  */
 function hasSubscriptionAccess(requiredPlan) {
     const userPlan = window.userSubscriptionPlan || 'Free';
-    const planHierarchy = {'Free': 0, 'Plus': 1, 'Ultimate': 2};
+    const planHierarchy = {'Free': 0, 'Plus': 1, 'Ultimate': 2, 'Test': 2};
     
     const userLevel = planHierarchy[userPlan] || 0;
     const requiredLevel = planHierarchy[requiredPlan] || 1;

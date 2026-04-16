@@ -22,31 +22,23 @@
                     From job posting to offer letter in minutes. Create, optimize, and send directly from our platform.
                 </p>
                 
-                <!-- Interactive Demo Input -->
-                <div class="demo-section">
-                    <div class="demo-input-container">
-                        <input 
-                            type="url" 
-                            id="job-url-input" 
-                            placeholder="Paste any job URL to see the magic..."
-                            class="demo-input"
-                        >
-                        <button id="demo-btn" class="demo-button">
-                            <span class="demo-btn-text">Try it free</span>
-                            <span class="demo-btn-icon">✨</span>
-                        </button>
-                    </div>
-                    <p class="demo-subtitle">No signup required • See your optimized resume in seconds</p>
-                </div>
                 
-                <!-- CTA Buttons -->
-                <div class="hero-actions">
-                    {% if user.is_authenticated %}
-                        <a href="{% url 'dashboard:dashboard' %}" class="btn btn-primary btn-lg">Go to Dashboard</a>
-                    {% else %}
-                        <a href="{% url 'authentication:register' %}" class="btn btn-primary btn-lg">Create Free Account</a>
-                    {% endif %}
-                    <a href="{% url 'resume_builder:create_resume' %}" class="btn btn-secondary btn-lg">Upload Resume</a>
+                <!-- New CTA Buttons Layout -->
+                <div class="hero-actions-new">
+                    <div class="cta-buttons-group">
+                        <a href="{% url 'resume_builder:create_resume' %}" class="cta-button cta-primary">
+                            <span>Create Resume</span>
+                        </a>
+                        <a href="{% url 'authentication:register' %}" class="cta-button cta-secondary">
+                            <span>Create Free Account</span>
+                        </a>
+                        <a href="{% url 'subscriptions:pricing' %}" class="cta-button cta-tertiary">
+                            <span>Optimize Resume</span>
+                            <span class="cta-icon">🤖</span>
+                            <small>Premium</small>
+                        </a>
+                    </div>
+                    <p class="cta-subtext">Create your resume for free and choose from one of our 3 professional templates</p>
                 </div>
 
                 <!-- Dashboard Preview (Moved below main content) -->
@@ -618,6 +610,117 @@
     flex-wrap: wrap;
 }
 
+/* New CTA Buttons Layout */
+.hero-actions-new {
+    margin: 2rem 0;
+}
+
+.cta-buttons-group {
+    display: flex;
+    gap: 1rem;
+    align-items: stretch;
+    margin-bottom: 1rem;
+}
+
+.cta-button {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 1.5rem;
+    border-radius: 12px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    min-height: 80px;
+    position: relative;
+}
+
+.cta-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    text-decoration: none;
+}
+
+/* Primary Button - Try it free */
+.cta-primary {
+    background: linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%);
+    color: white;
+    border-color: #1E40AF;
+}
+
+.cta-primary:hover {
+    background: linear-gradient(135deg, #1E40AF 0%, #1E3A8A 100%);
+    color: white;
+}
+
+/* Secondary Button - Create Account */
+.cta-secondary {
+    background: white;
+    color: #374151;
+    border-color: #D1D5DB;
+}
+
+.cta-secondary:hover {
+    background: #F9FAFB;
+    border-color: #9CA3AF;
+    color: #374151;
+}
+
+/* Tertiary Button - Upload Resume */
+.cta-tertiary {
+    background: linear-gradient(135deg, #10B981 0%, #047857 100%);
+    color: white;
+    border-color: #047857;
+}
+
+.cta-tertiary:hover {
+    background: linear-gradient(135deg, #047857 0%, #065F46 100%);
+    color: white;
+}
+
+.cta-tertiary small {
+    font-size: 0.75rem;
+    opacity: 0.9;
+    margin-top: 0.25rem;
+}
+
+.cta-icon {
+    margin-left: 0.5rem;
+    font-size: 1.1em;
+}
+
+/* Subtext */
+.cta-subtext {
+    text-align: center;
+    color: #6B7280;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin: 0;
+    font-weight: 500;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .cta-buttons-group {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .cta-button {
+        min-height: 60px;
+        padding: 0.875rem 1.25rem;
+        font-size: 0.95rem;
+    }
+    
+    .cta-subtext {
+        font-size: 0.9rem;
+    }
+}
+
 /* Interactive Demo Visualization */
 .hero-visual {
     position: relative;
@@ -1153,10 +1256,10 @@ class InteractiveHeroDemo {
         this.animateDashboardPreview();
         this.setupInitialState();
         
-        // Start auto demo after 3 seconds if no user interaction
+        // Start auto demo after 3 seconds
         setTimeout(() => {
-            if (!this.isAnimating && !document.getElementById('job-url-input').value) {
-                this.startAutoDemo();
+            if (!this.isAnimating) {
+                this.startDemo();
             }
         }, 3000);
     }
@@ -1176,34 +1279,10 @@ class InteractiveHeroDemo {
         }, 500);
     }
     
-    async startAutoDemo() {
-        // Fill in demo URL automatically
-        const jobInput = document.getElementById('job-url-input');
-        const demoUrl = 'https://jobs.stripe.com/software-engineer';
-        
-        // Type the URL character by character
-        jobInput.focus();
-        for (let i = 0; i <= demoUrl.length; i++) {
-            jobInput.value = demoUrl.substring(0, i);
-            this.handleInputChange(jobInput.value);
-            await this.delay(50);
-        }
-        
-        await this.delay(1000);
-        this.startDemo();
-    }
     
     bindEvents() {
-        const demoBtn = document.getElementById('demo-btn');
-        const jobInput = document.getElementById('job-url-input');
-        
-        demoBtn.addEventListener('click', () => this.startDemo());
-        jobInput.addEventListener('input', (e) => this.handleInputChange(e.target.value));
-        jobInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                this.startDemo();
-            }
-        });
+        // No input field events needed anymore since buttons redirect to real pages
+        // Keep this method for potential future event binding
     }
     
     setupInitialState() {
@@ -1221,30 +1300,9 @@ class InteractiveHeroDemo {
         this.updateProgress(1);
     }
     
-    handleInputChange(value) {
-        const typingUrl = document.getElementById('typing-url');
-        if (value.trim()) {
-            typingUrl.textContent = value;
-            typingUrl.style.color = 'var(--text-primary)';
-            typingUrl.style.fontStyle = 'normal';
-        } else {
-            typingUrl.textContent = 'Waiting for job URL...';
-            typingUrl.style.color = 'var(--text-muted)';
-            typingUrl.style.fontStyle = 'italic';
-        }
-    }
     
     async startDemo() {
         if (this.isAnimating) return;
-        
-        const jobInput = document.getElementById('job-url-input');
-        const jobUrl = jobInput.value.trim();
-        
-        // If no URL, use a demo URL
-        if (!jobUrl) {
-            jobInput.value = 'https://jobs.company.com/software-engineer';
-            this.handleInputChange(jobInput.value);
-        }
         
         this.isAnimating = true;
         
@@ -1462,9 +1520,10 @@ class InteractiveHeroDemo {
         this.setupInitialState();
         this.isAnimating = false;
         
-        // Clear input
-        document.getElementById('job-url-input').value = '';
-        this.handleInputChange('');
+        // Loop: Start the demo again after a pause
+        setTimeout(() => {
+            this.startDemo();
+        }, 2000); // 2 second pause before restarting
     }
     
     delay(ms) {

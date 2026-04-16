@@ -32,9 +32,10 @@ class PlanPurchaseView(LoginRequiredMixin, DetailView):
 
     def get_queryset(self):
         """Ensure we only get active plans with their durations."""
-        return SubscriptionPlan.objects.filter(
-            is_active=True
-        ).prefetch_related(
+        queryset = SubscriptionPlan.objects.filter(is_active=True)
+        if not settings.DEBUG:
+            queryset = queryset.exclude(name='Test')
+        return queryset.prefetch_related(
             'durations',
             'features'
         )
@@ -107,6 +108,11 @@ def process_payment(request, plan_id, duration_id):
         print("DEBUG: Getting plan and duration")
         # Get plan and duration first
         plan = get_object_or_404(SubscriptionPlan, id=plan_id, is_active=True)
+        if plan.name == 'Test' and not settings.DEBUG:
+            return JsonResponse({
+                'success': False,
+                'error': 'This plan is not available in production.'
+            }, status=403)
         duration = get_object_or_404(PlanDuration, id=duration_id, plan=plan, is_active=True)
 
         print(f"DEBUG: Plan: {plan.name}, Duration: {duration.duration_type}")

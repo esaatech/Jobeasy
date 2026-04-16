@@ -57,7 +57,12 @@ def get_all_plans_with_stripe_prices():
     
     plans = []
     
-    for plan in SubscriptionPlan.objects.filter(is_active=True).prefetch_related('durations'):
+    plans_qs = SubscriptionPlan.objects.filter(is_active=True)
+    if not settings.DEBUG:
+        # Test plan should never be displayed as purchasable in production.
+        plans_qs = plans_qs.exclude(name='Test')
+
+    for plan in plans_qs.prefetch_related('durations'):
         plan.durations_with_stripe = get_plan_durations_with_stripe_prices(plan)
         plans.append(plan)
     

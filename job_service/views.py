@@ -31,7 +31,7 @@ def job_application_service(request):
         status='ACTIVE'
     ).select_related('plan').first()
     
-    is_ultimate = active_subscription and active_subscription.plan.name == 'Ultimate'
+    is_ultimate = active_subscription and active_subscription.plan.name in ('Ultimate', 'Test')
     
     # Hero section content
     hero_content = {

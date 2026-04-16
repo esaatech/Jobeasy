@@ -39,6 +39,7 @@ from utils.error import get_network_timeout_dialog, get_network_connection_dialo
 
 # Import subscription utilities
 from utils.subscription import get_resume_update_plus_dialog, get_resume_update_ultimate_dialog
+from subscriptions.decorators import check_subscription_access
 
 # Load environment variables from .env file
 load_dotenv()
@@ -1482,7 +1483,8 @@ def check_resume_update_access(request):
     """Check if user has access to resume update functionality"""
     access_info = check_subscription_access(
         user=request.user,
-        feature_identifier='resume_update',
+        # This flow maps to the saved resume capability in the seeded feature catalog.
+        feature_identifier='resume_saving',
         required_plan='Plus'
     )
     

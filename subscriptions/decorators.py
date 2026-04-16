@@ -6,6 +6,15 @@ from django.contrib.auth.decorators import login_required
 from .models import UserSubscription, SubscriptionPlan
 from utils.subscription import get_plus_upgrade_dialog, get_ultimate_upgrade_dialog
 
+
+PLAN_HIERARCHY = {
+    'Free': 0,
+    'Plus': 1,
+    'Ultimate': 2,
+    # Test should behave like Ultimate in authorization checks.
+    'Test': 2,
+}
+
 def require_subscription(plan_name='Plus', feature_identifier=None):
     """
     Decorator to require a specific subscription plan for access.
@@ -32,10 +41,8 @@ def require_subscription(plan_name='Plus', feature_identifier=None):
             
             # Check if user has the required plan
             user_plan_name = active_subscription.plan.name
-            plan_hierarchy = {'Free': 0, 'Plus': 1, 'Ultimate': 2}
-            
-            user_plan_level = plan_hierarchy.get(user_plan_name, 0)
-            required_plan_level = plan_hierarchy.get(plan_name, 1)
+            user_plan_level = PLAN_HIERARCHY.get(user_plan_name, 0)
+            required_plan_level = PLAN_HIERARCHY.get(plan_name, 1)
             
             if user_plan_level < required_plan_level:
                 return _handle_no_access(request, plan_name)
@@ -110,10 +117,8 @@ def check_subscription_access(user, feature_identifier=None, required_plan='Plus
         }
     
     current_plan = active_subscription.plan.name
-    plan_hierarchy = {'Free': 0, 'Plus': 1, 'Ultimate': 2}
-    
-    current_level = plan_hierarchy.get(current_plan, 0)
-    required_level = plan_hierarchy.get(required_plan, 1)
+    current_level = PLAN_HIERARCHY.get(current_plan, 0)
+    required_level = PLAN_HIERARCHY.get(required_plan, 1)
     
     has_access = current_level >= required_level
     

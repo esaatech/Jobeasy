@@ -13,7 +13,7 @@ Shows different content based on user's subscription status.
         Register for Job Service
     </a>
 </div>
-{% elif not current_subscription.plan.name == 'Ultimate' %}
+{% elif current_subscription.plan.name != 'Ultimate' and current_subscription.plan.name != 'Test' %}
 <div class="bg-gradient-to-r from-blue-50 to-purple-100 rounded-xl shadow-lg p-6 flex flex-col items-center justify-center mb-8">
     <h3 class="headline-secondary mb-2">Upgrade to Ultimate</h3>
     <p class="body-text mb-4 text-center max-w-md">
