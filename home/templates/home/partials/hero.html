@@ -1,5 +1,3 @@
-{% load static %}
-
 <!-- Enhanced Interactive Hero Section -->
 <section class="section-hero">
     <div class="hero-full-width">
@@ -8,76 +6,40 @@
             <div class="hero-content">
                 <!-- Badge -->
                 <div class="hero-badge">
-                    <span class="badge-icon">🤖</span>
+                    <span class="badge-icon" aria-hidden="true"></span>
                     <span class="badge-text">AI-powered job applications</span>
                 </div>
                 
                 <!-- Main Heading -->
-                <h1 class="headline-primary">
+                <h1 class="headline-primary hero-editorial-heading">
                     Land interviews with <span class="highlight">less effort</span>
                 </h1>
                 
                 <!-- Subtitle -->
                 <p class="subheadline hero-subtitle">
-                    From job posting to offer letter in minutes. Create, optimize, and send directly from our platform.
+                    Paste a job posting. Get a tailored resume, cover letter, and a direct application in under 2 minutes.
                 </p>
                 
                 
-                <!-- New CTA Buttons Layout -->
+                <!-- CTA Buttons -->
                 <div class="hero-actions-new">
                     <div class="cta-buttons-group">
                         <a href="{% url 'resume_builder:create_resume' %}" class="cta-button cta-primary">
-                            <span>Create Resume</span>
+                            <span>Create free resume</span>
                         </a>
-                        <a href="{% url 'authentication:register' %}" class="cta-button cta-secondary">
-                            <span>Create Free Account</span>
-                        </a>
-                        <a href="{% url 'subscriptions:pricing' %}" class="cta-button cta-tertiary">
-                            <span>Optimize Resume</span>
-                            <span class="cta-icon">🤖</span>
-                            <small>Premium</small>
+                        <a href="#interactive-demo" class="cta-button cta-secondary">
+                            <span>See how it works</span>
                         </a>
                     </div>
-                    <p class="cta-subtext">Create your resume for free and choose from one of our 3 professional templates</p>
-                </div>
-
-                <!-- Application tracker illustration (flat vector, muted SaaS style) -->
-                <div class="hero-tracker-illustration">
-                    <svg class="hero-tracker-svg" viewBox="0 0 440 260" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="heroTrackerTitle">
-                        <title id="heroTrackerTitle">Person at a laptop with an application status tracker</title>
-                        <ellipse cx="210" cy="138" rx="198" ry="118" fill="#EDE8E0"/>
-                        <path d="M72 168 Q68 200 85 218 L115 218 Q108 185 108 155 Z" fill="#9DBED9"/>
-                        <rect x="78" y="148" width="44" height="8" rx="4" fill="#7FA3C4"/>
-                        <circle cx="128" cy="92" r="22" fill="#C9936B"/>
-                        <rect x="108" y="112" width="52" height="58" rx="14" fill="#4A8A9E"/>
-                        <rect x="98" y="128" width="18" height="44" rx="9" fill="#4A8A9E"/>
-                        <rect x="138" y="132" width="76" height="48" rx="6" fill="#2D3748"/>
-                        <rect x="142" y="136" width="68" height="36" rx="4" fill="#E8F4FC"/>
-                        <rect x="132" y="178" width="88" height="6" rx="3" fill="#CBD5E0"/>
-                        <rect x="248" y="48" width="168" height="168" rx="14" fill="#FFFFFF"/>
-                        <rect x="248" y="48" width="168" height="36" rx="14" fill="#F0F9FF"/>
-                        <rect x="248" y="76" width="168" height="10" fill="#F0F9FF"/>
-                        <text x="264" y="72" font-family="Inter, system-ui, sans-serif" font-size="12" font-weight="600" fill="#1F2937">Applications</text>
-                        <rect x="264" y="98" width="28" height="28" rx="8" fill="#EBF8FF"/>
-                        <rect x="300" y="102" width="72" height="6" rx="3" fill="#E5E7EB"/>
-                        <rect x="300" y="114" width="48" height="5" rx="2" fill="#F3F4F6"/>
-                        <rect x="318" y="124" width="82" height="18" rx="9" fill="#DCFCE7"/>
-                        <text x="332" y="137" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="600" fill="#166534">Applied</text>
-                        <rect x="264" y="138" width="28" height="28" rx="8" fill="#EBF8FF"/>
-                        <rect x="300" y="142" width="72" height="6" rx="3" fill="#E5E7EB"/>
-                        <rect x="300" y="154" width="52" height="5" rx="2" fill="#F3F4F6"/>
-                        <rect x="318" y="164" width="90" height="18" rx="9" fill="#DBEAFE"/>
-                        <text x="328" y="177" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="600" fill="#1E40AF">Interview</text>
-                        <rect x="264" y="178" width="28" height="28" rx="8" fill="#EBF8FF"/>
-                        <rect x="300" y="182" width="72" height="6" rx="3" fill="#E5E7EB"/>
-                        <rect x="300" y="194" width="44" height="5" rx="2" fill="#F3F4F6"/>
-                        <rect x="318" y="204" width="64" height="18" rx="9" fill="#EDE9FE"/>
-                        <text x="332" y="217" font-family="Inter, system-ui, sans-serif" font-size="9" font-weight="600" fill="#5B21B6">Offer</text>
-                        <rect x="272" y="106" width="14" height="12" rx="2" fill="#4A90E2" opacity="0.85"/>
-                        <rect x="272" y="146" width="14" height="12" rx="2" fill="#4A90E2" opacity="0.85"/>
-                        <rect x="272" y="186" width="14" height="12" rx="2" fill="#4A90E2" opacity="0.85"/>
-                    </svg>
-                    <p class="hero-tracker-caption">Track every application in one place</p>
+                    <div class="hero-proof">
+                        <div class="hero-proof-avatars" aria-hidden="true">
+                            <span class="hero-proof-avatar avatar-amber">AK</span>
+                            <span class="hero-proof-avatar avatar-blue">MR</span>
+                            <span class="hero-proof-avatar avatar-green">JD</span>
+                            <span class="hero-proof-avatar avatar-pink">SL</span>
+                        </div>
+                        <p class="hero-proof-text">12,400+ job seekers landed interviews this month</p>
+                    </div>
                 </div>
             </div>
             
@@ -237,9 +199,9 @@
 <style>
 /* Enhanced Interactive Hero Section */
 .section-hero {
-    background: linear-gradient(135deg, #FAFBFF 0%, #F0F9FF 100%);
+    background: #F3EFE6;
     padding: 0.5rem 0;
-    border-bottom: 1px solid #E5E7EB;
+    border-bottom: 1px solid #E1DBD0;
     overflow: hidden;
     min-height: 100vh;
     display: flex;
@@ -273,59 +235,60 @@
     width: 100%;
     display: flex;
     flex-direction: column;
-}
-
-/* Application tracker illustration (concept #3) */
-.hero-tracker-illustration {
-    margin-top: 0.5rem;
-    margin-bottom: 1rem;
-    max-width: 100%;
+    max-width: 34rem;
+    padding: 3rem 0 2rem;
     animation: slideInLeft 0.8s ease-out forwards;
-}
-
-.hero-tracker-svg {
-    display: block;
-    width: 100%;
-    max-width: 420px;
-    height: auto;
-    filter: drop-shadow(0 4px 14px rgba(15, 23, 42, 0.08));
-}
-
-.hero-tracker-caption {
-    font-family: 'Inter', system-ui, sans-serif;
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--text-muted);
-    text-align: center;
-    margin: 0.75rem 0 0;
-    max-width: 28rem;
 }
 
 .hero-badge {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%);
-    border: 1px solid #BFDBFE;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid #DDD5C6;
     border-radius: 2rem;
-    padding: 0.5rem 1rem;
-    margin-bottom: 2rem;
-    font-size: 0.875rem;
+    padding: 0.55rem 1rem;
+    margin-bottom: 2.5rem;
+    font-size: 0.9375rem;
     font-weight: 500;
-    color: var(--color-primary);
+    color: #3E3A36;
+    width: fit-content;
+    box-shadow: 0 2px 6px rgba(57, 50, 40, 0.05);
+}
+
+.badge-icon {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 999px;
+    background: #5A9A67;
+    box-shadow: 0 0 0 3px rgba(90, 154, 103, 0.14);
 }
 
 /* Gradient accent — typography comes from .headline-primary in base.css */
-.section-hero .headline-primary .highlight {
-    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+.hero-editorial-heading {
+    font-family: Georgia, "Times New Roman", serif;
+    font-size: clamp(4rem, 8vw, 6.5rem);
+    line-height: 0.92;
+    letter-spacing: -0.04em;
+    color: #171413;
+    margin: 0 0 1.75rem;
+    max-width: 12ch;
+}
+
+.section-hero .headline-primary.hero-editorial-heading .highlight {
+    color: #4C9660;
+    font-style: italic;
+    font-weight: 600;
+    background: none;
+    -webkit-text-fill-color: currentColor;
 }
 
 .hero-subtitle {
-    margin-bottom: 1.5rem;
-    max-width: 42rem;
+    margin-bottom: 2rem;
+    max-width: 30rem;
+    font-size: 1.125rem;
+    line-height: 1.6;
+    color: #67605A;
 }
 
 /* Interactive Demo Input */
@@ -389,112 +352,133 @@
 
 /* New CTA Buttons Layout */
 .hero-actions-new {
-    margin: 2rem 0;
+    margin: 0;
 }
 
 .cta-buttons-group {
     display: flex;
     gap: 1rem;
     align-items: stretch;
-    margin-bottom: 1rem;
+    margin-bottom: 1.75rem;
+    max-width: 18rem;
 }
 
 .cta-button {
     flex: 1;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 1rem 1.5rem;
-    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    border-radius: 0.875rem;
     text-decoration: none;
     font-weight: 600;
-    font-size: 1rem;
+    font-size: 0.95rem;
+    line-height: 1.1;
+    text-align: center;
     transition: all 0.3s ease;
-    border: 2px solid transparent;
-    min-height: 80px;
+    border: 1px solid #CFC6B8;
+    min-height: 5rem;
     position: relative;
+    color: #171413;
+    background: rgba(255, 255, 255, 0.5);
 }
 
 .cta-button:hover {
     transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 8px 24px rgba(37, 29, 20, 0.08);
     text-decoration: none;
 }
 
-/* Primary Button - Try it free */
 .cta-primary {
-    background: linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%);
-    color: white;
-    border-color: #1E40AF;
+    background: rgba(255, 255, 255, 0.6);
+    color: #171413;
+    border-color: #C8BFB1;
 }
 
 .cta-primary:hover {
-    background: linear-gradient(135deg, #1E40AF 0%, #1E3A8A 100%);
-    color: white;
+    background: rgba(255, 255, 255, 0.9);
+    color: #171413;
 }
 
-/* Secondary Button - Create Account */
 .cta-secondary {
-    background: white;
-    color: #374151;
-    border-color: #D1D5DB;
+    background: rgba(255, 255, 255, 0.35);
+    color: #171413;
+    border-color: #CFC6B8;
 }
 
 .cta-secondary:hover {
-    background: #F9FAFB;
-    border-color: #9CA3AF;
-    color: #374151;
+    background: rgba(255, 255, 255, 0.7);
+    border-color: #C8BFB1;
+    color: #171413;
 }
 
-/* Tertiary Button - Upload Resume */
-.cta-tertiary {
-    background: linear-gradient(135deg, #10B981 0%, #047857 100%);
-    color: white;
-    border-color: #047857;
+.hero-proof {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
 }
 
-.cta-tertiary:hover {
-    background: linear-gradient(135deg, #047857 0%, #065F46 100%);
-    color: white;
+.hero-proof-avatars {
+    display: flex;
+    align-items: center;
 }
 
-.cta-tertiary small {
+.hero-proof-avatar {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     font-size: 0.75rem;
-    opacity: 0.9;
-    margin-top: 0.25rem;
+    font-weight: 700;
+    color: #FFFFFF;
+    border: 2px solid #F3EFE6;
 }
 
-.cta-icon {
-    margin-left: 0.5rem;
-    font-size: 1.1em;
+.hero-proof-avatar + .hero-proof-avatar {
+    margin-left: -0.35rem;
 }
 
-/* Subtext */
-.cta-subtext {
-    text-align: center;
-    color: #6B7280;
-    font-size: 0.95rem;
-    line-height: 1.5;
+.avatar-amber {
+    background: #C88859;
+}
+
+.avatar-blue {
+    background: #5A84C9;
+}
+
+.avatar-green {
+    background: #62B28A;
+}
+
+.avatar-pink {
+    background: #D65FA9;
+}
+
+.hero-proof-text {
     margin: 0;
+    max-width: 15rem;
+    font-size: 0.95rem;
+    line-height: 1.25;
+    color: #2D2926;
     font-weight: 500;
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
     .cta-buttons-group {
-        flex-direction: column;
+        max-width: 100%;
         gap: 0.75rem;
     }
     
     .cta-button {
-        min-height: 60px;
-        padding: 0.875rem 1.25rem;
-        font-size: 0.95rem;
+        min-height: 4.5rem;
+        padding: 0.875rem 1rem;
     }
     
-    .cta-subtext {
-        font-size: 0.9rem;
+    .hero-proof {
+        justify-content: flex-start;
     }
 }
 
@@ -869,8 +853,8 @@
         gap: 3rem;
     }
     
-    .section-hero .headline-primary {
-        font-size: 3.5rem;
+    .hero-editorial-heading {
+        font-size: clamp(3.5rem, 10vw, 5rem);
     }
 }
 
@@ -886,43 +870,30 @@
     .hero-container {
         grid-template-columns: 1fr;
         gap: 1.5rem;
-        text-align: center;
+        text-align: left;
     }
     
     .hero-content {
         max-width: none;
         order: 1;
+        padding: 1.5rem 0 0.5rem;
     }
     
     .hero-visual {
         order: 2;
     }
     
-    .section-hero .headline-primary {
-        font-size: 2.25rem;
+    .hero-editorial-heading {
+        font-size: clamp(3rem, 15vw, 4.5rem);
+        max-width: 9ch;
     }
     
     .demo-input-container {
         flex-direction: column;
     }
     
-    .hero-actions {
-        justify-content: center;
-        flex-direction: column;
-        align-items: center;
-        gap: 0.75rem;
-    }
-    
-    .btn-lg {
-        width: 100%;
-        max-width: 280px;
-    }
-    
-    .hero-stats {
-        flex-direction: row;
-        gap: 1.5rem;
-        text-align: center;
-        padding: 1rem 0 0.5rem;
+    .hero-proof-text {
+        max-width: 12rem;
     }
     
     .interactive-demo {
@@ -952,13 +923,25 @@
         padding: 0 0.75rem;
     }
 
-    .section-hero .headline-primary {
-        font-size: 1.875rem;
+    .hero-editorial-heading {
+        font-size: 4rem;
     }
     
-    .hero-stats {
-        gap: 1rem;
-        padding: 0.75rem 0 0.25rem;
+    .hero-badge {
+        margin-bottom: 2rem;
+    }
+
+    .hero-subtitle {
+        font-size: 1rem;
+    }
+
+    .cta-buttons-group {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .hero-proof {
+        gap: 0.75rem;
     }
     
     .demo-card {
