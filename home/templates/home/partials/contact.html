@@ -3,8 +3,8 @@
     <div class="page-width">
         <div class="cta-container">
             <div class="cta-content">
-                <h2 class="cta-title">Your next job starts here</h2>
-                <p class="cta-subtitle">Free to start. No credit card needed.</p>
+                <h2 class="headline-secondary cta-title">Your next job starts here</h2>
+                <p class="subheadline cta-subtitle">Free to start. No credit card needed.</p>
                 
                 <div class="cta-actions">
                     {% if user.is_authenticated %}
@@ -37,19 +37,11 @@
 }
 
 .cta-title {
-    font-family: 'Inter', sans-serif;
-    font-size: 3rem;
-    font-weight: 700;
-    color: var(--text-primary);
     margin-bottom: 1rem;
-    line-height: 1.1;
 }
 
 .cta-subtitle {
-    font-size: 1.25rem;
-    color: var(--text-secondary);
     margin-bottom: 2.5rem;
-    font-weight: 400;
 }
 
 .cta-actions {
@@ -65,12 +57,7 @@
         padding: 2.5rem 0;
     }
     
-    .cta-title {
-        font-size: 2.25rem;
-    }
-    
     .cta-subtitle {
-        font-size: 1.125rem;
         margin-bottom: 2rem;
     }
     
@@ -91,12 +78,7 @@
         padding: 2rem 0;
     }
     
-    .cta-title {
-        font-size: 1.875rem;
-    }
-    
     .cta-subtitle {
-        font-size: 1rem;
         margin-bottom: 1.5rem;
     }
     

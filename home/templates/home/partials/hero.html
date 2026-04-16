@@ -13,12 +13,12 @@
                 </div>
                 
                 <!-- Main Heading -->
-                <h1 class="hero-title">
+                <h1 class="headline-primary">
                     Land interviews with <span class="highlight">less effort</span>
                 </h1>
                 
                 <!-- Subtitle -->
-                <p class="hero-subtitle">
+                <p class="subheadline hero-subtitle">
                     From job posting to offer letter in minutes. Create, optimize, and send directly from our platform.
                 </p>
                 
@@ -121,10 +121,10 @@
                                 <h4>Job Posting Analysis</h4>
                             </div>
                             <div class="demo-content">
-                                <div class="url-preview">
-                                    <div class="url-icon">🔗</div>
-                                    <div class="url-text">
-                                        <div class="typing-placeholder" id="typing-url">Waiting for job URL...</div>
+                                <div class="job-description-preview">
+                                    <div class="job-icon">📋</div>
+                                    <div class="job-text">
+                                        <div class="typing-placeholder" id="typing-job-desc">We're looking for a Senior Software Engineer with 5+ years of experience in React, Node.js, and AWS. You'll be responsible for building scalable web applications...</div>
                                     </div>
                                 </div>
                                 <div class="analysis-tags hidden" id="analysis-tags">
@@ -526,17 +526,8 @@
     color: var(--color-primary);
 }
 
-.hero-title {
-    font-family: 'Inter', sans-serif;
-    font-size: 2.75rem;
-    font-weight: 700;
-    line-height: 1.1;
-    color: var(--text-primary);
-    margin-bottom: 1rem;
-    letter-spacing: -0.02em;
-}
-
-.hero-title .highlight {
+/* Gradient accent — typography comes from .headline-primary in base.css */
+.section-hero .headline-primary .highlight {
     background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -544,11 +535,8 @@
 }
 
 .hero-subtitle {
-    font-size: 1.125rem;
-    color: var(--text-secondary);
-    line-height: 1.5;
     margin-bottom: 1.5rem;
-    font-weight: 400;
+    max-width: 42rem;
 }
 
 /* Interactive Demo Input */
@@ -795,9 +783,10 @@
 }
 
 /* URL Preview */
-.url-preview {
+.url-preview,
+.job-description-preview {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 1rem;
     padding: 1rem;
     background: #F9FAFB;
@@ -805,10 +794,19 @@
     margin-bottom: 1.25rem;
 }
 
-.url-text {
+.url-text,
+.job-text {
     font-size: 0.9375rem;
     color: var(--text-secondary);
     font-weight: 500;
+    line-height: 1.5;
+    flex: 1;
+}
+
+.job-icon {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+    margin-top: 0.125rem;
 }
 
 .url-icon {
@@ -1082,8 +1080,8 @@
         gap: 3rem;
     }
     
-    .hero-title {
-        font-size: 3rem;
+    .section-hero .headline-primary {
+        font-size: 3.5rem;
     }
 }
 
@@ -1111,7 +1109,7 @@
         order: 2;
     }
     
-    .hero-title {
+    .section-hero .headline-primary {
         font-size: 2.25rem;
     }
     
@@ -1165,12 +1163,8 @@
         padding: 0 0.75rem;
     }
 
-    .hero-title {
+    .section-hero .headline-primary {
         font-size: 1.875rem;
-    }
-    
-    .hero-subtitle {
-        font-size: 0.9375rem;
     }
     
     .stat-number {

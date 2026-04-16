@@ -495,6 +495,10 @@
     :root {
         --spacing-3xl: 2.5rem;
     }
+
+    .headline-secondary {
+        font-size: 2rem;
+    }
     
     .page-width,
     .page-width-wide,
@@ -525,6 +529,10 @@
 }
 
 @media (max-width: 480px) {
+    .headline-secondary {
+        font-size: 1.75rem;
+    }
+
     .page-width,
     .page-width-wide,
     .page-width-narrow {
