@@ -1,7 +1,8 @@
 import os
 import base64
+import logging
 import mimetypes
-from datetime import datetime, timedelta
+from datetime import timedelta, timezone as py_timezone
 from typing import Dict, Any, Optional
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -15,6 +16,21 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
 from ..models import GmailAuth
+
+logger = logging.getLogger(__name__)
+
+
+def credentials_expiry_for_storage(credentials: Credentials):
+    """
+    Normalize Google OAuth expiry to an aware datetime for Django ORM storage.
+    """
+    expiry = credentials.expiry
+    if expiry is None:
+        logger.warning("OAuth credentials missing expiry; defaulting token_expiry to +1 hour")
+        return timezone.now() + timedelta(hours=1)
+    if timezone.is_naive(expiry):
+        expiry = timezone.make_aware(expiry, py_timezone.utc)
+    return expiry
 
 
 class GmailService:
@@ -45,11 +61,22 @@ class GmailService:
         """Check if user has valid Gmail authentication"""
         if not self.gmail_auth:
             return False
-        
-        # Check if token is expired and needs refresh
-        if self.gmail_auth.needs_refresh():
+
+        has_refresh = bool((self.gmail_auth.refresh_token or "").strip())
+
+        if self.gmail_auth.is_token_expired():
+            if not has_refresh:
+                logger.warning(
+                    "Gmail access token expired and no refresh_token stored (user_id=%s)",
+                    self.user.pk,
+                )
+                return False
             return self._refresh_token()
-        
+
+        # Proactive refresh within the last 5 minutes of validity when we have a refresh token
+        if self.gmail_auth.needs_refresh() and has_refresh:
+            return self._refresh_token()
+
         return True
     
     def _refresh_token(self) -> bool:
@@ -69,13 +96,13 @@ class GmailService:
             
             # Update the stored tokens
             self.gmail_auth.access_token = credentials.token
-            self.gmail_auth.token_expiry = timezone.now() + timedelta(seconds=credentials.expiry.timestamp() - datetime.now().timestamp())
+            self.gmail_auth.token_expiry = credentials_expiry_for_storage(credentials)
             self.gmail_auth.save()
             
             return True
             
         except Exception as e:
-            print(f"Error refreshing token: {e}")
+            logger.exception("Error refreshing Gmail token for user_id=%s: %s", self.user.pk, e)
             return False
     
     def _get_gmail_service(self):
@@ -136,7 +163,7 @@ class GmailService:
             }
             
         except Exception as e:
-            print(f"Error getting user profile: {e}")
+            logger.exception("Error getting Google user profile: %s", e)
             return None
     
     def verify_user_identity(self, credentials: Credentials) -> Optional[Dict[str, str]]:
@@ -164,7 +191,7 @@ class GmailService:
             }
             
         except Exception as e:
-            print(f"Error verifying user identity: {e}")
+            logger.exception("Error verifying user identity with OAuth2 userinfo: %s", e)
             return None
     
     def send_email(self, to_email: str, subject: str, body: str, 
@@ -237,7 +264,7 @@ class GmailService:
                 'error': f"Gmail API error: {error}"
             }
         except Exception as e:
-            print(f"Error sending email: {e}")
+            logger.exception("Error sending email via Gmail API: %s", e)
             return {
                 'success': False,
                 'error': f"Error sending email: {str(e)}"
@@ -256,7 +283,7 @@ class GmailService:
                 'threads_total': profile.get('threadsTotal', 0)
             }
         except Exception as e:
-            print(f"Error getting user info: {e}")
+            logger.exception("Error getting Gmail user profile: %s", e)
             return None
     
     def get_user_info_with_credentials(self, credentials: Credentials) -> Optional[Dict[str, str]]:
@@ -272,7 +299,7 @@ class GmailService:
                 'threads_total': profile.get('threadsTotal', 0)
             }
         except Exception as e:
-            print(f"Error getting user info with credentials: {e}")
+            logger.exception("Error getting Gmail user info with credentials: %s", e)
             return None
     
     def revoke_access(self) -> bool:
@@ -284,30 +311,47 @@ class GmailService:
                 return True
             return False
         except Exception as e:
-            print(f"Error revoking access: {e}")
+            logger.exception("Error revoking Gmail access: %s", e)
             return False
 
 
 def create_gmail_auth_from_credentials(user, credentials: Credentials, gmail_address: str) -> GmailAuth:
-    """Create GmailAuth instance from OAuth2 credentials"""
+    """Create or update GmailAuth from OAuth2 credentials."""
+    token_expiry = credentials_expiry_for_storage(credentials)
+    refresh_token_value = credentials.refresh_token or ""
+
+    if not refresh_token_value:
+        logger.warning(
+            "OAuth response had no refresh_token for user_id=%s (re-auth may be required later)",
+            user.pk,
+        )
+
     gmail_auth, created = GmailAuth.objects.get_or_create(
         user=user,
         defaults={
             'access_token': credentials.token,
-            'refresh_token': credentials.refresh_token,
-            'token_expiry': timezone.now() + timedelta(seconds=credentials.expiry.timestamp() - datetime.now().timestamp()),
+            'refresh_token': refresh_token_value,
+            'token_expiry': token_expiry,
             'gmail_address': gmail_address,
-            'is_active': True
-        }
+            'is_active': True,
+        },
     )
-    
+
     if not created:
-        # Update existing record
         gmail_auth.access_token = credentials.token
-        gmail_auth.refresh_token = credentials.refresh_token
-        gmail_auth.token_expiry = timezone.now() + timedelta(seconds=credentials.expiry.timestamp() - datetime.now().timestamp())
+        if credentials.refresh_token:
+            gmail_auth.refresh_token = credentials.refresh_token
+        elif not (gmail_auth.refresh_token or "").strip():
+            gmail_auth.refresh_token = refresh_token_value
+        gmail_auth.token_expiry = token_expiry
         gmail_auth.gmail_address = gmail_address
         gmail_auth.is_active = True
         gmail_auth.save()
-    
+
+    logger.info(
+        "GmailAuth %s for user_id=%s gmail=%s",
+        "created" if created else "updated",
+        user.pk,
+        gmail_address,
+    )
     return gmail_auth 

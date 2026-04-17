@@ -224,6 +224,20 @@
     
     <!-- Main Content -->
     <main>
+        {% if messages %}
+        <div class="page-width py-3 space-y-2 mx-auto" style="max-width:1200px;padding-left:1.5rem;padding-right:1.5rem;" role="status" aria-live="polite">
+            {% for message in messages %}
+            <div class="rounded-lg border px-4 py-3 text-sm
+                {% if message.level_tag == 'success' %}border-green-200 bg-green-50 text-green-900
+                {% elif message.level_tag == 'error' %}border-red-200 bg-red-50 text-red-900
+                {% elif message.level_tag == 'warning' %}border-amber-200 bg-amber-50 text-amber-950
+                {% elif message.level_tag == 'info' %}border-blue-200 bg-blue-50 text-blue-900
+                {% else %}border-gray-200 bg-white text-gray-900{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
         {% block content %}{% endblock %}
     </main>
     

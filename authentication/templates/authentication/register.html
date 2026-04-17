@@ -45,16 +45,6 @@
                 {% endif %}
             </div>
 
-            {% if messages %}
-            <div class="space-y-2 mt-6">
-                {% for message in messages %}
-                <div class="bg-{{ message.tags }}-50 border border-{{ message.tags }}-200 text-{{ message.tags }}-700 px-4 py-3 rounded relative" role="alert">
-                    <span class="block sm:inline">{{ message }}</span>
-                </div>
-                {% endfor %}
-            </div>
-            {% endif %}
-
             <form id="register-form" class="mt-8 space-y-6" method="POST">
                 {% csrf_token %}
                 <input type="hidden" name="next" value="{{ next }}" class="hidden">

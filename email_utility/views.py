@@ -1,8 +1,9 @@
 import os
 import json
+import logging
 import tempfile
 from datetime import datetime
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -21,6 +22,33 @@ from .models import GmailAuth, EmailHistory
 from .services.gmail_service import GmailService, create_gmail_auth_from_credentials
 from resume_builder.models import Resume
 from coverletter.models import CoverLetter
+
+logger = logging.getLogger(__name__)
+
+
+def _resolve_post_oauth_redirect(request, return_url: str) -> str:
+    """
+    Resolve session 'next' after OAuth. Allow same-site paths, Django URL names,
+    and absolute URLs only when they target this host (avoid open redirects).
+    """
+    if return_url.startswith("/") and not return_url.startswith("//"):
+        return return_url
+    if return_url.startswith(("http://", "https://")):
+        parsed = urlparse(return_url)
+        if parsed.netloc == request.get_host():
+            return return_url
+        logger.warning(
+            "Rejected OAuth redirect to another host: %s",
+            parsed.netloc,
+        )
+        return "dashboard:dashboard"
+    return return_url
+
+
+def _clear_gmail_oauth_session(request):
+    """Clean up transient OAuth session keys."""
+    request.session.pop("gmail_oauth_state", None)
+    request.session.pop("gmail_oauth_code_verifier", None)
 
 
 def gmail_authorize(request):
@@ -61,6 +89,10 @@ def gmail_authorize(request):
         
         # Store state in session for security
         request.session['gmail_oauth_state'] = state
+        if getattr(flow, "code_verifier", None):
+            request.session["gmail_oauth_code_verifier"] = flow.code_verifier
+        else:
+            logger.warning("Gmail OAuth flow generated without PKCE code_verifier")
         
         return redirect(authorization_url)
         
@@ -72,15 +104,63 @@ def gmail_authorize(request):
 def gmail_callback(request):
     """Handle Gmail OAuth2 callback with login support"""
     try:
-        # Get authorization code from request
-        code = request.GET.get('code')
-        state = request.GET.get('state')
-        
-        # Verify state matches
-        if state != request.session.get('gmail_oauth_state'):
-            messages.error(request, "Invalid OAuth state")
-            return redirect('dashboard:dashboard')
-        
+        oauth_error = request.GET.get("error")
+        oauth_error_description = request.GET.get("error_description", "")
+        if oauth_error:
+            logger.warning(
+                "Gmail OAuth returned error=%s description=%s",
+                oauth_error,
+                oauth_error_description[:500] if oauth_error_description else "",
+            )
+            readable = oauth_error.replace("_", " ").strip()
+            extra = (
+                f" ({oauth_error_description})"
+                if oauth_error_description
+                else ""
+            )
+            messages.error(
+                request,
+                f"Google sign-in was not completed: {readable}.{extra}",
+            )
+            return redirect("dashboard:dashboard")
+
+        code = request.GET.get("code")
+        state = request.GET.get("state")
+
+        if not code:
+            logger.warning("Gmail OAuth callback missing code parameter")
+            messages.error(
+                request,
+                "Missing authorization from Google. Start the Gmail connection again.",
+            )
+            return redirect("dashboard:dashboard")
+
+        session_state = request.session.get("gmail_oauth_state")
+        if state != session_state:
+            logger.warning(
+                "Gmail OAuth state mismatch (session may have expired or cookies not sent)"
+            )
+            messages.error(
+                request,
+                "Your sign-in session expired. Please try connecting Gmail again.",
+            )
+            return redirect("dashboard:dashboard")
+
+        session_code_verifier = request.session.get("gmail_oauth_code_verifier")
+        if not session_code_verifier:
+            logger.warning(
+                "Missing PKCE code_verifier in session during Gmail callback (state validated=%s)",
+                bool(session_state),
+            )
+            _clear_gmail_oauth_session(request)
+            messages.error(
+                request,
+                "Your Gmail authorization session expired before token exchange. Please try again.",
+            )
+            return redirect("dashboard:dashboard")
+
+        logger.info("Gmail OAuth callback received valid code and state")
+
         # Create flow and exchange code for tokens
         flow = Flow.from_client_config(
             {
@@ -101,11 +181,42 @@ def gmail_callback(request):
         )
         
         flow.redirect_uri = os.getenv('GOOGLE_REDIRECT_URI')
-        
+        flow.code_verifier = session_code_verifier
+
         # Exchange authorization code for credentials
-        flow.fetch_token(code=code)
+        try:
+            flow.fetch_token(code=code)
+        except Exception as token_error:
+            error_text = str(token_error)
+            error_lower = error_text.lower()
+            logger.exception("Gmail OAuth token exchange failed: %s", error_text)
+            _clear_gmail_oauth_session(request)
+
+            if "missing code verifier" in error_lower:
+                messages.error(
+                    request,
+                    "Google token exchange failed (missing PKCE verifier). Start Gmail connection again from the app.",
+                )
+                return redirect("dashboard:dashboard")
+
+            if "scope has changed" in error_lower:
+                messages.error(
+                    request,
+                    "Google returned different scopes than requested. Ensure your account is a Google OAuth test user, and that GOOGLE_REDIRECT_URI/client settings match Google Cloud exactly.",
+                )
+                return redirect("dashboard:dashboard")
+
+            messages.error(request, f"Error completing Gmail authorization: {error_text}")
+            return redirect("dashboard:dashboard")
+
         credentials = flow.credentials
-        
+        granted_scopes = sorted(getattr(credentials, "scopes", []) or [])
+        logger.info(
+            "Gmail OAuth token exchange succeeded; granted_scopes=%s",
+            granted_scopes,
+        )
+        _clear_gmail_oauth_session(request)
+
         # Get user's profile information
         gmail_service = GmailService(request.user if request.user.is_authenticated else None)
         user_info = gmail_service.verify_user_identity(credentials)
@@ -116,7 +227,6 @@ def gmail_callback(request):
         
         gmail_address = user_info['email']
         user_name = user_info.get('name', '')
-        google_id = user_info.get('google_id', '')
         
         # Check if user is already logged in
         if request.user.is_authenticated:
@@ -160,19 +270,21 @@ def gmail_callback(request):
                 user, credentials, gmail_address
             )
         
-        # Redirect back to the original page or dashboard
-        return_url = request.session.get('gmail_redirect_after_auth', 'dashboard:dashboard')
-        
-        if 'gmail_redirect_after_auth' in request.session:
-            del request.session['gmail_redirect_after_auth']
-        
-        # If it's a relative URL, redirect to it directly
-        if return_url.startswith('/'):
-            return redirect(return_url)
-        else:
-            return redirect(return_url)
-        
+        return_url = request.session.get("gmail_redirect_after_auth", "dashboard:dashboard")
+        if "gmail_redirect_after_auth" in request.session:
+            del request.session["gmail_redirect_after_auth"]
+
+        target = _resolve_post_oauth_redirect(request, return_url)
+        logger.info(
+            "Gmail OAuth complete; redirecting user_id=%s to %s",
+            getattr(request.user, "pk", None),
+            target,
+        )
+        return redirect(target)
+
     except Exception as e:
+        logger.exception("Error completing Gmail authorization: %s", e)
+        _clear_gmail_oauth_session(request)
         messages.error(request, f"Error completing Gmail authorization: {str(e)}")
         return redirect('dashboard:dashboard')
 

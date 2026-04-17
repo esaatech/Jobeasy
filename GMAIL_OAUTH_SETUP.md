@@ -10,8 +10,14 @@ Create a `.env` file in the project root with the following variables:
 # Google OAuth2 Configuration
 GOOGLE_CLIENT_ID=your_google_client_id_here
 GOOGLE_CLIENT_SECRET=your_google_client_secret_here
-GOOGLE_REDIRECT_URI=http://localhost:8009/email/auth/gmail/callback/
+# Must match the address you use in the browser (scheme, host, port, path, trailing slash).
+# Example for local ASGI (common): port 8010
+GOOGLE_REDIRECT_URI=http://127.0.0.1:8010/email/auth/gmail/callback/
 ```
+
+**Important:** Register the **exact** same URI under Google Cloud Console → Credentials → your OAuth client → Authorized redirect URIs. If `.env` says port `8010` but Google only lists `8009`, token exchange will fail after you approve consent. `127.0.0.1` and `localhost` are different hosts for matching purposes—use one consistently.
+
+While the app is in **Testing** on the OAuth consent screen, only **test users** you add there can complete sensitive scopes (e.g. Gmail send). Add your Google account as a test user or complete Google verification for production.
 
 ## Google Cloud Console Setup
 
@@ -37,8 +43,9 @@ GOOGLE_REDIRECT_URI=http://localhost:8009/email/auth/gmail/callback/
 1. Go to "APIs & Services" > "Credentials"
 2. Click "Create Credentials" > "OAuth 2.0 Client IDs"
 3. Choose "Web application"
-4. Add authorized redirect URIs:
-   - `http://localhost:8009/email/auth/gmail/callback/` (for development)
+4. Add authorized redirect URIs (must mirror `GOOGLE_REDIRECT_URI` exactly):
+   - `http://127.0.0.1:8010/email/auth/gmail/callback/` (example local ASGI)
+   - `http://localhost:8010/email/auth/gmail/callback/` (add both localhost and 127.0.0.1 only if you use both)
    - `https://yourdomain.com/email/auth/gmail/callback/` (for production)
 5. Copy the Client ID and Client Secret to your `.env` file
 
@@ -81,9 +88,9 @@ GOOGLE_REDIRECT_URI=http://localhost:8009/email/auth/gmail/callback/
 
 ## Testing
 
-1. Start the development server:
+1. Start the development server (use the same port as in `GOOGLE_REDIRECT_URI`):
    ```bash
-   poetry run uvicorn jobeas.asgi:application --reload --port 8009
+   poetry run uvicorn jobeas.asgi:application --reload --host 0.0.0.0 --port 8010
    ```
 
 2. Visit the login page and click "Continue with Gmail"
