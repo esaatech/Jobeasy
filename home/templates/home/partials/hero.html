@@ -27,8 +27,8 @@
                         <a href="{% url 'resume_builder:create_resume' %}" class="cta-button cta-primary">
                             <span>Create free resume</span>
                         </a>
-                        <a href="#interactive-demo" class="cta-button cta-secondary">
-                            <span>See how it works</span>
+                        <a href="{% url 'authentication:register' %}" class="cta-button cta-secondary">
+                            <span>Create account</span>
                         </a>
                     </div>
                     <div class="hero-proof">
@@ -38,7 +38,7 @@
                             <span class="hero-proof-avatar avatar-green">JD</span>
                             <span class="hero-proof-avatar avatar-pink">SL</span>
                         </div>
-                        <p class="hero-proof-text">12,400+ job seekers landed interviews this month</p>
+                        <p class="hero-proof-text">12,400+ job seekers landed interviews</p>
                     </div>
                 </div>
             </div>
@@ -523,8 +523,8 @@
 }
 
 .demo-step.active .demo-card {
-    border-color: var(--color-primary);
-    box-shadow: 0 8px 25px rgba(74, 144, 226, 0.15);
+    border-color: #E3DDD4;
+    box-shadow: 0 8px 24px rgba(23, 20, 19, 0.08);
 }
 
 .demo-header {
