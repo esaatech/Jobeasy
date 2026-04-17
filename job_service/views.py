@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.contrib import messages
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
+from dashboard.views import get_unified_job_applications, UNIFIED_STATUS_CHOICES
 from .models import Job, JobApplication, UserJobPreferences, ServicePackage, UserSubscription, JobApplicationRequest
 from .forms import JobApplicationForm
 from resume_builder.models import Resume
@@ -162,26 +163,25 @@ def cancel_application(request, request_id):
 
 @login_required
 def my_applications(request):
-    """View all user's job application requests"""
-    
-    applications = JobApplicationRequest.objects.filter(user=request.user).order_by('-created_at')
-    
-    # Filter by status
+    """View all user's job applications from dashboard + service requests."""
+    applications = get_unified_job_applications(request.user)
+
+    # Filter by unified status
     status_filter = request.GET.get('status', '')
     if status_filter:
-        applications = applications.filter(status=status_filter)
-    
+        applications = [app for app in applications if app['status'] == status_filter]
+
     # Pagination
     paginator = Paginator(applications, 10)
     page = request.GET.get('page', 1)
     applications_page = paginator.get_page(page)
-    
+
     context = {
         'applications': applications_page,
         'status_filter': status_filter,
-        'status_choices': JobApplicationRequest.status.field.choices,
+        'status_choices': UNIFIED_STATUS_CHOICES,
     }
-    
+
     return render(request, 'job_service/my_applications.html', context)
 
 @login_required

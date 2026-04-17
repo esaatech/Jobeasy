@@ -6,12 +6,77 @@ from django.views.decorators.http import require_http_methods
 import json
 import time
 import re
+from django.urls import reverse
 from resume_builder.models import Resume
 from coverletter.models import CoverLetter
+from job_service.models import JobApplicationRequest
 from ai_service.cover_letter import generate_cover_letter_from_raw_text
 from ai_service.resume_optimization import optimize_resume_for_job
 from .models import JobApplication
 from subscriptions.models import UserSubscription, SubscriptionPlan
+
+UNIFIED_STATUS_CHOICES = [
+    ('processing', 'Processing'),
+    ('completed', 'Completed'),
+    ('failed', 'Failed'),
+    ('pending', 'Pending'),
+    ('cancelled', 'Cancelled'),
+]
+
+
+def get_unified_job_applications(user):
+    """
+    Merge dashboard-generated job applications and job_service requests.
+    Returns a normalized list sorted newest-first.
+    """
+    dashboard_items = user.dashboard_job_applications.select_related('resume', 'cover_letter').all()
+    service_requests = user.job_application_requests.select_related('resume_used').all()
+
+    unified = []
+
+    for app in dashboard_items:
+        unified.append({
+            'id': app.id,
+            'source': 'dashboard',
+            'source_id': app.id,
+            'job_name': app.job_name,
+            'job_title': app.job_name,
+            'status': app.status,
+            'status_display': app.get_status_display(),
+            'created_at': app.created_at,
+            'resume': app.resume,
+            'cover_letter': app.cover_letter,
+            'can_email': app.status == 'completed' or app.cover_letter is not None,
+            'can_delete': True,
+            'detail_url': None,
+        })
+
+    for req in service_requests:
+        unified.append({
+            'id': req.id,
+            'source': 'job_service_request',
+            'source_id': req.id,
+            'job_name': req.job_title,
+            'job_title': req.job_title,
+            'status': req.status,
+            'status_display': req.get_status_display(),
+            'created_at': req.created_at,
+            'resume': req.resume_used,
+            'cover_letter': None,
+            'can_email': False,
+            'can_delete': False,
+            'detail_url': reverse('job_service:application_status', args=[req.request_id]),
+            'jobs_found': req.jobs_found,
+            'applications_submitted': req.applications_submitted,
+            'interviews_scheduled': req.interviews_scheduled,
+            'cover_letters_generated': req.cover_letters_generated,
+            'location_display': req.get_location_display(),
+            'can_cancel': req.can_cancel,
+            'request_id': req.request_id,
+        })
+
+    unified.sort(key=lambda item: item['created_at'], reverse=True)
+    return unified
 
 def _format_resume_content(resume):
     """Format resume's structured data into readable text for generating cover letter"""
@@ -94,7 +159,7 @@ def dashboard(request):
     # Get user's resumes for the selection (excluding optimized resumes)
     resumes = request.user.resumes.filter(is_optimized=False).order_by('-updated_at')
     cover_letters = CoverLetter.objects.filter(user=request.user)
-    job_applications = request.user.dashboard_job_applications.all()
+    job_applications = get_unified_job_applications(request.user)
 
     # Get user's current subscription (active)
     current_subscription = UserSubscription.objects.filter(
@@ -114,6 +179,7 @@ def dashboard(request):
         'resumes': resumes,
         'cover_letters': cover_letters,
         'job_applications': job_applications,
+        'job_application_count': len(job_applications),
         'current_subscription': current_subscription,
         'hero_content': {
             'page_title': 'Dashboard',
@@ -125,10 +191,11 @@ def dashboard(request):
 @login_required
 def job_applications_list(request):
     """View for listing all job applications"""
-    job_applications = request.user.dashboard_job_applications.all()
+    job_applications = get_unified_job_applications(request.user)
     
     context = {
         'job_applications': job_applications,
+        'job_application_count': len(job_applications),
         'hero_content': {
             'page_title': 'Recent Job Applications',
         }
@@ -325,7 +392,7 @@ def generate_job_application(request):
         # Get updated counts
         resume_count = request.user.resumes.count()
         cover_letter_count = request.user.cover_letters.count()
-        job_application_count = request.user.dashboard_job_applications.count()
+        job_application_count = len(get_unified_job_applications(request.user))
 
         return JsonResponse({
             'status': 'completed' if not error_message else 'failed',
@@ -370,7 +437,7 @@ def delete_job_application(request, job_id):
         # Get updated counts
         resume_count = request.user.resumes.count()
         cover_letter_count = request.user.cover_letters.count()
-        job_application_count = request.user.dashboard_job_applications.count()
+        job_application_count = len(get_unified_job_applications(request.user))
 
         return JsonResponse({
             'status': 'success',

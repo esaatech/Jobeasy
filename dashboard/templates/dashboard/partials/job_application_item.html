@@ -32,9 +32,16 @@
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
                         {% if job_application.status == 'processing' %}bg-yellow-100 text-yellow-800
                         {% elif job_application.status == 'completed' %}bg-green-100 text-green-800
+                        {% elif job_application.status == 'pending' %}bg-blue-100 text-blue-800
+                        {% elif job_application.status == 'cancelled' %}bg-gray-100 text-gray-800
                         {% else %}bg-red-100 text-red-800{% endif %}">
-                        {{ job_application.status|title }}
+                        {{ job_application.status_display|default:job_application.status|title }}
                     </span>
+                    {% if job_application.source == 'job_service_request' %}
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700">
+                            Service Request
+                        </span>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -43,8 +50,58 @@
         <div class="flex flex-col gap-3">
             <!-- Action Icons Row -->
             <div class="flex flex-wrap md:flex-nowrap gap-2">
-                {% if job_application.status == 'completed' %}
-                    <!-- Open Resume -->
+                {% if job_application.source == 'dashboard' %}
+                    {% if job_application.status == 'completed' %}
+                        <!-- Open Resume -->
+                        {% if job_application.resume %}
+                            <a href="{% url 'resume_builder:view_resume_by_id' job_application.resume.id %}" target="_blank" 
+                               class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" 
+                               title="Open Resume">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                                </svg>
+                            </a>
+                            <!-- Download Resume -->
+                            <a href="{% url 'resume_builder:download_resume_file' job_application.resume.id 'pdf' %}"
+                               class="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors" 
+                               title="Download Resume">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                            </a>
+                        {% endif %}
+                        
+                        <!-- Open Cover Letter -->
+                        {% if job_application.cover_letter %}
+                            <a href="{% url 'coverletter:cover_letter_view' job_application.cover_letter.id %}" target="_blank"
+                               class="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                               title="Open Cover Letter">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                </svg>
+                            </a>
+                            <!-- Download Cover Letter - Use cover letter app's flow -->
+                            <button onclick="downloadCoverLetterPDF('{{ job_application.cover_letter.content|escapejs }}')"
+                                    class="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
+                                    title="Download Cover Letter">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                            </button>
+                        {% endif %}
+                    {% elif job_application.status == 'processing' %}
+                        <div class="text-sm text-gray-500">Processing...</div>
+                    {% else %}
+                        <div class="text-sm text-red-500">Failed</div>
+                    {% endif %}
+
+                    <!-- Delete Button (dashboard records only) -->
+                    <button onclick="deleteJobApplication({{ job_application.id }})" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete Job Application">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                    </button>
+                {% else %}
                     {% if job_application.resume %}
                         <a href="{% url 'resume_builder:view_resume_by_id' job_application.resume.id %}" target="_blank" 
                            class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" 
@@ -53,52 +110,17 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
                             </svg>
                         </a>
-                        <!-- Download Resume -->
-                        <a href="{% url 'resume_builder:download_resume_file' job_application.resume.id 'pdf' %}"
-                           class="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors" 
-                           title="Download Resume">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
+                    {% endif %}
+                    {% if job_application.detail_url %}
+                        <a href="{{ job_application.detail_url }}" class="text-sm text-blue-600 hover:text-blue-700 font-medium px-2 py-1">
+                            View Details
                         </a>
                     {% endif %}
-                    
-                    <!-- Open Cover Letter -->
-                    {% if job_application.cover_letter %}
-                        <a href="{% url 'coverletter:cover_letter_view' job_application.cover_letter.id %}" target="_blank"
-                           class="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
-                           title="Open Cover Letter">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                            </svg>
-                        </a>
-                        <!-- Download Cover Letter - Use cover letter app's flow -->
-                        <button onclick="downloadCoverLetterPDF('{{ job_application.cover_letter.content|escapejs }}')"
-                                class="p-2 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors"
-                                title="Download Cover Letter">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                        </button>
-                    {% endif %}
-                {% elif job_application.status == 'processing' %}
-                    <!-- Processing indicator -->
-                    <div class="text-sm text-gray-500">Processing...</div>
-                {% else %}
-                    <!-- Failed status -->
-                    <div class="text-sm text-red-500">Failed</div>
                 {% endif %}
-                
-                <!-- Delete Button (always visible) -->
-                <button onclick="deleteJobApplication({{ job_application.id }})" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete Job Application">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                    </svg>
-                </button>
             </div>
             
             <!-- Email Button - Aligns with action icons above -->
-            {% if job_application.status == 'completed' or job_application.cover_letter %}
+            {% if job_application.source == 'dashboard' and job_application.can_email %}
                 <div class="self-end">
                     <button onclick="emailJobApplication({{ job_application.id }})" class="btn btn-success btn-sm">
                         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
