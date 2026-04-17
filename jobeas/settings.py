@@ -195,7 +195,9 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+# Use a local app timezone for rendering datetime values in templates.
+# Override via env if needed (e.g. DJANGO_TIME_ZONE="UTC").
+TIME_ZONE = os.environ.get('DJANGO_TIME_ZONE', 'America/Chicago')
 
 USE_I18N = True
 
