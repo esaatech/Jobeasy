@@ -8,6 +8,16 @@
 /* ========================================
    COLOR PALETTE (FLAT DESIGN)
    ======================================== */
+/* Avoid horizontal scroll when nested grids or carousers overflow */
+html {
+    overflow-x: clip;
+}
+
+body {
+    min-width: 0;
+    overflow-x: clip;
+}
+
 :root {
     /* Primary Colors */
     --color-primary: #4A90E2;           /* Modern Blue */
@@ -406,21 +416,27 @@
 
 /* Page Width Classes */
 .page-width {
+    box-sizing: border-box;
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 var(--spacing-lg);
+    width: 100%;
 }
 
 .page-width-wide {
+    box-sizing: border-box;
     max-width: 1400px;
     margin: 0 auto;
     padding: 0 var(--spacing-lg);
+    width: 100%;
 }
 
 .page-width-narrow {
+    box-sizing: border-box;
     max-width: 800px;
     margin: 0 auto;
     padding: 0 var(--spacing-lg);
+    width: 100%;
 }
 
 /* Section Utilities */

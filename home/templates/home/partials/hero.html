@@ -214,6 +214,7 @@
     margin: 0 auto;
     padding: 0 2rem;
     width: 100%;
+    box-sizing: border-box;
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -226,13 +227,14 @@
     align-items: start;
     flex: 1;
     min-height: 0;
+    min-width: 0;
     width: 100%;
 }
 
 /* Left Content */
 .hero-content {
-    max-width: 100%;
     width: 100%;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     max-width: 34rem;
@@ -272,7 +274,8 @@
     letter-spacing: -0.04em;
     color: #171413;
     margin: 0 0 1.75rem;
-    max-width: 12ch;
+    max-width: min(12ch, 100%);
+    overflow-wrap: anywhere;
 }
 
 .section-hero .headline-primary.hero-editorial-heading .highlight {
@@ -486,11 +489,13 @@
 .hero-visual {
     position: relative;
     width: 100%;
+    min-width: 0;
 }
 
 .interactive-demo {
     position: relative;
     width: 100%;
+    min-width: 0;
     max-width: 800px;
     margin: 0 auto;
     display: grid;
@@ -781,7 +786,7 @@
     font-weight: 600;
 }
 
-/* Progress Indicator */
+/* Progress Indicator (column 2 on desktop; full width when hero stacks) */
 .progress-container {
     grid-column: 2;
     display: flex;
@@ -793,6 +798,7 @@
     margin-bottom: 0;
     max-width: 400px;
     width: 100%;
+    min-width: 0;
     z-index: 10;
 }
 
@@ -850,9 +856,35 @@
 /* Responsive Design */
 @media (max-width: 1024px) {
     .hero-container {
-        gap: 3rem;
+        grid-template-columns: 1fr;
+        gap: 2rem;
     }
-    
+
+    .hero-content {
+        max-width: none;
+        order: 1;
+        padding: 2rem 0 0.5rem;
+    }
+
+    .hero-visual {
+        order: 2;
+        width: 100%;
+    }
+
+    /* Was grid-column: 2 — on one column that creates an implicit track and horizontal scroll */
+    .progress-container {
+        grid-column: 1 / -1;
+        order: 3;
+        align-self: center;
+        margin-top: 0.25rem;
+    }
+
+    .interactive-demo {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        max-width: min(800px, 100%);
+    }
+
     .hero-editorial-heading {
         font-size: clamp(3.5rem, 10vw, 5rem);
     }
@@ -861,6 +893,7 @@
 @media (max-width: 768px) {
     .section-hero {
         padding: 1rem 0 0.5rem;
+        min-height: auto;
     }
 
     .hero-full-width {
@@ -868,24 +901,17 @@
     }
 
     .hero-container {
-        grid-template-columns: 1fr;
         gap: 1.5rem;
         text-align: left;
     }
     
     .hero-content {
-        max-width: none;
-        order: 1;
         padding: 1.5rem 0 0.5rem;
     }
     
-    .hero-visual {
-        order: 2;
-    }
-    
     .hero-editorial-heading {
-        font-size: clamp(3rem, 15vw, 4.5rem);
-        max-width: 9ch;
+        font-size: clamp(2.75rem, 12vw, 4.25rem);
+        max-width: min(11ch, 100%);
     }
     
     .demo-input-container {
@@ -897,9 +923,7 @@
     }
     
     .interactive-demo {
-        max-width: 600px;
-        grid-template-columns: 1fr;
-        gap: 1.5rem;
+        max-width: 100%;
     }
     
     .demo-card {
@@ -924,7 +948,7 @@
     }
 
     .hero-editorial-heading {
-        font-size: 4rem;
+        font-size: clamp(2.25rem, 12vw, 3.5rem);
     }
     
     .hero-badge {
