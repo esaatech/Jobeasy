@@ -1,4 +1,6 @@
-from django.shortcuts import render
+from django.conf import settings
+from django.contrib import messages
+from django.shortcuts import redirect, render
 from django.http import JsonResponse
 from django.views.decorators.http import require_http_methods
 from .cover_letter import generate_cover_letter_from_fields, generate_cover_letter_from_raw_text
@@ -6,6 +8,7 @@ import logging
 from rest_framework import generics
 from .models import FAQ, Testimonial, NewsletterSignup, ContactMessage
 from .serializers import FAQSerializer, TestimonialSerializer, NewsletterSignupSerializer, ContactMessageSerializer
+from .forms import ContactMessageForm
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
@@ -25,11 +28,37 @@ def about(request):
     return render(request, 'home/about.html', context)
 
 def contact(request):
+    if request.method == "POST":
+        form = ContactMessageForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(
+                request,
+                "Thanks — we received your message and will get back to you soon.",
+            )
+            return redirect("home:contact")
+    else:
+        initial = {}
+        user = request.user
+        if user.is_authenticated:
+            if getattr(user, "email", None):
+                initial["email"] = user.email
+            full = user.get_full_name()
+            if full:
+                initial["name"] = full
+            else:
+                initial["name"] = user.get_username()
+        form = ContactMessageForm(initial=initial)
+
     context = {
-        'page_title': 'Contact Us - AI Cover Letter',
-        'page_description': 'Get in touch with our team for support, feedback, or partnership inquiries.'
+        "page_title": "Contact Us - AI Cover Letter",
+        "page_description": "Get in touch with our team for support, feedback, or partnership inquiries.",
+        "form": form,
+        "support_email": getattr(
+            settings, "DEFAULT_FROM_EMAIL", "support@jobeas.com"
+        ),
     }
-    return render(request, 'home/contact.html', context)
+    return render(request, "home/contact.html", context)
 
 def careers(request):
     from .models import JobOpening

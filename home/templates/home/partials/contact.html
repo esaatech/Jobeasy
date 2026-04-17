@@ -1,105 +1,49 @@
-<!-- Final CTA Section -->
-<section class="section final-cta-section">
-    <div class="page-width">
-        <div class="cta-container">
-            <div class="cta-content">
-                <h2 class="headline-secondary cta-title">Your next job starts here</h2>
-                <p class="subheadline cta-subtitle">Start free—explore resumes and the rest of the platform without a credit card.</p>
-                
-                <div class="cta-actions">
-                    {% if user.is_authenticated %}
-                        <a href="{% url 'dashboard:dashboard' %}" class="btn btn-primary btn-lg">Create your free account</a>
-                    {% else %}
-                        <a href="{% url 'authentication:register' %}" class="btn btn-primary btn-lg">Create your free account</a>
-                    {% endif %}
-                    <a href="#how-it-works" class="btn btn-secondary btn-lg">See a demo</a>
-                </div>
+<!-- Contact form (dedicated Contact page) -->
+<section class="contact-form-section" aria-label="Contact form">
+    <div class="contact-form-card mx-auto max-w-lg rounded-xl border border-[#E1DBD0] bg-[#F3EFE6] px-6 py-8 shadow-sm">
+        <form method="post" action="{% url 'home:contact' %}" class="space-y-5">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900" role="alert">
+                {{ form.non_field_errors }}
             </div>
-        </div>
+            {% endif %}
+
+            <div>
+                <label for="{{ form.name.id_for_label }}" class="mb-1 block text-sm font-medium text-gray-800">Name</label>
+                {{ form.name }}
+                {% if form.name.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.name.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <div>
+                <label for="{{ form.email.id_for_label }}" class="mb-1 block text-sm font-medium text-gray-800">Email</label>
+                {{ form.email }}
+                {% if form.email.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.email.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <div>
+                <label for="{{ form.message.id_for_label }}" class="mb-1 block text-sm font-medium text-gray-800">Message</label>
+                {{ form.message }}
+                {% if form.message.errors %}
+                <p class="mt-1 text-sm text-red-600">{{ form.message.errors.0 }}</p>
+                {% endif %}
+            </div>
+
+            <div class="pt-1">
+                <button type="submit" class="btn btn-primary btn-lg w-full sm:w-auto">Send message</button>
+            </div>
+        </form>
+
+        {% if support_email %}
+        <p class="mt-6 border-t border-[#E1DBD0] pt-6 text-center text-sm text-gray-600">
+            Prefer email? Reach us at
+            <a href="mailto:{{ support_email }}" class="font-medium text-blue-600 hover:text-blue-800">{{ support_email }}</a>
+        </p>
+        {% endif %}
     </div>
 </section>
-
-<style>
-/* Final CTA Section */
-.final-cta-section {
-    background: #F3EFE6;
-    border-top: 1px solid #E1DBD0;
-}
-
-.cta-container {
-    text-align: center;
-    padding: 3rem 0;
-}
-
-.cta-content {
-    max-width: 600px;
-    margin: 0 auto;
-}
-
-.cta-title {
-    margin-bottom: 1rem;
-}
-
-.cta-subtitle {
-    margin-bottom: 2.5rem;
-}
-
-.cta-actions {
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
-    flex-wrap: wrap;
-}
-
-/* Responsive Design */
-@media (max-width: 768px) {
-    .cta-container {
-        padding: 2.5rem 0;
-    }
-    
-    .cta-subtitle {
-        margin-bottom: 2rem;
-    }
-    
-    .cta-actions {
-        flex-direction: column;
-        align-items: center;
-        gap: 0.75rem;
-    }
-    
-    .btn-lg {
-        width: 100%;
-        max-width: 300px;
-    }
-}
-
-@media (max-width: 480px) {
-    .cta-container {
-        padding: 2rem 0;
-    }
-    
-    .cta-subtitle {
-        margin-bottom: 1.5rem;
-    }
-    
-    .btn-lg {
-        max-width: 280px;
-    }
-}
-
-/* Animation */
-.cta-content {
-    animation: fadeInUp 0.8s ease-out forwards;
-}
-
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(30px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-</style>
