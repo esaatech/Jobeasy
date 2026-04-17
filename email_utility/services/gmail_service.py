@@ -2,11 +2,12 @@ import os
 import base64
 import logging
 import mimetypes
+import unicodedata
 from datetime import timedelta, timezone as py_timezone
 from typing import Dict, Any, Optional
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from email.mime.base import MIMEBase
+from email.mime.application import MIMEApplication
 from email import encoders
 
 from django.utils import timezone
@@ -31,6 +32,24 @@ def credentials_expiry_for_storage(credentials: Credentials):
     if timezone.is_naive(expiry):
         expiry = timezone.make_aware(expiry, py_timezone.utc)
     return expiry
+
+
+def normalize_attachment_filename(filename: Optional[str], fallback_path: Optional[str] = None) -> str:
+    """
+    Return a safe attachment filename for email clients.
+    Keeps non-ASCII where possible while removing control chars and separators.
+    """
+    name = filename or ""
+    if not name and fallback_path:
+        name = os.path.basename(fallback_path)
+    if not name:
+        name = "attachment.pdf"
+
+    # Remove path separators and control chars that can break headers.
+    name = name.replace("/", "_").replace("\\", "_")
+    name = "".join(ch for ch in name if ch.isprintable() and ch not in "\r\n\t")
+    name = unicodedata.normalize("NFC", name).strip() or "attachment.pdf"
+    return name
 
 
 class GmailService:
@@ -232,14 +251,14 @@ class GmailService:
             # Add attachment if provided
             if attachment_path and os.path.exists(attachment_path):
                 with open(attachment_path, 'rb') as attachment:
-                    part = MIMEBase('application', 'octet-stream')
-                    part.set_payload(attachment.read())
-                
-                encoders.encode_base64(part)
-                part.add_header(
-                    'Content-Disposition',
-                    f'attachment; filename= {attachment_name or os.path.basename(attachment_path)}'
-                )
+                    file_bytes = attachment.read()
+
+                # Use a real PDF MIME part so clients display correctly.
+                mime_type, _ = mimetypes.guess_type(attachment_path)
+                subtype = "pdf" if mime_type == "application/pdf" else "octet-stream"
+                part = MIMEApplication(file_bytes, _subtype=subtype)
+                safe_name = normalize_attachment_filename(attachment_name, attachment_path)
+                part.add_header("Content-Disposition", "attachment", filename=safe_name)
                 message.attach(part)
             
             # Encode the message
@@ -258,7 +277,7 @@ class GmailService:
             }
             
         except HttpError as error:
-            print(f"Gmail API error: {error}")
+            logger.warning("Gmail API HttpError while sending email: %s", error)
             return {
                 'success': False,
                 'error': f"Gmail API error: {error}"
