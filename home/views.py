@@ -98,10 +98,10 @@ def landing_resumes(request):
         "page_title": "Resume templates — Jobeas",
         "featured_templates": featured,
         "default_template_id": default_tid,
-        "hero_heading": "Start from a resume style you love",
+        "hero_heading_lead": "Profession and level matter. Start with a resume that ",
+        "hero_heading_highlight": "fits both.",
         "hero_subtitle": (
-            "Pick a template, fill in your experience, then tailor your resume and "
-            "cover letter for each role—free to get started."
+            "Match your resume to your role and your career stage—not a random template."
         ),
     }
     return render(request, "home/landing_resumes.html", context)

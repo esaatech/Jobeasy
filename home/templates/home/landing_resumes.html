@@ -3,109 +3,604 @@
 
 {% block title %}{{ page_title }}{% endblock %}
 
+{% block extra_head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,400&family=Playfair+Display:ital,wght@0,400;0,600;0,900;1,600&display=swap" rel="stylesheet">
+{% endblock %}
+
+{% block body_class %}landing-resumes-body{% endblock %}
+
+{% block navigation %}{% endblock %}
+
 {% block extra_css %}
 <style>
-    .landing-resumes-hero {
-        background: #F3EFE6;
+    body.landing-resumes-body {
+        background-color: #F0EDE6 !important;
+    }
+    .landing-resumes-page {
+        font-family: "DM Sans", system-ui, sans-serif;
+        font-weight: 400;
+        background: #F0EDE6;
         border-bottom: 1px solid #E1DBD0;
+        min-height: 100vh;
+        min-height: 100dvh;
+        color: #1a1a1a;
     }
-    /* auto-fit: 1–4 cards per row depending on width; 3 cards get 3 balanced columns */
-    .landing-template-grid {
-        display: grid;
-        gap: 1.5rem;
-        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    .landing-resumes-minimal-head {
+        max-width: 1320px;
+        margin: 0 auto;
+        padding: 0.5rem 1.25rem 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-shrink: 0;
     }
-    .landing-template-grid-wrap {
-        max-width: 1120px;
+    @media (min-width: 1024px) {
+        .landing-resumes-minimal-head {
+            padding-top: 1rem;
+        }
+    }
+    .landing-resumes-home-link,
+    .landing-resumes-head-actions a {
+        font-size: 0.9375rem;
+        font-weight: 500;
+        color: #3E3A36;
+        text-decoration: none;
+        transition: color 0.2s ease;
+    }
+    .landing-resumes-home-link:hover,
+    .landing-resumes-head-actions a:hover {
+        color: #171413;
+        text-decoration: none;
+    }
+    .landing-resumes-head-actions {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+    }
+    /* Mobile / tablet: stack in reading order — copy → templates → CTAs (no huge gap). */
+    .landing-resumes-split {
+        max-width: 1320px;
         margin-left: auto;
         margin-right: auto;
+        padding: 0.75rem 1.25rem 2.5rem;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        gap: 1.25rem;
+    }
+    .landing-hero-copy {
+        width: 100%;
+        min-width: 0;
+        max-width: 34rem;
+        padding: 0;
+    }
+    .landing-hero-ctas {
+        width: 100%;
+        max-width: 34rem;
+        padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+    }
+    @media (max-width: 1023px) {
+        .landing-hero-copy .hero-subtitle {
+            margin-bottom: 0.5rem;
+        }
+    }
+    @media (min-width: 1024px) {
+        .landing-resumes-split {
+            min-height: calc(100dvh - 3.5rem);
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            grid-template-rows: auto auto;
+            gap: clamp(1.25rem, 3vw, 2.5rem);
+            column-gap: clamp(1.5rem, 3vw, 2.5rem);
+            row-gap: 1rem;
+            align-items: start;
+            padding-top: 1.25rem;
+            padding-bottom: 1.5rem;
+        }
+        .landing-hero-copy {
+            grid-column: 1;
+            grid-row: 1;
+            align-self: center;
+        }
+        .landing-hero-ctas {
+            grid-column: 1;
+            grid-row: 2;
+            align-self: start;
+            max-width: 34rem;
+            padding-bottom: 0;
+        }
+        .landing-fan-column {
+            grid-column: 2;
+            grid-row: 1 / span 2;
+            align-self: center;
+            justify-self: center;
+            margin-top: 0 !important;
+        }
+    }
+    .landing-resumes-page .hero-badge {
+        display: none;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(255, 255, 255, 0.75);
+        border: 1px solid #DDD5C6;
+        border-radius: 2rem;
+        padding: 0.55rem 1rem;
+        margin-bottom: 2rem;
+        font-size: 0.9375rem;
+        font-weight: 500;
+        color: #3E3A36;
+        width: fit-content;
+        box-shadow: 0 2px 6px rgba(57, 50, 40, 0.05);
+    }
+    @media (min-width: 1024px) {
+        .landing-resumes-page .hero-badge {
+            display: inline-flex;
+        }
+    }
+    .landing-resumes-page .badge-icon {
+        width: 0.5rem;
+        height: 0.5rem;
+        border-radius: 999px;
+        background: #5A9A67;
+        box-shadow: 0 0 0 3px rgba(90, 154, 103, 0.14);
+    }
+    .landing-resumes-page .hero-editorial-heading {
+        font-family: "Playfair Display", Georgia, serif;
+        font-weight: 900;
+        font-size: clamp(1.65rem, 4.8vw + 0.6rem, 2.85rem);
+        line-height: 1.1;
+        letter-spacing: -0.03em;
+        color: #171413;
+        margin: 0 0 1rem;
+        max-width: 100%;
+        overflow-wrap: break-word;
+        word-break: normal;
+    }
+    @media (min-width: 1024px) {
+        .landing-resumes-page .hero-editorial-heading {
+            font-size: clamp(2.5rem, 4.2vw + 0.75rem, 4.25rem);
+            line-height: 1.02;
+            letter-spacing: -0.04em;
+            margin: 0 0 1.5rem;
+            max-width: min(32ch, 100%);
+        }
+    }
+    .landing-resumes-page .headline-primary.hero-editorial-heading .highlight {
+        color: #4C9660;
+        font-style: italic;
+        font-weight: 600;
+        background: none;
+        -webkit-text-fill-color: currentColor;
+    }
+    .landing-resumes-page .hero-subtitle {
+        margin-bottom: 1.25rem;
+        max-width: 30rem;
+        font-size: 1rem;
+        font-weight: 400;
+        line-height: 1.55;
+        color: #5c564e;
+    }
+    @media (min-width: 1024px) {
+        .landing-resumes-page .hero-subtitle {
+            margin-bottom: 2rem;
+            font-size: 1.0625rem;
+            line-height: 1.6;
+        }
+    }
+    .landing-resumes-page .hero-actions-new {
+        margin: 0;
+        flex-shrink: 0;
+    }
+    .landing-resumes-page .cta-buttons-group {
+        display: flex;
+        gap: 1rem;
+        align-items: stretch;
+        max-width: 18rem;
+    }
+    .landing-resumes-page .cta-button {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem 1.25rem;
+        border-radius: 0.875rem;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.95rem;
+        line-height: 1.1;
+        text-align: center;
+        transition: all 0.3s ease;
+        border: 1px solid #CFC6B8;
+        min-height: 5rem;
+        color: #171413;
+        background: rgba(255, 255, 255, 0.5);
+    }
+    .landing-resumes-page .cta-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(37, 29, 20, 0.08);
+        text-decoration: none;
+    }
+    .landing-resumes-page .cta-primary {
+        background: rgba(255, 255, 255, 0.65);
+        border-color: #C8BFB1;
+    }
+    .landing-resumes-page .cta-secondary {
+        background: rgba(255, 255, 255, 0.38);
+        border-color: #CFC6B8;
+    }
+    @media (max-width: 1023px) {
+        .landing-resumes-page .cta-buttons-group {
+            max-width: 100%;
+            gap: 0.75rem;
+        }
+        .landing-resumes-page .cta-button {
+            min-height: 3.5rem;
+            padding: 0.75rem 0.875rem;
+        }
+    }
+    @media (max-width: 768px) {
+        .landing-resumes-page .cta-button {
+            min-height: 3.25rem;
+            font-size: 0.9rem;
+        }
+    }
+    @media (min-width: 1024px) {
+        .landing-resumes-page .cta-button {
+            min-height: 5rem;
+        }
+    }
+
+    /* Right column: fan stage (desktop) */
+    .landing-fan-column {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        min-width: 0;
+        overflow: visible;
+    }
+    @media (max-width: 1023px) {
+        .landing-fan-column {
+            align-items: stretch;
+            width: 100%;
+        }
+    }
+    .landing-fan-hint {
+        margin: 0;
+        font-size: 0.8125rem;
+        font-weight: 400;
+        color: #8a8278;
+        text-align: center;
+        max-width: 20rem;
+        line-height: 1.4;
+    }
+    .landing-fan-stage {
+        --fan-card-w: 320px;
+        --fan-card-h: 485px;
+        position: relative;
+        width: min(100%, 560px);
+        height: min(530px, 56vh);
+        min-height: 490px;
+        margin: 0 auto;
+        flex-shrink: 0;
+        overflow: visible;
+    }
+    .landing-fan-stage--static {
+        width: 100%;
+        max-width: 520px;
+        height: auto;
+        min-height: 380px;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: flex-start;
+        align-content: flex-start;
+        gap: 16px;
+    }
+    .landing-fan-stage--static .landing-fan-card {
+        position: relative !important;
+        left: auto !important;
+        top: auto !important;
+        margin-left: 0 !important;
+        transform: none !important;
+        transform-origin: 50% 50%;
+    }
+    @media (min-width: 1024px) {
+        .landing-fan-stage:not(.landing-fan-stage--static) {
+            width: min(560px, 100%);
+        }
+    }
+    .landing-fan-stage--paused .landing-fan-card {
+        transition-duration: 0.65s;
+    }
+    .landing-fan-card {
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+        width: var(--fan-card-w, 320px);
+        height: var(--fan-card-h, 485px);
+        /* Center pivot in stage — transforms move/rotate around bottom */
+        left: 50%;
+        top: 1.25rem;
+        margin-left: calc(var(--fan-card-w, 320px) / -2);
+        transform-origin: 50% 92%;
+        border-radius: 14px;
+        background: #fff;
+        box-shadow: 0 20px 44px -18px rgba(15, 23, 42, 0.24), 0 0 0 1px rgba(15, 23, 42, 0.06);
+        overflow: hidden;
+        cursor: pointer;
+        will-change: transform;
+        transition: transform 0.55s cubic-bezier(0.34, 1.1, 0.64, 1),
+            box-shadow 0.55s cubic-bezier(0.34, 1.1, 0.64, 1);
+    }
+    .landing-fan-card:focus {
+        outline: 2px solid #4C9660;
+        outline-offset: 4px;
+    }
+    .landing-fan-card:focus:not(:focus-visible) {
+        outline: none;
+    }
+    /* Full thumbnail: contain scales to the preview box. Preview flex-grows so the box is tall
+       and the image uses height + width — less empty letterboxing, more of the page visible. */
+    .landing-fan-card__preview {
+        position: relative;
+        flex: 1 1 0;
+        min-height: 0;
+        padding: 6px 8px 8px;
+        background: #ebecef;
+        box-sizing: border-box;
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+    }
+    .landing-fan-card__preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        object-position: top center;
+        display: block;
+    }
+    .landing-fan-card__preview-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 36px;
+        height: 36px;
+        border-radius: 999px;
+        border: 1px solid rgba(255, 255, 255, 0.85);
+        background: rgba(255, 255, 255, 0.95);
+        color: #374151;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        z-index: 2;
+        transition: background 0.2s, transform 0.2s;
+    }
+    .landing-fan-card__preview-btn:hover {
+        background: #fff;
+        transform: scale(1.05);
+    }
+    .landing-fan-card:not(.is-front) .landing-fan-card__preview-btn {
+        display: none;
+    }
+    .landing-fan-card__footer {
+        flex: 0 0 auto;
+        padding: 10px 12px 12px;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        box-sizing: border-box;
+        background: #2C3E50;
+    }
+    .landing-fan-card__footer-title {
+        font-family: "Playfair Display", Georgia, serif;
+        font-weight: 900;
+        font-size: 1.125rem;
+        line-height: 1.2;
+        color: #fff;
+        margin: 0 0 4px;
+    }
+    .landing-fan-card__footer-desc {
+        font-size: 10px;
+        font-weight: 400;
+        line-height: 1.35;
+        color: rgba(255, 255, 255, 0.88);
+        margin: 0 0 10px;
+        flex: 1;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    .landing-fan-card__cta {
+        display: none;
+        width: 100%;
+        text-align: center;
+        padding: 10px 12px;
+        border-radius: 999px;
+        background: #fff;
+        font-size: 0.8125rem;
+        font-weight: 500;
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+        font-family: "DM Sans", sans-serif;
+        margin-top: auto;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .landing-fan-card__cta:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    }
+    .landing-fan-card.is-front .landing-fan-card__cta {
+        display: block;
+    }
+    .landing-fan-card--professional .landing-fan-card__footer {
+        background: #1a1a1a;
+    }
+    .landing-fan-card--professional .landing-fan-card__cta {
+        color: #1a1a1a;
+    }
+    .landing-fan-card--modern .landing-fan-card__footer {
+        background: #2C3E50;
+    }
+    .landing-fan-card--modern .landing-fan-card__cta {
+        color: #2C3E50;
+    }
+    .landing-fan-card--creative .landing-fan-card__footer {
+        background: #7C3AED;
+    }
+    .landing-fan-card--creative .landing-fan-card__cta {
+        color: #7C3AED;
+    }
+
+    /* Tablet / mobile: one template per row (stacked), not a horizontal carousel */
+    @media (max-width: 1023px) {
+        .landing-fan-stage {
+            position: relative;
+            width: 100%;
+            max-width: 28rem;
+            margin-left: auto;
+            margin-right: auto;
+            height: auto;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            flex-wrap: nowrap;
+            align-items: stretch;
+            gap: 1rem;
+            overflow: visible;
+            padding: 0 0 0.25rem;
+        }
+        .landing-fan-stage .landing-fan-card {
+            position: relative !important;
+            left: auto !important;
+            top: auto !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
+            transform-origin: 50% 50%;
+        }
+        .landing-fan-card {
+            width: 100% !important;
+            max-width: 28rem;
+            flex: 0 0 auto !important;
+            height: auto;
+            min-height: 400px;
+            transform: none !important;
+            z-index: 1 !important;
+        }
+        .landing-fan-card__preview {
+            flex: 1 1 0;
+            min-height: 220px;
+            padding: 6px 8px 8px;
+        }
+        .landing-fan-card .landing-fan-card__cta {
+            display: block;
+        }
+        .landing-fan-hint {
+            max-width: none;
+            font-size: 0.75rem;
+            padding: 0 0.25rem;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="min-h-screen bg-[#FAFAF8]">
-    <section class="landing-resumes-hero">
-        <div class="page-width py-12 sm:py-16">
-            <div class="max-w-3xl mx-auto text-center px-4">
-                <p class="text-sm font-medium text-gray-600 mb-3">Resume templates</p>
-                <h1 class="headline-primary hero-editorial-heading text-gray-900 mb-4">
-                    {{ hero_heading }}
-                </h1>
-                <p class="subheadline text-gray-600 text-lg leading-relaxed">
-                    {{ hero_subtitle }}
-                </p>
-                <div class="mt-8 flex flex-wrap justify-center gap-3">
-                    <a href="{% url 'resume_builder:create_resume' %}" class="cta-button cta-primary inline-flex items-center justify-center">
-                        <span>Create free resume</span>
-                    </a>
-                    <a href="{% url 'authentication:register' %}" class="cta-button cta-secondary inline-flex items-center justify-center">
-                        <span>Create account</span>
-                    </a>
-                </div>
-            </div>
+<div class="landing-resumes-page">
+    <header class="landing-resumes-minimal-head" aria-label="Page">
+        <a href="{% url 'home:index' %}" class="landing-resumes-home-link">← Home</a>
+        {% if not user.is_authenticated %}
+        <div class="landing-resumes-head-actions">
+            <a href="{% url 'authentication:login' %}">Log in</a>
+            <a href="{% url 'authentication:register' %}">Sign up</a>
         </div>
-    </section>
+        {% else %}
+        <div class="landing-resumes-head-actions">
+            <a href="{% url 'dashboard:dashboard' %}">Dashboard</a>
+        </div>
+        {% endif %}
+    </header>
+    <div class="landing-resumes-split">
+        <div class="landing-hero-copy">
+            <div class="hero-badge">
+                <span class="badge-icon" aria-hidden="true"></span>
+                <span class="badge-text">Resume templates</span>
+            </div>
+            <h1 class="headline-primary hero-editorial-heading text-balance">
+                {{ hero_heading_lead }}<span class="highlight">{{ hero_heading_highlight }}</span>
+            </h1>
+            <p class="subheadline hero-subtitle">
+                {{ hero_subtitle }}
+            </p>
+        </div>
 
-    <section class="page-width py-12 sm:py-16">
-        <div class="landing-template-grid-wrap px-4 sm:px-6">
+        <div class="landing-fan-column">
             {% if featured_templates %}
-            <div class="landing-template-grid">
-                {% for t in featured_templates %}
-                <article class="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden flex flex-col">
-                    <div class="relative group h-56 bg-gray-100">
+            <div
+                class="landing-fan-stage"
+                id="landingFanStage"
+                role="group"
+                aria-label="Featured resume templates"
+                aria-roledescription="carousel"
+                data-active="0"
+            >
+                {% for t in featured_templates|slice:":3" %}
+                <article
+                    class="landing-fan-card landing-fan-card--{{ t.id }}"
+                    data-slot="{{ forloop.counter0 }}"
+                    data-template-id="{{ t.id }}"
+                    data-name="{{ t.name }}"
+                    tabindex="0"
+                    role="group"
+                    aria-label="{{ t.name }} template"
+                >
+                    <div class="landing-fan-card__preview">
                         {% if t.thumbnail_static %}
-                        <img src="{% static t.thumbnail_static %}"
-                             alt=""
-                             class="w-full h-full object-cover object-top"
-                             loading="lazy">
+                        <img src="{% static t.thumbnail_static %}" alt="" loading="lazy" width="320" height="318">
                         {% else %}
-                        <div class="w-full h-full flex items-center justify-center text-gray-400 text-sm">Preview</div>
+                        <div style="height:100%;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:12px;">Preview</div>
                         {% endif %}
-                        <div class="absolute inset-0 bg-black/45 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none group-hover:pointer-events-auto">
-                            <button type="button"
-                                    class="pointer-events-auto bg-blue-600 text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-blue-700 shadow-lg"
-                                    onclick="showTemplatePreview('{{ t.id }}')">
-                                View full preview
-                            </button>
-                        </div>
-                        <button type="button"
-                                class="absolute top-3 right-3 z-10 bg-white/95 hover:bg-white text-gray-800 rounded-full p-2 shadow-md border border-gray-200"
-                                onclick="showTemplatePreview('{{ t.id }}')"
-                                aria-label="View full template preview">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <button type="button" class="landing-fan-card__preview-btn" aria-label="View full preview for {{ t.name }}"
+                                data-preview="{{ t.id }}">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                             </svg>
                         </button>
                     </div>
-                    <div class="p-5 flex flex-col flex-grow">
-                        <h2 class="text-lg font-semibold text-gray-900">{{ t.name }}</h2>
-                        <p class="text-sm text-gray-600 mt-1 flex-grow">{{ t.description }}</p>
-                        <div class="mt-4 flex flex-wrap items-center gap-2">
-                            <a href="{% url 'resume_builder:create_resume' %}?template={{ t.id }}"
-                               class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700 flex-1 min-w-[140px] text-center">
-                                Use this resume
-                            </a>
-                            <button type="button"
-                                    class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm font-medium text-gray-800 hover:bg-gray-50"
-                                    onclick="showTemplatePreview('{{ t.id }}')"
-                                    aria-label="Open full preview for {{ t.name }}">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
-                                </svg>
-                            </button>
-                        </div>
+                    <div class="landing-fan-card__footer">
+                        <h2 class="landing-fan-card__footer-title">{{ t.name }}</h2>
+                        <p class="landing-fan-card__footer-desc">{{ t.description }}</p>
+                        <a href="{% url 'resume_builder:create_resume' %}?template={{ t.id }}" class="landing-fan-card__cta">Use this template</a>
                     </div>
                 </article>
                 {% endfor %}
             </div>
+            <p class="landing-fan-hint" id="landingFanHint" aria-live="polite"></p>
             {% else %}
-            <p class="text-center text-gray-600">No featured templates are configured yet.</p>
+            <p class="text-center text-gray-600" style="color:#67605a;">No featured templates are configured yet.</p>
             {% endif %}
         </div>
-    </section>
+
+        <div class="landing-hero-ctas">
+            <div class="hero-actions-new">
+                <div class="cta-buttons-group">
+                    <a href="{% url 'resume_builder:create_resume' %}" class="cta-button cta-primary">
+                        <span>Create free resume</span>
+                    </a>
+                    <a href="{% url 'authentication:register' %}" class="cta-button cta-secondary">
+                        <span>Create account</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div id="templatePreviewModal" class="fixed inset-0 bg-black bg-opacity-50 z-[100] hidden" role="dialog" aria-modal="true" aria-labelledby="templatePreviewTitle">
@@ -148,6 +643,160 @@
 </div>
 
 <script>
+(function() {
+    /* Front card always centered on stage (CSS left:50% + margin). Each state mirrors
+       left/right back cards so animation stays balanced when cycling active template. */
+    const CONFIGS = [
+        {
+            0: { tx: 0, ty: 0, rotate: 0, scale: 1, z: 10 },
+            1: { tx: 34, ty: 16, rotate: 7, scale: 0.94, z: 5 },
+            2: { tx: 58, ty: 28, rotate: 11, scale: 0.88, z: 1 },
+        },
+        {
+            0: { tx: -54, ty: 28, rotate: -11, scale: 0.88, z: 1 },
+            1: { tx: 0, ty: 0, rotate: 0, scale: 1, z: 10 },
+            2: { tx: 54, ty: 28, rotate: 11, scale: 0.88, z: 5 },
+        },
+        {
+            0: { tx: -58, ty: 28, rotate: -11, scale: 0.88, z: 1 },
+            1: { tx: -34, ty: 16, rotate: -7, scale: 0.94, z: 5 },
+            2: { tx: 0, ty: 0, rotate: 0, scale: 1, z: 10 },
+        },
+    ];
+
+    const ROT_MS = 3200;
+    const stage = document.getElementById('landingFanStage');
+    const hintEl = document.getElementById('landingFanHint');
+    if (!stage) return;
+
+    const cards = Array.from(stage.querySelectorAll('.landing-fan-card'));
+    const n = cards.length;
+    if (n === 0) return;
+
+    let active = 0;
+    let autoTimer = null;
+
+    function isFanMode() {
+        return window.matchMedia('(min-width: 1024px)').matches;
+    }
+
+    function templateNames() {
+        return cards.map(function(c) { return c.dataset.name || c.dataset.templateId || ''; });
+    }
+
+    function updateHint() {
+        if (!hintEl) return;
+        const names = templateNames();
+        const cur = names[active] || 'Template';
+        if (isFanMode()) {
+            hintEl.textContent = cur + ' template selected — or click another card';
+        } else {
+            hintEl.textContent = 'Choose a template below — tap “Use this template” on a card';
+        }
+    }
+
+    function applyLayout() {
+        const useFan = isFanMode() && n === 3;
+        /* Desktop non-fan: flex fallback. Mobile uses horizontal scroll rules — no static class. */
+        stage.classList.toggle('landing-fan-stage--static', !useFan && isFanMode());
+
+        if (!useFan) {
+            cards.forEach(function(card, i) {
+                card.style.left = '';
+                card.style.top = '';
+                card.style.marginLeft = '';
+                card.style.transform = '';
+                card.style.zIndex = '';
+                card.classList.toggle('is-front', i === active);
+            });
+            updateHint();
+            return;
+        }
+
+        const cfg = CONFIGS[active];
+        if (!cfg) return;
+
+        cards.forEach(function(card, slot) {
+            const c = cfg[slot];
+            if (!c) return;
+            card.style.zIndex = String(c.z);
+            card.style.transform =
+                'translate(' + c.tx + 'px, ' + c.ty + 'px) rotate(' + c.rotate + 'deg) scale(' + c.scale + ')';
+            card.classList.toggle('is-front', c.z === 10);
+        });
+        updateHint();
+    }
+
+    function setActive(i) {
+        active = ((i % n) + n) % n;
+        stage.dataset.active = String(active);
+        applyLayout();
+    }
+
+    function resetAuto() {
+        if (autoTimer) clearInterval(autoTimer);
+        autoTimer = null;
+        if (!isFanMode() || n !== 3) return;
+        autoTimer = setInterval(function() {
+            setActive(active + 1);
+        }, ROT_MS);
+    }
+
+    function onCardActivate(slot) {
+        setActive(slot);
+        resetAuto();
+    }
+
+    cards.forEach(function(card, slot) {
+        card.addEventListener('click', function(e) {
+            if (e.target.closest('.landing-fan-card__preview-btn')) return;
+            if (e.target.closest('.landing-fan-card__cta')) return;
+            onCardActivate(slot);
+        });
+        card.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onCardActivate(slot);
+            }
+        });
+    });
+
+    stage.querySelectorAll('.landing-fan-card__preview-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const id = btn.dataset.preview;
+            if (id && typeof showTemplatePreview === 'function') showTemplatePreview(id);
+        });
+    });
+
+    let pauseHover = false;
+    stage.addEventListener('mouseenter', function() {
+        if (!isFanMode()) return;
+        pauseHover = true;
+        stage.classList.add('landing-fan-stage--paused');
+        if (autoTimer) clearInterval(autoTimer);
+        autoTimer = null;
+    });
+    stage.addEventListener('mouseleave', function() {
+        if (!isFanMode() || n !== 3) return;
+        pauseHover = false;
+        stage.classList.remove('landing-fan-stage--paused');
+        resetAuto();
+    });
+
+    window.addEventListener('resize', function() {
+        applyLayout();
+        if (isFanMode()) resetAuto();
+        else if (autoTimer) {
+            clearInterval(autoTimer);
+            autoTimer = null;
+        }
+    });
+
+    setActive(0);
+    resetAuto();
+})();
+
 let currentPreviewTemplate = '{{ default_template_id }}';
 
 function showTemplatePreview(templateId) {

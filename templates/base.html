@@ -218,9 +218,11 @@
     <link rel="shortcut icon" type="image/x-icon" href="{% static 'img/favicon.ico' %}">
     <link rel="apple-touch-icon" href="{% static 'img/favicon.png' %}">
 </head>
-<body class="min-h-screen">
-    <!-- Navigation -->
+<body class="min-h-screen {% block body_class %}{% endblock %}">
+    <!-- Navigation (override in a template with an empty block for a minimal / full-bleed landing) -->
+    {% block navigation %}
     {% include 'navigation.html' %}
+    {% endblock %}
     
     <!-- Main Content -->
     <main>
