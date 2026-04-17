@@ -12,6 +12,11 @@ from .forms import ContactMessageForm
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
+from resume_builder.template_registry import (
+    DEFAULT_TEMPLATE_ID,
+    featured_templates_for_landing,
+)
+
 # Get the logger for this app
 logger = logging.getLogger('home')
 
@@ -81,6 +86,26 @@ def privacy(request):
         'page_title': 'Privacy Policy - AI Cover Letter',
         'page_description': 'Read our privacy policy.'
     })
+
+
+def landing_resumes(request):
+    """
+    Marketing landing page: featured resume templates (max 4), modal preview.
+    """
+    featured = featured_templates_for_landing()
+    default_tid = featured[0]["id"] if featured else DEFAULT_TEMPLATE_ID
+    context = {
+        "page_title": "Resume templates — Jobeas",
+        "featured_templates": featured,
+        "default_template_id": default_tid,
+        "hero_heading": "Start from a resume style you love",
+        "hero_subtitle": (
+            "Pick a template, fill in your experience, then tailor your resume and "
+            "cover letter for each role—free to get started."
+        ),
+    }
+    return render(request, "home/landing_resumes.html", context)
+
 
 # API: List all published FAQs
 class FAQListAPIView(generics.ListAPIView):

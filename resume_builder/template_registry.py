@@ -5,11 +5,17 @@ To add a template:
 1. Add a row to RESUME_TEMPLATES (id must match filename: resume_templates/<id>.html).
 2. Implement that template with a root element class ``<id>-template`` (e.g. executive-template).
 3. Optional: set thumbnail_static to a path under static/ for gallery cards.
+4. Marketing /landing_page/resumes/: set ``featured`` True and ``featured_rank`` (1–4 typical);
+   only featured templates appear there, capped at FEATURED_LANDING_MAX.
 """
 
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
+
+# Max featured templates shown on marketing landing pages (e.g. /landing_page/resumes/).
+FEATURED_LANDING_MAX: int = 4
+
 
 # Ordered list used everywhere: picker UI, APIs, AI enums, print CSS.
 RESUME_TEMPLATES: List[Dict[str, Any]] = [
@@ -18,6 +24,8 @@ RESUME_TEMPLATES: List[Dict[str, Any]] = [
         "name": "Professional",
         "description": "Clean and traditional design suitable for corporate environments",
         "short_label": "Classic, clean layout",
+        "featured": True,
+        "featured_rank": 1,
         "features": [
             "ATS-friendly",
             "Clean layout",
@@ -33,6 +41,8 @@ RESUME_TEMPLATES: List[Dict[str, Any]] = [
         "name": "Modern",
         "description": "Contemporary design with modern styling and layout",
         "short_label": "Contemporary, bold headings",
+        "featured": True,
+        "featured_rank": 2,
         "features": [
             "Modern typography",
             "Color accents",
@@ -48,6 +58,8 @@ RESUME_TEMPLATES: List[Dict[str, Any]] = [
         "name": "Creative",
         "description": "Unique and eye-catching design for creative industries",
         "short_label": "Colorful, eye-catching",
+        "featured": True,
+        "featured_rank": 3,
         "features": [
             "Unique layout",
             "Creative elements",
@@ -116,3 +128,13 @@ def templates_for_api() -> List[Dict[str, Any]]:
 def templates_for_gallery() -> List[Dict[str, Any]]:
     """Context for gallery + form cards (includes static thumbnail paths)."""
     return list(RESUME_TEMPLATES)
+
+
+def featured_templates_for_landing(max_count: int = FEATURED_LANDING_MAX) -> List[Dict[str, Any]]:
+    """
+    Templates marked featured=True, ordered by featured_rank (then list order).
+    Used on marketing pages; max_count defaults to FEATURED_LANDING_MAX (4).
+    """
+    indexed = [(i, t) for i, t in enumerate(RESUME_TEMPLATES) if t.get("featured")]
+    indexed.sort(key=lambda it: (it[1].get("featured_rank", 999), it[0]))
+    return [t for _, t in indexed][:max_count]

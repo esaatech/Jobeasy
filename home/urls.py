@@ -13,6 +13,7 @@ urlpatterns = [
     path('careers/', views.careers, name='careers'),
     path('terms/', views.terms, name='terms'),
     path('privacy/', views.privacy, name='privacy'),
+    path('landing_page/resumes/', views.landing_resumes, name='landing_resumes'),
     path('api/faqs/', FAQListAPIView.as_view(), name='api-faq-list'),
     path('api/testimonials/', TestimonialListAPIView.as_view(), name='api-testimonial-list'),
     path('api/newsletter/', NewsletterSignupCreateAPIView.as_view(), name='api-newsletter-signup'),
