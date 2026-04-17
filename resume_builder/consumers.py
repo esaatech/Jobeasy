@@ -7,6 +7,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.contrib.auth.models import AnonymousUser
 from .models import Resume
+from .template_registry import RESUME_TEMPLATES
 
 
 class ResumeBuilderConsumer(AsyncWebsocketConsumer):
@@ -36,11 +37,16 @@ class ResumeBuilderConsumer(AsyncWebsocketConsumer):
         
         await self.accept()
         
-        # Send welcome message
+        template_names = [t["name"] for t in RESUME_TEMPLATES]
+        welcome = (
+            "Hello! I'm here to help you create a beautiful resume. "
+            f"Available templates: {', '.join(template_names)}. "
+            "Which style appeals to you?"
+        )
         await self.send(text_data=json.dumps({
             'type': 'welcome_message',
-            'message': 'Hello! I\'m here to help you create a beautiful resume. I have several templates available: [Professional] [Modern] [Creative] [Minimal]. Which style appeals to you?',
-            'templates': ['Professional', 'Modern', 'Creative', 'Minimal']
+            'message': welcome,
+            'templates': template_names,
         }))
 
     async def disconnect(self, close_code):

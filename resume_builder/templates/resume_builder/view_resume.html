@@ -233,7 +233,7 @@ function downloadAnonymousResume() {
         education: {{ resume_data.education|safe }},
         skills: {{ resume_data.skills|safe }},
         additional: {{ resume_data.additional|safe }},
-        templateId: '{{ resume_data.template_id|default:"professional" }}'
+        templateId: '{{ resume_data.template_id|default:default_template_id }}'
     };
     
     // Send POST request to download endpoint

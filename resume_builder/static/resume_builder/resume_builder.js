@@ -7,9 +7,13 @@ class ResumeBuilder {
         this.skills = {};
         this.additional = {};
         this.templateId = 'professional';
-        
+
         // Add event listeners for template selection
         this.initializeTemplateListeners();
+        const initialChecked = document.querySelector('input[name="template_id"]:checked')?.value;
+        if (initialChecked) {
+            this.templateId = initialChecked;
+        }
     }
 
     // Initialize template selection listeners

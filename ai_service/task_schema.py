@@ -1,3 +1,5 @@
+from resume_builder.template_registry import TEMPLATE_ID_ENUM
+
 TASK_SCHEMAS = {
     'resume': {
         'create_resume': {
@@ -8,7 +10,7 @@ TASK_SCHEMAS = {
                 'properties': {
                     'user_id': {'type': 'string', 'description': 'ID of the user creating the resume'},
                     'resume_name': {'type': 'string', 'description': 'Name for the resume'},
-                    'template_id': {'type': 'string', 'enum': ['professional', 'modern', 'creative'], 'description': 'Default template to use'}
+                    'template_id': {'type': 'string', 'enum': TEMPLATE_ID_ENUM, 'description': 'Default template to use'}
                 },
                 'required': ['user_id', 'resume_name', 'template_id'],
                 'additionalProperties': False
@@ -250,7 +252,7 @@ TASK_SCHEMAS = {
                 'type': 'object',
                 'properties': {
                     'user_id': {'type': 'string', 'description': 'ID of the user'},
-                    'template_id': {'type': 'string', 'enum': ['professional', 'modern', 'creative'], 'description': 'Template to preview'}
+                    'template_id': {'type': 'string', 'enum': TEMPLATE_ID_ENUM, 'description': 'Template to preview'}
                 },
                 'required': ['user_id', 'template_id'],
                 'additionalProperties': False
@@ -264,7 +266,7 @@ TASK_SCHEMAS = {
                 'properties': {
                     'user_id': {'type': 'string', 'description': 'ID of the user'},
                     'resume_id': {'type': 'string', 'description': 'ID of the resume to update'},
-                    'template_id': {'type': 'string', 'enum': ['professional', 'modern', 'creative'], 'description': 'New template to use'}
+                    'template_id': {'type': 'string', 'enum': TEMPLATE_ID_ENUM, 'description': 'New template to use'}
                 },
                 'required': ['user_id', 'resume_id', 'template_id'],
                 'additionalProperties': False

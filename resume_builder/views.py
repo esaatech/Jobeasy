@@ -21,7 +21,7 @@ from django.template.loader import render_to_string
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Import libraries for file processing
 import PyPDF2
@@ -40,6 +40,16 @@ from utils.error import get_network_timeout_dialog, get_network_connection_dialo
 # Import subscription utilities
 from utils.subscription import get_resume_update_plus_dialog, get_resume_update_ultimate_dialog
 from subscriptions.decorators import check_subscription_access
+
+from .template_registry import (
+    DEFAULT_TEMPLATE_ID,
+    RESUME_TEMPLATES,
+    get_resume_embedded_style_tag,
+    normalize_template_id,
+    templates_for_api,
+    templates_for_download_picker,
+    is_valid_template_id,
+)
 
 # Load environment variables from .env file
 load_dotenv()
@@ -482,6 +492,11 @@ def create_resume(request, resume_id=None):
     # Get month/year options for date dropdowns
     date_options = get_month_year_options()
 
+    if resume_instance:
+        selected_template = normalize_template_id(resume_instance.template_id)
+    else:
+        selected_template = normalize_template_id(request.GET.get('template'))
+
     context = {
         'form': ResumeForm(),
         'hero_content': hero_content,
@@ -491,6 +506,9 @@ def create_resume(request, resume_id=None):
         'default_resume_name': default_name,
         'resume_instance': resume_instance,
         'date_options': date_options,
+        'resume_templates': RESUME_TEMPLATES,
+        'selected_template': selected_template,
+        'default_template_id': DEFAULT_TEMPLATE_ID,
     }
 
     return render(request, 'resume_builder/resume.html', context)
@@ -598,7 +616,7 @@ def upload_resume(request):
         try:
             # Get the uploaded file
             resume_file = request.FILES.get('resume_file')
-            template_id = request.POST.get('template_id', 'professional')
+            template_id = normalize_template_id(request.POST.get('template_id'))
             
             if not resume_file:
                 return JsonResponse({
@@ -748,7 +766,16 @@ def upload_resume(request):
         'page_title': 'Upload Resume',
         'page_description': 'Upload your existing resume to edit or convert it to a new format.'
     }
-    return render(request, 'resume_builder/optimize_resume_form.html', {'hero_content': hero_content})
+    return render(
+        request,
+        'resume_builder/optimize_resume_form.html',
+        {
+            'hero_content': hero_content,
+            'resume_templates': RESUME_TEMPLATES,
+            'selected_template': DEFAULT_TEMPLATE_ID,
+            'default_template_id': DEFAULT_TEMPLATE_ID,
+        },
+    )
 
 @login_required
 def view_resume(request, resume_id=None):
@@ -775,11 +802,9 @@ def view_resume(request, resume_id=None):
         }
         
         # Get the template ID - support template switching via query parameter
-        template_id = request.GET.get('template') or resume.template_id or 'professional'
-        
-        # Validate template ID
-        if template_id not in ['professional', 'modern', 'creative']:
-            template_id = 'professional'
+        template_id = normalize_template_id(
+            request.GET.get('template') or resume.template_id or None
+        )
         
         # Render the resume with the chosen template
         html_content = render_to_string(f'resume_templates/{template_id}.html', {'resume_data': resume_data})
@@ -794,7 +819,9 @@ def view_resume(request, resume_id=None):
             context = {
                 'resume': resume,
                 'resume_html': html_content,
-                'is_htmx_request': True
+                'is_htmx_request': True,
+                'resume_templates': RESUME_TEMPLATES,
+                'default_template_id': DEFAULT_TEMPLATE_ID,
             }
             return render(request, 'resume_builder/component/resume_preview_tab.html', context)
         
@@ -807,14 +834,7 @@ def view_resume(request, resume_id=None):
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{resume.personal_info.get('full_name', 'Resume')} - Resume</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @media print {{
-            body {{{{ margin: 0; padding: 20px; }}}}
-            .professional-template, .modern-template, .creative-template {{{{
-                max-width: none; box-shadow: none;
-            }}}}
-        }}
-    </style>
+{get_resume_embedded_style_tag()}
 </head>
 <body class="bg-white">
     {html_content}
@@ -828,7 +848,8 @@ def view_resume(request, resume_id=None):
             'hero_content': {
                 'page_title': 'View Resume',
                 'page_description': 'Review your generated resume below. You can edit it further or download it.'
-            }
+            },
+            'default_template_id': DEFAULT_TEMPLATE_ID,
         }
         
         return render(request, 'resume_builder/view_resume.html', context)
@@ -852,7 +873,8 @@ def view_resume(request, resume_id=None):
             'hero_content': {
                 'page_title': 'Optimized Resume',
                 'page_description': 'Review your optimized resume content. You can now save or download it.'
-            }
+            },
+            'default_template_id': DEFAULT_TEMPLATE_ID,
         }
         return render(request, 'resume_builder/view_resume.html', context)
 
@@ -896,15 +918,9 @@ def download_resume(request):
     if not resume_data:
         return redirect('resume_builder:create_resume')
     
-    # Available templates with descriptive IDs
-    templates = [
-        {'id': 'professional', 'name': 'Professional'},
-        {'id': 'modern', 'name': 'Modern'},
-        {'id': 'creative', 'name': 'Creative'},
-    ]
-    
-    # Get active template (default to professional)
-    active_template = request.session.get('active_template', 'professional')
+    templates = templates_for_download_picker()
+
+    active_template = normalize_template_id(request.session.get('active_template'))
     
     context = {
         'resume_data': resume_data,
@@ -920,11 +936,7 @@ def switch_template(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            template_id = data.get('template_id')
-            
-            # Update valid template IDs
-            if template_id not in ['professional', 'modern', 'creative']:
-                raise ValueError('Invalid template ID')
+            template_id = normalize_template_id(data.get('template_id'))
             
             # Store selected template in session
             request.session['active_template'] = template_id
@@ -940,7 +952,7 @@ def switch_template(request):
 
 def preview_template(request, template_id):
     """Preview template with sample data - optimized for multi-country/multi-language support"""
-    if template_id not in ['professional', 'modern', 'creative']:
+    if not is_valid_template_id(template_id):
         return JsonResponse({'error': 'Invalid template ID'}, status=400)
     
     # Get user's locale from request (could be from user preferences, Accept-Language header, etc.)
@@ -1104,7 +1116,7 @@ def save_resume(request):
                 resume.ats_score = data.get('ats_score', 0)
                 resume.keyword_matches = data.get('keyword_matches', [])
                 resume.improvement_suggestions = data.get('improvement_suggestions', [])
-                resume.template_id = data.get('template_id', 'professional')
+                resume.template_id = normalize_template_id(data.get('template_id'))
                 
                 # After updating content, we must regenerate the HTML file
                 from django.template.loader import render_to_string
@@ -1135,14 +1147,7 @@ def save_resume(request):
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Optimized Resume</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @media print {{
-            body {{{{ margin: 0; padding: 20px; }}}}
-            .professional-template, .modern-template, .creative-template {{{{
-                max-width: none; box-shadow: none;
-            }}}}
-        }}
-    </style>
+{get_resume_embedded_style_tag()}
 </head>
 <body class="bg-white">
     {html_content}
@@ -1166,7 +1171,7 @@ def save_resume(request):
             else:
                 # Handle PDF file upload (existing functionality)
                 pdf_file = request.FILES.get('pdf_file')
-                template_id = request.POST.get('template_id')
+                template_id = normalize_template_id(request.POST.get('template_id'))
                 
                 if not pdf_file:
                     return JsonResponse({'success': False, 'error': 'PDF file is required'})
@@ -1279,7 +1284,7 @@ def get_resume_content(request, resume_id):
         'additional': resume.additional or {}
     }
     
-    template_id = resume.template_id or 'professional'
+    template_id = normalize_template_id(resume.template_id)
     html_content = render_to_string(f'resume_templates/{template_id}.html', {'resume_data': resume_data})
     
     return HttpResponse(html_content)
@@ -1334,7 +1339,7 @@ def download_resume_file(request, resume_id, format_type='html'):
             education = data.get('education', [])
             skills = data.get('skills', {})
             additional = data.get('additional', {})
-            template_id = data.get('templateId', 'professional')
+            template_id = normalize_template_id(data.get('templateId'))
             resume_data = {
                 'personal_info': personal_info,
                 'experience': experience,
@@ -1355,7 +1360,7 @@ def download_resume_file(request, resume_id, format_type='html'):
                 'skills': resume.skills or {},
                 'additional': resume.additional or {}
             }
-            template_id = resume.template_id or 'professional'
+            template_id = normalize_template_id(resume.template_id)
 
         # Now render and return in the requested format (reuse existing logic)
         if format_type == 'html':
@@ -1368,14 +1373,7 @@ def download_resume_file(request, resume_id, format_type='html'):
     <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
     <title>{resume_data['personal_info'].get('full_name', 'Resume')} - Resume</title>
     <script src=\"https://cdn.tailwindcss.com\"></script>
-    <style>
-        @media print {{
-            body {{{{ margin: 0; padding: 20px; }}}}
-            .professional-template, .modern-template, .creative-template {{{{
-                max-width: none; box-shadow: none;
-            }}}}
-        }}
-    </style>
+{get_resume_embedded_style_tag()}
 </head>
 <body class=\"bg-white\">
     {html_content}
@@ -1422,14 +1420,7 @@ def download_resume_file(request, resume_id, format_type='html'):
     <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
     <title>{resume_data['personal_info'].get('full_name', 'Resume')} - Resume</title>
     <script src=\"https://cdn.tailwindcss.com\"></script>
-    <style>
-        @media print {{
-            body {{{{ margin: 0; padding: 20px; }}}}
-            .professional-template, .modern-template, .creative-template {{{{
-                max-width: none; box-shadow: none;
-            }}}}
-        }}
-    </style>
+{get_resume_embedded_style_tag()}
 </head>
 <body class=\"bg-white\">
     {html_content}
@@ -1508,7 +1499,7 @@ def save_personal_info(request):
                     user=request.user,
                     name=data.get('resume_name', 'My Resume'),
                     draft=True,
-                    template_id=data.get('template_id', 'professional')
+                    template_id=normalize_template_id(data.get('template_id')),
                 )
             # Defensive update: only update summary if present in payload
             personal_info = resume.personal_info or {}
@@ -1522,7 +1513,7 @@ def save_personal_info(request):
             resume.personal_info = personal_info
             # Update template if provided
             if data.get('template_id'):
-                resume.template_id = data.get('template_id')
+                resume.template_id = normalize_template_id(data.get('template_id'))
             resume.save()
             if is_editing_save:
                 return JsonResponse({
@@ -1559,7 +1550,7 @@ def save_experience(request):
             
             # Update template if provided
             if data.get('template_id'):
-                resume.template_id = data.get('template_id')
+                resume.template_id = normalize_template_id(data.get('template_id'))
             
             resume.save()
             
@@ -1597,7 +1588,7 @@ def save_education(request):
             
             # Update template if provided
             if data.get('template_id'):
-                resume.template_id = data.get('template_id')
+                resume.template_id = normalize_template_id(data.get('template_id'))
             
             resume.save()
             
@@ -1639,7 +1630,7 @@ def save_skills(request):
             
             # Update template if provided
             if data.get('template_id'):
-                resume.template_id = data.get('template_id')
+                resume.template_id = normalize_template_id(data.get('template_id'))
             
             resume.save()
             
@@ -1680,7 +1671,7 @@ def save_additional(request):
             
             # Update template if provided
             if data.get('template_id'):
-                resume.template_id = data.get('template_id')
+                resume.template_id = normalize_template_id(data.get('template_id'))
             
             resume.save()
             
@@ -1719,7 +1710,7 @@ def finalize_resume(request):
             resume = get_object_or_404(Resume, id=resume_id, user=request.user)
             
             # Update template
-            template_id = data.get('template_id', 'professional')
+            template_id = normalize_template_id(data.get('template_id'))
             resume.template_id = template_id
             
             # Set draft to False
@@ -1778,7 +1769,7 @@ def preview_anonymous_resume(request):
             education = data.get('education', [])
             skills = data.get('skills', {})
             additional = data.get('additional', {})
-            template_id = data.get('templateId', 'professional')
+            template_id = normalize_template_id(data.get('templateId'))
 
             # Prepare resume data for template rendering
             resume_data = {
@@ -1799,7 +1790,8 @@ def preview_anonymous_resume(request):
                 'hero_content': {
                     'page_title': 'Preview Resume',
                     'page_description': 'Review your generated resume below. You can download it or sign up to save it.'
-                }
+                },
+                'default_template_id': DEFAULT_TEMPLATE_ID,
             }
             return render(request, 'resume_builder/view_resume.html', context)
         except Exception as e:
@@ -1828,7 +1820,7 @@ def create_resume_from_data(request):
             education = data.get('education', [])
             skills = data.get('skills', {})
             additional = data.get('additional', {})
-            template_id = data.get('templateId', 'professional')
+            template_id = normalize_template_id(data.get('templateId'))
             resume_name = data.get('resume_name', 'My Resume')
             
             # Create the resume object
@@ -1897,7 +1889,7 @@ def save_summary(request):
             resume.personal_info = personal_info
             # Update template if provided
             if data.get('template_id'):
-                resume.template_id = data.get('template_id')
+                resume.template_id = normalize_template_id(data.get('template_id'))
             resume.save()
             if is_editing_save:
                 return JsonResponse({
@@ -1944,28 +1936,7 @@ def get_available_templates(request):
     """Get all available resume templates"""
     if request.method == 'GET':
         try:
-            # Available templates with descriptive information
-            templates = [
-                {
-                    'id': 'professional',
-                    'name': 'Professional',
-                    'description': 'Clean and traditional design suitable for corporate environments',
-                    'features': ['ATS-friendly', 'Clean layout', 'Professional fonts', 'Standard sections']
-                },
-                {
-                    'id': 'modern',
-                    'name': 'Modern',
-                    'description': 'Contemporary design with modern styling and layout',
-                    'features': ['Modern typography', 'Color accents', 'Creative layout', 'Visual hierarchy']
-                },
-                {
-                    'id': 'creative',
-                    'name': 'Creative',
-                    'description': 'Unique and eye-catching design for creative industries',
-                    'features': ['Unique layout', 'Creative elements', 'Colorful design', 'Stand out']
-                }
-            ]
-            
+            templates = templates_for_api()
             return JsonResponse({
                 'success': True,
                 'templates': templates,
@@ -1992,9 +1963,109 @@ def ai_resume_assistant(request):
         'hero_content': {
             'page_title': 'AI Resume Assistant',
             'page_description': 'Create your perfect resume with our AI assistant. Chat naturally and see your resume update in real-time.'
-        }
+        },
+        'resume_templates': RESUME_TEMPLATES,
+        'default_template_id': DEFAULT_TEMPLATE_ID,
     }
     return render(request, 'resume_builder/resumeassistant.html', context)
+
+
+def _prepare_message_with_smart_resume_context(message, user, _thread_id=None):
+    """
+    Determine when resume data is needed and include it only when necessary.
+    """
+    resume_keywords = [
+        'resume', 'cv', 'curriculum vitae', 'create resume', 'build resume', 'edit resume',
+        'update', 'change', 'modify', 'delete', 'remove', 'add', 'edit', 'save',
+        'experience', 'education', 'skills', 'personal', 'summary', 'template',
+        'university', 'college', 'school', 'degree', 'company', 'job', 'work',
+        'position', 'title', 'employment', 'career', 'professional', 'work history',
+        'academic', 'qualification', 'certification', 'training', 'course',
+        'skill', 'competency', 'expertise', 'proficiency', 'knowledge',
+        'project', 'achievement', 'accomplishment', 'responsibility', 'duty',
+        'technology', 'software', 'tool', 'language', 'framework', 'platform'
+    ]
+
+    message_lower = message.lower()
+    is_resume_related = any(keyword in message_lower for keyword in resume_keywords)
+
+    print(f"🔍 Message analysis: '{message}'")
+    print(f"🔍 Resume-related: {is_resume_related}")
+
+    if not is_resume_related:
+        print("📄 No resume data needed for general chat")
+        return message
+
+    try:
+        from django.utils import timezone
+
+        recent_time = timezone.now() - timedelta(minutes=10)
+        current_resume = Resume.objects.filter(
+            user=user,
+            created_at__gte=recent_time
+        ).order_by('-created_at').first()
+
+        if current_resume:
+            resume_data = {
+                'resume_id': str(current_resume.id),
+                'name': current_resume.name,
+                'template_id': current_resume.template_id,
+                'personal_info': current_resume.personal_info or {},
+                'experience': current_resume.experience or [],
+                'education': current_resume.education or [],
+                'skills': current_resume.skills or {},
+                'additional': current_resume.additional or {},
+                'draft': current_resume.draft,
+                'updated_at': current_resume.updated_at.isoformat() if current_resume.updated_at else None
+            }
+
+            enhanced_message = f"""
+Current Resume State (as of {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}):
+{json.dumps(resume_data, indent=2)}
+
+User Request: {message}
+
+Note: You can edit and delete entries using their array indices (0, 1, 2, etc.). The resume data above shows the current state.
+
+CRITICAL: When editing or deleting entries, you MUST search through the current resume data provided above to find the correct entry. Do NOT rely on conversation history or previous entries - always use the current data shown above to determine the correct index.
+
+SEARCH PROCESS FOR EDITING/DELETING:
+1. First, identify what the user wants to edit/delete (institution name, company name, etc.)
+2. Search through the current education/experience arrays in the resume data above
+3. Look for EXACT or PARTIAL matches in the relevant fields
+4. Use the ARRAY INDEX (0, 1, 2, etc.) of the matching entry
+5. If multiple entries match, ask the user to be more specific
+6. If no entry matches, inform the user that the specified entry was not found
+
+EXAMPLE SEARCH PROCESS:
+- User says: "update tech university to techno"
+- Search education array for "tech university" in institution field
+- Find entry at index 1 with institution "Tech University"
+- Call edit_education with education_index=1, field="institution", value="Techno University"
+
+CRITICAL: Before calling edit_education or delete_education, you MUST:
+1. State which entry you found (e.g., "I found Tech University at index 1")
+2. Confirm the action you're taking (e.g., "I will update Tech University to Techno University")
+3. Then call the function with the correct index
+"""
+            print("📄 Resume data included for AI context")
+            print(f"📄 Resume ID: {resume_data['resume_id']}")
+            print(f"📄 Education entries: {len(resume_data['education'])}")
+            print(f"📄 Experience entries: {len(resume_data['experience'])}")
+
+            print("\n🔍 DEBUG: Current Education Entries:")
+            for i, edu in enumerate(resume_data['education']):
+                print(f"  Index {i}: {edu.get('degree', 'N/A')} from {edu.get('institution', 'N/A')}")
+            print("🔍 DEBUG: End Education Entries\n")
+
+            return enhanced_message
+
+        print("📄 No recent resume found - treating as new conversation")
+        return message
+    except Exception as e:
+        print(f"⚠️ Error getting resume data: {e}")
+        return message
+
 
 @login_required
 @csrf_exempt
@@ -2059,7 +2130,7 @@ def chat_with_ai(request):
         print(f"🤖 Assistant ID: {assistant_id}")
         
         # Smart resume data inclusion - only include if we have a resume_id from previous AI interaction
-        enhanced_message = self._prepare_message_with_smart_resume_context(message, user, thread_id)
+        enhanced_message = _prepare_message_with_smart_resume_context(message, user, thread_id)
         
         result = manager.add_message_and_run(
             thread_id=thread_id,
@@ -2170,7 +2241,9 @@ def get_resume_preview(request, resume_id):
         resume = get_object_or_404(Resume, id=resume_id, user=request.user)
         
         # Get template from query params or use resume's default
-        template_id = request.GET.get('template', resume.template_id or 'professional')
+        template_id = normalize_template_id(
+            request.GET.get('template') or resume.template_id or None
+        )
         
         # Prepare resume data for template rendering
         resume_data = {
@@ -2193,116 +2266,6 @@ def get_resume_preview(request, resume_id):
             'error': 'Failed to load resume preview'
         }, status=500)
 
-    def _prepare_message_with_smart_resume_context(self, message, user, thread_id):
-        """
-        Smart function to determine when resume data is needed and include it only when necessary.
-        This reduces token usage by not sending full resume data for general chat.
-        """
-        # Keywords that indicate resume-related operations
-        resume_keywords = [
-            'resume', 'cv', 'curriculum vitae', 'create resume', 'build resume', 'edit resume',
-            'update', 'change', 'modify', 'delete', 'remove', 'add', 'edit', 'save',
-            'experience', 'education', 'skills', 'personal', 'summary', 'template',
-            'university', 'college', 'school', 'degree', 'company', 'job', 'work',
-            'position', 'title', 'employment', 'career', 'professional', 'work history',
-            'academic', 'qualification', 'certification', 'training', 'course',
-            'skill', 'competency', 'expertise', 'proficiency', 'knowledge',
-            'project', 'achievement', 'accomplishment', 'responsibility', 'duty',
-            'technology', 'software', 'tool', 'language', 'framework', 'platform'
-        ]
-        
-        # Check if message contains resume-related keywords
-        message_lower = message.lower()
-        is_resume_related = any(keyword in message_lower for keyword in resume_keywords)
-        
-        print(f"🔍 Message analysis: '{message}'")
-        print(f"🔍 Resume-related: {is_resume_related}")
-        
-        # CRITICAL: Only include resume data if we have a resume_id from previous AI interaction
-        # This means the AI has already created a resume in this conversation
-        if not is_resume_related:
-            # For general chat, just send the message without resume data
-            print(f"📄 No resume data needed for general chat")
-            return message
-        
-        # For resume-related operations, check if we have a resume_id from previous AI interaction
-        # We'll need to check the thread history or store resume_id in session/context
-        # For now, let's check if there's a recent resume created by this user
-        try:
-            # Get user's most recent resume that was created recently (within last 10 minutes)
-            from django.utils import timezone
-            from datetime import timedelta
-            
-            recent_time = timezone.now() - timedelta(minutes=10)
-            current_resume = Resume.objects.filter(
-                user=user, 
-                created_at__gte=recent_time
-            ).order_by('-created_at').first()
-            
-            if current_resume:
-                # Prepare resume data for AI context
-                resume_data = {
-                    'resume_id': str(current_resume.id),
-                    'name': current_resume.name,
-                    'template_id': current_resume.template_id,
-                    'personal_info': current_resume.personal_info or {},
-                    'experience': current_resume.experience or [],
-                    'education': current_resume.education or [],
-                    'skills': current_resume.skills or {},
-                    'additional': current_resume.additional or {},
-                    'draft': current_resume.draft,
-                    'updated_at': current_resume.updated_at.isoformat() if current_resume.updated_at else None
-                }
-                
-                # Include resume data in user message
-                enhanced_message = f"""
-Current Resume State (as of {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}):
-{json.dumps(resume_data, indent=2)}
-
-User Request: {message}
-
-Note: You can edit and delete entries using their array indices (0, 1, 2, etc.). The resume data above shows the current state.
-
-CRITICAL: When editing or deleting entries, you MUST search through the current resume data provided above to find the correct entry. Do NOT rely on conversation history or previous entries - always use the current data shown above to determine the correct index.
-
-SEARCH PROCESS FOR EDITING/DELETING:
-1. First, identify what the user wants to edit/delete (institution name, company name, etc.)
-2. Search through the current education/experience arrays in the resume data above
-3. Look for EXACT or PARTIAL matches in the relevant fields
-4. Use the ARRAY INDEX (0, 1, 2, etc.) of the matching entry
-5. If multiple entries match, ask the user to be more specific
-6. If no entry matches, inform the user that the specified entry was not found
-
-EXAMPLE SEARCH PROCESS:
-- User says: "update tech university to techno"
-- Search education array for "tech university" in institution field
-- Find entry at index 1 with institution "Tech University"
-- Call edit_education with education_index=1, field="institution", value="Techno University"
-
-CRITICAL: Before calling edit_education or delete_education, you MUST:
-1. State which entry you found (e.g., "I found Tech University at index 1")
-2. Confirm the action you're taking (e.g., "I will update Tech University to Techno University")
-3. Then call the function with the correct index
-"""
-                print(f"📄 Resume data included for AI context")
-                print(f"📄 Resume ID: {resume_data['resume_id']}")
-                print(f"📄 Education entries: {len(resume_data['education'])}")
-                print(f"📄 Experience entries: {len(resume_data['experience'])}")
-                
-                # Debug: Show education entries with indices
-                print(f"\n🔍 DEBUG: Current Education Entries:")
-                for i, edu in enumerate(resume_data['education']):
-                    print(f"  Index {i}: {edu.get('degree', 'N/A')} from {edu.get('institution', 'N/A')}")
-                print(f"🔍 DEBUG: End Education Entries\n")
-                
-                return enhanced_message
-            else:
-                # No recent resume found - this is likely a new conversation
-                print(f"📄 No recent resume found - treating as new conversation")
-                return message
-        except Exception as e:
-            print(f"⚠️ Error getting resume data: {e}")
-            return message
 
 @login_required
 def test_resumes(request):
@@ -2331,13 +2294,8 @@ def cover_letter_tab(request):
 @login_required
 def templates_tab(request):
     """Serve the templates tab content via AJAX"""
-    templates = [
-        {'id': 'professional', 'name': 'Professional', 'description': 'Clean and traditional'},
-        {'id': 'modern', 'name': 'Modern', 'description': 'Contemporary design'},
-        {'id': 'creative', 'name': 'Creative', 'description': 'Unique and artistic'},
-    ]
     context = {
-        'templates': templates,
+        'templates': templates_for_api(),
     }
     return render(request, 'resume_builder/component/templates_tab.html', context)
 
@@ -2347,6 +2305,8 @@ def resume_templates(request):
         'hero_content': {
             'page_title': 'Resume Templates',
             'page_description': 'Choose from our professional resume templates designed to help you stand out to employers.'
-        }
+        },
+        'resume_templates': RESUME_TEMPLATES,
+        'default_template_id': DEFAULT_TEMPLATE_ID,
     }
     return render(request, 'resume_templates/resume_templates.html', context)

@@ -56,22 +56,15 @@
             </div>
             
             <!-- Template Navigation -->
-            <div class="flex justify-center space-x-4 p-4 bg-gray-50 border-b border-gray-200">
-                <button onclick="switchPreviewTemplate('professional')" 
+            <div class="flex flex-wrap justify-center gap-2 p-4 bg-gray-50 border-b border-gray-200">
+                {% for t in resume_templates %}
+                <button type="button"
+                        onclick="switchPreviewTemplate('{{ t.id }}')"
                         class="preview-tab px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                        data-template="professional">
-                    Professional
+                        data-template="{{ t.id }}">
+                    {{ t.name }}
                 </button>
-                <button onclick="switchPreviewTemplate('modern')" 
-                        class="preview-tab px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                        data-template="modern">
-                    Modern
-                </button>
-                <button onclick="switchPreviewTemplate('creative')" 
-                        class="preview-tab px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                        data-template="creative">
-                    Creative
-                </button>
+                {% endfor %}
             </div>
             
             <!-- Preview Content -->
@@ -144,7 +137,7 @@ function performTabSwitch(tabName) {
 }
 
 // Template Preview Modal Logic
-let currentPreviewTemplate = 'professional';
+let currentPreviewTemplate = '{{ default_template_id }}';
 
 function showTemplatePreview(templateId) {
     currentPreviewTemplate = templateId;
@@ -189,7 +182,7 @@ function loadTemplatePreview(templateId) {
     const userLocale = navigator.language || 'en-US';
     
     // Load template content from backend with locale support
-    fetch(`{% url 'resume_builder:preview_template' 'professional' %}`.replace('professional', templateId) + `?locale=${userLocale}`)
+    fetch(`/resume/preview/${encodeURIComponent(templateId)}/?locale=${userLocale}`)
         .then(response => {
             if (!response.ok) {
                 throw new Error('Failed to load template');

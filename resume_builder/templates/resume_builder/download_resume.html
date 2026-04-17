@@ -6,54 +6,20 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8">
         <div class="bg-white rounded-lg shadow p-6">
             <h2 class="headline-tertiary mb-4">Choose Template</h2>
-            <div class="grid grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {% for template in templates %}
                 <button 
+                    type="button"
                     data-template-id="{{ template.id }}"
-                    class="template-btn {% if template.id == active_template %}border-blue-500{% else %}border-gray-200{% endif %} border-2 rounded-lg p-4 hover:border-blue-300 transition-colors">
-                    {% if template.id == 'professional' %}
-                    <!-- Professional Template SVG -->
-                    <svg class="w-full h-32 mb-2" viewBox="0 0 240 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect width="240" height="120" fill="white"/>
-                        <!-- Header -->
-                        <rect x="20" y="10" width="200" height="20" rx="2" fill="#E5E7EB"/>
-                        <!-- Left Column -->
-                        <rect x="20" y="40" width="60" height="70" rx="2" fill="#F3F4F6"/>
-                        <!-- Right Column Content -->
-                        <rect x="90" y="40" width="130" height="8" rx="2" fill="#D1D5DB"/>
-                        <rect x="90" y="55" width="130" height="8" rx="2" fill="#D1D5DB"/>
-                        <rect x="90" y="70" width="130" height="8" rx="2" fill="#D1D5DB"/>
-                        <rect x="90" y="85" width="90" height="8" rx="2" fill="#D1D5DB"/>
+                    class="template-btn {% if template.id == active_template %}border-blue-500{% else %}border-gray-200{% endif %} border-2 rounded-lg p-4 hover:border-blue-300 transition-colors text-left">
+                    <svg class="w-full h-32 mb-2 text-gray-200" viewBox="0 0 240 120" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <rect width="240" height="120" fill="white" stroke="#E5E7EB"/>
+                        <rect x="24" y="16" width="120" height="10" rx="2" fill="#E5E7EB"/>
+                        <rect x="24" y="36" width="80" height="72" rx="2" fill="#F3F4F6"/>
+                        <rect x="112" y="36" width="104" height="8" rx="2" fill="#D1D5DB"/>
+                        <rect x="112" y="52" width="104" height="8" rx="2" fill="#D1D5DB"/>
+                        <rect x="112" y="68" width="72" height="8" rx="2" fill="#D1D5DB"/>
                     </svg>
-                    {% elif template.id == 'modern' %}
-                    <!-- Modern Template SVG -->
-                    <svg class="w-full h-32 mb-2" viewBox="0 0 240 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect width="240" height="120" fill="white"/>
-                        <!-- Circle Avatar -->
-                        <circle cx="120" cy="25" r="15" fill="#E5E7EB"/>
-                        <!-- Content Blocks -->
-                        <rect x="40" y="50" width="160" height="10" rx="2" fill="#D1D5DB"/>
-                        <!-- Skill Pills -->
-                        <rect x="40" y="70" width="40" height="8" rx="4" fill="#93C5FD"/>
-                        <rect x="90" y="70" width="40" height="8" rx="4" fill="#93C5FD"/>
-                        <rect x="140" y="70" width="40" height="8" rx="4" fill="#93C5FD"/>
-                        <!-- Timeline -->
-                        <rect x="40" y="90" width="160" height="20" rx="2" fill="#F3F4F6"/>
-                    </svg>
-                    {% else %}
-                    <!-- Creative Template SVG -->
-                    <svg class="w-full h-32 mb-2" viewBox="0 0 240 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect width="240" height="120" fill="#F5F3FF"/>
-                        <!-- Gradient Header -->
-                        <rect x="20" y="10" width="200" height="30" rx="4" fill="#C4B5FD"/>
-                        <!-- Card Grid -->
-                        <rect x="20" y="50" width="95" height="60" rx="4" fill="white"/>
-                        <rect x="125" y="50" width="95" height="60" rx="4" fill="white"/>
-                        <!-- Decorative Elements -->
-                        <circle cx="40" cy="65" r="6" fill="#8B5CF6"/>
-                        <circle cx="145" cy="65" r="6" fill="#8B5CF6"/>
-                    </svg>
-                    {% endif %}
                     <p class="text-sm font-medium text-gray-900">{{ template.name }}</p>
                 </button>
                 {% endfor %}

@@ -5,7 +5,10 @@ from dataclasses import dataclass
 from typing import Optional
 import json
 
+from resume_builder.template_registry import VALID_TEMPLATE_IDS
+
 logger = logging.getLogger(__name__)
+
 
 class EventEmitter:
     """Handles sending events to frontend via Django Channels"""
@@ -1596,10 +1599,16 @@ class FunctionHandlers:
                 template_list.append(f"**{template['name']}** - {template['description']}")
             
             template_text = "\n".join(template_list)
-            
+            feature_lines = []
+            for t in data.get("templates", []):
+                feats = t.get("features") or []
+                feat_str = ", ".join(feats) if feats else t.get("description", "")
+                feature_lines.append(f"• **{t['name']}:** {feat_str}")
+            features_block = "\n".join(feature_lines) if feature_lines else ""
+
             return {
                 "success": data.get("success", False),
-                "message": f"## 📋 Available Resume Templates\n\nHere are the templates you can choose from:\n\n{template_text}\n\n**Features:**\n• **Professional:** Clean and traditional design suitable for corporate environments\n• **Modern:** Contemporary design with modern styling and layout\n• **Creative:** Unique and eye-catching design for creative industries\n\nWhich template would you like to use for your resume?",
+                "message": f"## 📋 Available Resume Templates\n\nHere are the templates you can choose from:\n\n{template_text}\n\n**Features:**\n{features_block}\n\nWhich template would you like to use for your resume?",
                 "templates": data.get("templates", []),
                 "count": data.get("count", 0),
                 "action": "list_templates"
@@ -1619,12 +1628,10 @@ class FunctionHandlers:
             print(f"User ID: {user_id}")
             print(f"Template ID: {template_id}")
             
-            # Validate template ID
-            valid_templates = ['professional', 'modern', 'creative']
-            if template_id not in valid_templates:
+            if template_id not in VALID_TEMPLATE_IDS:
                 return {
                     "success": False,
-                    "error": f"Invalid template ID. Must be one of: {', '.join(valid_templates)}"
+                    "error": f"Invalid template ID. Must be one of: {', '.join(VALID_TEMPLATE_IDS)}"
                 }
             
             # Emit event to frontend to switch template preview
@@ -1696,12 +1703,10 @@ class FunctionHandlers:
             except Resume.DoesNotExist:
                 return {"success": False, "error": f"Resume with ID {resume_id} not found for user {user_id}"}
             
-            # Validate template ID
-            valid_templates = ['professional', 'modern', 'creative']
-            if template_id not in valid_templates:
+            if template_id not in VALID_TEMPLATE_IDS:
                 return {
                     "success": False,
-                    "error": f"Invalid template ID. Must be one of: {', '.join(valid_templates)}"
+                    "error": f"Invalid template ID. Must be one of: {', '.join(VALID_TEMPLATE_IDS)}"
                 }
             
             # Update template

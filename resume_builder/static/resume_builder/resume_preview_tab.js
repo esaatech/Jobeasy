@@ -1,7 +1,12 @@
+function resumePreviewDefaultTemplateId() {
+    const el = document.getElementById('resumePreviewTab');
+    return (el && el.dataset.defaultTemplate) ? el.dataset.defaultTemplate : 'professional';
+}
+
 class ResumePreviewTab {
     constructor() {
         this.currentResumeId = null;
-        this.currentTemplate = 'professional';
+        this.currentTemplate = resumePreviewDefaultTemplateId();
         this.initializeTemplateButtons();
     }
     
@@ -23,7 +28,7 @@ class ResumePreviewTab {
     setResumeInfo(resumeId, resumeName, templateId) {
         console.log('📄 ResumePreviewTab: Setting resume info:', { resumeId, resumeName, templateId });
         this.currentResumeId = resumeId;
-        this.currentTemplate = templateId || 'professional';
+        this.currentTemplate = templateId || resumePreviewDefaultTemplateId();
         
         // Load the resume preview using HTMX
         if (resumeId) {

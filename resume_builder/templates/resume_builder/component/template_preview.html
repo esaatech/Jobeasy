@@ -1,11 +1,13 @@
 <!-- Template Preview Component -->
-<div class="preview-sidebar">
+<div class="preview-sidebar" data-default-template="{{ default_template_id }}">
     <div class="preview-header">
         <h2>📄 Resume Preview</h2>
-        <div class="template-selector">
-            <button class="template-btn active" data-template="professional">Professional</button>
-            <button class="template-btn" data-template="modern">Modern</button>
-            <button class="template-btn" data-template="creative">Creative</button>
+        <div class="template-selector flex flex-wrap gap-2">
+            {% for t in resume_templates %}
+            <button type="button"
+                    class="template-btn {% if t.id == default_template_id %}active{% endif %}"
+                    data-template="{{ t.id }}">{{ t.name }}</button>
+            {% endfor %}
         </div>
     </div>
     
@@ -22,7 +24,9 @@ class TemplatePreview {
         console.log('🔧 TemplatePreview constructor called');
         
         this.resumePreview = document.getElementById('resumePreview');
-        this.currentTemplate = 'professional';
+        const root = document.querySelector('.preview-sidebar[data-default-template]');
+        this.defaultTemplateId = root && root.dataset.defaultTemplate ? root.dataset.defaultTemplate : 'professional';
+        this.currentTemplate = this.defaultTemplateId;
         this.currentResumeId = null;
         
         this.initializeEventListeners();
@@ -32,7 +36,6 @@ class TemplatePreview {
     initializeEventListeners() {
         console.log('🔧 TemplatePreview: Initializing event listeners');
         
-        // Template button listeners
         const templateButtons = document.querySelectorAll('.template-btn');
         console.log('📋 Found template buttons:', templateButtons.length);
         
@@ -54,8 +57,8 @@ class TemplatePreview {
     
     async loadDefaultTemplate() {
         console.log('🔧 TemplatePreview: Loading default template');
-        await this.loadTemplatePreview('professional');
-        this.updateTemplateButtons('professional');
+        await this.loadTemplatePreview(this.defaultTemplateId);
+        this.updateTemplateButtons(this.defaultTemplateId);
         console.log('✅ TemplatePreview: Default template loaded');
     }
     
@@ -66,10 +69,7 @@ class TemplatePreview {
             this.currentTemplate = template;
             console.log('📋 Current template set to:', this.currentTemplate);
             
-            // Update active button styling
             this.updateTemplateButtons(template);
-            
-            // Load template content from backend
             await this.loadTemplatePreview(template);
             
             console.log('✅ TemplatePreview: Template switched successfully to:', template);
@@ -102,11 +102,8 @@ class TemplatePreview {
         console.log('🔧 TemplatePreview: loadTemplatePreview called with:', templateId);
         
         try {
-            // Get user's locale (same as resume.html)
             const userLocale = navigator.language || 'en-US';
-            
-            // Use the exact same URL generation approach as resume.html
-            const url = `{% url 'resume_builder:preview_template' 'professional' %}`.replace('professional', templateId) + `?locale=${userLocale}`;
+            const url = `/resume/preview/${encodeURIComponent(templateId)}/?locale=${userLocale}`;
             console.log('🌐 Making API call to:', url);
             
             const response = await fetch(url);
@@ -129,7 +126,6 @@ class TemplatePreview {
             
         } catch (error) {
             console.error('❌ TemplatePreview: Error loading template preview:', error);
-            // Show the exact same error message as resume.html
             this.resumePreview.innerHTML = `
                 <div class="text-center py-8">
                     <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -152,7 +148,6 @@ class TemplatePreview {
         
         this.currentResumeId = resumeId;
         
-        // Update template if provided
         if (templateId) {
             console.log('🎨 Updating template from', this.currentTemplate, 'to', templateId);
             this.currentTemplate = templateId;
@@ -162,7 +157,7 @@ class TemplatePreview {
             console.log('🎨 No template provided, keeping current template:', this.currentTemplate);
         }
         
-        const url = `/resume/api/resume/${resumeId}/preview/?template=${this.currentTemplate}`;
+        const url = `/resume/api/resume/${resumeId}/preview/?template=${encodeURIComponent(this.currentTemplate)}`;
         console.log('🌐 Making API call to:', url);
         
         try {
@@ -182,12 +177,10 @@ class TemplatePreview {
             } else {
                 const errorText = await response.text();
                 console.error('❌ TemplatePreview: Failed to update resume preview:', response.status, errorText);
-                // Fallback to template preview
                 await this.loadTemplatePreview(this.currentTemplate);
             }
         } catch (error) {
             console.error('❌ TemplatePreview: Error updating resume preview:', error);
-            // Fallback to template preview
             await this.loadTemplatePreview(this.currentTemplate);
         }
     }
@@ -210,13 +203,11 @@ class TemplatePreview {
         return cookieValue;
     }
 
-    // Public method to switch template from backend events
     switchTemplateFromBackend(templateId) {
         console.log('🎯 TemplatePreview: switchTemplateFromBackend called with:', templateId);
         return this.switchTemplate(templateId);
     }
 
-    // Public method to update resume preview from backend events
     updateResumePreviewFromBackend(resumeId, templateId = null) {
         console.log('🎯 TemplatePreview: updateResumePreviewFromBackend called with:', { resumeId, templateId });
         
@@ -228,7 +219,6 @@ class TemplatePreview {
         return this.updateResumePreview(resumeId);
     }
 
-    // Public method to trigger template button click programmatically
     triggerTemplateButtonClick(templateId) {
         console.log('🎯 TemplatePreview: triggerTemplateButtonClick called with:', templateId);
         
@@ -242,10 +232,9 @@ class TemplatePreview {
     }
 }
 
-// Initialize TemplatePreview when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🔧 Initializing TemplatePreview component');
     window.templatePreview = new TemplatePreview();
     console.log('✅ TemplatePreview component initialized');
 });
-</script> 
+</script>

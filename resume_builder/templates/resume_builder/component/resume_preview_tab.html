@@ -1,6 +1,7 @@
 <!-- Resume Preview Tab Component -->
 <div id="resumePreviewTab" class="resume-preview-tab" 
-     data-resume-url="{% url 'resume_builder:view_resume_by_id' 0 %}">
+     data-resume-url="{% url 'resume_builder:view_resume_by_id' 0 %}"
+     data-default-template="{{ default_template_id }}">
     <!-- Header -->
     <div class="preview-header">
         <div>
@@ -17,22 +18,15 @@
         {% if resume %}
         <div class="flex items-center gap-3">
             <!-- Template Selector -->
-            <div class="template-selector">
-                <button class="template-btn {% if resume.template_id == 'professional' %}active{% endif %}" 
-                        data-template="professional"
-                        onclick="switchResumeTemplate('professional')">
-                    Professional
+            <div class="template-selector flex flex-wrap gap-2">
+                {% for t in resume_templates %}
+                <button type="button"
+                        class="template-btn {% if resume.template_id == t.id %}active{% endif %}"
+                        data-template="{{ t.id }}"
+                        onclick="switchResumeTemplate('{{ t.id }}')">
+                    {{ t.name }}
                 </button>
-                <button class="template-btn {% if resume.template_id == 'modern' %}active{% endif %}" 
-                        data-template="modern"
-                        onclick="switchResumeTemplate('modern')">
-                    Modern
-                </button>
-                <button class="template-btn {% if resume.template_id == 'creative' %}active{% endif %}" 
-                        data-template="creative"
-                        onclick="switchResumeTemplate('creative')">
-                    Creative
-                </button>
+                {% endfor %}
             </div>
             
             <!-- Download Buttons -->
