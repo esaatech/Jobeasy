@@ -3,12 +3,6 @@
 
 {% block title %}{{ page_title }}{% endblock %}
 
-{% block extra_head %}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,400&family=Playfair+Display:ital,wght@0,400;0,600;0,900;1,600&display=swap" rel="stylesheet">
-{% endblock %}
-
 {% block body_class %}landing-resumes-body{% endblock %}
 
 {% block navigation %}{% endblock %}
@@ -16,12 +10,12 @@
 {% block extra_css %}
 <style>
     body.landing-resumes-body {
-        background-color: #F0EDE6 !important;
+        background-color: #F3EFE6 !important;
     }
     .landing-resumes-page {
-        font-family: "DM Sans", system-ui, sans-serif;
+        /* Inherit Inter / system sans from base — matches home outside editorial heading */
         font-weight: 400;
-        background: #F0EDE6;
+        background: #F3EFE6;
         border-bottom: 1px solid #E1DBD0;
         min-height: 100vh;
         min-height: 100dvh;
@@ -76,11 +70,40 @@
         min-width: 0;
         max-width: 34rem;
         padding: 0;
+        animation: landingSlideInLeft 0.8s ease-out forwards;
     }
     .landing-hero-ctas {
         width: 100%;
         max-width: 34rem;
         padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
+        animation: landingSlideInLeft 0.8s ease-out 0.18s both;
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .landing-hero-copy,
+        .landing-fan-column,
+        .landing-hero-ctas {
+            animation: none !important;
+        }
+    }
+    @keyframes landingSlideInLeft {
+        from {
+            opacity: 0;
+            transform: translateX(-30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+    @keyframes landingSlideInRight {
+        from {
+            opacity: 0;
+            transform: translateX(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
     }
     @media (max-width: 1023px) {
         .landing-hero-copy .hero-subtitle {
@@ -147,25 +170,33 @@
         background: #5A9A67;
         box-shadow: 0 0 0 3px rgba(90, 154, 103, 0.14);
     }
+    /* Match home hero typography: Georgia editorial + green italic highlight (hero.html) */
     .landing-resumes-page .hero-editorial-heading {
-        font-family: "Playfair Display", Georgia, serif;
-        font-weight: 900;
-        font-size: clamp(1.65rem, 4.8vw + 0.6rem, 2.85rem);
-        line-height: 1.1;
-        letter-spacing: -0.03em;
+        font-family: Georgia, "Times New Roman", serif;
+        font-weight: 700;
+        font-size: clamp(4rem, 8vw, 6.5rem);
+        line-height: 0.92;
+        letter-spacing: -0.04em;
         color: #171413;
-        margin: 0 0 1rem;
-        max-width: 100%;
+        margin: 0 0 1.75rem;
+        max-width: min(22ch, 100%);
         overflow-wrap: break-word;
         word-break: normal;
     }
-    @media (min-width: 1024px) {
+    @media (max-width: 1024px) {
         .landing-resumes-page .hero-editorial-heading {
-            font-size: clamp(2.5rem, 4.2vw + 0.75rem, 4.25rem);
-            line-height: 1.02;
-            letter-spacing: -0.04em;
-            margin: 0 0 1.5rem;
-            max-width: min(32ch, 100%);
+            font-size: clamp(3.5rem, 10vw, 5rem);
+        }
+    }
+    @media (max-width: 768px) {
+        .landing-resumes-page .hero-editorial-heading {
+            font-size: clamp(2.75rem, 12vw, 4.25rem);
+            max-width: min(18ch, 100%);
+        }
+    }
+    @media (max-width: 480px) {
+        .landing-resumes-page .hero-editorial-heading {
+            font-size: clamp(2.25rem, 12vw, 3.5rem);
         }
     }
     .landing-resumes-page .headline-primary.hero-editorial-heading .highlight {
@@ -178,16 +209,18 @@
     .landing-resumes-page .hero-subtitle {
         margin-bottom: 1.25rem;
         max-width: 30rem;
-        font-size: 1rem;
-        font-weight: 400;
-        line-height: 1.55;
-        color: #5c564e;
+        font-size: 1.125rem;
+        line-height: 1.6;
+        color: #67605A;
+    }
+    @media (max-width: 480px) {
+        .landing-resumes-page .hero-subtitle {
+            font-size: 1rem;
+        }
     }
     @media (min-width: 1024px) {
         .landing-resumes-page .hero-subtitle {
             margin-bottom: 2rem;
-            font-size: 1.0625rem;
-            line-height: 1.6;
         }
     }
     .landing-resumes-page .hero-actions-new {
@@ -253,8 +286,9 @@
         }
     }
 
-    /* Right column: fan stage (desktop) */
+    /* Right column: fan stage (desktop) — slideInRight matches home hero visual column */
     .landing-fan-column {
+        animation: landingSlideInRight 0.8s ease-out 0.08s both;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -398,8 +432,8 @@
         background: #2C3E50;
     }
     .landing-fan-card__footer-title {
-        font-family: "Playfair Display", Georgia, serif;
-        font-weight: 900;
+        font-family: Georgia, "Times New Roman", serif;
+        font-weight: 700;
         font-size: 1.125rem;
         line-height: 1.2;
         color: #fff;
@@ -429,7 +463,7 @@
         text-decoration: none;
         border: none;
         cursor: pointer;
-        font-family: "DM Sans", sans-serif;
+        font-family: inherit;
         margin-top: auto;
         transition: transform 0.2s, box-shadow 0.2s;
     }
