@@ -43,9 +43,9 @@ from subscriptions.decorators import check_subscription_access
 
 from .template_registry import (
     DEFAULT_TEMPLATE_ID,
-    RESUME_TEMPLATES,
     get_resume_embedded_style_tag,
     normalize_template_id,
+    templates_for_gallery,
     templates_for_api,
     templates_for_download_picker,
     is_valid_template_id,
@@ -506,7 +506,7 @@ def create_resume(request, resume_id=None):
         'default_resume_name': default_name,
         'resume_instance': resume_instance,
         'date_options': date_options,
-        'resume_templates': RESUME_TEMPLATES,
+        'resume_templates': templates_for_gallery(),
         'selected_template': selected_template,
         'default_template_id': DEFAULT_TEMPLATE_ID,
     }
@@ -771,7 +771,7 @@ def upload_resume(request):
         'resume_builder/optimize_resume_form.html',
         {
             'hero_content': hero_content,
-            'resume_templates': RESUME_TEMPLATES,
+            'resume_templates': templates_for_gallery(),
             'selected_template': DEFAULT_TEMPLATE_ID,
             'default_template_id': DEFAULT_TEMPLATE_ID,
         },
@@ -820,7 +820,7 @@ def view_resume(request, resume_id=None):
                 'resume': resume,
                 'resume_html': html_content,
                 'is_htmx_request': True,
-                'resume_templates': RESUME_TEMPLATES,
+                'resume_templates': templates_for_gallery(),
                 'default_template_id': DEFAULT_TEMPLATE_ID,
             }
             return render(request, 'resume_builder/component/resume_preview_tab.html', context)
@@ -1964,7 +1964,7 @@ def ai_resume_assistant(request):
             'page_title': 'AI Resume Assistant',
             'page_description': 'Create your perfect resume with our AI assistant. Chat naturally and see your resume update in real-time.'
         },
-        'resume_templates': RESUME_TEMPLATES,
+        'resume_templates': templates_for_gallery(),
         'default_template_id': DEFAULT_TEMPLATE_ID,
     }
     return render(request, 'resume_builder/resumeassistant.html', context)
@@ -2306,7 +2306,7 @@ def resume_templates(request):
             'page_title': 'Resume Templates',
             'page_description': 'Choose from our professional resume templates designed to help you stand out to employers.'
         },
-        'resume_templates': RESUME_TEMPLATES,
+        'resume_templates': templates_for_gallery(),
         'default_template_id': DEFAULT_TEMPLATE_ID,
     }
     return render(request, 'resume_templates/resume_templates.html', context)

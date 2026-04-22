@@ -69,6 +69,7 @@ def gmail_authorize(request):
                     "redirect_uris": [os.getenv('GOOGLE_REDIRECT_URI')]
                 }
             },
+            autogenerate_code_verifier=True,
             scopes=[
                 'openid',
                 'https://www.googleapis.com/auth/userinfo.email',
@@ -172,6 +173,7 @@ def gmail_callback(request):
                     "redirect_uris": [os.getenv('GOOGLE_REDIRECT_URI')]
                 }
             },
+            autogenerate_code_verifier=True,
             scopes=[
                 'openid',
                 'https://www.googleapis.com/auth/userinfo.email',
@@ -242,6 +244,15 @@ def gmail_callback(request):
             # Check if user with this email already exists
             try:
                 user = User.objects.get(email=gmail_address)
+                messages.info(request, f"Welcome back! Logged in as {user.username}")
+            except User.MultipleObjectsReturned:
+                # Legacy data may contain duplicate emails; pick the oldest account deterministically.
+                user = User.objects.filter(email=gmail_address).order_by("id").first()
+                logger.warning(
+                    "Multiple users found for gmail email=%s; selected user_id=%s",
+                    gmail_address,
+                    getattr(user, "id", None),
+                )
                 messages.info(request, f"Welcome back! Logged in as {user.username}")
             except User.DoesNotExist:
                 # Create new user

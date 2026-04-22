@@ -7,7 +7,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
 from django.contrib.auth.models import AnonymousUser
 from .models import Resume
-from .template_registry import RESUME_TEMPLATES
+from .template_registry import templates_for_gallery
 
 
 class ResumeBuilderConsumer(AsyncWebsocketConsumer):
@@ -37,7 +37,7 @@ class ResumeBuilderConsumer(AsyncWebsocketConsumer):
         
         await self.accept()
         
-        template_names = [t["name"] for t in RESUME_TEMPLATES]
+        template_names = [t["name"] for t in templates_for_gallery()]
         welcome = (
             "Hello! I'm here to help you create a beautiful resume. "
             f"Available templates: {', '.join(template_names)}. "

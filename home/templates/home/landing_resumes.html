@@ -609,8 +609,8 @@
                         </button>
                     </div>
                     <div class="landing-fan-card__footer">
-                        <h2 class="landing-fan-card__footer-title">{{ t.name }}</h2>
-                        <p class="landing-fan-card__footer-desc">{{ t.description }}</p>
+                        <h2 class="landing-fan-card__footer-title">{{ t.role_label|default:t.name }}</h2>
+                        <p class="landing-fan-card__footer-desc text-sm">{{ t.description }}</p>
                         <a href="{% url 'resume_builder:create_resume' %}?template={{ t.id }}" class="landing-fan-card__cta">Use this template</a>
                     </div>
                 </article>

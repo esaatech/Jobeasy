@@ -15,7 +15,7 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {% for t in resume_templates %}
-            <div class="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 group">
+            <div class="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 group h-full flex flex-col">
                 <div class="relative">
                     {% if t.thumbnail_static %}
                     <img src="{% static t.thumbnail_static %}"
@@ -31,10 +31,13 @@
                         </button>
                     </div>
                 </div>
-                <div class="p-6">
-                    <h3 class="text-xl font-semibold text-gray-900 mb-2">{{ t.name }}</h3>
-                    <p class="text-gray-600 mb-4">{{ t.description }}</p>
-                    <div class="flex items-center justify-end">
+                <div class="px-2 py-3 flex-1 flex flex-col">
+                    <h3 class="text-xl font-semibold text-gray-900 mb-1">{{ t.role_label|default:t.name }}</h3>
+                    <p class="text-sm text-gray-600 mb-4 overflow-hidden text-ellipsis"
+                       style="display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;line-height:1.45;max-height:5.8em;">
+                        {{ t.description }}
+                    </p>
+                    <div class="mt-auto flex items-center justify-end">
                         <button type="button" onclick="useTemplate('{{ t.id }}')"
                                 class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors duration-200">
                             Use Template

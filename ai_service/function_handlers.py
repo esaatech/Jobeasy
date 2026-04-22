@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Optional
 import json
 
-from resume_builder.template_registry import VALID_TEMPLATE_IDS
+from resume_builder.template_registry import get_valid_template_ids
 
 logger = logging.getLogger(__name__)
 
@@ -1628,10 +1628,11 @@ class FunctionHandlers:
             print(f"User ID: {user_id}")
             print(f"Template ID: {template_id}")
             
-            if template_id not in VALID_TEMPLATE_IDS:
+            valid_template_ids = get_valid_template_ids()
+            if template_id not in valid_template_ids:
                 return {
                     "success": False,
-                    "error": f"Invalid template ID. Must be one of: {', '.join(VALID_TEMPLATE_IDS)}"
+                    "error": f"Invalid template ID. Must be one of: {', '.join(valid_template_ids)}"
                 }
             
             # Emit event to frontend to switch template preview
@@ -1703,10 +1704,11 @@ class FunctionHandlers:
             except Resume.DoesNotExist:
                 return {"success": False, "error": f"Resume with ID {resume_id} not found for user {user_id}"}
             
-            if template_id not in VALID_TEMPLATE_IDS:
+            valid_template_ids = get_valid_template_ids()
+            if template_id not in valid_template_ids:
                 return {
                     "success": False,
-                    "error": f"Invalid template ID. Must be one of: {', '.join(VALID_TEMPLATE_IDS)}"
+                    "error": f"Invalid template ID. Must be one of: {', '.join(valid_template_ids)}"
                 }
             
             # Update template

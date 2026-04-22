@@ -2,7 +2,7 @@
 Single source of truth for resume/CV HTML templates.
 
 To add a template:
-1. Add a row to RESUME_TEMPLATES (id must match filename: resume_templates/<id>.html).
+1. Add or edit a ResumeTemplate in Django admin (template_id must match filename: resume_templates/<id>.html).
 2. Implement that template with a root element class ``<id>-template`` (e.g. executive-template).
 3. Optional: set thumbnail_static to a path under static/ for gallery cards.
 4. Marketing /landing_page/resumes/: set ``featured`` True and ``featured_rank`` (1–4 typical);
@@ -11,14 +11,18 @@ To add a template:
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Iterable, List, Optional
+
+from django.apps import apps
+from django.core.exceptions import AppRegistryNotReady
+from django.db.utils import OperationalError, ProgrammingError
 
 # Max featured templates shown on marketing landing pages (e.g. /landing_page/resumes/).
 FEATURED_LANDING_MAX: int = 4
 
 
-# Ordered list used everywhere: picker UI, APIs, AI enums, print CSS.
-RESUME_TEMPLATES: List[Dict[str, Any]] = [
+# Fallback list used when DB is not available yet (migrations/bootstrap).
+DEFAULT_RESUME_TEMPLATES: List[Dict[str, Any]] = [
     {
         "id": "professional",
         "name": "Professional",
@@ -72,15 +76,92 @@ RESUME_TEMPLATES: List[Dict[str, Any]] = [
     },
 ]
 
-DEFAULT_TEMPLATE_ID: str = RESUME_TEMPLATES[0]["id"]
+DEFAULT_TEMPLATE_ID: str = DEFAULT_RESUME_TEMPLATES[0]["id"]
 
-VALID_TEMPLATE_IDS: tuple[str, ...] = tuple(t["id"] for t in RESUME_TEMPLATES)
 
+def _normalize_template_record(record: Dict[str, Any]) -> Dict[str, Any]:
+    return {
+        "id": record["id"],
+        "name": record.get("name", ""),
+        "description": record.get("description", ""),
+        "role_label": record.get("role_label") or record.get("name", ""),
+        "short_label": record.get("short_label", ""),
+        "featured": bool(record.get("featured", False)),
+        "featured_rank": int(record.get("featured_rank", 999)),
+        "features": list(record.get("features", [])),
+        "thumbnail_static": record.get("thumbnail_static", ""),
+        "selection_gradient": record.get("selection_gradient", ""),
+        "selection_title_class": record.get("selection_title_class", ""),
+        "is_active": bool(record.get("is_active", True)),
+    }
+
+
+def _template_model():
+    try:
+        return apps.get_model("resume_builder", "ResumeTemplate")
+    except (LookupError, AppRegistryNotReady):
+        return None
+
+
+def _iter_db_templates() -> Iterable[Dict[str, Any]]:
+    model = _template_model()
+    if model is None:
+        return []
+
+    try:
+        templates = model.objects.filter(is_active=True).order_by("featured_rank", "name")
+        return [
+            _normalize_template_record(
+                {
+                    "id": item.template_id,
+                    "name": item.name,
+                    "description": item.description,
+                    "role_label": item.role_label,
+                    "short_label": item.short_label,
+                    "featured": item.featured,
+                    "featured_rank": item.featured_rank,
+                    "features": item.features,
+                    "thumbnail_static": item.thumbnail_static,
+                    "selection_gradient": item.selection_gradient,
+                    "selection_title_class": item.selection_title_class,
+                    "is_active": item.is_active,
+                }
+            )
+            for item in templates
+        ]
+    except (OperationalError, ProgrammingError):
+        return []
+
+
+def _default_templates() -> List[Dict[str, Any]]:
+    return [_normalize_template_record(item) for item in DEFAULT_RESUME_TEMPLATES]
+
+
+def get_resume_templates() -> List[Dict[str, Any]]:
+    db_templates = list(_iter_db_templates())
+    if db_templates:
+        return db_templates
+    return _default_templates()
+
+
+def get_valid_template_ids() -> tuple[str, ...]:
+    ids = tuple(t["id"] for t in get_resume_templates())
+    if ids:
+        return ids
+    return (DEFAULT_TEMPLATE_ID,)
+
+
+def get_template_id_enum() -> List[str]:
+    return list(get_valid_template_ids())
+
+
+# Import-safe fallback constants (no DB access at module import).
+VALID_TEMPLATE_IDS: tuple[str, ...] = tuple(t["id"] for t in DEFAULT_RESUME_TEMPLATES)
 TEMPLATE_ID_ENUM: List[str] = list(VALID_TEMPLATE_IDS)
 
 
 def is_valid_template_id(template_id: Optional[str]) -> bool:
-    return bool(template_id) and template_id in VALID_TEMPLATE_IDS
+    return bool(template_id) and template_id in get_valid_template_ids()
 
 
 def normalize_template_id(template_id: Optional[str]) -> str:
@@ -91,7 +172,7 @@ def normalize_template_id(template_id: Optional[str]) -> str:
 
 def get_print_css_template_selectors() -> str:
     """Comma-separated class selectors for @media print (root class per template)."""
-    return ", ".join(f".{t['id']}-template" for t in RESUME_TEMPLATES)
+    return ", ".join(f".{t['id']}-template" for t in get_resume_templates())
 
 
 def get_resume_embedded_style_tag() -> str:
@@ -109,7 +190,7 @@ def get_resume_embedded_style_tag() -> str:
 
 def templates_for_download_picker() -> List[Dict[str, str]]:
     """Minimal {id, name} for session-based download flow."""
-    return [{"id": t["id"], "name": t["name"]} for t in RESUME_TEMPLATES]
+    return [{"id": t["id"], "name": t["name"]} for t in get_resume_templates()]
 
 
 def templates_for_api() -> List[Dict[str, Any]]:
@@ -121,13 +202,13 @@ def templates_for_api() -> List[Dict[str, Any]]:
             "description": t["description"],
             "features": list(t.get("features", [])),
         }
-        for t in RESUME_TEMPLATES
+        for t in get_resume_templates()
     ]
 
 
 def templates_for_gallery() -> List[Dict[str, Any]]:
     """Context for gallery + form cards (includes static thumbnail paths)."""
-    return list(RESUME_TEMPLATES)
+    return list(get_resume_templates())
 
 
 def featured_templates_for_landing(max_count: int = FEATURED_LANDING_MAX) -> List[Dict[str, Any]]:
@@ -135,6 +216,6 @@ def featured_templates_for_landing(max_count: int = FEATURED_LANDING_MAX) -> Lis
     Templates marked featured=True, ordered by featured_rank (then list order).
     Used on marketing pages; max_count defaults to FEATURED_LANDING_MAX (4).
     """
-    indexed = [(i, t) for i, t in enumerate(RESUME_TEMPLATES) if t.get("featured")]
+    indexed = [(i, t) for i, t in enumerate(get_resume_templates()) if t.get("featured")]
     indexed.sort(key=lambda it: (it[1].get("featured_rank", 999), it[0]))
     return [t for _, t in indexed][:max_count]

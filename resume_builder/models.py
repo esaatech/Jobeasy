@@ -3,6 +3,7 @@ from django.conf import settings
 from django.utils import timezone
 import os
 
+
 def resume_pdf_path(instance, filename):
     """Generate a unique path for resume PDF files"""
     # Get file extension
@@ -10,6 +11,30 @@ def resume_pdf_path(instance, filename):
     # Create a unique filename with timestamp
     timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
     return f'resumes/{instance.user.id}/resume_{timestamp}{ext}'
+
+
+class ResumeTemplate(models.Model):
+    template_id = models.SlugField(max_length=50, unique=True)
+    name = models.CharField(max_length=100)
+    description = models.TextField()
+    role_label = models.CharField(max_length=100, blank=True, default="")
+    short_label = models.CharField(max_length=120, blank=True, default="")
+    features = models.JSONField(default=list, blank=True)
+    thumbnail_static = models.CharField(max_length=255, blank=True, default="")
+    selection_gradient = models.CharField(max_length=120, blank=True, default="")
+    selection_title_class = models.CharField(max_length=120, blank=True, default="")
+    featured = models.BooleanField(default=False)
+    featured_rank = models.PositiveIntegerField(default=999)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["featured_rank", "name"]
+
+    def __str__(self):
+        return f"{self.name} ({self.template_id})"
+
 
 class Resume(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='resumes')
