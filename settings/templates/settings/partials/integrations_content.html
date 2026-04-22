@@ -65,13 +65,32 @@
                             </div>
                             <div class="ml-4">
                                 <p class="text-sm font-medium text-gray-700">Yahoo Mail</p>
-                                <p class="text-sm text-gray-500">Send emails directly from your Yahoo Mail account</p>
+                                <p class="text-sm text-gray-500">Connect once with your Yahoo email + app password.</p>
                             </div>
                         </div>
-                        <button type="button" class="btn btn-secondary" disabled>
-                            Coming Soon
+                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('yahoo-connect-form').classList.toggle('hidden')">
+                            Connect
                         </button>
                     </div>
+                    <form id="yahoo-connect-form" method="POST" action="{% url 'email_utility:connect_smtp_account' %}" class="hidden p-4 border border-gray-200 rounded-lg bg-gray-50 space-y-3">
+                        {% csrf_token %}
+                        <input type="hidden" name="provider" value="yahoo">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Yahoo Email</label>
+                            <input type="email" name="email_address" class="w-full rounded-md border-gray-300" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">App Password</label>
+                            <input type="password" name="app_password" class="w-full rounded-md border-gray-300" required>
+                        </div>
+                        <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                            <input type="checkbox" name="is_default" class="rounded border-gray-300">
+                            Set as default sender
+                        </label>
+                        <div>
+                            <button type="submit" class="btn btn-primary">Save Yahoo Account</button>
+                        </div>
+                    </form>
 
                     <!-- Outlook Integration -->
                     <div class="flex items-center justify-between">
@@ -84,13 +103,32 @@
                             </div>
                             <div class="ml-4">
                                 <p class="text-sm font-medium text-gray-700">Outlook</p>
-                                <p class="text-sm text-gray-500">Send emails directly from your Outlook account</p>
+                                <p class="text-sm text-gray-500">Connect once with your Outlook email + app password.</p>
                             </div>
                         </div>
-                        <button type="button" class="btn btn-secondary" disabled>
-                            Coming Soon
+                        <button type="button" class="btn btn-secondary" onclick="document.getElementById('outlook-connect-form').classList.toggle('hidden')">
+                            Connect
                         </button>
                     </div>
+                    <form id="outlook-connect-form" method="POST" action="{% url 'email_utility:connect_smtp_account' %}" class="hidden p-4 border border-gray-200 rounded-lg bg-gray-50 space-y-3">
+                        {% csrf_token %}
+                        <input type="hidden" name="provider" value="outlook">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Outlook Email</label>
+                            <input type="email" name="email_address" class="w-full rounded-md border-gray-300" required>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">App Password</label>
+                            <input type="password" name="app_password" class="w-full rounded-md border-gray-300" required>
+                        </div>
+                        <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                            <input type="checkbox" name="is_default" class="rounded border-gray-300">
+                            Set as default sender
+                        </label>
+                        <div>
+                            <button type="submit" class="btn btn-primary">Save Outlook Account</button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -160,8 +198,9 @@
             <div class="px-4 py-5 sm:p-6">
                 <h3 class="headline-tertiary">Connected Integrations</h3>
                 <div class="mt-4">
-                    {% if gmail_connected %}
+                    {% if has_connected_email %}
                         <div class="space-y-4">
+                            {% if gmail_connected %}
                             <div class="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
                                 <div class="flex items-center">
                                     <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
@@ -189,12 +228,38 @@
                                     </a>
                                 </div>
                             </div>
+                            {% endif %}
+                            {% for account in smtp_accounts %}
+                            <div class="flex items-center justify-between p-4 bg-green-50 border border-green-200 rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="ml-3">
+                                        <p class="text-sm font-medium text-green-800">
+                                            {{ account.get_provider_display }} Connected
+                                            {% if account.is_default %}<span class="ml-2 text-xs px-2 py-1 rounded bg-green-200 text-green-900">Default</span>{% endif %}
+                                        </p>
+                                        <p class="text-sm text-green-700">{{ account.email_address }}</p>
+                                    </div>
+                                </div>
+                                <div class="flex space-x-2">
+                                    {% if not account.is_default %}
+                                    <form method="POST" action="{% url 'email_utility:set_default_smtp_account' account.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="text-sm text-green-600 hover:text-green-500">Set Default</button>
+                                    </form>
+                                    {% endif %}
+                                    <form method="POST" action="{% url 'email_utility:disconnect_smtp_account' account.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="text-sm text-red-600 hover:text-red-500">Disconnect</button>
+                                    </form>
+                                </div>
+                            </div>
+                            {% endfor %}
                         </div>
                     {% else %}
                         <p class="text-sm text-gray-500">No integrations connected yet.</p>
                     {% endif %}
                 </div>
-                {% if gmail_connected %}
+                {% if has_connected_email %}
                 <div class="mt-5">
                     <button hx-get="{% url 'settings:gmail_settings' %}" 
                             hx-target="#settings-content"

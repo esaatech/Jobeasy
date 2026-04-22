@@ -16,4 +16,7 @@ urlpatterns = [
     path('history/', views.email_history, name='email_history'),
     path('settings/', views.gmail_settings, name='gmail_settings'),
     path('disconnect/', views.disconnect_gmail, name='disconnect_gmail'),
+    path('accounts/connect/', views.connect_smtp_account, name='connect_smtp_account'),
+    path('accounts/<int:account_id>/default/', views.set_default_smtp_account, name='set_default_smtp_account'),
+    path('accounts/<int:account_id>/disconnect/', views.disconnect_smtp_account, name='disconnect_smtp_account'),
 ] 

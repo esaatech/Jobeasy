@@ -238,7 +238,7 @@
     </div>
 
     <!-- Email Composition Form -->
-    {% if is_gmail_connected %}
+    {% if sender_accounts %}
         <form id="emailForm" class="email-form">
             {% csrf_token %}
             
@@ -246,7 +246,18 @@
             
             <div class="form-group">
                 <label for="sender_email" class="form-label">From *</label>
-                <input type="email" id="sender_email" name="sender_email" class="form-input" value="{{ gmail_address }}" readonly>
+                {% if sender_accounts|length > 1 %}
+                <select id="sender_account" name="sender_account" class="form-input" required>
+                    {% for account in sender_accounts %}
+                    <option value="{{ account.id }}" {% if account.id == selected_sender_id %}selected{% endif %}>
+                        {{ account.label }}{% if account.is_default %} (Default){% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+                {% else %}
+                <input type="text" id="sender_email" name="sender_email" class="form-input" value="{{ sender_accounts.0.label }}" readonly>
+                <input type="hidden" id="sender_account" name="sender_account" value="{{ sender_accounts.0.id }}">
+                {% endif %}
             </div>
             
             <div class="form-group">
@@ -279,9 +290,9 @@
         </div>
     {% else %}
         <div class="connect-prompt">
-            <p>Please connect your Gmail account to send emails.</p>
-            <a href="{% url 'email_utility:gmail_authorize' %}?next={{ request.path }}" class="btn-primary">
-                Connect Gmail Account
+            <p>Please connect an email account to send emails.</p>
+            <a href="{% url 'settings:integrations' %}" class="btn-primary">
+                Open Integrations
             </a>
         </div>
     {% endif %}
@@ -343,6 +354,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Get form data
             const formData = {
+                sender_account: document.getElementById('sender_account').value,
                 recipient_email: document.getElementById('recipient_email').value,
                 subject: document.getElementById('subject').value,
                 message: document.getElementById('message').value,

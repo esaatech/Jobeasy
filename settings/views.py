@@ -54,15 +54,19 @@ def notification_settings(request):
 def integration_settings(request):
     # Get Gmail connection status
     from email_utility.services.gmail_service import GmailService
+    from email_utility.models import SMTPAccount
     gmail_service = GmailService(request.user)
     gmail_connected = gmail_service.is_authenticated()
     gmail_address = gmail_service.gmail_auth.gmail_address if gmail_connected else None
+    smtp_accounts = SMTPAccount.objects.filter(user=request.user, is_active=True).order_by('-is_default', '-updated_at')
     
     context = {
         'active_section': 'integrations',
         'page_title': 'Platform Integrations',
         'gmail_connected': gmail_connected,
         'gmail_address': gmail_address,
+        'smtp_accounts': smtp_accounts,
+        'has_connected_email': gmail_connected or smtp_accounts.exists(),
     }
     
     # Check if this is an HTMX request

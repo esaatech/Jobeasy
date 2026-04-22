@@ -18,8 +18,9 @@ from django.utils import timezone
 from google_auth_oauthlib.flow import Flow
 from google.oauth2.credentials import Credentials
 
-from .models import GmailAuth, EmailHistory
+from .models import GmailAuth, EmailHistory, SMTPAccount
 from .services.gmail_service import GmailService, create_gmail_auth_from_credentials
+from .services.smtp_service import SMTPService
 from resume_builder.models import Resume
 from coverletter.models import CoverLetter
 
@@ -49,6 +50,55 @@ def _clear_gmail_oauth_session(request):
     """Clean up transient OAuth session keys."""
     request.session.pop("gmail_oauth_state", None)
     request.session.pop("gmail_oauth_code_verifier", None)
+
+
+def _get_connected_sender_accounts(user):
+    """Return all connected sender accounts for compose/send UX."""
+    accounts = []
+
+    gmail_service = GmailService(user)
+    if gmail_service.is_authenticated():
+        accounts.append(
+            {
+                "id": "gmail_oauth",
+                "provider": "gmail",
+                "email": gmail_service.gmail_auth.gmail_address,
+                "label": f"Gmail ({gmail_service.gmail_auth.gmail_address})",
+                "is_default": False,
+            }
+        )
+
+    smtp_accounts = SMTPAccount.objects.filter(user=user, is_active=True).order_by("-is_default", "-updated_at")
+    for account in smtp_accounts:
+        accounts.append(
+            {
+                "id": f"smtp_{account.id}",
+                "provider": account.provider,
+                "email": account.email_address,
+                "label": f"{account.get_provider_display()} ({account.email_address})",
+                "is_default": account.is_default,
+            }
+        )
+
+    if accounts and not any(a.get("is_default") for a in accounts):
+        accounts[0]["is_default"] = True
+
+    return accounts
+
+
+def _resolve_sender_for_request(user, sender_account_id: str):
+    """Resolve and validate sender account selected by user."""
+    sender_account_id = (sender_account_id or "").strip()
+    connected_accounts = _get_connected_sender_accounts(user)
+    if not connected_accounts:
+        return None, "No connected email account found. Connect Gmail, Yahoo, or Outlook first."
+
+    account_map = {a["id"]: a for a in connected_accounts}
+    selected = account_map.get(sender_account_id) if sender_account_id else None
+    if not selected:
+        selected = next((a for a in connected_accounts if a.get("is_default")), connected_accounts[0])
+
+    return selected, None
 
 
 def gmail_authorize(request):
@@ -384,9 +434,8 @@ def email_compose(request, document_type, document_id):
             messages.error(request, "Invalid document type")
             return redirect('dashboard:dashboard')
         
-        # Check Gmail authentication
-        gmail_service = GmailService(request.user)
-        is_gmail_connected = gmail_service.is_authenticated()
+        sender_accounts = _get_connected_sender_accounts(request.user)
+        selected_sender = next((account for account in sender_accounts if account.get("is_default")), None)
         
         # Extract applicant name from resume if available
         applicant_name = None
@@ -400,8 +449,10 @@ def email_compose(request, document_type, document_id):
             'document_type': document_type,
             'document_name': document_name,
             'attachment_type': attachment_type,
-            'is_gmail_connected': is_gmail_connected,
-            'gmail_address': gmail_service.gmail_auth.gmail_address if is_gmail_connected else None,
+            'is_gmail_connected': any(account["provider"] == "gmail" for account in sender_accounts),
+            'gmail_address': selected_sender["email"] if selected_sender else None,
+            'sender_accounts': sender_accounts,
+            'selected_sender_id': selected_sender["id"] if selected_sender else "",
             'email_body': email_body, # Pass the email_body to the context
             'cover_letter': cover_letter,  # Pass cover letter object if available
             'resume': resume,  # Pass resume object if available
@@ -429,6 +480,7 @@ def send_email(request):
         message = data.get('message')
         document_type = data.get('document_type')
         document_id = data.get('document_id')
+        sender_account_id = data.get('sender_account')
         
         # Validate required fields
         if not all([recipient_email, subject, message, document_type, document_id]):
@@ -437,12 +489,11 @@ def send_email(request):
                 'error': 'Missing required fields'
             }, status=400)
         
-        # Check Gmail authentication
-        gmail_service = GmailService(request.user)
-        if not gmail_service.is_authenticated():
+        selected_sender, sender_error = _resolve_sender_for_request(request.user, sender_account_id)
+        if sender_error:
             return JsonResponse({
                 'success': False,
-                'error': 'Gmail not connected. Please connect your Gmail account first.'
+                'error': sender_error
             }, status=400)
         
         # Get the document
@@ -568,9 +619,10 @@ def send_email(request):
                 'error': f'Error generating PDF: {str(e)}'
             }, status=500)
         
-        # Send email via Gmail API
+        # Send email through selected provider
         try:
             # For cover letters or job applications with cover letter, wrap the content in HTML tags for proper email formatting
+            is_html = False
             if document_type == 'cover_letter' or (document_type == 'job_application' and cover_letter):
                 # Replace newlines with HTML breaks before using in f-string
                 formatted_message = message.replace('\n', '<br>')
@@ -582,16 +634,40 @@ def send_email(request):
                 </html>
                 """
                 email_body_to_send = html_body
+                is_html = True
             else:
                 email_body_to_send = message
-            
-            result = gmail_service.send_email(
-                to_email=recipient_email,
-                subject=subject,
-                body=email_body_to_send,
-                attachment_path=attachment_path,
-                attachment_name=attachment_name
-            )
+
+            if selected_sender["id"] == "gmail_oauth":
+                gmail_service = GmailService(request.user)
+                if not gmail_service.is_authenticated():
+                    result = {
+                        "success": False,
+                        "error": "Selected Gmail account is no longer connected. Please reconnect it in Integrations.",
+                    }
+                else:
+                    result = gmail_service.send_email(
+                        to_email=recipient_email,
+                        subject=subject,
+                        body=email_body_to_send,
+                        attachment_path=attachment_path,
+                        attachment_name=attachment_name
+                    )
+            else:
+                smtp_account_id = int(selected_sender["id"].replace("smtp_", ""))
+                smtp_account = SMTPAccount.objects.get(
+                    id=smtp_account_id,
+                    user=request.user,
+                    is_active=True,
+                )
+                result = SMTPService(smtp_account).send_email(
+                    to_email=recipient_email,
+                    subject=subject,
+                    body=email_body_to_send,
+                    attachment_path=attachment_path,
+                    attachment_name=attachment_name,
+                    is_html=is_html,
+                )
             
             if result['success']:
                 email_history.status = 'sent'
@@ -653,6 +729,64 @@ def email_history(request):
     }
     
     return render(request, 'email_utility/history.html', context)
+
+
+@login_required
+@require_http_methods(["POST"])
+def connect_smtp_account(request):
+    provider = (request.POST.get("provider") or "").strip().lower()
+    email_address = (request.POST.get("email_address") or "").strip()
+    app_password = (request.POST.get("app_password") or "").strip()
+    set_default = request.POST.get("is_default") == "on"
+
+    if provider not in {SMTPAccount.PROVIDER_OUTLOOK, SMTPAccount.PROVIDER_YAHOO}:
+        messages.error(request, "Unsupported provider. Please select Yahoo or Outlook.")
+        return redirect("settings:integrations")
+
+    if not email_address or not app_password:
+        messages.error(request, "Email address and app password are required.")
+        return redirect("settings:integrations")
+
+    SMTPAccount.objects.update_or_create(
+        user=request.user,
+        provider=provider,
+        email_address=email_address,
+        defaults={
+            "app_password": app_password,
+            "is_active": True,
+            "is_default": set_default,
+        },
+    )
+
+    if set_default:
+        SMTPAccount.objects.filter(user=request.user).exclude(
+            provider=provider,
+            email_address=email_address,
+        ).update(is_default=False)
+
+    messages.success(request, f"{provider.title()} account connected successfully.")
+    return redirect("settings:integrations")
+
+
+@login_required
+@require_http_methods(["POST"])
+def set_default_smtp_account(request, account_id):
+    account = get_object_or_404(SMTPAccount, id=account_id, user=request.user)
+    SMTPAccount.objects.filter(user=request.user).update(is_default=False)
+    account.is_default = True
+    account.save(update_fields=["is_default", "updated_at"])
+    messages.success(request, f"{account.email_address} set as default sender.")
+    return redirect("settings:integrations")
+
+
+@login_required
+@require_http_methods(["POST"])
+def disconnect_smtp_account(request, account_id):
+    account = get_object_or_404(SMTPAccount, id=account_id, user=request.user)
+    account_label = account.email_address
+    account.delete()
+    messages.success(request, f"{account_label} disconnected successfully.")
+    return redirect("settings:integrations")
 
 
 @login_required

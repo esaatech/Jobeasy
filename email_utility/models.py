@@ -63,6 +63,41 @@ class EmailHistory(models.Model):
         return f"{self.user.username} -> {self.recipient_email} ({self.status})"
 
 
+class SMTPAccount(models.Model):
+    """Store user-managed SMTP accounts for non-OAuth providers."""
+
+    PROVIDER_GMAIL = "gmail"
+    PROVIDER_OUTLOOK = "outlook"
+    PROVIDER_YAHOO = "yahoo"
+    PROVIDER_CHOICES = [
+        (PROVIDER_GMAIL, "Gmail"),
+        (PROVIDER_OUTLOOK, "Outlook"),
+        (PROVIDER_YAHOO, "Yahoo Mail"),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="smtp_accounts")
+    provider = models.CharField(max_length=20, choices=PROVIDER_CHOICES)
+    email_address = models.EmailField()
+    app_password = models.CharField(max_length=255)
+    is_active = models.BooleanField(default=True)
+    is_default = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "SMTP Account"
+        verbose_name_plural = "SMTP Accounts"
+        ordering = ["-is_default", "-updated_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "provider", "email_address"],
+                name="unique_user_provider_email_account",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} - {self.get_provider_display()} ({self.email_address})"
+
 
 
 

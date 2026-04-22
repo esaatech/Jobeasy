@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import GmailAuth, EmailHistory
+from .models import GmailAuth, EmailHistory, SMTPAccount
 
 
 @admin.register(GmailAuth)
@@ -46,4 +46,11 @@ class EmailHistoryAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+
+@admin.register(SMTPAccount)
+class SMTPAccountAdmin(admin.ModelAdmin):
+    list_display = ["user", "provider", "email_address", "is_active", "is_default", "updated_at"]
+    list_filter = ["provider", "is_active", "is_default", "updated_at"]
+    search_fields = ["user__username", "user__email", "email_address"]
 
