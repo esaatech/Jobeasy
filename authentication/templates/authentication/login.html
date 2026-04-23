@@ -131,6 +131,17 @@
                     </a>
                 </div>
 
+                <!-- Yahoo Login Button -->
+                <div>
+                    <a href="{% url 'email_utility:yahoo_authorize' %}{% if next %}?next={{ next }}{% endif %}{% if resume_data %}{% if next %}&{% else %}?{% endif %}resume_data={{ resume_data }}{% endif %}" 
+                       class="w-full mt-3 flex justify-center py-2 px-4 border border-purple-200 rounded-md shadow-sm text-sm font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-colors duration-200">
+                        <svg class="w-5 h-5 mr-2" viewBox="0 0 24 24" aria-hidden="true">
+                            <path fill="#6001D2" d="M5.74 3.01h4.08l2.4 5.43L14.78 3h4.06l-4.68 8.79V21h-3.73v-9.21L5.74 3.01z"/>
+                        </svg>
+                        Continue with Yahoo
+                    </a>
+                </div>
+
                 <!-- Debug Link (only show in development) -->
                 {% if debug %}
                 <div class="text-center">

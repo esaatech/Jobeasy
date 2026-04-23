@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import GmailAuth, EmailHistory, SMTPAccount
+from .models import GmailAuth, YahooAuth, EmailHistory, SMTPAccount
 
 
 @admin.register(GmailAuth)
@@ -46,6 +46,13 @@ class EmailHistoryAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
+
+
+@admin.register(YahooAuth)
+class YahooAuthAdmin(admin.ModelAdmin):
+    list_display = ["user", "yahoo_address", "is_active", "created_at", "updated_at"]
+    list_filter = ["is_active", "created_at", "updated_at"]
+    search_fields = ["user__username", "user__email", "yahoo_address"]
 
 
 @admin.register(SMTPAccount)

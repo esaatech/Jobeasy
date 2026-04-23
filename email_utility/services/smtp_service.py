@@ -21,6 +21,25 @@ class SMTPService:
     def __init__(self, smtp_account: SMTPAccount):
         self.smtp_account = smtp_account
 
+    @classmethod
+    def test_credentials(cls, provider: str, email_address: str, app_password: str):
+        """Validate SMTP credentials before persisting account settings."""
+        provider_cfg = cls.SMTP_CONFIG.get(provider)
+        if not provider_cfg:
+            return False, "Unsupported SMTP provider"
+
+        try:
+            with smtplib.SMTP(provider_cfg["host"], provider_cfg["port"], timeout=15) as smtp:
+                smtp.ehlo()
+                smtp.starttls()
+                smtp.ehlo()
+                smtp.login(email_address, app_password)
+            return True, None
+        except smtplib.SMTPAuthenticationError:
+            return False, "Authentication failed. Check your email/app password and try again."
+        except Exception as exc:
+            return False, f"Connection failed: {str(exc)}"
+
     def send_email(
         self,
         to_email: str,

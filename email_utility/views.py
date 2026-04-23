@@ -2,6 +2,7 @@ import os
 import json
 import logging
 import tempfile
+import secrets
 from datetime import datetime
 from urllib.parse import urlencode, urlparse
 from django.shortcuts import render, redirect, get_object_or_404
@@ -21,6 +22,7 @@ from google.oauth2.credentials import Credentials
 from .models import GmailAuth, EmailHistory, SMTPAccount
 from .services.gmail_service import GmailService, create_gmail_auth_from_credentials
 from .services.smtp_service import SMTPService
+from .services.yahoo_service import YahooService, create_yahoo_auth_from_token_payload
 from resume_builder.models import Resume
 from coverletter.models import CoverLetter
 
@@ -52,6 +54,11 @@ def _clear_gmail_oauth_session(request):
     request.session.pop("gmail_oauth_code_verifier", None)
 
 
+def _clear_yahoo_oauth_session(request):
+    """Clean up transient Yahoo OAuth session keys."""
+    request.session.pop("yahoo_oauth_state", None)
+
+
 def _get_connected_sender_accounts(user):
     """Return all connected sender accounts for compose/send UX."""
     accounts = []
@@ -68,7 +75,10 @@ def _get_connected_sender_accounts(user):
             }
         )
 
-    smtp_accounts = SMTPAccount.objects.filter(user=user, is_active=True).order_by("-is_default", "-updated_at")
+    smtp_accounts = SMTPAccount.objects.filter(
+        user=user,
+        is_active=True,
+    ).order_by("-is_default", "-updated_at")
     for account in smtp_accounts:
         accounts.append(
             {
@@ -95,6 +105,9 @@ def _resolve_sender_for_request(user, sender_account_id: str):
 
     account_map = {a["id"]: a for a in connected_accounts}
     selected = account_map.get(sender_account_id) if sender_account_id else None
+    if sender_account_id and not selected:
+        logger.warning("Unsupported sender account selection user_id=%s sender_id=%s", user.pk, sender_account_id)
+        return None, "Selected sender is no longer available. Please choose a connected account."
     if not selected:
         selected = next((a for a in connected_accounts if a.get("is_default")), connected_accounts[0])
 
@@ -348,6 +361,104 @@ def gmail_callback(request):
         _clear_gmail_oauth_session(request)
         messages.error(request, f"Error completing Gmail authorization: {str(e)}")
         return redirect('dashboard:dashboard')
+
+
+def yahoo_authorize(request):
+    """Start Yahoo OAuth2 authorization flow."""
+    try:
+        next_url = request.GET.get("next", "dashboard:dashboard")
+        request.session["yahoo_redirect_after_auth"] = next_url
+        state = secrets.token_urlsafe(32)
+        request.session["yahoo_oauth_state"] = state
+        authorization_url = YahooService.get_authorization_url(state=state)
+        return redirect(authorization_url)
+    except Exception as exc:
+        logger.exception("Error starting Yahoo authorization: %s", exc)
+        messages.error(request, f"Error starting Yahoo authorization: {str(exc)}")
+        return redirect("dashboard:dashboard")
+
+
+def yahoo_callback(request):
+    """Handle Yahoo OAuth callback with login support."""
+    try:
+        oauth_error = request.GET.get("error")
+        if oauth_error:
+            messages.error(request, f"Yahoo sign-in was not completed: {oauth_error.replace('_', ' ')}.")
+            return redirect("dashboard:dashboard")
+
+        code = request.GET.get("code")
+        state = request.GET.get("state")
+        if not code:
+            messages.error(request, "Missing authorization from Yahoo. Start the Yahoo connection again.")
+            return redirect("dashboard:dashboard")
+
+        session_state = request.session.get("yahoo_oauth_state")
+        if state != session_state:
+            messages.error(request, "Your Yahoo sign-in session expired. Please try connecting Yahoo again.")
+            return redirect("dashboard:dashboard")
+
+        token_payload = YahooService.exchange_code_for_tokens(code=code)
+        _clear_yahoo_oauth_session(request)
+
+        access_token = token_payload.get("access_token")
+        if not access_token:
+            messages.error(request, "Yahoo token exchange failed. Please try again.")
+            return redirect("dashboard:dashboard")
+
+        user_info = YahooService.fetch_user_info(access_token=access_token) or {}
+        yahoo_address = user_info.get("email")
+        user_name = user_info.get("name", "")
+        if not yahoo_address:
+            messages.error(request, "Could not retrieve your Yahoo email address.")
+            return redirect("dashboard:dashboard")
+
+        yahoo_service = YahooService(request.user if request.user.is_authenticated else None)
+        if request.user.is_authenticated:
+            user = request.user
+            yahoo_service.user = user
+            yahoo_service.yahoo_auth = create_yahoo_auth_from_token_payload(user, token_payload, yahoo_address)
+            messages.success(request, f"Yahoo connected successfully! You can now send emails from {yahoo_address}")
+        else:
+            try:
+                user = User.objects.get(email=yahoo_address)
+                messages.info(request, f"Welcome back! Logged in as {user.username}")
+            except User.MultipleObjectsReturned:
+                user = User.objects.filter(email=yahoo_address).order_by("id").first()
+                logger.warning(
+                    "Multiple users found for yahoo email=%s; selected user_id=%s",
+                    yahoo_address,
+                    getattr(user, "id", None),
+                )
+                messages.info(request, f"Welcome back! Logged in as {user.username}")
+            except User.DoesNotExist:
+                username = yahoo_address.split("@")[0]
+                base_username = username
+                counter = 1
+                while User.objects.filter(username=username).exists():
+                    username = f"{base_username}{counter}"
+                    counter += 1
+                user = User.objects.create_user(
+                    username=username,
+                    email=yahoo_address,
+                    first_name=user_name.split()[0] if user_name else "",
+                    last_name=" ".join(user_name.split()[1:]) if user_name and len(user_name.split()) > 1 else "",
+                )
+                messages.success(request, f"Account created successfully! Welcome to JobEas, {user_name or username}")
+
+            login(request, user)
+            yahoo_service.user = user
+            yahoo_service.yahoo_auth = create_yahoo_auth_from_token_payload(user, token_payload, yahoo_address)
+
+        return_url = request.session.get("yahoo_redirect_after_auth", "dashboard:dashboard")
+        if "yahoo_redirect_after_auth" in request.session:
+            del request.session["yahoo_redirect_after_auth"]
+        target = _resolve_post_oauth_redirect(request, return_url)
+        return redirect(target)
+    except Exception as exc:
+        logger.exception("Error completing Yahoo authorization: %s", exc)
+        _clear_yahoo_oauth_session(request)
+        messages.error(request, f"Error completing Yahoo authorization: {str(exc)}")
+        return redirect("dashboard:dashboard")
 
 
 @login_required
@@ -740,11 +851,25 @@ def connect_smtp_account(request):
     set_default = request.POST.get("is_default") == "on"
 
     if provider not in {SMTPAccount.PROVIDER_OUTLOOK, SMTPAccount.PROVIDER_YAHOO}:
-        messages.error(request, "Unsupported provider. Please select Yahoo or Outlook.")
+        error_text = "Unsupported provider. Please select Yahoo or Outlook."
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"success": False, "error": error_text}, status=400)
+        messages.error(request, error_text)
         return redirect("settings:integrations")
 
     if not email_address or not app_password:
-        messages.error(request, "Email address and app password are required.")
+        error_text = "Email address and app password are required."
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"success": False, "error": error_text}, status=400)
+        messages.error(request, error_text)
+        return redirect("settings:integrations")
+
+    is_valid, error_message = SMTPService.test_credentials(provider, email_address, app_password)
+    if not is_valid:
+        error_text = error_message or "Could not verify SMTP credentials."
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"success": False, "error": error_text}, status=400)
+        messages.error(request, error_text)
         return redirect("settings:integrations")
 
     SMTPAccount.objects.update_or_create(
@@ -764,7 +889,11 @@ def connect_smtp_account(request):
             email_address=email_address,
         ).update(is_default=False)
 
-    messages.success(request, f"{provider.title()} account connected successfully.")
+    success_text = f"{provider.title()} account connected successfully."
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+        return JsonResponse({"success": True, "message": success_text})
+
+    messages.success(request, success_text)
     return redirect("settings:integrations")
 
 
@@ -820,6 +949,28 @@ def disconnect_gmail(request):
     except Exception as e:
         messages.error(request, f"Error disconnecting Gmail: {str(e)}")
         return redirect('email_utility:gmail_settings')
+
+
+@login_required
+@require_http_methods(["POST"])
+def disconnect_yahoo(request):
+    """Disconnect Yahoo sending integration only (preserve Yahoo login link)."""
+    try:
+        yahoo_accounts = SMTPAccount.objects.filter(
+            user=request.user,
+            provider=SMTPAccount.PROVIDER_YAHOO,
+            is_active=True,
+        )
+        deleted_count = yahoo_accounts.count()
+        yahoo_accounts.delete()
+        if deleted_count:
+            messages.success(request, "Yahoo sending integration disconnected successfully")
+        else:
+            messages.error(request, "No Yahoo sending integration connected")
+        return redirect("settings:integrations")
+    except Exception as exc:
+        messages.error(request, f"Error disconnecting Yahoo sending integration: {str(exc)}")
+        return redirect("settings:integrations")
 
 
 

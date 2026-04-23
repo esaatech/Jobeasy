@@ -30,6 +30,32 @@ class GmailAuth(models.Model):
         return timezone.now() > (self.token_expiry - timezone.timedelta(minutes=5))
 
 
+class YahooAuth(models.Model):
+    """Store Yahoo OAuth2 tokens for users."""
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="yahoo_auth")
+    access_token = models.TextField()
+    refresh_token = models.TextField()
+    token_expiry = models.DateTimeField()
+    yahoo_address = models.EmailField()
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Yahoo Authentication"
+        verbose_name_plural = "Yahoo Authentications"
+
+    def __str__(self):
+        return f"{self.user.username} - {self.yahoo_address}"
+
+    def is_token_expired(self):
+        return timezone.now() > self.token_expiry
+
+    def needs_refresh(self):
+        return timezone.now() > (self.token_expiry - timezone.timedelta(minutes=5))
+
+
 class EmailHistory(models.Model):
     """Track email sending history"""
     STATUS_CHOICES = [

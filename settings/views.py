@@ -54,19 +54,36 @@ def notification_settings(request):
 def integration_settings(request):
     # Get Gmail connection status
     from email_utility.services.gmail_service import GmailService
+    from email_utility.services.yahoo_service import YahooService
     from email_utility.models import SMTPAccount
     gmail_service = GmailService(request.user)
     gmail_connected = gmail_service.is_authenticated()
     gmail_address = gmail_service.gmail_auth.gmail_address if gmail_connected else None
-    smtp_accounts = SMTPAccount.objects.filter(user=request.user, is_active=True).order_by('-is_default', '-updated_at')
+    yahoo_service = YahooService(request.user)
+    yahoo_connected = yahoo_service.is_authenticated()
+    yahoo_address = yahoo_service.yahoo_auth.yahoo_address if yahoo_connected else None
+    yahoo_sending_account = SMTPAccount.objects.filter(
+        user=request.user,
+        is_active=True,
+        provider=SMTPAccount.PROVIDER_YAHOO,
+    ).order_by('-updated_at').first()
+    outlook_smtp_accounts = SMTPAccount.objects.filter(
+        user=request.user,
+        is_active=True,
+        provider=SMTPAccount.PROVIDER_OUTLOOK,
+    ).order_by('-is_default', '-updated_at')
     
     context = {
         'active_section': 'integrations',
         'page_title': 'Platform Integrations',
         'gmail_connected': gmail_connected,
         'gmail_address': gmail_address,
-        'smtp_accounts': smtp_accounts,
-        'has_connected_email': gmail_connected or smtp_accounts.exists(),
+        'yahoo_connected': yahoo_connected,
+        'yahoo_address': yahoo_address,
+        'yahoo_sending_connected': bool(yahoo_sending_account),
+        'yahoo_sending_account': yahoo_sending_account,
+        'smtp_accounts': outlook_smtp_accounts,
+        'has_connected_email': gmail_connected or bool(yahoo_sending_account) or outlook_smtp_accounts.exists(),
     }
     
     # Check if this is an HTMX request
