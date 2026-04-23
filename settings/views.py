@@ -11,8 +11,27 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError
 from django.core.exceptions import ValidationError
+from django.views.decorators.http import require_POST
+from django.utils import timezone
+import os
+import stripe
 
 # Create your views here.
+stripe.api_key = os.getenv('MYAPP_STRIPE_SECRET_KEY')
+
+
+def _get_or_create_stripe_customer_for_user(user):
+    from subscriptions.models import UserProfile
+
+    stripe_profile, _ = UserProfile.objects.get_or_create(user=user)
+    if not stripe_profile.stripe_customer_id:
+        customer = stripe.Customer.create(
+            email=user.email,
+            metadata={'user_id': user.id}
+        )
+        stripe_profile.stripe_customer_id = customer.id
+        stripe_profile.save(update_fields=['stripe_customer_id'])
+    return stripe_profile.stripe_customer_id
 
 @login_required
 def settings_root(request):
@@ -132,15 +151,218 @@ def billing_settings(request):
                     'plan_duration': None,
                     'status': 'ACTIVE'
                 })()
+    has_payment_method = False
+    default_payment_method = None
+    payment_method_error = None
+    billing_invoices = []
+    auto_renewal_enabled = None
+    can_manage_subscription = False
+    billing_history_error = None
+
+    # Load saved payment method data from Stripe when available.
+    try:
+        from subscriptions.models import UserProfile
+
+        stripe_profile = UserProfile.objects.filter(user=request.user).first()
+        if stripe_profile and stripe_profile.stripe_customer_id and stripe.api_key:
+            customer = stripe.Customer.retrieve(stripe_profile.stripe_customer_id)
+            default_payment_method_id = None
+
+            if getattr(customer, 'invoice_settings', None):
+                default_payment_method_id = customer.invoice_settings.get('default_payment_method')
+
+            payment_methods = stripe.PaymentMethod.list(
+                customer=stripe_profile.stripe_customer_id,
+                type='card',
+                limit=10
+            ).data
+
+            selected_payment_method = None
+            if default_payment_method_id:
+                selected_payment_method = next(
+                    (pm for pm in payment_methods if pm.id == default_payment_method_id),
+                    None
+                )
+                if not selected_payment_method:
+                    selected_payment_method = stripe.PaymentMethod.retrieve(default_payment_method_id)
+            elif payment_methods:
+                selected_payment_method = payment_methods[0]
+
+            if selected_payment_method and getattr(selected_payment_method, 'card', None):
+                has_payment_method = True
+                brand = (selected_payment_method.card.brand or 'card').title()
+                default_payment_method = {
+                    'brand': brand,
+                    'last4': selected_payment_method.card.last4,
+                    'exp_month': selected_payment_method.card.exp_month,
+                    'exp_year': selected_payment_method.card.exp_year,
+                }
+
+            # Billing history from Stripe invoices.
+            invoices = stripe.Invoice.list(customer=stripe_profile.stripe_customer_id, limit=10).data
+            for invoice in invoices:
+                billing_invoices.append({
+                    'number': invoice.number or invoice.id,
+                    'status': (invoice.status or 'unknown').replace('_', ' ').title(),
+                    'amount_paid': (invoice.amount_paid or 0) / 100,
+                    'currency': (invoice.currency or 'usd').upper(),
+                    'hosted_invoice_url': invoice.hosted_invoice_url,
+                    'invoice_pdf': invoice.invoice_pdf,
+                    'created': timezone.datetime.fromtimestamp(invoice.created, tz=timezone.utc)
+                    if getattr(invoice, 'created', None) else None,
+                })
+    except stripe.error.StripeError:
+        payment_method_error = 'Unable to load payment method details from Stripe right now.'
+        billing_history_error = 'Unable to load billing history from Stripe right now.'
+    except Exception:
+        payment_method_error = 'Unable to load payment method details right now.'
+        billing_history_error = 'Unable to load billing history right now.'
+
+    # Auto-renewal state for active paid subscriptions.
+    try:
+        stripe_subscription_id = getattr(current_subscription, 'stripe_subscription_id', None)
+        if stripe_subscription_id and stripe.api_key:
+            can_manage_subscription = True
+            stripe_subscription = stripe.Subscription.retrieve(stripe_subscription_id)
+            auto_renewal_enabled = not bool(getattr(stripe_subscription, 'cancel_at_period_end', False))
+    except stripe.error.StripeError:
+        can_manage_subscription = False
+    except Exception:
+        can_manage_subscription = False
+
     context = {
         'active_section': 'billing',
         'page_title': 'Billing & Subscription',
         'current_subscription': current_subscription,
+        'has_payment_method': has_payment_method,
+        'default_payment_method': default_payment_method,
+        'payment_method_error': payment_method_error,
+        'billing_invoices': billing_invoices,
+        'billing_history_error': billing_history_error,
+        'auto_renewal_enabled': auto_renewal_enabled,
+        'can_manage_subscription': can_manage_subscription,
     }
     # Check if this is an HTMX request
     if request.headers.get('HX-Request'):
         return render(request, 'settings/partials/billing_content.html', context)
     return render(request, 'settings/settings.html', context)
+
+@login_required
+def add_payment_method(request):
+    """
+    Redirect user to Stripe Billing Portal so they can add/update payment methods.
+    """
+    if not stripe.api_key:
+        messages.error(request, 'Stripe is not configured. Please contact support.')
+        return redirect('settings:billing')
+
+    try:
+        stripe_customer_id = _get_or_create_stripe_customer_for_user(request.user)
+
+        return_url = request.build_absolute_uri(reverse('settings:billing'))
+        portal_session = stripe.billing_portal.Session.create(
+            customer=stripe_customer_id,
+            return_url=return_url,
+        )
+
+        return redirect(portal_session.url)
+    except stripe.error.StripeError as exc:
+        messages.error(request, f'Unable to open billing portal: {exc.user_message or str(exc)}')
+        return redirect('settings:billing')
+    except Exception:
+        messages.error(request, 'Unable to open billing portal right now. Please try again.')
+        return redirect('settings:billing')
+
+
+@login_required
+def download_invoices(request):
+    """
+    Redirect to Stripe Billing Portal invoice history/download section.
+    """
+    return add_payment_method(request)
+
+
+@login_required
+@require_POST
+def update_auto_renewal(request):
+    from subscriptions.models import UserSubscription
+
+    if not stripe.api_key:
+        messages.error(request, 'Stripe is not configured. Please contact support.')
+        return redirect('settings:billing')
+
+    subscription = UserSubscription.objects.filter(
+        user=request.user,
+        status='ACTIVE'
+    ).exclude(stripe_subscription_id__isnull=True).exclude(stripe_subscription_id='').first()
+
+    if not subscription:
+        messages.error(request, 'No active Stripe subscription found for this account.')
+        return redirect('settings:billing')
+
+    enable_auto_renewal = request.POST.get('auto_renewal') == 'on'
+
+    try:
+        stripe_subscription = stripe.Subscription.modify(
+            subscription.stripe_subscription_id,
+            cancel_at_period_end=not enable_auto_renewal,
+        )
+        if not enable_auto_renewal and getattr(stripe_subscription, 'current_period_end', None):
+            subscription.end_date = timezone.datetime.fromtimestamp(
+                stripe_subscription.current_period_end, tz=timezone.utc
+            )
+            subscription.save(update_fields=['end_date', 'updated_at'])
+        elif enable_auto_renewal and subscription.end_date:
+            subscription.end_date = None
+            subscription.save(update_fields=['end_date', 'updated_at'])
+
+        messages.success(
+            request,
+            'Auto-renewal enabled.' if enable_auto_renewal else 'Auto-renewal disabled. Subscription will end at period close.'
+        )
+    except stripe.error.StripeError as exc:
+        messages.error(request, f'Unable to update auto-renewal: {exc.user_message or str(exc)}')
+    except Exception:
+        messages.error(request, 'Unable to update auto-renewal right now. Please try again.')
+
+    return redirect('settings:billing')
+
+
+@login_required
+@require_POST
+def cancel_subscription(request):
+    from subscriptions.models import UserSubscription
+
+    if not stripe.api_key:
+        messages.error(request, 'Stripe is not configured. Please contact support.')
+        return redirect('settings:billing')
+
+    subscription = UserSubscription.objects.filter(
+        user=request.user,
+        status='ACTIVE'
+    ).exclude(stripe_subscription_id__isnull=True).exclude(stripe_subscription_id='').first()
+
+    if not subscription:
+        messages.error(request, 'No active Stripe subscription found for this account.')
+        return redirect('settings:billing')
+
+    try:
+        stripe_subscription = stripe.Subscription.modify(
+            subscription.stripe_subscription_id,
+            cancel_at_period_end=True,
+        )
+        if getattr(stripe_subscription, 'current_period_end', None):
+            subscription.end_date = timezone.datetime.fromtimestamp(
+                stripe_subscription.current_period_end, tz=timezone.utc
+            )
+            subscription.save(update_fields=['end_date', 'updated_at'])
+        messages.success(request, 'Subscription cancellation scheduled for end of current billing period.')
+    except stripe.error.StripeError as exc:
+        messages.error(request, f'Unable to cancel subscription: {exc.user_message or str(exc)}')
+    except Exception:
+        messages.error(request, 'Unable to cancel subscription right now. Please try again.')
+
+    return redirect('settings:billing')
 
 @login_required
 def security_settings(request):

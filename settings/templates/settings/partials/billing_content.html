@@ -36,12 +36,23 @@
             <div class="px-4 py-5 sm:p-6">
                 <h3 class="headline-tertiary">Payment Method</h3>
                 <div class="mt-4">
-                    <p class="text-sm text-gray-500">No payment method on file</p>
+                    {% if has_payment_method and default_payment_method %}
+                        <p class="text-sm text-gray-700">
+                            {{ default_payment_method.brand }} ending in {{ default_payment_method.last4 }}
+                        </p>
+                        <p class="text-sm text-gray-500">
+                            Expires {{ default_payment_method.exp_month }}/{{ default_payment_method.exp_year }}
+                        </p>
+                    {% elif payment_method_error %}
+                        <p class="text-sm text-amber-600">{{ payment_method_error }}</p>
+                    {% else %}
+                        <p class="text-sm text-gray-500">No payment method on file</p>
+                    {% endif %}
                 </div>
                 <div class="mt-5">
-                    <button type="button" class="btn btn-secondary">
-                        Add Payment Method
-                    </button>
+                    <a href="{% url 'settings:add_payment_method' %}" class="btn btn-secondary inline-flex items-center">
+                        {% if has_payment_method %}Manage Payment Methods{% else %}Add Payment Method{% endif %}
+                    </a>
                 </div>
             </div>
         </div>
@@ -51,12 +62,38 @@
             <div class="px-4 py-5 sm:p-6">
                 <h3 class="headline-tertiary">Billing History</h3>
                 <div class="mt-4">
-                    <p class="text-sm text-gray-500">No billing history available</p>
+                    {% if billing_history_error %}
+                        <p class="text-sm text-amber-600">{{ billing_history_error }}</p>
+                    {% elif billing_invoices %}
+                        <div class="space-y-3">
+                            {% for invoice in billing_invoices %}
+                                <div class="flex items-center justify-between text-sm">
+                                    <div>
+                                        <p class="font-medium text-gray-700">{{ invoice.number }}</p>
+                                        <p class="text-gray-500">
+                                            {{ invoice.created|date:"M d, Y" }} - {{ invoice.currency }} {{ invoice.amount_paid|floatformat:2 }} - {{ invoice.status }}
+                                        </p>
+                                    </div>
+                                    {% if invoice.invoice_pdf %}
+                                        <a href="{{ invoice.invoice_pdf }}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-700 font-medium">
+                                            Download
+                                        </a>
+                                    {% elif invoice.hosted_invoice_url %}
+                                        <a href="{{ invoice.hosted_invoice_url }}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-700 font-medium">
+                                            View
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-sm text-gray-500">No billing history available</p>
+                    {% endif %}
                 </div>
                 <div class="mt-5">
-                    <button type="button" class="btn btn-secondary" disabled>
+                    <a href="{% url 'settings:download_invoices' %}" class="btn btn-secondary inline-flex items-center">
                         Download Invoices
-                    </button>
+                    </a>
                 </div>
             </div>
         </div>
@@ -72,19 +109,27 @@
                             <p class="text-sm text-gray-500">Automatically renew your subscription</p>
                         </div>
                         <div class="flex items-center">
-                            <input type="checkbox" 
-                                   id="auto-renewal" 
-                                   name="auto-renewal" 
-                                   class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                                   disabled>
+                            <form method="post" action="{% url 'settings:update_auto_renewal' %}" class="inline">
+                                {% csrf_token %}
+                                <input type="checkbox"
+                                       id="auto-renewal"
+                                       name="auto_renewal"
+                                       class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                       {% if auto_renewal_enabled %}checked{% endif %}
+                                       {% if not can_manage_subscription %}disabled{% endif %}
+                                       onchange="this.form.submit()">
+                            </form>
                             <label for="auto-renewal" class="sr-only">Auto-renewal</label>
                         </div>
                     </div>
                 </div>
                 <div class="mt-5">
-                    <button type="button" class="btn btn-secondary" disabled>
-                        Cancel Subscription
-                    </button>
+                    <form method="post" action="{% url 'settings:cancel_subscription' %}" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-secondary" {% if not can_manage_subscription %}disabled{% endif %}>
+                            Cancel Subscription
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
