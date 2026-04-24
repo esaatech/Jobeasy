@@ -41,53 +41,7 @@
     </div>
 </section>
 
-<!-- Template Preview Modal -->
-<div id="templatePreviewModal" class="fixed inset-0 bg-black bg-opacity-50 z-[9999] hidden">
-    <div class="flex items-center justify-center min-h-screen p-4">
-        <div class="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
-            <!-- Modal Header -->
-            <div class="flex items-center justify-between p-6 border-b border-gray-200">
-                <h3 class="text-xl font-bold text-gray-800">Template Preview</h3>
-                <button onclick="closeTemplatePreview()" class="text-gray-400 hover:text-gray-600">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
-            </div>
-            
-            <!-- Template Navigation -->
-            <div class="flex flex-wrap justify-center gap-2 p-4 bg-gray-50 border-b border-gray-200">
-                {% for t in resume_templates %}
-                <button type="button"
-                        onclick="switchPreviewTemplate('{{ t.id }}')"
-                        class="preview-tab px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                        data-template="{{ t.id }}">
-                    {{ t.name }}
-                </button>
-                {% endfor %}
-            </div>
-            
-            <!-- Preview Content -->
-            <div class="p-6 overflow-y-auto max-h-[60vh]">
-                <div id="previewContent" class="resume-preview">
-                    <!-- Template content will be loaded here -->
-                </div>
-            </div>
-            
-            <!-- Modal Footer -->
-            <div class="flex justify-end space-x-3 p-6 border-t border-gray-200">
-                <button onclick="closeTemplatePreview()" 
-                        class="btn btn-secondary">
-                    Close
-                </button>
-                <button onclick="selectCurrentTemplate()" 
-                        class="btn btn-success">
-                    Select This Template
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
+{% include 'partials/template_preview_modal.html' with preview_templates=resume_templates default_template_id=default_template_id preview_modal_title='Template Preview' preview_use_label='Select This Template' preview_action='select-radio' %}
 {% endblock %}
 
 {% block extra_scripts %}
@@ -135,91 +89,6 @@ function performTabSwitch(tabName) {
     
     return true;
 }
-
-// Template Preview Modal Logic
-let currentPreviewTemplate = '{{ default_template_id }}';
-
-function showTemplatePreview(templateId) {
-    currentPreviewTemplate = templateId;
-    document.getElementById('templatePreviewModal').classList.remove('hidden');
-    loadTemplatePreview(templateId);
-    updatePreviewTabs(templateId);
-}
-
-function closeTemplatePreview() {
-    document.getElementById('templatePreviewModal').classList.add('hidden');
-}
-
-function switchPreviewTemplate(templateId) {
-    currentPreviewTemplate = templateId;
-    loadTemplatePreview(templateId);
-    updatePreviewTabs(templateId);
-}
-
-function updatePreviewTabs(activeTemplate) {
-    document.querySelectorAll('.preview-tab').forEach(tab => {
-        const template = tab.dataset.template;
-        if (template === activeTemplate) {
-            tab.classList.add('bg-emerald-100', 'text-emerald-700');
-            tab.classList.remove('bg-white', 'text-gray-600', 'hover:bg-gray-100');
-        } else {
-            tab.classList.remove('bg-emerald-100', 'text-emerald-700');
-            tab.classList.add('bg-white', 'text-gray-600', 'hover:bg-gray-100');
-        }
-    });
-}
-
-function selectCurrentTemplate() {
-    // Set the radio button for the current template
-    document.querySelector(`input[name="template_id"][value="${currentPreviewTemplate}"]`).checked = true;
-    closeTemplatePreview();
-}
-
-function loadTemplatePreview(templateId) {
-    const previewContent = document.getElementById('previewContent');
-    
-    // Get user's locale (could be from user preferences, browser settings, etc.)
-    const userLocale = navigator.language || 'en-US';
-    
-    // Load template content from backend with locale support
-    fetch(`/resume/preview/${encodeURIComponent(templateId)}/?locale=${userLocale}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Failed to load template');
-            }
-            return response.text();
-        })
-        .then(html => {
-            previewContent.innerHTML = html;
-        })
-        .catch(error => {
-            console.error('Error loading template:', error);
-            // Show a simple error message instead of duplicate sample data
-            previewContent.innerHTML = `
-                <div class="text-center py-8">
-                    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    </svg>
-                    <h3 class="mt-2 text-sm font-medium text-gray-900">Template Preview Unavailable</h3>
-                    <p class="mt-1 text-sm text-gray-500">Unable to load template preview. Please try again later.</p>
-                </div>
-            `;
-        });
-}
-
-// Close modal when clicking outside
-document.getElementById('templatePreviewModal').addEventListener('click', function(e) {
-    if (e.target === this) {
-        closeTemplatePreview();
-    }
-});
-
-// Close modal with Escape key
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        closeTemplatePreview();
-    }
-});
 
 // Your existing JavaScript code for form handling...
 </script>
