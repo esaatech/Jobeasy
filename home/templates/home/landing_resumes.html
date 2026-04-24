@@ -126,7 +126,7 @@
         .landing-hero-copy {
             grid-column: 1;
             grid-row: 1;
-            align-self: center;
+            align-self: start;
         }
         .landing-hero-ctas {
             grid-column: 1;
@@ -138,7 +138,7 @@
         .landing-fan-column {
             grid-column: 2;
             grid-row: 1 / span 2;
-            align-self: center;
+            align-self: start;
             justify-self: center;
             margin-top: 0 !important;
         }
@@ -348,9 +348,6 @@
             width: min(560px, 100%);
         }
     }
-    .landing-fan-stage--paused .landing-fan-card {
-        transition-duration: 0.65s;
-    }
     .landing-fan-card {
         position: absolute;
         display: flex;
@@ -368,8 +365,7 @@
         overflow: hidden;
         cursor: pointer;
         will-change: transform;
-        transition: transform 0.55s cubic-bezier(0.34, 1.1, 0.64, 1),
-            box-shadow 0.55s cubic-bezier(0.34, 1.1, 0.64, 1);
+        transition: none;
     }
     .landing-fan-card:focus {
         outline: 2px solid #4C9660;
@@ -678,27 +674,13 @@
 
 <script>
 (function() {
-    /* Front card always centered on stage (CSS left:50% + margin). Each state mirrors
-       left/right back cards so animation stays balanced when cycling active template. */
-    const CONFIGS = [
-        {
-            0: { tx: 0, ty: 0, rotate: 0, scale: 1, z: 10 },
-            1: { tx: 34, ty: 16, rotate: 7, scale: 0.94, z: 5 },
-            2: { tx: 58, ty: 28, rotate: 11, scale: 0.88, z: 1 },
-        },
-        {
-            0: { tx: -54, ty: 28, rotate: -11, scale: 0.88, z: 1 },
-            1: { tx: 0, ty: 0, rotate: 0, scale: 1, z: 10 },
-            2: { tx: 54, ty: 28, rotate: 11, scale: 0.88, z: 5 },
-        },
-        {
-            0: { tx: -58, ty: 28, rotate: -11, scale: 0.88, z: 1 },
-            1: { tx: -34, ty: 16, rotate: -7, scale: 0.94, z: 5 },
-            2: { tx: 0, ty: 0, rotate: 0, scale: 1, z: 10 },
-        },
-    ];
+    const STATIC_FAN = {
+        /* Right-to-left arrangement: right/back, center/front, left/back */
+        0: { tx: 62, ty: 20, rotate: 8, scale: 0.9, z: 5 },
+        1: { tx: 0, ty: 0, rotate: 0, scale: 1, z: 10 },
+        2: { tx: -62, ty: 20, rotate: -8, scale: 0.9, z: 1 },
+    };
 
-    const ROT_MS = 3200;
     const stage = document.getElementById('landingFanStage');
     const hintEl = document.getElementById('landingFanHint');
     if (!stage) return;
@@ -707,23 +689,14 @@
     const n = cards.length;
     if (n === 0) return;
 
-    let active = 0;
-    let autoTimer = null;
-
     function isFanMode() {
         return window.matchMedia('(min-width: 1024px)').matches;
     }
 
-    function templateNames() {
-        return cards.map(function(c) { return c.dataset.name || c.dataset.templateId || ''; });
-    }
-
     function updateHint() {
         if (!hintEl) return;
-        const names = templateNames();
-        const cur = names[active] || 'Template';
         if (isFanMode()) {
-            hintEl.textContent = cur + ' template selected — or click another card';
+            hintEl.textContent = 'Professional template selected.';
         } else {
             hintEl.textContent = 'Choose a template below — tap “Use this template” on a card';
         }
@@ -731,27 +704,23 @@
 
     function applyLayout() {
         const useFan = isFanMode() && n === 3;
-        /* Desktop non-fan: flex fallback. Mobile uses horizontal scroll rules — no static class. */
         stage.classList.toggle('landing-fan-stage--static', !useFan && isFanMode());
 
         if (!useFan) {
-            cards.forEach(function(card, i) {
+            cards.forEach(function(card) {
                 card.style.left = '';
                 card.style.top = '';
                 card.style.marginLeft = '';
                 card.style.transform = '';
                 card.style.zIndex = '';
-                card.classList.toggle('is-front', i === active);
+                card.classList.remove('is-front');
             });
             updateHint();
             return;
         }
 
-        const cfg = CONFIGS[active];
-        if (!cfg) return;
-
         cards.forEach(function(card, slot) {
-            const c = cfg[slot];
+            const c = STATIC_FAN[slot];
             if (!c) return;
             card.style.zIndex = String(c.z);
             card.style.transform =
@@ -761,40 +730,6 @@
         updateHint();
     }
 
-    function setActive(i) {
-        active = ((i % n) + n) % n;
-        stage.dataset.active = String(active);
-        applyLayout();
-    }
-
-    function resetAuto() {
-        if (autoTimer) clearInterval(autoTimer);
-        autoTimer = null;
-        if (!isFanMode() || n !== 3) return;
-        autoTimer = setInterval(function() {
-            setActive(active + 1);
-        }, ROT_MS);
-    }
-
-    function onCardActivate(slot) {
-        setActive(slot);
-        resetAuto();
-    }
-
-    cards.forEach(function(card, slot) {
-        card.addEventListener('click', function(e) {
-            if (e.target.closest('.landing-fan-card__preview-btn')) return;
-            if (e.target.closest('.landing-fan-card__cta')) return;
-            onCardActivate(slot);
-        });
-        card.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onCardActivate(slot);
-            }
-        });
-    });
-
     stage.querySelectorAll('.landing-fan-card__preview-btn').forEach(function(btn) {
         btn.addEventListener('click', function(e) {
             e.stopPropagation();
@@ -803,32 +738,11 @@
         });
     });
 
-    let pauseHover = false;
-    stage.addEventListener('mouseenter', function() {
-        if (!isFanMode()) return;
-        pauseHover = true;
-        stage.classList.add('landing-fan-stage--paused');
-        if (autoTimer) clearInterval(autoTimer);
-        autoTimer = null;
-    });
-    stage.addEventListener('mouseleave', function() {
-        if (!isFanMode() || n !== 3) return;
-        pauseHover = false;
-        stage.classList.remove('landing-fan-stage--paused');
-        resetAuto();
-    });
-
     window.addEventListener('resize', function() {
         applyLayout();
-        if (isFanMode()) resetAuto();
-        else if (autoTimer) {
-            clearInterval(autoTimer);
-            autoTimer = null;
-        }
     });
 
-    setActive(0);
-    resetAuto();
+    applyLayout();
 })();
 
 let currentPreviewTemplate = '{{ default_template_id }}';
