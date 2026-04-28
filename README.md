@@ -241,9 +241,43 @@ poetry run python manage.py runserver
 poetry run uvicorn jobeas.asgi:application --reload
 ```
 
+## PostgreSQL Dump / Restore (Laptop A -> Laptop B)
+
+Use this when moving your local data to another machine.
+
+```bash
+# Laptop A: create a dump
+pg_dump -h localhost -p 5432 -U postgres -d jobeas_local -Fc -f jobeas_local.dump
+```
+
+Copy `jobeas_local.dump` to Laptop B (AirDrop, scp, cloud drive, etc.), then:
+
+```bash
+# Laptop B: create DB (if needed)
+createdb -h localhost -p 5432 -U postgres jobeas_local
+
+# Laptop B: restore dump
+pg_restore -h localhost -p 5432 -U postgres -d jobeas_local --clean --if-exists --no-owner --no-privileges jobeas_local.dump
+
+# Run migrations in case schema changed since dump was created
+poetry run python manage.py migrate
+```
+
+Quick verify:
+
+```bash
+poetry run python manage.py showmigrations | rg '\[ \]'
+```
+
 ## Environment Variables
 
+Copy `.env.example` to `.env` and fill in real values.
+
 - `OPENAI_API_KEY`: OpenAI API key for AI features
-- `DATABASE_URL`: PostgreSQL connection string
+- `DATABASE_URL_LOCAL`: local PostgreSQL connection string for development
+- `DATABASE_URL_PROD`: production PostgreSQL connection string
 - `REDIS_URL`: Redis connection string for WebSocket
-- `SECRET_KEY`: Django secret key 
+- `SECRET_KEY`: Django secret key
+- `MYAPP_STRIPE_SECRET_KEY`: Stripe secret key
+- `MYAPP_STRIPE_PUBLISHABLE_KEY`: Stripe publishable key
+- `STRIPE_BILLING_CURRENCY`: billing currency for plan catalog (`mxn`, `cad`, `usd`, etc.)
