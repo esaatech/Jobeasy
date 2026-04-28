@@ -305,6 +305,24 @@ DEFAULT_FROM_EMAIL = os.environ.get('FROM_EMAIL', 'support@jobeas.com')
 ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'admin@jobeas.com')
 SITE_URL = os.environ.get('SITE_URL', 'https://jobeas.com')
 
+# Stripe catalog / display: amounts in PlanDuration.price are in this currency's major units (e.g. MXN pesos).
+STRIPE_BILLING_CURRENCY = os.environ.get('STRIPE_BILLING_CURRENCY', 'mxn').lower().strip()
+
+
+def _optional_decimal_env(name: str):
+    v = os.environ.get(name, '').strip()
+    if not v:
+        return None
+    from decimal import Decimal
+
+    return Decimal(v)
+
+
+# Optional: when billing is MXN, show an indicative CA$/US$ line for visitors from CA/US (Cloudflare CF-IPCountry).
+# Example: if ~1 MXN = 0.074 CAD, set PRICING_APPROX_CAD_PER_MXN=0.074 (MXN_amount * rate ≈ CAD).
+PRICING_APPROX_CAD_PER_MXN = _optional_decimal_env('PRICING_APPROX_CAD_PER_MXN')
+PRICING_APPROX_USD_PER_MXN = _optional_decimal_env('PRICING_APPROX_USD_PER_MXN')
+
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 CKEDITOR_5_CONFIGS = {

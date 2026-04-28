@@ -55,19 +55,6 @@ function setDefaultDialogData() {
                 "Priority customer support"
             ],
             upgrade_url: "/subscriptions/pricing/?plan=plus"
-        },
-        ultimate: {
-            title: "Upgrade to Ultimate",
-            message: "Advanced features and AI-powered tools are available with our Ultimate plan. Get the best tools for your success.",
-            features: [
-                "Everything in Plus",
-                "AI-powered resume optimization",
-                "ATS compatibility scoring",
-                "Interview preparation tools",
-                "Advanced analytics",
-                "Priority support"
-            ],
-            upgrade_url: "/subscriptions/pricing/?plan=ultimate"
         }
     };
 }
@@ -122,7 +109,7 @@ function showSubscriptionDialog(requiredPlan) {
                 <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
                     <a href="${dialog.upgrade_url}" 
                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
-                        Upgrade to ${requiredPlan}
+                        ${dialog.title}
                     </a>
                     <button type="button" 
                             onclick="closeSubscriptionDialog()"

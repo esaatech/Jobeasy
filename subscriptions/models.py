@@ -126,7 +126,7 @@ class PlanDuration(BaseModel):
     price = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        help_text="Price in USD"
+        help_text="Price in major units of STRIPE_BILLING_CURRENCY (default MXN), matching Stripe Price unit_amount.",
     )
     stripe_price_id = models.CharField(
         max_length=100,

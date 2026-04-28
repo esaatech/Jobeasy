@@ -152,14 +152,15 @@
             <div class="plan-title">{{ plan.name }}</div>
             <div class="plan-desc">{{ plan.description }}</div>
             {% if plan.durations_with_stripe %}
-                <div class="plan-price">
+                <div class="plan-price flex flex-wrap gap-x-6 gap-y-3 items-baseline">
                     {% for duration in plan.durations_with_stripe %}
-                        {% if duration.has_stripe_price %}
-                            ${{ duration.stripe_price|floatformat:2 }}<span class="plan-duration">/{{ duration.get_duration_type_display|lower }}</span>
-                        {% else %}
-                            ${{ duration.price|floatformat:2 }}<span class="plan-duration">/{{ duration.get_duration_type_display|lower }}</span>
-                        {% endif %}
-                        {% if not forloop.last %} <span style="color:#cbd5e1;">|</span> {% endif %}
+                        <div class="leading-tight">
+                            <span class="font-bold text-[#6366f1]">{{ duration.price_display_primary }}</span>
+                            <span class="plan-duration">/{{ duration.get_duration_type_display|lower }}</span>
+                            {% if duration.price_display_secondary %}
+                                <div class="text-sm font-normal text-gray-500 mt-0.5 max-w-[16rem]">{{ duration.price_display_secondary }}</div>
+                            {% endif %}
+                        </div>
                     {% endfor %}
                 </div>
             {% else %}

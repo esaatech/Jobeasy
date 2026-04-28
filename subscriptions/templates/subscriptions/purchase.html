@@ -104,6 +104,7 @@
                     <div class="duration-select border rounded-lg p-4 cursor-pointer hover:border-[#1980e6] transition-colors"
                          data-duration-id="{{ duration.id }}"
                          data-price="{% if duration.has_stripe_price %}{{ duration.stripe_price }}{% else %}{{ duration.price }}{% endif %}"
+                         data-price-formatted="{{ duration.price_display_primary|escape }}"
                          data-stripe-price-id="{{ duration.stripe_price_id }}">
                         <div class="flex items-center justify-between">
                             <div>
@@ -113,8 +114,11 @@
                             </div>
                             <div class="text-right">
                                 <p class="text-2xl font-bold text-[#1980e6]">
-                                    ${% if duration.has_stripe_price %}{{ duration.stripe_price|floatformat:2 }}{% else %}{{ duration.price|floatformat:2 }}{% endif %}
+                                    {{ duration.price_display_primary }}
                                 </p>
+                                {% if duration.price_display_secondary %}
+                                    <p class="text-xs text-gray-500 mt-1 max-w-[14rem] ml-auto">{{ duration.price_display_secondary }}</p>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -430,18 +434,23 @@ document.addEventListener('DOMContentLoaded', function() {
             selectedDurationId = this.dataset.durationId;
             const price = parseFloat(this.dataset.price);
             selectedStripePriceId = this.dataset.stripePriceId;
-            const formattedPrice = `$${price.toFixed(2)}`;
-            
+            const formattedPrice = this.dataset.priceFormatted || `$${price.toFixed(2)}`;
+
             // Update hidden input
             selectedDurationInput.value = selectedDurationId;
-            
-            // Update both amount displays
+
+            // Update both amount displays (server-formatted billing currency)
             paymentAmount.textContent = formattedPrice;
             
             // Update recurring disclosure text
             const recurringAmount = document.getElementById('recurring-amount');
             const recurringFrequency = document.getElementById('recurring-frequency');
             
+            const payBtnAmt = document.getElementById('payment-amount-button');
+            if (payBtnAmt) {
+                payBtnAmt.textContent = formattedPrice;
+            }
+
             if (recurringAmount && recurringFrequency) {
                 recurringAmount.textContent = formattedPrice;
                 
@@ -574,6 +583,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // Update amount displays
         const formattedPrice = `$${price.toFixed(2)}`;
         document.getElementById('payment-amount').textContent = formattedPrice;
+        const payBtnAmt = document.getElementById('payment-amount-button');
+        if (payBtnAmt) {
+            payBtnAmt.textContent = formattedPrice;
+        }
         
         // Update button text with amount and spinner
         document.querySelector('#submit-button').innerHTML = `

@@ -24,11 +24,14 @@ def get_stripe_price_info(plan_duration):
         return amount, currency
     except stripe.error.StripeError as e:
         print(f"Error fetching Stripe price: {e}")
-        # Fallback to Django price
-        return plan_duration.price, 'USD'
+        # Fallback to Django price and configured billing currency
+        fallback_cur = getattr(
+            settings, 'STRIPE_BILLING_CURRENCY', 'mxn'
+        ).upper()
+        return plan_duration.price, fallback_cur
 
 
-def get_plan_durations_with_stripe_prices(plan):
+def get_plan_durations_with_stripe_prices(plan, request=None):
     """
     Get all durations for a plan with their current Stripe prices.
     Returns a list of durations with added stripe_price and stripe_currency fields.
@@ -42,13 +45,17 @@ def get_plan_durations_with_stripe_prices(plan):
         duration.stripe_price = stripe_amount
         duration.stripe_currency = stripe_currency
         duration.has_stripe_price = stripe_amount is not None
-        
+
+        from .pricing_display import attach_price_display
+
+        attach_price_display(duration, request)
+
         durations.append(duration)
-    
+
     return durations
 
 
-def get_all_plans_with_stripe_prices():
+def get_all_plans_with_stripe_prices(request=None):
     """
     Get all active plans with their current Stripe prices.
     Returns a list of plans with durations that have Stripe prices.
@@ -59,11 +66,11 @@ def get_all_plans_with_stripe_prices():
     
     plans_qs = SubscriptionPlan.objects.filter(is_active=True)
     if not settings.DEBUG:
-        # Test plan should never be displayed as purchasable in production.
-        plans_qs = plans_qs.exclude(name='Test')
+        # Plans still in development should not be shown in production.
+        plans_qs = plans_qs.exclude(name__in=['Test', 'Ultimate'])
 
     for plan in plans_qs.prefetch_related('durations'):
-        plan.durations_with_stripe = get_plan_durations_with_stripe_prices(plan)
+        plan.durations_with_stripe = get_plan_durations_with_stripe_prices(plan, request)
         plans.append(plan)
     
     return plans

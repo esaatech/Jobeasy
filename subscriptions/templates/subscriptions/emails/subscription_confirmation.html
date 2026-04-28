@@ -152,7 +152,7 @@
                     <strong>Billing Cycle:</strong> {{ duration.get_duration_type_display }}
                 </div>
                 <div class="detail-item">
-                    <strong>Amount:</strong> <span class="price">${{ duration.price|floatformat:2 }}</span> per {{ duration.get_duration_type_display|lower }}
+                    <strong>Amount:</strong> <span class="price">{{ amount_display }}</span> per {{ duration.get_duration_type_display|lower }}
                 </div>
                 <div class="detail-item">
                     <strong>Next Billing:</strong> {{ subscription.current_period_end|date:"F j, Y" }}

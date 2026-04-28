@@ -34,7 +34,7 @@ class PlanPurchaseView(LoginRequiredMixin, DetailView):
         """Ensure we only get active plans with their durations."""
         queryset = SubscriptionPlan.objects.filter(is_active=True)
         if not settings.DEBUG:
-            queryset = queryset.exclude(name='Test')
+            queryset = queryset.exclude(name__in=['Test', 'Ultimate'])
         return queryset.prefetch_related(
             'durations',
             'features'
@@ -49,7 +49,15 @@ class PlanPurchaseView(LoginRequiredMixin, DetailView):
         
         # Get active durations with Stripe prices for this plan
         from .utils import get_plan_durations_with_stripe_prices
-        context['durations'] = get_plan_durations_with_stripe_prices(plan)
+
+        context['durations'] = get_plan_durations_with_stripe_prices(plan, self.request)
+        context['billing_currency'] = getattr(
+            settings, 'STRIPE_BILLING_CURRENCY', 'mxn'
+        ).upper()
+        if context['durations']:
+            sc = getattr(context['durations'][0], 'stripe_currency', None)
+            if sc:
+                context['billing_currency'] = sc.upper()
         
         # Separate features into tools and services
         context['tools'] = plan.features.filter(
@@ -108,7 +116,7 @@ def process_payment(request, plan_id, duration_id):
         print("DEBUG: Getting plan and duration")
         # Get plan and duration first
         plan = get_object_or_404(SubscriptionPlan, id=plan_id, is_active=True)
-        if plan.name == 'Test' and not settings.DEBUG:
+        if plan.name in ['Test', 'Ultimate'] and not settings.DEBUG:
             return JsonResponse({
                 'success': False,
                 'error': 'This plan is not available in production.'
@@ -514,7 +522,7 @@ def checkout_success(request, subscription_id):
 
 def pricing(request):
     # Get plans with real-time Stripe prices
-    plans = get_all_plans_with_stripe_prices()
+    plans = get_all_plans_with_stripe_prices(request)
     
     # Get user's current subscription if logged in
     current_subscription = None
@@ -550,10 +558,12 @@ def get_subscription_dialog_data(request):
             is_active=True
         ).prefetch_related('features').first()
         
-        ultimate_plan = SubscriptionPlan.objects.filter(
-            name='Ultimate', 
-            is_active=True
-        ).prefetch_related('features').first()
+        ultimate_plan = None
+        if settings.DEBUG:
+            ultimate_plan = SubscriptionPlan.objects.filter(
+                name='Ultimate',
+                is_active=True
+            ).prefetch_related('features').first()
         
         dialog_data = {}
         

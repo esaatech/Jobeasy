@@ -198,15 +198,18 @@ class NotificationService:
     @classmethod
     def send_subscription_confirmation(cls, subscription) -> bool:
         """Send subscription confirmation email"""
+        from subscriptions.pricing_display import format_money_amount
+
         user = subscription.user
         plan = subscription.plan
         duration = subscription.plan_duration
-        
+
         context = {
             'user': user,
             'subscription': subscription,
             'plan': plan,
             'duration': duration,
+            'amount_display': format_money_amount(duration.price, billing_currency),
             'company_name': cls.COMPANY_NAME,
             'support_email': cls.SUPPORT_EMAIL,
             'dashboard_url': f"{settings.SITE_URL}/dashboard/" if hasattr(settings, 'SITE_URL') else '/dashboard/',
