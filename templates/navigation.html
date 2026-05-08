@@ -3,7 +3,6 @@
     <div class="nav-container">
         <!-- Logo and Brand -->
         <a href="{% url 'home:index' %}" class="logo">
-            <span class="logo-emoji">💼</span>
             <img src="{% static 'img/logo.png' %}" alt="Jobeas Logo" class="logo-image" />
         </a>
         
@@ -174,22 +173,17 @@
     }
 
     .logo {
-        font-size: 1.75rem;
         font-weight: 700;
         color: #2563eb;
         text-decoration: none;
         letter-spacing: -0.5px;
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-    }
-
-    .logo-emoji {
-        font-size: 1.5rem;
+        gap: 0;
     }
 
     .logo-image {
-        height: 2rem;
+        height: 2.25rem;
         width: auto;
     }
 
