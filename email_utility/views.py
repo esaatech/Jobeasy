@@ -15,6 +15,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth import login
 from django.urls import reverse
 from django.utils import timezone
+from django.core.exceptions import SynchronousOnlyOperation
 
 from google_auth_oauthlib.flow import Flow
 from google.oauth2.credentials import Credentials
@@ -826,6 +827,12 @@ def send_email(request):
             'success': False,
             'error': 'Invalid JSON data'
         }, status=400)
+    except SynchronousOnlyOperation as e:
+        logger.exception("send_email: SynchronousOnlyOperation (async context / ORM)")
+        return JsonResponse({
+            'success': False,
+            'error': f'Email service async error: {str(e)}',
+        }, status=500)
     except Exception as e:
         return JsonResponse({
             'success': False,

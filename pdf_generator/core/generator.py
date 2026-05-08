@@ -4,14 +4,16 @@ PDF Generator Core
 Main PDF generation functionality using Playwright.
 """
 
+import logging
 import os
 import tempfile
-import logging
-from typing import Dict, Any, Optional, Union
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
+from io import BytesIO
 from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 from django.conf import settings
 from django.template.loader import render_to_string
-from django.http import HttpRequest
 from django.test import RequestFactory
 
 from .utils import PDFOptions, validate_options, get_cache_key, get_cached_pdf, cache_pdf, sanitize_filename
@@ -191,28 +193,137 @@ class PlaywrightPDFGenerator:
 </html>
 """
 
+
+def _pdf_playwright_thread_timeout() -> float:
+    try:
+        return float(getattr(settings, "PDF_PLAYWRIGHT_THREAD_TIMEOUT", 120.0))
+    except (TypeError, ValueError):
+        return 120.0
+
+
+def _playwright_pdf_sync_worker(html_fragment: str, options: Optional[Dict[str, Any]]) -> bytes:
+    pdf_options = validate_options(options)
+    with PlaywrightPDFGenerator() as pdf_gen:
+        return pdf_gen.generate_pdf_from_html(html_fragment, pdf_options)
+
+
+def _run_playwright_pdf_in_thread(
+    html_fragment: str,
+    options: Optional[Dict[str, Any]],
+) -> bytes:
+    """Run sync Playwright off the Django/ASGI asyncio thread."""
+    timeout = _pdf_playwright_thread_timeout()
+    with ThreadPoolExecutor(max_workers=1, thread_name_prefix="pdf_pw") as ex:
+        fut = ex.submit(_playwright_pdf_sync_worker, html_fragment, options)
+        try:
+            return fut.result(timeout=timeout)
+        except FuturesTimeoutError as exc:
+            raise RuntimeError(
+                f"Playwright PDF generation timed out after {timeout}s"
+            ) from exc
+
+
+def _playwright_url_sync_worker(url: str, options: Optional[Dict[str, Any]]) -> bytes:
+    pdf_options = validate_options(options)
+    with PlaywrightPDFGenerator() as pdf_gen:
+        return pdf_gen.generate_pdf_from_url(url, pdf_options)
+
+
+def _run_playwright_url_in_thread(url: str, options: Optional[Dict[str, Any]]) -> bytes:
+    timeout = _pdf_playwright_thread_timeout()
+    with ThreadPoolExecutor(max_workers=1, thread_name_prefix="pdf_pw_url") as ex:
+        fut = ex.submit(_playwright_url_sync_worker, url, options)
+        try:
+            return fut.result(timeout=timeout)
+        except FuturesTimeoutError as exc:
+            raise RuntimeError(
+                f"Playwright URL PDF timed out after {timeout}s"
+            ) from exc
+
+
+def _pdf_batch_worker(pdf_tasks: list) -> list:
+    results: List[Dict[str, Any]] = []
+    with PlaywrightPDFGenerator() as pdf_gen:
+        for task in pdf_tasks:
+            try:
+                template = task.get('template')
+                context = task.get('context', {})
+                options_dataclass = validate_options(task.get('options'))
+
+                html_content = render_to_string(template, context)
+
+                pdf_bytes = pdf_gen.generate_pdf_from_html(html_content, options_dataclass)
+
+                results.append(
+                    {
+                        "success": True,
+                        "filename": task.get("filename", "generated.pdf"),
+                        "pdf_bytes": pdf_bytes,
+                        "size": len(pdf_bytes),
+                    }
+                )
+
+            except Exception as e:
+                logger.error("Failed to generate PDF for task: %s", task)
+                results.append(
+                    {
+                        "success": False,
+                        "filename": task.get("filename", "unknown.pdf"),
+                        "error": str(e),
+                    }
+                )
+
+    return results
+
+
 class PDFGenerator:
     """Main PDF Generator class with static methods for easy use"""
-    
+
+    @staticmethod
+    def _generate_pdf_via_xhtml2pdf(
+        html_fragment: str,
+        options: Optional[Dict[str, Any]] = None,
+    ) -> bytes:
+        """Render the same shell HTML Playwright uses, then rasterize via xhtml2pdf."""
+        try:
+            from xhtml2pdf import pisa
+        except ImportError as exc:
+            raise RuntimeError(
+                "xhtml2pdf is not installed; cannot fall back from Playwright."
+            ) from exc
+        pdf_options = validate_options(options)
+        wrapper = PlaywrightPDFGenerator()
+        shell = wrapper._create_pdf_html_document(html_fragment, pdf_options)
+        pdf_buffer = BytesIO()
+        pisa_status = pisa.CreatePDF(shell, dest=pdf_buffer, encoding_utf8=True)
+        if pisa_status.err:
+            logger.error("xhtml2pdf reported rendering errors during PDF fallback.")
+            raise RuntimeError("xhtml2pdf failed to produce a valid PDF")
+        pdf_buffer.seek(0)
+        return pdf_buffer.getvalue()
+
     @staticmethod
     def generate_from_html(html_content: str, options: Optional[Dict[str, Any]] = None) -> bytes:
         """
         Generate PDF from HTML content.
-        
-        Args:
-            html_content: HTML content to convert
-            options: PDF generation options
-            
-        Returns:
-            PDF content as bytes
+        Prefer Playwright in a worker thread (ASGI-safe); fall back to xhtml2pdf.
         """
-        pdf_options = validate_options(options)
-        
-        with PlaywrightPDFGenerator() as pdf_gen:
-            return pdf_gen.generate_pdf_from_html(html_content, pdf_options)
-    
+        if not PLAYWRIGHT_AVAILABLE:
+            logger.info("Playwright not available; generating PDF via xhtml2pdf.")
+            return PDFGenerator._generate_pdf_via_xhtml2pdf(html_content, options)
+
+        try:
+            return _run_playwright_pdf_in_thread(html_content, options)
+        except Exception as exc:
+            logger.warning(
+                "Playwright PDF failed (%s); falling back to xhtml2pdf.",
+                exc,
+                exc_info=True,
+            )
+            return PDFGenerator._generate_pdf_via_xhtml2pdf(html_content, options)
+
     @staticmethod
-    def generate_from_template(template_name: str, context: Dict[str, Any], 
+    def generate_from_template(template_name: str, context: Dict[str, Any],
                              options: Optional[Dict[str, Any]] = None) -> bytes:
         """
         Generate PDF from Django template.
@@ -238,9 +349,8 @@ class PDFGenerator:
         # Render template
         html_content = render_to_string(template_name, context)
         
-        # Generate PDF
-        with PlaywrightPDFGenerator() as pdf_gen:
-            pdf_bytes = pdf_gen.generate_pdf_from_html(html_content, pdf_options)
+        # Generate PDF (thread-isolated Playwright + xhtml2pdf fallback inside generate_from_html)
+        pdf_bytes = PDFGenerator.generate_from_html(html_content, options)
         
         # Cache the result
         if pdf_options.enable_caching:
@@ -253,18 +363,17 @@ class PDFGenerator:
     def generate_from_url(url: str, options: Optional[Dict[str, Any]] = None) -> bytes:
         """
         Generate PDF from URL.
-        
-        Args:
-            url: URL to render and convert to PDF
-            options: PDF generation options
-            
-        Returns:
-            PDF content as bytes
+
+        Runs Playwright off the Django/ASGI asyncio thread. There is no xhtml2pdf
+        fallback for URL-based renders.
         """
-        pdf_options = validate_options(options)
-        
-        with PlaywrightPDFGenerator() as pdf_gen:
-            return pdf_gen.generate_pdf_from_url(url, pdf_options)
+        validate_options(options)
+
+        if not PLAYWRIGHT_AVAILABLE:
+            raise RuntimeError(
+                "Playwright is not installed; URL-based PDF generation requires Chromium."
+            )
+        return _run_playwright_url_in_thread(url, options)
     
     @staticmethod
     def generate_from_view(view_name: str, request_data: Optional[Dict[str, Any]] = None,
@@ -276,33 +385,26 @@ class PDFGenerator:
             view_name: Django view name (e.g., 'myapp.views.my_view')
             request_data: Request data for the view
             options: PDF generation options
-            
+
         Returns:
             PDF content as bytes
         """
-        pdf_options = validate_options(options)
-        
         # Import the view
-        module_name, view_name = view_name.rsplit('.', 1)
-        module = __import__(module_name, fromlist=[view_name])
-        view_func = getattr(module, view_name)
-        
-        # Create a mock request
+        module_name, view_cls_name_split = view_name.rsplit('.', 1)
+        module = __import__(module_name, fromlist=[view_cls_name_split])
+        view_func = getattr(module, view_cls_name_split)
+
         factory = RequestFactory()
-        request = factory.get('/')
-        
-        # Call the view
-        response = view_func(request, **request_data or {})
-        
-        # Get the HTML content
+        req = factory.get('/')
+
+        response = view_func(req, **(request_data or {}))
+
         if hasattr(response, 'content'):
             html_content = response.content.decode('utf-8')
         else:
             html_content = str(response)
-        
-        # Generate PDF
-        with PlaywrightPDFGenerator() as pdf_gen:
-            return pdf_gen.generate_pdf_from_html(html_content, pdf_options)
+
+        return PDFGenerator.generate_from_html(html_content, options)
     
     @staticmethod
     def generate_with_cache(cache_key: str, template_name: str, context: Dict[str, Any],
@@ -338,46 +440,29 @@ class PDFGenerator:
     @staticmethod
     def generate_batch(pdf_tasks: list) -> list:
         """
-        Generate multiple PDFs in batch.
-        
-        Args:
-            pdf_tasks: List of dictionaries with PDF generation tasks
-                Each task should have: template, context, options, filename
-            
-        Returns:
-            List of generated PDF bytes
+        Generate multiple PDFs in batch within one Chromium session.
+
+        Runs the whole browser session inside a worker thread (ASGI-safe).
+        Playwright-only; callers should catch errors if Chromium is unavailable.
         """
-        results = []
-        
-        with PlaywrightPDFGenerator() as pdf_gen:
-            for task in pdf_tasks:
-                try:
-                    template = task.get('template')
-                    context = task.get('context', {})
-                    options = validate_options(task.get('options', {}))
-                    
-                    # Render template
-                    html_content = render_to_string(template, context)
-                    
-                    # Generate PDF
-                    pdf_bytes = pdf_gen.generate_pdf_from_html(html_content, options)
-                    
-                    results.append({
-                        'success': True,
-                        'filename': task.get('filename', 'generated.pdf'),
-                        'pdf_bytes': pdf_bytes,
-                        'size': len(pdf_bytes)
-                    })
-                    
-                except Exception as e:
-                    logger.error(f"Failed to generate PDF for task: {task}")
-                    results.append({
-                        'success': False,
-                        'filename': task.get('filename', 'unknown.pdf'),
-                        'error': str(e)
-                    })
-        
-        return results
+        if not PLAYWRIGHT_AVAILABLE:
+            raise RuntimeError(
+                "Playwright is not installed; batch PDF generation requires Chromium."
+            )
+        if not pdf_tasks:
+            return []
+        chunk_timeout = max(
+            float(_pdf_playwright_thread_timeout()),
+            120.0 * len(pdf_tasks),
+        )
+        with ThreadPoolExecutor(max_workers=1, thread_name_prefix="pdf_pw_batch") as ex:
+            fut = ex.submit(_pdf_batch_worker, pdf_tasks)
+            try:
+                return fut.result(timeout=chunk_timeout)
+            except FuturesTimeoutError as exc:
+                raise RuntimeError(
+                    f"Playwright batch PDF timed out after {chunk_timeout}s"
+                ) from exc
     
     @staticmethod
     def save_to_file(pdf_bytes: bytes, filename: str, directory: Optional[str] = None) -> str:

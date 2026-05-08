@@ -1523,10 +1523,11 @@ def download_resume_file(request, resume_id, format_type='html'):
         elif format_type == 'pdf':
             try:
                 from pdf_generator.core.generator import PDFGenerator
+
                 context = {
                     'resume_data': augmented_resume_data,
                     'resume_name': augmented_resume_data['personal_info'].get('full_name', 'Resume'),
-                    'generated_date': timezone.now().strftime('%B %d, %Y')
+                    'generated_date': timezone.now().strftime('%B %d, %Y'),
                 }
                 pdf_bytes = PDFGenerator.generate_from_template(
                     template_name=f'resume_templates/{template_id}.html',
@@ -1538,43 +1539,20 @@ def download_resume_file(request, resume_id, format_type='html'):
                             'top': '0.5in',
                             'right': '0.5in',
                             'bottom': '0.5in',
-                            'left': '0.5in'
-                        }
-                    }
+                            'left': '0.5in',
+                        },
+                    },
                 )
                 response = HttpResponse(pdf_bytes, content_type='application/pdf')
                 response['Content-Disposition'] = f'attachment; filename="resume_{resume_id}.pdf"'
                 return response
             except ImportError:
-                logger.warning("PDF Generator app not available, falling back to xhtml2pdf")
-                from xhtml2pdf import pisa
-                html_content = render_to_string(
-                    f'resume_templates/{template_id}.html',
-                    {'resume_data': augmented_resume_data},
+                logger.warning(
+                    "pdf_generator package not available for resume PDF download."
                 )
-                full_html = f"""
-<!DOCTYPE html>
-<html lang=\"en\">
-<head>
-    <meta charset=\"UTF-8\">
-    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
-    <title>{augmented_resume_data['personal_info'].get('full_name', 'Resume')} - Resume</title>
-    <script src=\"https://cdn.tailwindcss.com\"></script>
-{get_resume_embedded_style_tag()}
-</head>
-<body class=\"bg-white\">
-    {html_content}
-</body>
-</html>
-"""
-                pdf_buffer = BytesIO()
-                pisa_status = pisa.CreatePDF(full_html, dest=pdf_buffer)
-                if pisa_status.err:
-                    return HttpResponse(f'We had some errors <pre>{full_html}</pre>')
-                pdf_buffer.seek(0)
-                response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
-                response['Content-Disposition'] = f'attachment; filename="resume_{resume_id}.pdf"'
-                return response
+                return JsonResponse(
+                    {'error': 'PDF generation package is not available'}, status=500
+                )
         elif format_type == 'word':
             try:
                 from html2docx import html2docx

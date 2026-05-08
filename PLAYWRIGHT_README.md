@@ -1,10 +1,18 @@
 # Playwright Testing Setup
 
-This project now includes Playwright for end-to-end testing and web automation.
+This project includes Playwright for end-to-end tests **and** for **server-side resume PDF generation** (`pdf_generator` uses headless Chromium). The Python package is installed via Poetry, but **browser binaries are a separate install** and must be present on each machine or container.
 
 ## Installation
 
-Playwright has been installed via Poetry. The browsers have been downloaded automatically.
+```bash
+# After `poetry install`, install Chromium (required for downloading resumes as PDF in the app)
+poetry run playwright install chromium
+
+# Optional: install all browsers (mostly for broader E2E runs)
+poetry run playwright install
+```
+
+In Docker/production images, browsers are installed in the image build (see `Dockerfile`). Locally, if PDF download fails with `Executable doesn't exist` under `~/Library/Caches/ms-playwright/` (or similar), run the command above in the **same Poetry environment** the app uses.
 
 ## Quick Start
 

@@ -47,8 +47,8 @@ RUN poetry config virtualenvs.create false \
 # Copy project
 COPY . /app/
 
-# Install Playwright browsers (non-blocking)
-RUN poetry run playwright install chromium || echo "Playwright installation failed, will install at runtime"
+# Install Playwright Chromium for server-side PDF generation (required at runtime)
+RUN poetry run playwright install chromium --with-deps
 
 # Make entrypoint executable
 RUN chmod +x /app/entrypoint.sh
