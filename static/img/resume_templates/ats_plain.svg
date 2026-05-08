@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="340" height="440" viewBox="0 0 340 440" role="img" aria-label="ATS plain resume preview">
+  <defs>
+    <filter id="a-shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-opacity=".1"/>
+    </filter>
+  </defs>
+  <rect width="340" height="440" fill="#fafafa"/>
+  <rect x="28" y="16" width="284" height="408" rx="4" fill="#ffffff" stroke="#e5e7eb" filter="url(#a-shadow)"/>
+  <!-- Classic centered header strip like traditional resume -->
+  <text x="170" y="48" text-anchor="middle" fill="#000000" font-family="ui-sans-serif,system-ui,sans-serif" font-size="15" font-weight="700" letter-spacing="-0.02em">SARAH JOHNSON</text>
+  <text x="170" y="66" text-anchor="middle" fill="#262626" font-family="ui-sans-serif,system-ui,sans-serif" font-size="10">Software Engineer</text>
+  <text x="170" y="82" text-anchor="middle" fill="#525252" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8">city, state • email • phone</text>
+  <rect x="52" y="92" width="236" height="1" fill="#000000"/>
+  <text x="52" y="110" fill="#000000" font-family="ui-sans-serif,system-ui,sans-serif" font-size="7.5" font-weight="700" letter-spacing="0.08em">PROFESSIONAL SUMMARY</text>
+  <rect x="52" y="116" width="236" height="1" fill="#d4d4d4"/>
+  <rect x="52" y="124" width="220" height="4" fill="#d4d4d4"/>
+  <rect x="52" y="132" width="236" height="4" fill="#d4d4d4"/>
+  <rect x="52" y="140" width="208" height="4" fill="#d4d4d4"/>
+  <text x="52" y="168" fill="#000000" font-family="ui-sans-serif,system-ui,sans-serif" font-size="7.5" font-weight="700" letter-spacing="0.08em">WORK EXPERIENCE</text>
+  <rect x="52" y="174" width="236" height="1" fill="#d4d4d4"/>
+  <text x="52" y="190" fill="#000000" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" font-weight="700">Senior Software Engineer — TechCorp Inc.</text>
+  <text x="52" y="202" fill="#525252" font-family="ui-sans-serif,system-ui,sans-serif" font-size="7">Jan 2022 — Present</text>
+  <rect x="56" y="210" width="4" height="4" rx="1" fill="#404040"/>
+  <rect x="64" y="210" width="200" height="3" fill="#e5e5e5"/>
+  <rect x="56" y="218" width="4" height="4" rx="1" fill="#404040"/>
+  <rect x="64" y="218" width="188" height="3" fill="#e5e5e5"/>
+  <text x="52" y="248" fill="#000000" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" font-weight="700">Full Stack Developer — StartupXYZ</text>
+  <text x="52" y="260" fill="#525252" font-family="ui-sans-serif,system-ui,sans-serif" font-size="7">Mar 2020 — Dec 2021</text>
+  <text x="52" y="288" fill="#000000" font-family="ui-sans-serif,system-ui,sans-serif" font-size="7.5" font-weight="700" letter-spacing="0.08em">EDUCATION</text>
+  <rect x="52" y="294" width="236" height="1" fill="#d4d4d4"/>
+  <rect x="52" y="304" width="224" height="4" fill="#e5e5e5"/>
+  <rect x="52" y="312" width="236" height="4" fill="#e5e5e5"/>
+  <text x="52" y="336" fill="#000000" font-family="ui-sans-serif,system-ui,sans-serif" font-size="7.5" font-weight="700" letter-spacing="0.08em">SKILLS</text>
+  <rect x="52" y="342" width="236" height="1" fill="#d4d4d4"/>
+  <text x="52" y="358" fill="#262626" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8">Technical: Python, React, PostgreSQL, AWS</text>
+  <text x="52" y="372" fill="#262626" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8">Languages: English, Spanish</text>
+</svg>

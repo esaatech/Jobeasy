@@ -20,7 +20,7 @@
                     {% if t.thumbnail_static %}
                     <img src="{% static t.thumbnail_static %}"
                          alt="{{ t.name }} template"
-                         class="w-full h-64 object-cover">
+                         class="w-full h-64 object-cover object-top">
                     {% else %}
                     <div class="w-full h-64 bg-gray-100 flex items-center justify-center text-gray-500 text-sm">Preview</div>
                     {% endif %}

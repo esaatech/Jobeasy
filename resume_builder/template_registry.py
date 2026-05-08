@@ -74,6 +74,69 @@ DEFAULT_RESUME_TEMPLATES: List[Dict[str, Any]] = [
         "selection_gradient": "from-purple-200 to-indigo-100",
         "selection_title_class": "text-purple-700",
     },
+    {
+        "id": "executive",
+        "name": "Executive",
+        "description": (
+            "For directors and senior leaders who want measurable impact upfront. Bold header, condensed "
+            "roles, and a layout that favors outcomes over long task lists."
+        ),
+        "role_label": "Executive / leadership",
+        "short_label": "Impact-focused header",
+        "featured": False,
+        "featured_rank": 4,
+        "features": [
+            "Executive header",
+            "Outcome-oriented",
+            "Condensed timeline",
+            "Leadership-ready",
+        ],
+        "thumbnail_static": "img/resume_templates/executive.svg",
+        "selection_gradient": "from-slate-700 to-slate-900",
+        "selection_title_class": "text-slate-100",
+    },
+    {
+        "id": "portfolio",
+        "name": "Portfolio",
+        "description": (
+            "Freelancers, consultants, and builders: foreground your projects and engagements, "
+            "then back them up with experience and education. Skills live in a clear sidebar."
+        ),
+        "role_label": "Project / portfolio",
+        "short_label": "Projects first",
+        "featured": False,
+        "featured_rank": 5,
+        "features": [
+            "Projects spotlight",
+            "Sidebar skills",
+            "Engagement-ready",
+            "Flexible story",
+        ],
+        "thumbnail_static": "img/resume_templates/portfolio.svg",
+        "selection_gradient": "from-teal-100 to-teal-50",
+        "selection_title_class": "text-teal-900",
+    },
+    {
+        "id": "ats_plain",
+        "name": "ATS Plain",
+        "description": (
+            "Simple single-column layout with standard headings and comma-separated skills. "
+            "Optimizes readability for applicant tracking systems and quick recruiter scans."
+        ),
+        "role_label": "ATS plain",
+        "short_label": "Parser-friendly",
+        "featured": False,
+        "featured_rank": 6,
+        "features": [
+            "Single column",
+            "Standard headings",
+            "Minimal styling",
+            "High parse reliability",
+        ],
+        "thumbnail_static": "img/resume_templates/ats_plain.svg",
+        "selection_gradient": "from-neutral-100 to-white",
+        "selection_title_class": "text-neutral-900",
+    },
 ]
 
 DEFAULT_TEMPLATE_ID: str = DEFAULT_RESUME_TEMPLATES[0]["id"]

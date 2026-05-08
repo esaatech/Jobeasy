@@ -3,6 +3,9 @@
 .env.*
 !.env.example
 
+# Google Cloud Service Account key JSON (never commit; store outside repo)
+esaasolution-*.json
+
 # Python
 __pycache__/
 *.py[cod]

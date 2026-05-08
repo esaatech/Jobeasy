@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="340" height="440" viewBox="0 0 340 440" role="img" aria-label="Portfolio resume preview">
+  <defs>
+    <filter id="p-shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-opacity=".12"/>
+    </filter>
+  </defs>
+  <rect width="340" height="440" fill="#fafafa"/>
+  <rect x="28" y="16" width="284" height="408" rx="4" fill="#ffffff" stroke="#e5e7eb" filter="url(#p-shadow)"/>
+  <!-- Centered header like gallery row 1 -->
+  <text x="170" y="44" text-anchor="middle" fill="#111827" font-family="ui-sans-serif,system-ui,sans-serif" font-size="14" font-weight="700">Sarah Johnson</text>
+  <text x="170" y="62" text-anchor="middle" fill="#0d9488" font-family="ui-sans-serif,system-ui,sans-serif" font-size="10" font-weight="600">Senior Consultant</text>
+  <text x="170" y="78" text-anchor="middle" fill="#6b7280" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8">email · phone</text>
+  <!-- Two-column layout: sidebar + main -->
+  <rect x="44" y="92" width="72" height="300" rx="3" fill="#f9fafb" stroke="#e5e7eb"/>
+  <text x="80" y="108" text-anchor="middle" fill="#6b7280" font-family="ui-sans-serif,system-ui,sans-serif" font-size="6.5" font-weight="700">SKILLS</text>
+  <rect x="52" y="118" width="56" height="10" rx="2" fill="#ccfbf1"/>
+  <rect x="52" y="134" width="52" height="10" rx="2" fill="#ccfbf1"/>
+  <rect x="52" y="150" width="58" height="10" rx="2" fill="#ccfbf1"/>
+  <rect x="52" y="166" width="46" height="10" rx="2" fill="#e5e7eb"/>
+  <rect x="52" y="182" width="50" height="10" rx="2" fill="#e5e7eb"/>
+  <!-- Main column: projects spotlight -->
+  <text x="128" y="108" fill="#111827" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" font-weight="700">Selected projects</text>
+  <rect x="128" y="114" width="168" height="1" fill="#0d9488"/>
+  <rect x="128" y="122" width="168" height="56" rx="3" fill="#f0fdfa" stroke="#99f6e4"/>
+  <rect x="138" y="134" width="148" height="4" fill="#99f6e4" rx="1" opacity=".5"/>
+  <rect x="138" y="144" width="120" height="4" fill="#ccfbf1" rx="1"/>
+  <rect x="138" y="154" width="136" height="4" fill="#ccfbf1" rx="1"/>
+  <!-- Experience -->
+  <text x="128" y="192" fill="#111827" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" font-weight="700">Experience</text>
+  <rect x="128" y="198" width="168" height="1" fill="#0d9488"/>
+  <circle cx="132" cy="214" r="3" fill="#2dd4bf"/>
+  <rect x="140" y="206" width="150" height="5" fill="#374151" rx="1"/>
+  <rect x="140" y="214" width="100" height="4" fill="#0d9488" rx="1"/>
+  <rect x="140" y="222" width="148" height="3" fill="#e5e7eb" rx="1"/>
+  <rect x="140" y="228" width="130" height="3" fill="#e5e7eb" rx="1"/>
+  <circle cx="132" cy="248" r="3" fill="#2dd4bf"/>
+  <rect x="140" y="240" width="140" height="5" fill="#374151" rx="1"/>
+  <rect x="140" y="248" width="148" height="3" fill="#e5e7eb" rx="1"/>
+</svg>

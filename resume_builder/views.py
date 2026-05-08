@@ -347,7 +347,7 @@ SECTION COMPLETION GUIDANCE:
 - Additional: Optional but can include certifications and projects
 - Summary: Generated last after all other sections are complete
 
-Available templates: Professional, Modern, Creative
+Available templates: Professional, Modern, Creative, Executive, Portfolio, ATS Plain
 
 **RESPONSE FORMATTING GUIDELINES:**
 - Use **bold** for important points and section headers
@@ -981,26 +981,34 @@ def get_localized_sample_data(locale='en-US'):
             'experience': [
                 {
                     'company': 'TechCorp Inc.',
+                    'title': 'Senior Software Engineer',
                     'position': 'Senior Software Engineer',
+                    'start_date': '2022-01',
                     'startDate': '2022-01',
+                    'end_date': 'Present',
                     'endDate': 'Present',
-                    'description': 'Led development of microservices architecture serving 1M+ users. Mentored junior developers and implemented CI/CD pipelines.'
+                    'description': '<ul><li>Led microservices architecture for 1M+ users.</li><li>Mentored engineers and rolled out CI/CD.</li></ul>',
                 },
                 {
                     'company': 'StartupXYZ',
+                    'title': 'Full Stack Developer',
                     'position': 'Full Stack Developer',
+                    'start_date': '2020-03',
                     'startDate': '2020-03',
+                    'end_date': '2021-12',
                     'endDate': '2021-12',
-                    'description': 'Built and maintained React/Node.js applications. Collaborated with design team to implement responsive UI components.'
-                }
+                    'description': '<ul><li>Shipped React/Node apps end-to-end.</li><li>Partnered with design on responsive UI.</li></ul>',
+                },
             ],
             'education': [
                 {
                     'institution': 'University of Technology',
                     'degree': 'Bachelor of Computer Science',
+                    'start_date': '2016-09',
                     'startDate': '2016-09',
+                    'end_date': '2020-05',
                     'endDate': '2020-05',
-                    'description': 'Graduated with honors. Specialized in software engineering and database systems.'
+                    'description': 'Graduated with honors. Specialized in software engineering and database systems.',
                 }
             ],
             'skills': {
@@ -1009,8 +1017,8 @@ def get_localized_sample_data(locale='en-US'):
                 'languages': ['English', 'Spanish']
             },
             'additional': {
-                'certifications': 'AWS Certified Developer, Google Cloud Professional',
-                'projects': 'Open-source contributor to React ecosystem, Built personal finance tracker app'
+                'certifications': '<ul><li>AWS Certified Developer</li><li>Google Cloud Professional</li></ul>',
+                'projects': '<ul><li>Open-source contributor to the React ecosystem</li><li>Personal finance tracker (React, Node, PostgreSQL)</li></ul>',
             }
         },
         'es-ES': {
@@ -1024,19 +1032,24 @@ def get_localized_sample_data(locale='en-US'):
             'experience': [
                 {
                     'company': 'TechCorp España',
+                    'title': 'Ingeniera de Software Senior',
                     'position': 'Ingeniera de Software Senior',
+                    'start_date': '2022-01',
                     'startDate': '2022-01',
+                    'end_date': 'Presente',
                     'endDate': 'Presente',
-                    'description': 'Dirigí el desarrollo de arquitectura de microservicios que sirve a más de 1M de usuarios. Mentoré a desarrolladores junior e implementé pipelines de CI/CD.'
+                    'description': '<ul><li>Arquitectura de microservicios para más de 1M de usuarios.</li><li>Mentoría e implementación de CI/CD.</li></ul>',
                 }
             ],
             'education': [
                 {
                     'institution': 'Universidad Politécnica de Madrid',
                     'degree': 'Grado en Ingeniería Informática',
+                    'start_date': '2016-09',
                     'startDate': '2016-09',
+                    'end_date': '2020-05',
                     'endDate': '2020-05',
-                    'description': 'Graduada con honores. Especializada en ingeniería de software y sistemas de bases de datos.'
+                    'description': 'Graduada con honores. Especializada en ingeniería de software y sistemas de bases de datos.',
                 }
             ],
             'skills': {
@@ -1060,19 +1073,24 @@ def get_localized_sample_data(locale='en-US'):
             'experience': [
                 {
                     'company': 'TechCorp France',
+                    'title': 'Ingénieure Logiciel Senior',
                     'position': 'Ingénieure Logiciel Senior',
+                    'start_date': '2022-01',
                     'startDate': '2022-01',
+                    'end_date': 'Présent',
                     'endDate': 'Présent',
-                    'description': 'J\'ai dirigé le développement d\'une architecture de microservices desservant plus d\'1M d\'utilisateurs. J\'ai encadré des développeurs juniors et implémenté des pipelines CI/CD.'
+                    'description': '<ul><li>Architecture microservices desservant plus d\'1M d\'utilisateurs.</li><li>Encadrement de développeurs juniors et pipelines CI/CD.</li></ul>',
                 }
             ],
             'education': [
                 {
                     'institution': 'École Centrale Paris',
                     'degree': 'Master en Informatique',
+                    'start_date': '2016-09',
                     'startDate': '2016-09',
+                    'end_date': '2020-05',
                     'endDate': '2020-05',
-                    'description': 'Diplômée avec mention. Spécialisée en génie logiciel et systèmes de bases de données.'
+                    'description': 'Diplômée avec mention. Spécialisée en génie logiciel et systèmes de bases de données.',
                 }
             ],
             'skills': {
