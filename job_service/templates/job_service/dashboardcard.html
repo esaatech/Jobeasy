@@ -14,6 +14,7 @@ Shows different content based on user's subscription status.
     </a>
 </div>
 {% elif current_subscription.plan.name != 'Ultimate' and current_subscription.plan.name != 'Test' %}
+{% if show_ultimate_upgrade_promo %}
 <div class="bg-gradient-to-r from-blue-50 to-purple-100 rounded-xl shadow-lg p-6 flex flex-col items-center justify-center mb-8">
     <h3 class="headline-secondary mb-2">Upgrade to Ultimate</h3>
     <p class="body-text mb-4 text-center max-w-md">
@@ -23,6 +24,7 @@ Shows different content based on user's subscription status.
         Learn More
     </a>
 </div>
+{% endif %}
 {% else %}
     {% comment %} Check for active applications (pending or processing) {% endcomment %}
     {% with active_application=user.job_application_requests.all|first %}

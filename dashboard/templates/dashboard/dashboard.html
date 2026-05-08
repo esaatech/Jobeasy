@@ -11,7 +11,7 @@
         </svg>
         <span class="font-semibold text-gray-800 text-sm">Current Plan:</span>
         <span class="headline-primary text-base">{{ current_subscription.plan.name }}</span>
-        {% if current_subscription.plan.name|lower == 'free' %}
+        {% if current_subscription.plan.name|lower == 'free' and show_ultimate_upgrade_promo %}
             <a href="{% url 'subscriptions:pricing' %}" class="px-3 py-1 rounded bg-gradient-to-r from-indigo-500 to-cyan-400 text-white font-semibold text-sm shadow hover:from-cyan-400 hover:to-indigo-500 transition whitespace-nowrap">Upgrade Plan</a>
         {% endif %}
     </div>

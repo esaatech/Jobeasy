@@ -19,8 +19,8 @@
                 </span>
                 {% endfor %}
             </div>
-            <a href="{% if is_ultimate %}{% url 'job_service:start_application' %}{% else %}{% url 'subscriptions:pricing' %}?plan=ultimate{% endif %}" class="btn btn-primary btn-lg">
-                {% if is_ultimate %}Start Your Job Search{% else %}Upgrade to Ultimate{% endif %}
+            <a href="{% if is_ultimate %}{% url 'job_service:start_application' %}{% elif show_ultimate_upgrade_promo %}{% url 'subscriptions:pricing' %}?plan=ultimate{% else %}{% url 'subscriptions:pricing' %}{% endif %}" class="btn btn-primary btn-lg">
+                {% if is_ultimate %}Start Your Job Search{% elif show_ultimate_upgrade_promo %}Upgrade to Ultimate{% else %}View Plans{% endif %}
             </a>
         </div>
     </div>
@@ -100,8 +100,8 @@
         <h2 class="headline-secondary mb-4 text-white">Ready to Find Your Dream Job?</h2>
         <p class="subheadline mb-8 text-blue-100">Let us handle your entire job search process while you focus on preparing for interviews</p>
         <div class="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="{% if is_ultimate %}{% url 'job_service:start_application' %}{% else %}{% url 'subscriptions:pricing' %}?plan=ultimate{% endif %}" class="btn btn-primary btn-lg">
-                {% if is_ultimate %}Start Your Job Search{% else %}Upgrade to Ultimate{% endif %}
+            <a href="{% if is_ultimate %}{% url 'job_service:start_application' %}{% elif show_ultimate_upgrade_promo %}{% url 'subscriptions:pricing' %}?plan=ultimate{% else %}{% url 'subscriptions:pricing' %}{% endif %}" class="btn btn-primary btn-lg">
+                {% if is_ultimate %}Start Your Job Search{% elif show_ultimate_upgrade_promo %}Upgrade to Ultimate{% else %}View Plans{% endif %}
             </a>
             {% if not has_resumes %}
             <a href="{% url 'resume_builder:create_resume' %}" class="btn btn-secondary btn-lg">

@@ -1,10 +1,14 @@
+from django.conf import settings
+
 from .models import UserSubscription, SubscriptionPlan
 
 def subscription_context(request):
     """
     Context processor to make user's current subscription available globally.
     """
-    context = {}
+    context = {
+        'show_ultimate_upgrade_promo': settings.DEBUG,
+    }
     
     if request.user.is_authenticated:
         # Get user's current subscription (active)
