@@ -1,4 +1,5 @@
 <!-- Step 4: Skills -->
+{% with caps=selected_template_capabilities %}
 <div class="form-step hidden" data-step="4">
     <h2 class="headline-secondary mb-6">Skills</h2>
     <div class="border-b-2 border-emerald-500 mb-6"></div>
@@ -21,5 +22,26 @@
                 value="{% if resume_instance.skills.languages %}{{ resume_instance.skills.languages|join:', ' }}{% endif %}"
                 class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
         </div>
+        <div id="rated-skills-panel" class="border border-violet-200 rounded-lg p-4 bg-violet-50/50 {% if not caps.supports_rated_skills %}hidden{% endif %}">
+            <h3 class="text-sm font-bold text-violet-900 mb-2">Skill levels</h3>
+            <p class="text-xs text-violet-800/80 mb-4">Optional: set 1–10 for each technical skill for the sidebar bars. Leave as default if you prefer.</p>
+            <div id="ratedSkillsRows" class="space-y-4">
+                {% if resume_instance.skills.rated %}
+                    {% for row in resume_instance.skills.rated %}
+                    <div class="rated-row flex flex-col sm:flex-row sm:items-center gap-3">
+                        <label class="flex-1 text-sm text-gray-700">
+                            <span class="block text-xs font-bold text-gray-500 mb-1">Skill</span>
+                            <input type="text" class="rated-name w-full p-2 border border-gray-300 rounded" value="{{ row.name|default:'' }}">
+                        </label>
+                        <label class="sm:w-48 text-sm text-gray-700">
+                            <span class="block text-xs font-bold text-gray-500 mb-1">Level (1–10)</span>
+                            <input type="number" min="1" max="10" class="rated-level w-full p-2 border border-gray-300 rounded" value="{{ row.level|default:7 }}">
+                        </label>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
     </div>
-</div> 
+</div>
+{% endwith %}

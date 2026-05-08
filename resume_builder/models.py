@@ -1,7 +1,10 @@
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
+import logging
 import os
+
+logger = logging.getLogger(__name__)
 
 
 def resume_pdf_path(instance, filename):
@@ -88,6 +91,13 @@ class Resume(models.Model):
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
+        # Remove portrait from GCS / local MEDIA before CASCADE removes the resume row.
+        try:
+            from .profile_photo_media import purge_profile_photo_for_resume
+
+            purge_profile_photo_for_resume(self)
+        except Exception as exc:
+            logger.warning("Could not purge profile photo for resume %s: %s", self.pk, exc)
         # Delete the file when the model instance is deleted
         if self.pdf_file:
             self.pdf_file.delete(save=False)

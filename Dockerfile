@@ -39,7 +39,8 @@ RUN pip install "poetry==$POETRY_VERSION"
 # Copy only requirements to cache dependencies
 COPY pyproject.toml poetry.lock* /app/
 
-# Install dependencies (skip installing the current project)
+# Install dependencies (skip installing the current project).
+# Full Poetry install pulls google-cloud-storage for ENABLE_GCS_PROFILE_UPLOAD (pyproject.toml).
 RUN poetry config virtualenvs.create false \
     && poetry install --no-interaction --no-ansi --no-root
 

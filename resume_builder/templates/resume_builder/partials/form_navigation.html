@@ -9,11 +9,28 @@
             class="btn btn-violet hidden">
             Save and Exit
         </button>
-        <button type="button" id="nextBtn" onclick="nextStep()"
-            class="btn btn-success">
-            Next
-        </button>
+        <div class="flex items-center gap-2">
+            <button type="button" id="nextBtn" onclick="nextStep()"
+                class="btn btn-success">
+                Next
+            </button>
+            <span id="stepNavSpinner" role="status" aria-live="polite" class="hidden inline-flex flex-shrink-0" title="Saving">
+                <svg class="animate-spin h-5 w-5 text-emerald-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span class="sr-only">Saving…</span>
+            </span>
+        </div>
         <div id="finalButtons" class="hidden flex items-center flex-wrap justify-center sm:justify-end gap-4">
+            <button type="button" id="previewDraftBtn" onclick="openWizardDraftResumePreview()"
+                class="btn btn-gray text-sm">
+                Preview draft (form)
+            </button>
+            <button type="button" id="downloadDraftPdfBtn" onclick="downloadWizardDraftPdf()"
+                class="btn btn-gray text-sm">
+                PDF (current form)
+            </button>
             <button type="button" id="saveBtn" onclick="finalizeResume('save')"
                 class="btn btn-violet">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

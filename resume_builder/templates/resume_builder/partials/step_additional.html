@@ -1,3 +1,4 @@
+{% with caps=selected_template_capabilities %}
 <!-- Step 5: Additional Information -->
 <div class="form-step hidden" data-step="5">
     <h2 class="headline-secondary mb-6">Additional Information</h2>
@@ -11,5 +12,40 @@
             <label class="block text-sm font-bold text-gray-700 mb-2">Projects</label>
             <textarea name="projects" id="projects-editor" rows="3" class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">{% if resume_instance.additional.projects %}{{ resume_instance.additional.projects }}{% endif %}</textarea>
         </div>
+        <div id="references-fields-section" class="{% if not caps.supports_references %}hidden{% endif %}">
+            <div class="flex items-center justify-between gap-4 mb-3">
+                <label class="block text-sm font-bold text-gray-700">References <span class="text-gray-400 font-normal">(optional)</span></label>
+                <button type="button" id="addReferenceRow" class="text-sm px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-semibold hover:bg-emerald-700">Add reference</button>
+            </div>
+            <p class="text-xs text-gray-500 mb-3">For layouts that include a references block (such as Creative Studio).</p>
+            <div id="referencesContainer" class="space-y-4">
+                {% if resume_instance.additional.references %}
+                    {% for ref in resume_instance.additional.references %}
+                    <div class="reference-row border border-gray-200 rounded-lg p-4 bg-gray-50 grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Name</label>
+                            <input type="text" class="reference-name w-full p-2 border border-gray-300 rounded" value="{{ ref.name|default:'' }}">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Title / affiliation</label>
+                            <input type="text" class="reference-affiliation w-full p-2 border border-gray-300 rounded" value="{{ ref.affiliation|default:'' }}">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Email</label>
+                            <input type="email" class="reference-email w-full p-2 border border-gray-300 rounded" value="{{ ref.email|default:'' }}">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-600 mb-1">Phone</label>
+                            <input type="text" class="reference-phone w-full p-2 border border-gray-300 rounded" value="{{ ref.phone|default:'' }}">
+                        </div>
+                        <div class="md:col-span-2">
+                            <button type="button" class="reference-remove text-sm text-red-600 font-semibold hover:underline">Remove</button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </div>
     </div>
-</div> 
+</div>
+{% endwith %}

@@ -1077,11 +1077,14 @@ class FunctionHandlers:
                 return {"success": False, "error": f"Resume with ID {resume_id} not found for user {user_id}"}
             
             # Clean and validate skills data
+            prev_skills = resume.skills or {}
             cleaned_skills = {
+                **prev_skills,
                 'technical': [skill.strip() for skill in (technical_skills or []) if skill.strip()],
                 'soft': [skill.strip() for skill in (soft_skills or []) if skill.strip()],
-                'languages': [lang.strip() for lang in (languages or []) if lang.strip()]
+                'languages': [lang.strip() for lang in (languages or []) if lang.strip()],
             }
+            cleaned_skills['rated'] = prev_skills.get('rated', [])
             
             # Update resume - preserve existing data and only update skills
             existing_personal_info = resume.personal_info or {}
@@ -1259,14 +1262,14 @@ class FunctionHandlers:
                 'projects': projects.strip() if projects else ''
             }
             
-            # Update resume - preserve existing data and only update additional
+            # Update resume - merge into existing additional (preserve references, etc.)
             existing_personal_info = resume.personal_info or {}
             existing_experience = resume.experience or []
             existing_education = resume.education or []
             existing_skills = resume.skills or {}
             
-            # Only update the additional section
-            resume.additional = cleaned_additional
+            prev_add = resume.additional or {}
+            resume.additional = dict(prev_add, **cleaned_additional)
             
             # Preserve all other sections
             resume.personal_info = existing_personal_info
@@ -1290,16 +1293,17 @@ class FunctionHandlers:
                 'timestamp': datetime.now().isoformat()
             })
 
+            snap = resume.additional or {}
             result = {
                 "success": True,
-                "message": f"## ✅ Additional Information Saved!\n\n**Certifications:** {len(cleaned_additional['certifications']) > 0 and 'Added' or 'None provided'}\n**Projects:** {len(cleaned_additional['projects']) > 0 and 'Added' or 'None provided'}\n\nExcellent! Your resume is almost complete. Now I can generate a **professional summary** based on your complete resume content.\n\n**Would you like me to:**\n1. **Generate a summary automatically** - I'll create a compelling summary based on your experience, education, and skills\n2. **Use your own summary** - You can provide your own professional summary\n\nJust let me know which option you prefer!",
+                "message": f"## ✅ Additional Information Saved!\n\n**Certifications:** {len((snap.get('certifications') or '').strip()) > 0 and 'Added' or 'None provided'}\n**Projects:** {len((snap.get('projects') or '').strip()) > 0 and 'Added' or 'None provided'}\n\nExcellent! Your resume is almost complete. Now I can generate a **professional summary** based on your complete resume content.\n\n**Would you like me to:**\n1. **Generate a summary automatically** - I'll create a compelling summary based on your experience, education, and skills\n2. **Use your own summary** - You can provide your own professional summary\n\nJust let me know which option you prefer!",
                 "data": {
                     "resume_id": str(resume.id),
                     "user_id": str(user.id),
                     "username": user.username,
-                    "certifications": cleaned_additional['certifications'],
-                    "projects": cleaned_additional['projects'],
-                    "additional": cleaned_additional,
+                    "certifications": snap.get('certifications', ''),
+                    "projects": snap.get('projects', ''),
+                    "additional": snap,
                     "timestamp": datetime.now().isoformat()
                 }
             }

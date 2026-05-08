@@ -217,6 +217,15 @@ STATICFILES_DIRS = [
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
+# Optional profile photo uploads to Google Cloud Storage (canonical pointers live in Resume.personal_info).
+ENABLE_GCS_PROFILE_UPLOAD = (
+    os.environ.get("ENABLE_GCS_PROFILE_UPLOAD", "").strip().lower() in {"1", "true", "yes", "on"}
+)
+GS_BUCKET_NAME = os.environ.get("GS_BUCKET_NAME", "").strip()
+GCP_PROJECT_ID = os.environ.get("GCP_PROJECT_ID", "").strip()
+GCS_PROFILE_SIGNED_URL_TTL_SECONDS = int(os.environ.get("GCS_PROFILE_SIGNED_URL_TTL_SECONDS", "3600"))
+PROFILE_PHOTO_MAX_BYTES = int(os.environ.get("PROFILE_PHOTO_MAX_BYTES", str(2621440)))
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 

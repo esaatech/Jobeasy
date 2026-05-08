@@ -31,6 +31,8 @@ urlpatterns = [
     
     # Step-specific save endpoints
     path('save-personal-info/', views.save_personal_info, name='save_personal_info'),
+    path('upload-profile-photo/', views.upload_profile_photo, name='upload_profile_photo'),
+    path('delete-profile-photo/', views.delete_profile_photo, name='delete_profile_photo'),
     path('save-experience/', views.save_experience, name='save_experience'),
     path('save-education/', views.save_education, name='save_education'),
     path('save-skills/', views.save_skills, name='save_skills'),

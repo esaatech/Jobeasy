@@ -44,10 +44,65 @@
 <!-- Form Styles -->
 {% include 'resume_builder/partials/form_styles.html' %}
 
+<script>
+window.initialSelectedTemplateId = "{{ selected_template|default:'professional' }}";
+window.TEMPLATE_UI_CAPS_DEFAULT = {
+    supports_extended_contact: false,
+    supports_profile_photo: false,
+    supports_references: false,
+    supports_rated_skills: false
+};
+window.TEMPLATE_UI_CAPS = {
+{% for t in resume_templates %}
+    "{{ t.id|escapejs }}": {
+        supports_extended_contact: {{ t.supports_extended_contact|yesno:"true,false" }},
+        supports_profile_photo: {{ t.supports_profile_photo|yesno:"true,false" }},
+        supports_references: {{ t.supports_references|yesno:"true,false" }},
+        supports_rated_skills: {{ t.supports_rated_skills|yesno:"true,false" }}
+    }{% if not forloop.last %},{% endif %}
+{% endfor %}
+};
+
+function selectedTemplateCapabilities() {
+    const r = document.querySelector('input[name="template_id"]:checked');
+    const tid = r ? r.value : (window.initialSelectedTemplateId || 'professional');
+    const row = window.TEMPLATE_UI_CAPS && window.TEMPLATE_UI_CAPS[tid];
+    return row || window.TEMPLATE_UI_CAPS_DEFAULT;
+}
+</script>
+
 <script src="{% static 'resume_builder/resume_builder.js' %}"></script>
 
 <script>
 window.isAuthenticated = {{ user.is_authenticated|yesno:"true,false" }};
+
+function collectRatedSkills() {
+    if (!selectedTemplateCapabilities().supports_rated_skills) return null;
+    const out = [];
+    document.querySelectorAll('#ratedSkillsRows .rated-row').forEach(row => {
+        const name = row.querySelector('.rated-name')?.value?.trim();
+        if (!name) return;
+        let level = parseInt(row.querySelector('.rated-level')?.value, 10);
+        if (Number.isNaN(level)) level = 7;
+        level = Math.min(10, Math.max(1, level));
+        out.push({ name, level });
+    });
+    return out;
+}
+
+function collectReferencesFromDom() {
+    const refs = [];
+    document.querySelectorAll('#referencesContainer .reference-row').forEach(row => {
+        refs.push({
+            name: row.querySelector('.reference-name')?.value?.trim() || '',
+            affiliation: row.querySelector('.reference-affiliation')?.value?.trim() || '',
+            email: row.querySelector('.reference-email')?.value?.trim() || '',
+            phone: row.querySelector('.reference-phone')?.value?.trim() || '',
+        });
+    });
+    return refs;
+}
+
 window.resumeBuilder = new ResumeBuilder(window.isAuthenticated);
 console.log('ResumeBuilder instance created:', window.resumeBuilder);
 console.log('isAuthenticated:', window.isAuthenticated);
@@ -62,6 +117,31 @@ console.log('isAuthenticated:', window.isAuthenticated);
     function updateProgressBar() {
         const progress = (currentStep - 1) / (totalSteps - 1) * 100;
         document.querySelector('.progress-bar').style.width = `${progress}%`;
+    }
+
+    function syncRatedSkillsPanel() {
+        const panel = document.getElementById('rated-skills-panel');
+        const container = document.getElementById('ratedSkillsRows');
+        if (!panel || !container) return;
+        const caps = selectedTemplateCapabilities();
+        const on = caps.supports_rated_skills;
+        panel.classList.toggle('hidden', !on);
+        if (!on) return;
+        if (container.children.length > 0) return;
+        const raw = (document.querySelector('[name="technicalSkills"]')?.value || '')
+            .split(',').map(s => s.trim()).filter(Boolean);
+        raw.slice(0, 16).forEach(name => addRatedSkillsRow(name, 7));
+    }
+
+    function refreshTemplateDependentUi() {
+        const caps = selectedTemplateCapabilities();
+        document.getElementById('extended-contact-fields')
+            ?.classList.toggle('hidden', !caps.supports_extended_contact);
+        document.getElementById('profile-photo-fields')
+            ?.classList.toggle('hidden', !caps.supports_profile_photo);
+        document.getElementById('references-fields-section')
+            ?.classList.toggle('hidden', !caps.supports_references);
+        syncRatedSkillsPanel();
     }
 
     function showStep(step) {
@@ -84,9 +164,64 @@ console.log('isAuthenticated:', window.isAuthenticated);
         document.getElementById('finalButtons').classList.toggle('hidden', step !== totalSteps);
 
         updateProgressBar();
+        refreshTemplateDependentUi();
     }
 
-    // Global date validator (single source of truth)
+    function addRatedSkillsRow(name, level) {
+        const container = document.getElementById('ratedSkillsRows');
+        if (!container) return;
+        const wrap = document.createElement('div');
+        wrap.className = 'rated-row flex flex-col sm:flex-row sm:items-center gap-3';
+        const safeName = String(name || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+        wrap.innerHTML =
+            '<label class="flex-1 text-sm text-gray-700">' +
+                '<span class="block text-xs font-bold text-gray-500 mb-1">Skill</span>' +
+                '<input type="text" class="rated-name w-full p-2 border border-gray-300 rounded" value="' + safeName + '">' +
+            '</label>' +
+            '<label class="sm:w-48 text-sm text-gray-700">' +
+                '<span class="block text-xs font-bold text-gray-500 mb-1">Level (1–10)</span>' +
+                '<input type="number" min="1" max="10" class="rated-level w-full p-2 border border-gray-300 rounded" value="' + Number(level || 7) + '">' +
+            '</label>';
+        container.appendChild(wrap);
+    }
+
+    function appendReferenceRow(data) {
+        const container = document.getElementById('referencesContainer');
+        if (!container) return;
+        data = data || {};
+        const wrap = document.createElement('div');
+        wrap.className = 'reference-row border border-gray-200 rounded-lg p-4 bg-gray-50 grid grid-cols-1 md:grid-cols-2 gap-3';
+        const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+        wrap.innerHTML =
+            '<div><label class="block text-xs font-bold text-gray-600 mb-1">Name</label>' +
+            '<input type="text" class="reference-name w-full p-2 border border-gray-300 rounded" value="' + esc(data.name) + '"></div>' +
+            '<div><label class="block text-xs font-bold text-gray-600 mb-1">Title / affiliation</label>' +
+            '<input type="text" class="reference-affiliation w-full p-2 border border-gray-300 rounded" value="' + esc(data.affiliation) + '"></div>' +
+            '<div><label class="block text-xs font-bold text-gray-600 mb-1">Email</label>' +
+            '<input type="email" class="reference-email w-full p-2 border border-gray-300 rounded" value="' + esc(data.email) + '"></div>' +
+            '<div><label class="block text-xs font-bold text-gray-600 mb-1">Phone</label>' +
+            '<input type="text" class="reference-phone w-full p-2 border border-gray-300 rounded" value="' + esc(data.phone) + '"></div>' +
+            '<div class="md:col-span-2">' +
+            '<button type="button" class="reference-remove text-sm text-red-600 font-semibold hover:underline">Remove</button>' +
+            '</div>';
+        container.appendChild(wrap);
+    }
+
+    document.getElementById('addReferenceRow')?.addEventListener('click', () => appendReferenceRow({}));
+    document.getElementById('referencesContainer')?.addEventListener('click', (e) => {
+        const t = e.target;
+        if (t.classList.contains('reference-remove')) {
+            t.closest('.reference-row')?.remove();
+        }
+    });
+    document.querySelectorAll('input[name="template_id"]').forEach(r => {
+        r.addEventListener('change', () => {
+            refreshTemplateDependentUi();
+        });
+    });
+    refreshTemplateDependentUi();
+
+
     function validateDateField(value, label = 'date') {
         const datePattern = /^\d{4}-\d{2}$/;
         if (!value || !datePattern.test(value)) {
@@ -264,6 +399,526 @@ console.log('isAuthenticated:', window.isAuthenticated);
         return true;
     }
 
+    let profilePhotoObjectUrl = null;
+    let pendingProfileRemoval = false;
+
+    function revokeProfilePhotoObjectUrl() {
+        if (profilePhotoObjectUrl) {
+            URL.revokeObjectURL(profilePhotoObjectUrl);
+            profilePhotoObjectUrl = null;
+        }
+    }
+
+    function setWizardNavBusy(busy) {
+        const sp = document.getElementById('stepNavSpinner');
+        const nb = document.getElementById('nextBtn');
+        const pb = document.getElementById('prevBtn');
+        const sx = document.getElementById('saveStepBtn');
+        if (sp) {
+            sp.classList.toggle('hidden', !busy);
+        }
+        if (nb) {
+            nb.disabled = busy;
+        }
+        if (pb) {
+            pb.disabled = busy;
+        }
+        if (sx) {
+            sx.disabled = busy;
+        }
+    }
+
+    function bustProfilePhotoUrl(url) {
+        if (!url) {
+            return '';
+        }
+        const base = String(url).split('#')[0];
+        const sep = base.includes('?') ? '&' : '?';
+        return base + sep + '_cb=' + Date.now();
+    }
+
+    function refreshProfilePhotoRemoveButtonVisibility() {
+        const btn = document.getElementById('profile_photo_remove_btn');
+        const wrap = document.getElementById('profile_photo_preview_wrap');
+        if (!btn || !wrap) {
+            return;
+        }
+        if (wrap.classList.contains('hidden')) {
+            btn.classList.add('hidden');
+            return;
+        }
+        btn.classList.toggle('hidden', !!pendingProfileRemoval);
+    }
+
+    function profilePhotoPersistedOnServer() {
+        const w = document.getElementById('profile_photo_preview_wrap');
+        return !!(w && w.dataset.profilePersisted === 'true');
+    }
+
+    function revertProfileThumbToStoredServerShot() {
+        const wrap = document.getElementById('profile_photo_preview_wrap');
+        const img = document.getElementById('profile_photo_preview_img');
+        const hint = document.getElementById('profile_photo_pending_remove_note');
+        const raw = wrap && wrap.dataset.serverThumbUrl;
+        pendingProfileRemoval = false;
+        if (hint) {
+            hint.classList.add('hidden');
+        }
+        if (!wrap || !img || !raw) {
+            hideProfilePhotoPreviewStrip();
+            return;
+        }
+        wrap.dataset.profilePersisted = 'true';
+        img.classList.remove('hidden');
+        img.src = bustProfilePhotoUrl(raw);
+        wrap.classList.remove('hidden');
+        refreshProfilePhotoRemoveButtonVisibility();
+    }
+
+    function applyUploadedProfilePhotoThumb(displayUrl) {
+        const hint = document.getElementById('profile_photo_pending_remove_note');
+        if (hint) {
+            hint.classList.add('hidden');
+        }
+        const wrap = document.getElementById('profile_photo_preview_wrap');
+        const img = document.getElementById('profile_photo_preview_img');
+        if (!img || !wrap) {
+            return;
+        }
+        const stripped = String(displayUrl || '').split('#')[0];
+        wrap.dataset.profilePersisted = 'true';
+        if (stripped) {
+            wrap.dataset.serverThumbUrl = stripped;
+        }
+        img.classList.remove('hidden');
+        img.src = bustProfilePhotoUrl(displayUrl);
+        wrap.classList.remove('hidden');
+        refreshProfilePhotoRemoveButtonVisibility();
+    }
+
+    function hideProfilePhotoPreviewStrip() {
+        const wrap = document.getElementById('profile_photo_preview_wrap');
+        const img = document.getElementById('profile_photo_preview_img');
+        const hint = document.getElementById('profile_photo_pending_remove_note');
+        pendingProfileRemoval = false;
+        if (!window.isAuthenticated && window.resumeBuilder) {
+            window.resumeBuilder.pendingProfilePhotoDataUrl = null;
+            window.resumeBuilder._anonProfilePhotoCleared = true;
+        }
+        if (hint) {
+            hint.classList.add('hidden');
+        }
+        if (img) {
+            img.removeAttribute('src');
+            img.classList.add('hidden');
+        }
+        if (wrap) {
+            wrap.dataset.profilePersisted = 'false';
+            delete wrap.dataset.serverThumbUrl;
+            wrap.classList.add('hidden');
+        }
+        refreshProfilePhotoRemoveButtonVisibility();
+    }
+
+    async function flushPendingProfilePhotoRemoval() {
+        if (!window.isAuthenticated || !resumeId) {
+            return true;
+        }
+        try {
+            const resp = await fetch('{% url "resume_builder:delete_profile_photo" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({ resume_id: resumeId })
+            });
+            let res = {};
+            try {
+                res = await resp.json();
+            } catch (eJson) {
+                window.Alert.error('Could not remove profile photo.');
+                return false;
+            }
+            if (res.success) {
+                revokeProfilePhotoObjectUrl();
+                const input = document.getElementById('profile_photo_file');
+                if (input) {
+                    input.value = '';
+                }
+                hideProfilePhotoPreviewStrip();
+                return true;
+            }
+            window.Alert.error((res.error) ? res.error : 'Could not remove profile photo.');
+            return false;
+        } catch (err) {
+            console.error(err);
+            window.Alert.error('Could not remove profile photo.');
+            return false;
+        }
+    }
+
+    async function syncProfilePhotoForWizard() {
+        if (!window.isAuthenticated) {
+            return true;
+        }
+        const caps = selectedTemplateCapabilities();
+        if (!caps.supports_profile_photo) {
+            return true;
+        }
+        if (!resumeId) {
+            return true;
+        }
+        if (pendingProfileRemoval) {
+            const ok = await flushPendingProfilePhotoRemoval();
+            if (ok) {
+                pendingProfileRemoval = false;
+            }
+            return ok;
+        }
+        return flushPendingProfilePhoto();
+    }
+
+    function collectExperienceArrayFromDom() {
+        const experience = [];
+        const entries = document.querySelectorAll('.experience-entry');
+        for (let entry of entries) {
+            const entryData = {};
+            const inputs = entry.querySelectorAll('input, textarea');
+            for (let input of inputs) {
+                const nameParts = input.name.split('.');
+                const name = nameParts[nameParts.length - 1];
+                if (input.tagName === 'TEXTAREA' && input.id && window.ckeditor5Instances[input.id]) {
+                    entryData[name] = window.ckeditor5Instances[input.id].getData();
+                } else {
+                    entryData[name] = input.value;
+                }
+            }
+            const startMonthSelect = entry.querySelector('[name*="startDate_month"]');
+            const startYearSelect = entry.querySelector('[name*="startDate_year"]');
+            if (startMonthSelect && startYearSelect) {
+                const startMonth = startMonthSelect.value;
+                const startYear = startYearSelect.value;
+                entryData.start_date = `${startYear}-${String(startMonth).padStart(2, '0')}`;
+            }
+            const endPresentCheckbox = entry.querySelector('[name*="endDate_present"]');
+            if (endPresentCheckbox && endPresentCheckbox.checked) {
+                entryData.end_date = endPresentCheckbox.value;
+            } else {
+                const endMonthSelect = entry.querySelector('[name*="endDate_month"]');
+                const endYearSelect = entry.querySelector('[name*="endDate_year"]');
+                if (endMonthSelect && endYearSelect) {
+                    const endMonth = endMonthSelect.value;
+                    const endYear = endYearSelect.value;
+                    entryData.end_date = `${endYear}-${String(endMonth).padStart(2, '0')}`;
+                }
+            }
+            experience.push({
+                company: entryData.company,
+                title: entryData.position,
+                start_date: entryData.start_date,
+                end_date: entryData.end_date,
+                description: entryData.description
+            });
+        }
+        return experience;
+    }
+
+    function collectEducationArrayFromDom() {
+        const education = [];
+        const entries = document.querySelectorAll('.education-entry');
+        for (let entry of entries) {
+            const entryData = {};
+            const inputs = entry.querySelectorAll('input, textarea');
+            for (let input of inputs) {
+                const nameParts = input.name.split('.');
+                const name = nameParts[nameParts.length - 1];
+                if (input.tagName === 'TEXTAREA' && input.id && window.ckeditor5Instances[input.id]) {
+                    entryData[name] = window.ckeditor5Instances[input.id].getData();
+                } else {
+                    entryData[name] = input.value;
+                }
+            }
+            const startMonthSelect = entry.querySelector('[name*="startDate_month"]');
+            const startYearSelect = entry.querySelector('[name*="startDate_year"]');
+            if (startMonthSelect && startYearSelect) {
+                const startMonth = startMonthSelect.value;
+                const startYear = startYearSelect.value;
+                entryData.start_date = `${startYear}-${String(startMonth).padStart(2, '0')}`;
+            }
+            const endPresentCheckbox = entry.querySelector('[name*="endDate_present"]');
+            if (endPresentCheckbox && endPresentCheckbox.checked) {
+                entryData.end_date = endPresentCheckbox.value;
+            } else {
+                const endMonthSelect = entry.querySelector('[name*="endDate_month"]');
+                const endYearSelect = entry.querySelector('[name*="endDate_year"]');
+                if (endMonthSelect && endYearSelect) {
+                    const endMonth = endMonthSelect.value;
+                    const endYear = endYearSelect.value;
+                    entryData.end_date = `${endYear}-${String(endMonth).padStart(2, '0')}`;
+                }
+            }
+            education.push({
+                institution: entryData.institution,
+                degree: entryData.degree,
+                start_date: entryData.start_date,
+                end_date: entryData.end_date,
+                description: entryData.description
+            });
+        }
+        return education;
+    }
+
+    function collectSkillsForDraft() {
+        const formData = new FormData(document.getElementById('resumeForm'));
+        const caps = selectedTemplateCapabilities();
+        const skills = {
+            technical: (formData.get('technicalSkills') || '').split(',').map(s => s.trim()).filter(Boolean),
+            soft: (formData.get('softSkills') || '').split(',').map(s => s.trim()).filter(Boolean),
+            languages: (formData.get('languages') || '').split(',').map(s => s.trim()).filter(Boolean)
+        };
+        if (caps.supports_rated_skills) {
+            const rated = collectRatedSkills();
+            if (rated !== null && rated.length) {
+                skills.rated = rated;
+            }
+        }
+        return skills;
+    }
+
+    function collectAdditionalForDraft() {
+        const formData = new FormData(document.getElementById('resumeForm'));
+        let certificationsContent = formData.get('certifications');
+        if (window.ckeditor5Instances['certifications-editor']) {
+            certificationsContent = window.ckeditor5Instances['certifications-editor'].getData();
+        }
+        let projectsContent = formData.get('projects');
+        if (window.ckeditor5Instances['projects-editor']) {
+            projectsContent = window.ckeditor5Instances['projects-editor'].getData();
+        }
+        const caps = selectedTemplateCapabilities();
+        const additional = {
+            certifications: certificationsContent,
+            projects: projectsContent
+        };
+        if (caps.supports_references) {
+            additional.references = collectReferencesFromDom();
+        }
+        return additional;
+    }
+
+    function fileToDataURL(file) {
+        return new Promise((resolve, reject) => {
+            const r = new FileReader();
+            r.onload = () => resolve(String(r.result || ''));
+            r.onerror = () => reject(new Error('read failed'));
+            r.readAsDataURL(file);
+        });
+    }
+
+    async function buildWizardDraftPostBody() {
+        const formData = new FormData(document.getElementById('resumeForm'));
+        const selectedTemplate = document.querySelector('input[name="template_id"]:checked');
+        const templateId = selectedTemplate ? selectedTemplate.value : 'professional';
+
+        let summaryContent = formData.get('summary');
+        if (window.ckeditor5Instances['summary-editor']) {
+            summaryContent = window.ckeditor5Instances['summary-editor'].getData();
+        }
+
+        const personalInfo = {
+            resume_name: formData.get('resume_name'),
+            fullName: formData.get('fullName'),
+            title: formData.get('title'),
+            email: formData.get('email'),
+            phone: formData.get('phone'),
+            location: formData.get('location'),
+            street_address: formData.get('street_address'),
+            linkedin: formData.get('linkedin'),
+            summary: summaryContent || ''
+        };
+
+        const pf = document.getElementById('profile_photo_file');
+        if (
+            selectedTemplateCapabilities().supports_profile_photo
+            && pf
+            && pf.files
+            && pf.files.length > 0
+        ) {
+            personalInfo.profile_photo_display_url = await fileToDataURL(pf.files[0]);
+        }
+
+        return {
+            resume_id: resumeId,
+            personalInfo,
+            experience: collectExperienceArrayFromDom(),
+            education: collectEducationArrayFromDom(),
+            skills: collectSkillsForDraft(),
+            additional: collectAdditionalForDraft(),
+            templateId
+        };
+    }
+
+    async function openWizardDraftResumePreview() {
+        if (!window.isAuthenticated || !resumeId) {
+            window.Alert.warning('Save your resume (at least step 1) before previewing.');
+            return;
+        }
+        updateAllPresentEndDates();
+        try {
+            const body = await buildWizardDraftPostBody();
+            const resp = await fetch(
+                `/resume/download/${encodeURIComponent(resumeId)}/html/?inline=1`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify(body)
+                }
+            );
+            if (!resp.ok) {
+                let msg = `Preview failed (${resp.status}).`;
+                try {
+                    const j = await resp.json();
+                    if (j.error) {
+                        msg = j.error;
+                    }
+                } catch (e2) {
+                    /* ignore */
+                }
+                window.Alert.error(msg);
+                return;
+            }
+            const html = await resp.text();
+            const win = window.open('', '_blank');
+            if (!win) {
+                window.Alert.error('Please allow pop-ups to preview.');
+                return;
+            }
+            win.document.write(html);
+            win.document.close();
+        } catch (err) {
+            console.error(err);
+            window.Alert.error('Preview failed.');
+        }
+    }
+
+    async function downloadWizardDraftPdf() {
+        if (!window.isAuthenticated || !resumeId) {
+            window.Alert.warning('Save your resume (at least step 1) before downloading.');
+            return;
+        }
+        updateAllPresentEndDates();
+        try {
+            const body = await buildWizardDraftPostBody();
+            const resp = await fetch(`/resume/download/${encodeURIComponent(resumeId)}/pdf/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify(body)
+            });
+            if (!resp.ok) {
+                let msg = `Download failed (${resp.status}).`;
+                try {
+                    const j = await resp.json();
+                    if (j.error) {
+                        msg = j.error;
+                    }
+                } catch (e2) {
+                    /* ignore */
+                }
+                window.Alert.error(msg);
+                return;
+            }
+            const blob = await resp.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `resume-${resumeId}-draft.pdf`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        } catch (err) {
+            console.error(err);
+            window.Alert.error('PDF download failed.');
+        }
+    }
+
+    async function flushPendingProfilePhoto() {
+        if (!window.isAuthenticated) {
+            return true;
+        }
+        const caps = selectedTemplateCapabilities();
+        if (!caps.supports_profile_photo) {
+            const inputPeek = document.getElementById('profile_photo_file');
+            const hasFile = inputPeek && inputPeek.files && inputPeek.files.length > 0;
+            if (hasFile) {
+                console.info(
+                    '[Jobeas] Profile photo skipped: this template does not enable the photo upload step. '
+                    + 'Pick a layout that supports a portrait (e.g. Creative Studio) to upload to your bucket.'
+                );
+            }
+            return true;
+        }
+        if (!resumeId) {
+            return true;
+        }
+        const input = document.getElementById('profile_photo_file');
+        if (!input || !input.files || input.files.length === 0) {
+            return true;
+        }
+        const f = input.files[0];
+        if (!f.size) {
+            window.Alert.error('The selected image file was empty.');
+            input.value = '';
+            return false;
+        }
+
+        const fd = new FormData();
+        fd.append('resume_id', resumeId);
+        fd.append('photo', input.files[0]);
+        try {
+            const resp = await fetch('{% url "resume_builder:upload_profile_photo" %}', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+                body: fd
+            });
+            let res = {};
+            try {
+                res = await resp.json();
+            } catch (eJson) {
+                window.Alert.error('Photo upload failed.');
+                return false;
+            }
+            if (res.success && res.profile_photo_display_url) {
+                if (typeof res.stored_as === 'string') {
+                    console.info('[Jobeas] Profile photo saved; storage:', res.stored_as);
+                    if (res.stored_as === 'local') {
+                        console.info(
+                            '[Jobeas] Not using GCS: set ENABLE_GCS_PROFILE_UPLOAD=true and GS_BUCKET_NAME, '
+                            + 'ensure google-cloud-storage is installed and Application Default Credentials can access the bucket.'
+                        );
+                    }
+                }
+                revokeProfilePhotoObjectUrl();
+                applyUploadedProfilePhotoThumb(res.profile_photo_display_url);
+                input.value = '';
+                return true;
+            }
+            window.Alert.error((res.error) ? res.error : 'Photo upload failed.');
+            return false;
+        } catch (error) {
+            console.error(error);
+            window.Alert.error('Photo upload failed.');
+            return false;
+        }
+    }
+
     // Save functions for each step
     async function savePersonalInfo(andExit = false) {
         const formData = new FormData(document.getElementById('resumeForm'));
@@ -278,6 +933,9 @@ console.log('isAuthenticated:', window.isAuthenticated);
             title: formData.get('title'),
             email: formData.get('email'),
             phone: formData.get('phone'),
+            location: formData.get('location'),
+            street_address: formData.get('street_address'),
+            linkedin: formData.get('linkedin'),
             template_id: templateId,
             is_editing_save: andExit
         };
@@ -297,9 +955,17 @@ console.log('isAuthenticated:', window.isAuthenticated);
 
             const result = await response.json();
             if (result.success) {
-                resumeId = result.resume_id;
+                resumeId = result.resume_id || resumeId;
                 document.getElementById('resumeId').value = resumeId;
-                
+
+                /* Same lifecycle as JSON fields on this step: portrait upload/remove after resume row exists */
+                if (window.isAuthenticated) {
+                    const photoOk = await syncProfilePhotoForWizard();
+                    if (!photoOk) {
+                        return false;
+                    }
+                }
+
                 if (andExit && result.redirect_url) {
                     window.location.href = result.redirect_url;
                 } else if (!andExit) {
@@ -563,6 +1229,12 @@ console.log('isAuthenticated:', window.isAuthenticated);
             template_id: templateId,
             is_editing_save: andExit
         };
+        if (selectedTemplateCapabilities().supports_rated_skills) {
+            const rated = collectRatedSkills();
+            if (rated !== null) {
+                data.rated_skills = rated;
+            }
+        }
 
         try {
             const response = await fetch('{% url "resume_builder:save_skills" %}', {
@@ -610,6 +1282,7 @@ console.log('isAuthenticated:', window.isAuthenticated);
             projectsContent = window.ckeditor5Instances['projects-editor'].getData();
         }
         
+        const caps = selectedTemplateCapabilities();
         const data = {
             resume_id: resumeId,
             certifications: certificationsContent,
@@ -617,6 +1290,9 @@ console.log('isAuthenticated:', window.isAuthenticated);
             template_id: templateId,
             is_editing_save: andExit
         };
+        if (caps.supports_references) {
+            data.references = collectReferencesFromDom();
+        }
 
         try {
             const response = await fetch('{% url "resume_builder:save_additional" %}', {
@@ -693,10 +1369,17 @@ console.log('isAuthenticated:', window.isAuthenticated);
     }
 
     async function saveAndExit() {
-        let isValid = false;
-        let isSaved = false;
+        setWizardNavBusy(true);
+        try {
+            if (window.isAuthenticated && resumeId && currentStep !== 1) {
+                const photoOk = await syncProfilePhotoForWizard();
+                if (!photoOk) {
+                    return;
+                }
+            }
 
-        switch (currentStep) {
+            let isValid = false;
+            switch (currentStep) {
             case 1:
                 isValid = validatePersonalInfo();
                 if (isValid) await savePersonalInfo(true);
@@ -721,6 +1404,9 @@ console.log('isAuthenticated:', window.isAuthenticated);
                 isValid = validateSummary();
                 if (isValid) await saveSummary(true);
                 break;
+            }
+        } finally {
+            setWizardNavBusy(false);
         }
     }
 
@@ -752,7 +1438,9 @@ console.log('isAuthenticated:', window.isAuthenticated);
                         break;
                 }
                 if (!isValid) return;
-                switch (currentStep) {
+                setWizardNavBusy(true);
+                try {
+                    switch (currentStep) {
                     case 1:
                         isSaved = await savePersonalInfo();
                         break;
@@ -775,6 +1463,9 @@ console.log('isAuthenticated:', window.isAuthenticated);
                 if (isSaved) {
                     currentStep++;
                     showStep(currentStep);
+                }
+                } finally {
+                    setWizardNavBusy(false);
                 }
             }
         } else {
@@ -807,6 +1498,10 @@ console.log('isAuthenticated:', window.isAuthenticated);
             }
             const isSaved = await saveSummary();
             if (!isSaved) {
+                return;
+            }
+            const photoOk = await syncProfilePhotoForWizard();
+            if (!photoOk) {
                 return;
             }
             // Get template selection
@@ -1103,6 +1798,99 @@ console.log('isAuthenticated:', window.isAuthenticated);
         addPresentEndDateListeners();
         
         showStep(1);
+
+        const pfInput = document.getElementById('profile_photo_file');
+        const removeBtn = document.getElementById('profile_photo_remove_btn');
+        if (pfInput) {
+            pfInput.addEventListener('change', async () => {
+                pendingProfileRemoval = false;
+                const hint = document.getElementById('profile_photo_pending_remove_note');
+                if (hint) {
+                    hint.classList.add('hidden');
+                }
+                if (!pfInput.files || pfInput.files.length === 0) {
+                    refreshProfilePhotoRemoveButtonVisibility();
+                    return;
+                }
+                const picked = pfInput.files[0];
+                if (!picked.size) {
+                    window.Alert.error('Pick a non-empty image file.');
+                    pfInput.value = '';
+                    refreshProfilePhotoRemoveButtonVisibility();
+                    return;
+                }
+                revokeProfilePhotoObjectUrl();
+                profilePhotoObjectUrl = URL.createObjectURL(picked);
+                const wrap = document.getElementById('profile_photo_preview_wrap');
+                const img = document.getElementById('profile_photo_preview_img');
+                if (img && wrap) {
+                    img.classList.remove('hidden');
+                    img.src = profilePhotoObjectUrl;
+                    wrap.classList.remove('hidden');
+                }
+                if (!window.isAuthenticated && window.resumeBuilder) {
+                    try {
+                        window.resumeBuilder.pendingProfilePhotoDataUrl = await fileToDataURL(picked);
+                        window.resumeBuilder._anonProfilePhotoCleared = false;
+                    } catch (e) {
+                        console.error(e);
+                        window.resumeBuilder.pendingProfilePhotoDataUrl = null;
+                        window.Alert.error('Could not read the image.');
+                    }
+                }
+                refreshProfilePhotoRemoveButtonVisibility();
+            });
+        }
+        if (removeBtn) {
+            removeBtn.addEventListener('click', () => {
+                const wrap = document.getElementById('profile_photo_preview_wrap');
+                const hint = document.getElementById('profile_photo_pending_remove_note');
+                const img = document.getElementById('profile_photo_preview_img');
+
+                /* Staged (not yet uploaded) file: clear picker and revert or hide preview only */
+                if (pfInput && pfInput.files && pfInput.files.length > 0) {
+                    revokeProfilePhotoObjectUrl();
+                    pfInput.value = '';
+                    if (profilePhotoPersistedOnServer() && wrap && wrap.dataset.serverThumbUrl) {
+                        revertProfileThumbToStoredServerShot();
+                    } else {
+                        pendingProfileRemoval = false;
+                        if (hint) {
+                            hint.classList.add('hidden');
+                        }
+                        hideProfilePhotoPreviewStrip();
+                    }
+                    return;
+                }
+
+                revokeProfilePhotoObjectUrl();
+                if (pfInput) {
+                    pfInput.value = '';
+                }
+
+                if (profilePhotoPersistedOnServer()) {
+                    pendingProfileRemoval = true;
+                    if (hint) {
+                        hint.classList.remove('hidden');
+                    }
+                    if (img) {
+                        img.classList.add('hidden');
+                    }
+                    if (wrap) {
+                        wrap.classList.remove('hidden');
+                    }
+                } else {
+                    pendingProfileRemoval = false;
+                    if (hint) {
+                        hint.classList.add('hidden');
+                    }
+                    hideProfilePhotoPreviewStrip();
+                    return;
+                }
+                refreshProfilePhotoRemoveButtonVisibility();
+            });
+        }
+        refreshProfilePhotoRemoveButtonVisibility();
     });
 
     document.getElementById('resumeForm').addEventListener('submit', function(e) {

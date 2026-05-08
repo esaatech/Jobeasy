@@ -1,6 +1,10 @@
 class ResumeBuilder {
     constructor(isAuthenticated) {
         this.isAuthenticated = isAuthenticated;
+        /** @type {string|null} Data URL for guests when template supports profile photo (not sent to upload API). */
+        this.pendingProfilePhotoDataUrl = null;
+        /** When true, anonymous user removed photo; do not carry over a previous personalInfo URL. */
+        this._anonProfilePhotoCleared = false;
         this.personalInfo = {};
         this.experience = [];
         this.education = [];
@@ -30,19 +34,36 @@ class ResumeBuilder {
     updateTemplate(templateId) {
         this.templateId = templateId;
         console.log('Template updated to:', templateId);
+        if (typeof refreshTemplateDependentUi === 'function') {
+            refreshTemplateDependentUi();
+        }
     }
 
     // Step 1: Personal Info
     nextToExperience() {
         if (!this.validatePersonalInfo()) return false;
+        const caps =
+            typeof selectedTemplateCapabilities === 'function'
+                ? selectedTemplateCapabilities()
+                : { supports_profile_photo: false };
+        const prevAnonPhoto =
+            !this.isAuthenticated && caps.supports_profile_photo && !this._anonProfilePhotoCleared
+                ? this.pendingProfilePhotoDataUrl || this.personalInfo.profile_photo_display_url || ''
+                : '';
         this.personalInfo = {
             resume_name: document.querySelector('[name="resume_name"]').value,
             fullName: document.querySelector('[name="fullName"]').value,
             title: document.querySelector('[name="title"]').value,
             email: document.querySelector('[name="email"]').value,
             phone: document.querySelector('[name="phone"]').value,
+            location: document.querySelector('[name="location"]')?.value || '',
+            street_address: document.querySelector('[name="street_address"]')?.value || '',
+            linkedin: document.querySelector('[name="linkedin"]')?.value || '',
             template_id: document.querySelector('input[name="template_id"]:checked')?.value || 'professional'
         };
+        if (prevAnonPhoto) {
+            this.personalInfo.profile_photo_display_url = prevAnonPhoto;
+        }
         this.templateId = this.personalInfo.template_id;
         return true;
     }
@@ -157,22 +178,31 @@ class ResumeBuilder {
         this.skills = {
             technical: document.querySelector('[name="technicalSkills"]').value.split(',').map(s => s.trim()).filter(Boolean),
             soft: document.querySelector('[name="softSkills"]').value.split(',').map(s => s.trim()).filter(Boolean),
-            languages: document.querySelector('[name="languages"]').value.split(',').map(s => s.trim()).filter(Boolean)
+            languages: document.querySelector('[name="languages"]').value.split(',').map(s => s.trim()).filter(Boolean),
         };
+        if (typeof selectedTemplateCapabilities === 'function' && selectedTemplateCapabilities().supports_rated_skills) {
+            const rated =
+                typeof collectRatedSkills === 'function' ? collectRatedSkills() : null;
+            if (rated !== null) this.skills.rated = rated;
+        }
         return true;
     }
 
     // Step 5: Additional
     finalizeStep() {
         if (!this.validateAdditional()) return false;
+        const refsFn = typeof collectReferencesFromDom === 'function' ? collectReferencesFromDom : null;
         this.additional = {
             certifications: (window.ckeditor5Instances['certifications-editor'])
                 ? window.ckeditor5Instances['certifications-editor'].getData()
                 : document.querySelector('[name="certifications"]').value,
             projects: (window.ckeditor5Instances['projects-editor'])
                 ? window.ckeditor5Instances['projects-editor'].getData()
-                : document.querySelector('[name="projects"]').value
+                : document.querySelector('[name="projects"]').value,
         };
+        if (typeof selectedTemplateCapabilities === 'function' && selectedTemplateCapabilities().supports_references) {
+            this.additional.references = refsFn ? refsFn() : [];
+        }
         return true;
     }
 

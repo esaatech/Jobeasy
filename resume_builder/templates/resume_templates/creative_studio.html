@@ -1,0 +1,186 @@
+{% load resume_filters %}
+<style>
+    .creative-studio-template ul {
+        list-style-type: disc;
+        margin-left: 18px;
+        padding-left: 8px;
+        margin-bottom: 8px;
+    }
+    .creative-studio-template li { margin-bottom: 4px; }
+    .creative-studio-template p { margin-bottom: 8px; }
+
+    .creative-studio-photo {
+        clip-path: polygon(15% 5%, 92% 12%, 96% 82%, 58% 98%, 10% 84%, 6% 42%);
+        aspect-ratio: 1;
+        object-fit: cover;
+        width: 168px;
+        max-width: 100%;
+    }
+</style>
+
+<div class="creative-studio-template bg-gradient-to-br from-amber-50 via-rose-50 to-violet-100 p-8 rounded-xl text-gray-900">
+    <div class="flex flex-col md:flex-row gap-8 items-stretch">
+        <!-- Sidebar -->
+        <aside class="w-full md:w-[240px] shrink-0 bg-white/80 backdrop-blur-sm border border-violet-200/70 rounded-2xl p-6 shadow-sm">
+            {% if resume_data.personal_info.profile_photo_display_url %}
+            <div class="flex justify-center mb-6">
+                <img src="{{ resume_data.personal_info.profile_photo_display_url }}"
+                     alt=""
+                     width="168"
+                     height="168"
+                     class="creative-studio-photo rounded-sm shadow-lg border-4 border-white"
+                     referrerpolicy="no-referrer"/>
+            </div>
+            {% else %}
+            <div class="flex justify-center mb-6">
+                <div class="creative-studio-photo bg-gradient-to-br from-violet-300 via-fuchsia-200 to-amber-200 opacity-85 border-4 border-white shadow-lg flex items-center justify-center text-white text-5xl font-bold">
+                    {{ resume_data.personal_info.full_name|default:"?"|slice:":1"|upper }}
+                </div>
+            </div>
+            {% endif %}
+
+            <h2 class="text-lg font-black text-violet-900 tracking-tight text-center">{{ resume_data.personal_info.full_name|default_if_none:"" }}</h2>
+            <p class="text-center text-fuchsia-800 font-semibold text-sm mb-4">{{ resume_data.personal_info.title|default_if_none:"" }}</p>
+
+            <h3 class="text-xs uppercase tracking-wider text-violet-600 font-bold mb-3">Contact</h3>
+            <ul class="text-sm space-y-2 text-gray-700 mb-6">
+                {% if resume_data.personal_info.email %}
+                <li class="break-words">{{ resume_data.personal_info.email }}</li>
+                {% endif %}
+                {% if resume_data.personal_info.phone %}
+                <li>{{ resume_data.personal_info.phone }}</li>
+                {% endif %}
+                {% if resume_data.personal_info.location %}
+                <li>{{ resume_data.personal_info.location }}</li>
+                {% endif %}
+                {% if resume_data.personal_info.street_address %}
+                <li class="text-gray-600 text-xs">{{ resume_data.personal_info.street_address }}</li>
+                {% endif %}
+                {% if resume_data.personal_info.linkedin %}
+                <li class="truncate text-violet-700">{{ resume_data.personal_info.linkedin }}</li>
+                {% endif %}
+            </ul>
+
+            <h3 class="text-xs uppercase tracking-wider text-violet-600 font-bold mb-3">Skills</h3>
+            <div class="space-y-3">
+                {% for item in resume_data.skills.rated %}
+                {% if item.name %}
+                <div>
+                    <div class="flex justify-between text-xs font-semibold text-gray-600 mb-1">
+                        <span>{{ item.name|trim }}</span>
+                        <span>{{ item.level }}/10</span>
+                    </div>
+                    <div class="h-2 rounded-full bg-violet-100 overflow-hidden">
+                        <div class="h-full rounded-full bg-gradient-to-r from-fuchsia-500 to-violet-600"
+                             style="width: {% widthratio item.level 10 100 %}%;"></div>
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+                {% if not resume_data.skills.rated %}
+                <p class="text-xs text-gray-500">Add skills in the wizard; rated bars appear automatically for Creative Studio.</p>
+                {% endif %}
+            </div>
+
+            {% if resume_data.additional.references %}
+            <h3 class="text-xs uppercase tracking-wider text-violet-600 font-bold mb-3 mt-8">References</h3>
+            <div class="space-y-3 text-xs">
+                {% for ref in resume_data.additional.references %}
+                {% if ref.name or ref.affiliation or ref.email or ref.phone %}
+                <div class="border border-amber-200/70 bg-amber-50/70 rounded-lg p-3">
+                    {% if ref.name %}<div class="font-bold text-gray-900">{{ ref.name }}</div>{% endif %}
+                    {% if ref.affiliation %}<div class="text-gray-600">{{ ref.affiliation }}</div>{% endif %}
+                    {% if ref.email %}<div class="text-violet-800 break-words">{{ ref.email }}</div>{% endif %}
+                    {% if ref.phone %}<div class="text-gray-700">{{ ref.phone }}</div>{% endif %}
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+            {% endif %}
+        </aside>
+
+        <!-- Main column -->
+        <div class="flex-1 bg-white/90 backdrop-blur-sm border border-violet-100 rounded-2xl p-8 shadow-sm min-w-0">
+            {% if resume_data.personal_info.summary %}
+            <section class="mb-10">
+                <h2 class="text-sm uppercase tracking-[0.2em] font-bold text-fuchsia-700 mb-2">About</h2>
+                <div class="text-gray-700 leading-relaxed text-sm prose prose-sm max-w-none">{{ resume_data.personal_info.summary|safe }}</div>
+            </section>
+            {% endif %}
+
+            <section class="mb-10">
+                <h2 class="text-sm uppercase tracking-[0.2em] font-bold text-violet-800 mb-4">Experience</h2>
+                <div class="space-y-6">
+                    {% for job in resume_data.experience %}
+                    <article class="border-l-4 border-violet-400 pl-5">
+                        <div class="flex flex-wrap gap-x-2 gap-y-1 items-baseline">
+                            <h3 class="font-bold text-gray-900">{{ job.company|default_if_none:"" }}</h3>
+                            {% if job.start_date or job.end_date %}
+                            <span class="text-xs text-gray-500">
+                                {{ job.start_date|default_if_none:""|default:"" }}
+                                –
+                                {{ job.end_date|default_if_none:""|default:"" }}
+                            </span>
+                            {% endif %}
+                        </div>
+                        <p class="text-fuchsia-800 font-semibold text-sm">{% firstof job.title job.position '' %}</p>
+                        <div class="text-sm text-gray-700 mt-2">{{ job.description|safe }}</div>
+                    </article>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <section class="mb-10">
+                <h2 class="text-sm uppercase tracking-[0.2em] font-bold text-violet-800 mb-4">Education</h2>
+                <div class="space-y-4">
+                    {% for edu in resume_data.education %}
+                    <article>
+                        <h3 class="font-bold">{{ edu.degree|default_if_none:"" }}</h3>
+                        <p class="text-sm text-gray-600">{{ edu.institution|default_if_none:"" }}</p>
+                        {% if edu.start_date or edu.end_date %}
+                        <p class="text-xs text-gray-500 mt-1">
+                            {{ edu.start_date|default_if_none:""|default:"" }}
+                            –
+                            {{ edu.end_date|default_if_none:""|default:"" }}
+                        </p>
+                        {% endif %}
+                        {% if edu.description %}
+                        <div class="text-sm text-gray-700 mt-2">{{ edu.description|safe }}</div>
+                        {% endif %}
+                    </article>
+                    {% endfor %}
+                </div>
+            </section>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+                <section>
+                    <h2 class="text-sm uppercase tracking-[0.2em] font-bold text-violet-800 mb-3">Soft skills</h2>
+                    <div class="flex flex-wrap gap-2">
+                        {% for skill in resume_data.skills.soft %}
+                        <span class="bg-rose-100 text-rose-900 text-xs font-medium px-2 py-1 rounded-full">{{ skill|trim }}</span>
+                        {% endfor %}
+                    </div>
+                </section>
+                <section>
+                    <h2 class="text-sm uppercase tracking-[0.2em] font-bold text-violet-800 mb-3">Languages</h2>
+                    <div class="flex flex-wrap gap-2">
+                        {% for lang in resume_data.skills.languages %}
+                        <span class="bg-amber-100 text-amber-900 text-xs font-medium px-2 py-1 rounded-full">{{ lang|trim }}</span>
+                        {% endfor %}
+                    </div>
+                </section>
+            </div>
+
+            <section class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                    <h2 class="text-sm uppercase tracking-[0.2em] font-bold text-violet-800 mb-2">Certifications</h2>
+                    <div class="text-sm text-gray-700">{{ resume_data.additional.certifications|safe }}</div>
+                </div>
+                <div>
+                    <h2 class="text-sm uppercase tracking-[0.2em] font-bold text-violet-800 mb-2">Projects</h2>
+                    <div class="text-sm text-gray-700">{{ resume_data.additional.projects|safe }}</div>
+                </div>
+            </section>
+        </div>
+    </div>
+</div>

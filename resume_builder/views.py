@@ -5,7 +5,7 @@ from .models import Resume
 from .forms import ResumeForm
 import json
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Tuple
 import os
 import tempfile
 from django.conf import settings
@@ -45,14 +45,66 @@ from .template_registry import (
     DEFAULT_TEMPLATE_ID,
     get_resume_embedded_style_tag,
     normalize_template_id,
+    template_ui_capabilities,
     templates_for_gallery,
     templates_for_api,
     templates_for_download_picker,
     is_valid_template_id,
 )
 
+from .resume_display import augment_resume_dict_for_rendering
+from .resume_extra import merge_additional_payload, merge_skills_payload
+
 # Load environment variables from .env file
 load_dotenv()
+
+
+def _render_resume_template_html(request, resume_data: dict, template_id: str) -> str:
+    augmented = augment_resume_dict_for_rendering(resume_data, request=request)
+    tid = normalize_template_id(template_id)
+    return render_to_string(f'resume_templates/{tid}.html', {'resume_data': augmented})
+
+
+def resume_data_and_template_from_wizard_payload(
+    data: dict,
+    *,
+    fallback_template_id: str | None = None,
+) -> Tuple[dict, str]:
+    """
+    Build resume_data snapshot + template_id from frontend wizard JSON,
+    mirroring anonymous preview/download payloads (personalInfo camelCase blocks).
+    """
+    raw_personal_info = data.get('personalInfo') or {}
+    display_url = (
+        raw_personal_info.get('profile_photo_display_url')
+        or raw_personal_info.get('profilePhotoDisplayUrl')
+        or ''
+    )
+    personal_info = {
+        'full_name': raw_personal_info.get('fullName', ''),
+        'title': raw_personal_info.get('title', ''),
+        'email': raw_personal_info.get('email', ''),
+        'phone': raw_personal_info.get('phone', ''),
+        'summary': raw_personal_info.get('summary', ''),
+        'location': raw_personal_info.get('location', ''),
+        'street_address': raw_personal_info.get('street_address', ''),
+        'linkedin': raw_personal_info.get('linkedin', ''),
+    }
+    if display_url:
+        personal_info['profile_photo_display_url'] = display_url
+
+    resume_data = {
+        'personal_info': personal_info,
+        'experience': data.get('experience') or [],
+        'education': data.get('education') or [],
+        'skills': data.get('skills') or {},
+        'additional': data.get('additional') or {},
+    }
+    template_id = normalize_template_id(
+        data.get('templateId') or fallback_template_id or DEFAULT_TEMPLATE_ID
+    )
+    return resume_data, template_id
+
 
 # Global assistant cache
 _assistant_cache = {}
@@ -497,6 +549,21 @@ def create_resume(request, resume_id=None):
     else:
         selected_template = normalize_template_id(request.GET.get('template'))
 
+    profile_photo_preview_url = ''
+    if resume_instance:
+        profile_photo_preview_url = (
+            augment_resume_dict_for_rendering(
+                {
+                    'personal_info': resume_instance.personal_info or {},
+                    'experience': [],
+                    'education': [],
+                    'skills': {},
+                    'additional': {},
+                },
+                request=request,
+            )['personal_info'].get('profile_photo_display_url', '')
+        )
+
     context = {
         'form': ResumeForm(),
         'hero_content': hero_content,
@@ -509,6 +576,8 @@ def create_resume(request, resume_id=None):
         'resume_templates': templates_for_gallery(),
         'selected_template': selected_template,
         'default_template_id': DEFAULT_TEMPLATE_ID,
+        'profile_photo_preview_url': profile_photo_preview_url,
+        'selected_template_capabilities': template_ui_capabilities(selected_template),
     }
 
     return render(request, 'resume_builder/resume.html', context)
@@ -807,7 +876,7 @@ def view_resume(request, resume_id=None):
         )
         
         # Render the resume with the chosen template
-        html_content = render_to_string(f'resume_templates/{template_id}.html', {'resume_data': resume_data})
+        html_content = _render_resume_template_html(request, resume_data, template_id)
         
         # Check if this is an HTMX request (for AI assistant integration)
         is_htmx_request = request.headers.get('HX-Request') == 'true'
@@ -942,8 +1011,9 @@ def switch_template(request):
             request.session['active_template'] = template_id
             
             # Render the selected template with resume data
-            resume_data = request.session.get('resume_data')
-            return render(request, f'resume_templates/{template_id}.html', {'resume_data': resume_data})
+            resume_data = request.session.get('resume_data') or {}
+            augmented = augment_resume_dict_for_rendering(resume_data, request=request)
+            return render(request, f'resume_templates/{template_id}.html', {'resume_data': augmented})
             
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
@@ -961,8 +1031,9 @@ def preview_template(request, template_id):
     # Sample resume data - optimized for internationalization
     # In production, this would come from a database or translation files
     sample_resume_data = get_localized_sample_data(user_locale)
-    
-    context = {'resume_data': sample_resume_data}
+    augmented = augment_resume_dict_for_rendering(sample_resume_data, request=request)
+
+    context = {'resume_data': augmented}
     return render(request, f'resume_templates/{template_id}.html', context)
 
 def get_localized_sample_data(locale='en-US'):
@@ -976,6 +1047,10 @@ def get_localized_sample_data(locale='en-US'):
                 'title': 'Senior Software Engineer',
                 'email': 'sarah.johnson@email.com',
                 'phone': '(555) 123-4567',
+                'location': 'Austin, TX',
+                'street_address': '',
+                'linkedin': 'https://www.linkedin.com/in/sarahjohnson',
+                'profile_photo_display_url': 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=320&q=72',
                 'summary': 'Experienced software engineer with 5+ years developing scalable web applications. Passionate about clean code, user experience, and emerging technologies.'
             },
             'experience': [
@@ -1014,11 +1089,31 @@ def get_localized_sample_data(locale='en-US'):
             'skills': {
                 'technical': ['JavaScript', 'React', 'Node.js', 'Python', 'PostgreSQL', 'AWS'],
                 'soft': ['Leadership', 'Problem Solving', 'Team Collaboration', 'Communication'],
-                'languages': ['English', 'Spanish']
+                'languages': ['English', 'Spanish'],
+                'rated': [
+                    {'name': 'JavaScript', 'level': 9},
+                    {'name': 'React', 'level': 8},
+                    {'name': 'Python', 'level': 8},
+                    {'name': 'System design', 'level': 7},
+                ],
             },
             'additional': {
                 'certifications': '<ul><li>AWS Certified Developer</li><li>Google Cloud Professional</li></ul>',
                 'projects': '<ul><li>Open-source contributor to the React ecosystem</li><li>Personal finance tracker (React, Node, PostgreSQL)</li></ul>',
+                'references': [
+                    {
+                        'name': 'Alex Morgan',
+                        'affiliation': 'Engineering Director · TechCorp Inc.',
+                        'email': 'alex.morgan@techcorp.example',
+                        'phone': '(555) 010-2030',
+                    },
+                    {
+                        'name': 'Jordan Smith',
+                        'affiliation': 'CTO · StartupXYZ',
+                        'email': 'jsmith@startupxyz.example',
+                        'phone': '',
+                    },
+                ],
             }
         },
         'es-ES': {
@@ -1155,7 +1250,7 @@ def save_resume(request):
                     }
                 }
                 
-                html_content = render_to_string(f'resume_templates/{resume.template_id}.html', {'resume_data': resume_template_data})
+                html_content = _render_resume_template_html(request, resume_template_data, resume.template_id)
                 
                 full_html = f"""
 <!DOCTYPE html>
@@ -1303,7 +1398,7 @@ def get_resume_content(request, resume_id):
     }
     
     template_id = normalize_template_id(resume.template_id)
-    html_content = render_to_string(f'resume_templates/{template_id}.html', {'resume_data': resume_data})
+    html_content = _render_resume_template_html(request, resume_data, template_id)
     
     return HttpResponse(html_content)
 
@@ -1352,44 +1447,61 @@ def download_resume_file(request, resume_id, format_type='html'):
                 data = json.loads(request.body)
             except Exception as e:
                 return JsonResponse({'error': 'Invalid JSON data'}, status=400)
-            personal_info = data.get('personalInfo', {})
-            experience = data.get('experience', [])
-            education = data.get('education', [])
-            skills = data.get('skills', {})
-            additional = data.get('additional', {})
-            template_id = normalize_template_id(data.get('templateId'))
-            resume_data = {
-                'personal_info': personal_info,
-                'experience': experience,
-                'education': education,
-                'skills': skills,
-                'additional': additional
-            }
+            resume_data, template_id = resume_data_and_template_from_wizard_payload(
+                data,
+                fallback_template_id=DEFAULT_TEMPLATE_ID,
+            )
         else:
-            # Authenticated user: existing logic
-            from django.contrib.auth.decorators import login_required
+            # Authenticated user: GET uses DB snapshot; POST uses same JSON shape as anonymous
+            # (wizard draft preview/download with optional profile_photo_display_url data URL).
             if not request.user.is_authenticated:
                 return JsonResponse({'error': 'Authentication required'}, status=403)
+
             resume = get_object_or_404(Resume, id=resume_id, user=request.user)
-            resume_data = {
-                'personal_info': resume.personal_info or {},
-                'experience': resume.experience or [],
-                'education': resume.education or [],
-                'skills': resume.skills or {},
-                'additional': resume.additional or {}
-            }
-            template_id = normalize_template_id(resume.template_id)
+
+            snapshot_from_body = request.method == 'POST' and bool(request.body)
+
+            if snapshot_from_body:
+                try:
+                    data = json.loads(request.body.decode('utf-8'))
+                except (json.JSONDecodeError, UnicodeDecodeError):
+                    return JsonResponse({'error': 'Invalid JSON data'}, status=400)
+                body_rid = data.get('resume_id')
+                if body_rid is None or str(body_rid) != str(resume_id):
+                    return JsonResponse({'error': 'resume_id required and must match URL'}, status=400)
+                resume_data, template_id = resume_data_and_template_from_wizard_payload(
+                    data,
+                    fallback_template_id=resume.template_id or DEFAULT_TEMPLATE_ID,
+                )
+            else:
+                if request.method != 'GET':
+                    return JsonResponse({'error': 'Method not allowed'}, status=405)
+                resume_data = {
+                    'personal_info': resume.personal_info or {},
+                    'experience': resume.experience or [],
+                    'education': resume.education or [],
+                    'skills': resume.skills or {},
+                    'additional': resume.additional or {}
+                }
+                template_id = normalize_template_id(resume.template_id)
+
+        augmented_resume_data = augment_resume_dict_for_rendering(resume_data, request=request)
+
+        inline = (request.GET.get('inline') or '').strip().lower() in ('1', 'true', 'yes', 'on')
 
         # Now render and return in the requested format (reuse existing logic)
         if format_type == 'html':
-            html_content = render_to_string(f'resume_templates/{template_id}.html', {'resume_data': resume_data})
+            html_content = render_to_string(
+                f'resume_templates/{template_id}.html',
+                {'resume_data': augmented_resume_data},
+            )
             full_html = f"""
 <!DOCTYPE html>
 <html lang=\"en\">
 <head>
     <meta charset=\"UTF-8\">
     <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
-    <title>{resume_data['personal_info'].get('full_name', 'Resume')} - Resume</title>
+    <title>{augmented_resume_data['personal_info'].get('full_name', 'Resume')} - Resume</title>
     <script src=\"https://cdn.tailwindcss.com\"></script>
 {get_resume_embedded_style_tag()}
 </head>
@@ -1399,14 +1511,21 @@ def download_resume_file(request, resume_id, format_type='html'):
 </html>
 """
             response = HttpResponse(full_html, content_type='text/html')
-            response['Content-Disposition'] = f'attachment; filename="resume_{resume_id}.html"'
+            if inline:
+                response['Content-Disposition'] = (
+                    f'inline; filename="resume_{resume_id}_draft.html"'
+                )
+            else:
+                response['Content-Disposition'] = (
+                    f'attachment; filename="resume_{resume_id}.html"'
+                )
             return response
         elif format_type == 'pdf':
             try:
                 from pdf_generator.core.generator import PDFGenerator
                 context = {
-                    'resume_data': resume_data,
-                    'resume_name': resume_data['personal_info'].get('full_name', 'Resume'),
+                    'resume_data': augmented_resume_data,
+                    'resume_name': augmented_resume_data['personal_info'].get('full_name', 'Resume'),
                     'generated_date': timezone.now().strftime('%B %d, %Y')
                 }
                 pdf_bytes = PDFGenerator.generate_from_template(
@@ -1429,14 +1548,17 @@ def download_resume_file(request, resume_id, format_type='html'):
             except ImportError:
                 logger.warning("PDF Generator app not available, falling back to xhtml2pdf")
                 from xhtml2pdf import pisa
-                html_content = render_to_string(f'resume_templates/{template_id}.html', {'resume_data': resume_data})
+                html_content = render_to_string(
+                    f'resume_templates/{template_id}.html',
+                    {'resume_data': augmented_resume_data},
+                )
                 full_html = f"""
 <!DOCTYPE html>
 <html lang=\"en\">
 <head>
     <meta charset=\"UTF-8\">
     <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
-    <title>{resume_data['personal_info'].get('full_name', 'Resume')} - Resume</title>
+    <title>{augmented_resume_data['personal_info'].get('full_name', 'Resume')} - Resume</title>
     <script src=\"https://cdn.tailwindcss.com\"></script>
 {get_resume_embedded_style_tag()}
 </head>
@@ -1456,14 +1578,17 @@ def download_resume_file(request, resume_id, format_type='html'):
         elif format_type == 'word':
             try:
                 from html2docx import html2docx
-                html_content = render_to_string(f'resume_templates/{template_id}.html', {'resume_data': resume_data})
+                html_content = render_to_string(
+                    f'resume_templates/{template_id}.html',
+                    {'resume_data': augmented_resume_data},
+                )
                 full_html = f"""
 <!DOCTYPE html>
 <html lang=\"en\">
 <head>
     <meta charset=\"UTF-8\">
     <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
-    <title>{resume_data['personal_info'].get('full_name', 'Resume')} - Resume</title>
+    <title>{augmented_resume_data['personal_info'].get('full_name', 'Resume')} - Resume</title>
     <script src=\"https://cdn.tailwindcss.com\"></script>
 </head>
 <body class=\"bg-white\">
@@ -1471,7 +1596,7 @@ def download_resume_file(request, resume_id, format_type='html'):
 </body>
 </html>
 """
-                docx_buffer = html2docx(full_html, title=f"Resume - {resume_data['personal_info'].get('full_name', 'Resume')}")
+                docx_buffer = html2docx(full_html, title=f"Resume - {augmented_resume_data['personal_info'].get('full_name', 'Resume')}")
                 response = HttpResponse(
                     docx_buffer.getvalue(),
                     content_type='application/vnd.openxmlformats-officedocument.wordprocessingml.document'
@@ -1521,10 +1646,19 @@ def save_personal_info(request):
                 )
             # Defensive update: only update summary if present in payload
             personal_info = resume.personal_info or {}
+            personal_info.pop('profile_photo_display_url', None)
             personal_info['full_name'] = data.get('fullName', personal_info.get('full_name', ''))
             personal_info['title'] = data.get('title', personal_info.get('title', ''))
             personal_info['email'] = data.get('email', personal_info.get('email', ''))
             personal_info['phone'] = data.get('phone', personal_info.get('phone', ''))
+            if 'location' in data:
+                personal_info['location'] = data.get('location', personal_info.get('location', ''))
+            if 'street_address' in data:
+                personal_info['street_address'] = data.get(
+                    'street_address', personal_info.get('street_address', '')
+                )
+            if 'linkedin' in data:
+                personal_info['linkedin'] = data.get('linkedin', personal_info.get('linkedin', ''))
             if 'summary' in data:
                 personal_info['summary'] = data.get('summary', personal_info.get('summary', ''))
             resume.name = data.get('resume_name', resume.name)
@@ -1640,11 +1774,31 @@ def save_skills(request):
                 return JsonResponse({'success': False, 'error': 'Resume ID is required'}, status=400)
             
             resume = get_object_or_404(Resume, id=resume_id, user=request.user)
-            resume.skills = {
-                'technical': [skill.strip() for skill in data.get('technicalSkills', '').split(',') if skill.strip()],
-                'soft': [skill.strip() for skill in data.get('softSkills', '').split(',') if skill.strip()],
-                'languages': [lang.strip() for lang in data.get('languages', '').split(',') if lang.strip()]
-            }
+            prev_skills = resume.skills or {}
+            rated_kw = None
+            if 'rated_skills' in data:
+                rated_kw = data.get('rated_skills')
+            elif 'rated' in data:
+                rated_kw = data.get('rated')
+            resume.skills = merge_skills_payload(
+                prev_skills,
+                technical=[
+                    skill.strip()
+                    for skill in data.get('technicalSkills', '').split(',')
+                    if skill.strip()
+                ],
+                soft=[
+                    skill.strip()
+                    for skill in data.get('softSkills', '').split(',')
+                    if skill.strip()
+                ],
+                languages=[
+                    lang.strip()
+                    for lang in data.get('languages', '').split(',')
+                    if lang.strip()
+                ],
+                rated_raw=rated_kw if ('rated_skills' in data or 'rated' in data) else ...,
+            )
             
             # Update template if provided
             if data.get('template_id'):
@@ -1682,10 +1836,14 @@ def save_additional(request):
                 return JsonResponse({'success': False, 'error': 'Resume ID is required'}, status=400)
             
             resume = get_object_or_404(Resume, id=resume_id, user=request.user)
-            resume.additional = {
-                'certifications': data.get('certifications'),
-                'projects': data.get('projects')
-            }
+            resume.additional = merge_additional_payload(
+                resume.additional,
+                {
+                    'certifications': data.get('certifications'),
+                    'projects': data.get('projects'),
+                    **({'references': data['references']} if 'references' in data else {}),
+                },
+            )
             
             # Update template if provided
             if data.get('template_id'):
@@ -1709,6 +1867,67 @@ def save_additional(request):
             return JsonResponse({'success': False, 'error': 'Failed to save additional information'}, status=500)
     
     return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+
+@login_required
+@require_http_methods(["POST"])
+def upload_profile_photo(request):
+    """Multipart upload for optional profile portrait (stored in GCS or local MEDIA)."""
+    from .profile_photo_media import (
+        ingest_profile_photo,
+        profile_photo_storage_backend,
+        resolve_profile_photo_display_url,
+    )
+
+    resume_id = request.POST.get('resume_id')
+    if not resume_id:
+        return JsonResponse({'success': False, 'error': 'Resume ID is required'}, status=400)
+    resume = get_object_or_404(Resume, pk=resume_id, user=request.user)
+    upload = request.FILES.get('photo')
+    if not upload:
+        return JsonResponse(
+            {'success': False, 'error': 'No photo file was received. Pick an image and try again.'},
+            status=400,
+        )
+    if getattr(upload, 'size', None) == 0:
+        return JsonResponse(
+            {'success': False, 'error': 'The selected file was empty. Choose another image.'},
+            status=400,
+        )
+    try:
+        ingest_profile_photo(resume, upload)
+    except ValueError as exc:
+        return JsonResponse({'success': False, 'error': str(exc)}, status=400)
+    except Exception:
+        logger.exception('upload_profile_photo failed')
+        return JsonResponse({'success': False, 'error': 'Failed to upload photo'}, status=500)
+
+    resume.refresh_from_db()
+    display_url = resolve_profile_photo_display_url(resume.personal_info or {}, request=request)
+    stored_as = profile_photo_storage_backend(resume.personal_info or {})
+    payload = {'success': True, 'profile_photo_display_url': display_url, 'stored_as': stored_as}
+    return JsonResponse(payload)
+
+
+@login_required
+@require_http_methods(["POST"])
+def delete_profile_photo(request):
+    """Remove stored portrait for this resume (GCS or local); clears JSON pointers."""
+    from .profile_photo_media import clear_resume_profile_photo
+
+    try:
+        data = json.loads(request.body or "{}")
+    except json.JSONDecodeError:
+        return JsonResponse({'success': False, 'error': 'Invalid JSON data'}, status=400)
+    resume_id = data.get('resume_id')
+    if not resume_id:
+        return JsonResponse({'success': False, 'error': 'Resume ID is required'}, status=400)
+    resume = get_object_or_404(Resume, pk=resume_id, user=request.user)
+    try:
+        clear_resume_profile_photo(resume)
+    except Exception:
+        logger.exception('delete_profile_photo failed')
+        return JsonResponse({'success': False, 'error': 'Failed to remove photo'}, status=500)
+    return JsonResponse({'success': True})
 
 @login_required
 def finalize_resume(request):
@@ -1774,37 +1993,18 @@ def preview_anonymous_resume(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            # Extract all fields from the posted data and map field names
-            raw_personal_info = data.get('personalInfo', {})
-            personal_info = {
-                'full_name': raw_personal_info.get('fullName', ''),
-                'title': raw_personal_info.get('title', ''),
-                'email': raw_personal_info.get('email', ''),
-                'phone': raw_personal_info.get('phone', ''),
-                'summary': raw_personal_info.get('summary', '')
-            }
-            experience = data.get('experience', [])
-            education = data.get('education', [])
-            skills = data.get('skills', {})
-            additional = data.get('additional', {})
-            template_id = normalize_template_id(data.get('templateId'))
+            resume_data, template_id = resume_data_and_template_from_wizard_payload(
+                data,
+                fallback_template_id=DEFAULT_TEMPLATE_ID,
+            )
 
-            # Prepare resume data for template rendering
-            resume_data = {
-                'personal_info': personal_info,
-                'experience': experience,
-                'education': education,
-                'skills': skills,
-                'additional': additional
-            }
-
-            # Render the resume template
-            html_content = render_to_string(f'resume_templates/{template_id}.html', {'resume_data': resume_data})
+            html_content = _render_resume_template_html(request, resume_data, template_id)
+            augmented = augment_resume_dict_for_rendering(resume_data, request=request)
 
             context = {
                 'resume': None,  # No saved resume object
                 'resume_html': html_content,
-                'resume_data': resume_data,
+                'resume_data': augmented,
                 'hero_content': {
                     'page_title': 'Preview Resume',
                     'page_description': 'Review your generated resume below. You can download it or sign up to save it.'
@@ -1826,13 +2026,23 @@ def create_resume_from_data(request):
             
             # Extract resume data from the request and map field names
             raw_personal_info = data.get('personalInfo', {})
+            display_url = (
+                raw_personal_info.get('profile_photo_display_url')
+                or raw_personal_info.get('profilePhotoDisplayUrl')
+                or ''
+            )
             personal_info = {
                 'full_name': raw_personal_info.get('fullName', ''),
                 'title': raw_personal_info.get('title', ''),
                 'email': raw_personal_info.get('email', ''),
                 'phone': raw_personal_info.get('phone', ''),
-                'summary': raw_personal_info.get('summary', '')
+                'summary': raw_personal_info.get('summary', ''),
+                'location': raw_personal_info.get('location', ''),
+                'street_address': raw_personal_info.get('street_address', ''),
+                'linkedin': raw_personal_info.get('linkedin', ''),
             }
+            if display_url:
+                personal_info['profile_photo_display_url'] = display_url
             
             experience = data.get('experience', [])
             education = data.get('education', [])
@@ -2273,7 +2483,7 @@ def get_resume_preview(request, resume_id):
         }
         
         # Render the resume with the chosen template
-        html_content = render_to_string(f'resume_templates/{template_id}.html', {'resume_data': resume_data})
+        html_content = _render_resume_template_html(request, resume_data, template_id)
         
         return HttpResponse(html_content, content_type='text/html')
         

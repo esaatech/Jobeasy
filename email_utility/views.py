@@ -700,7 +700,11 @@ def send_email(request):
                     'skills': document.skills or {},
                     'additional': document.additional or {}
                 }
-                
+
+                from resume_builder.resume_display import augment_resume_dict_for_rendering
+
+                resume_data = augment_resume_dict_for_rendering(resume_data, request=request)
+
                 pdf_bytes = PDFGenerator.generate_from_template(
                     f'resume_templates/{document.template_id}.html',
                     {'resume_data': resume_data},

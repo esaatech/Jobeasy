@@ -7,6 +7,9 @@ To add a template:
 3. Optional: set thumbnail_static to a path under static/ for gallery cards.
 4. Marketing /landing_page/resumes/: set ``featured`` True and ``featured_rank`` (1–4 typical);
    only featured templates appear there, capped at FEATURED_LANDING_MAX.
+
+Wizard-only sections (optional photo, extended contact rows, references repeater, rated-skills panel) are shown
+only for template IDs listed in ``_TEMPLATE_CAPABILITY_OVERRIDES`` (default: ``creative_studio``).
 """
 
 from __future__ import annotations
@@ -19,6 +22,33 @@ from django.db.utils import OperationalError, ProgrammingError
 
 # Max featured templates shown on marketing landing pages (e.g. /landing_page/resumes/).
 FEATURED_LANDING_MAX: int = 4
+
+# Wizard/UI: optional fields rendered only when the selected template supports them (data retained if user switches templates).
+_CAPABILITY_KEYS: tuple[str, ...] = (
+    "supports_extended_contact",
+    "supports_profile_photo",
+    "supports_references",
+    "supports_rated_skills",
+)
+
+_BLANK_CAPABILITY_FLAGS: Dict[str, bool] = {k: False for k in _CAPABILITY_KEYS}
+
+# Only templates listed here expose extra wizard sections; defaults are False for everyone else (including unknown DB slug).
+_TEMPLATE_CAPABILITY_OVERRIDES: Dict[str, Dict[str, bool]] = {
+    "creative_studio": {k: True for k in _CAPABILITY_KEYS},
+}
+
+
+def template_ui_capabilities(template_id: Optional[str]) -> Dict[str, bool]:
+    """Return booleans shaping the resume-builder wizard for this layout.
+
+    Uses a plain slug lookup (not normalize_template_id) to avoid circular imports:
+    _normalize_template_record → template_ui_capabilities during get_resume_templates bootstrap.
+    """
+    tid = str(template_id or "").strip()
+    out = dict(_BLANK_CAPABILITY_FLAGS)
+    out.update(_TEMPLATE_CAPABILITY_OVERRIDES.get(tid, {}))
+    return out
 
 
 # Fallback list used when DB is not available yet (migrations/bootstrap).
@@ -137,14 +167,40 @@ DEFAULT_RESUME_TEMPLATES: List[Dict[str, Any]] = [
         "selection_gradient": "from-neutral-100 to-white",
         "selection_title_class": "text-neutral-900",
     },
+    {
+        "id": "creative_studio",
+        "name": "Creative Studio",
+        "description": (
+            "Two-column creative layout with an organic photo mask, sidebar contact and skill bars, "
+            "plus a structured references section—ideal when you want a portfolio-style CV."
+        ),
+        "role_label": "Creative / studio",
+        "short_label": "Photo + refs + bars",
+        "featured": False,
+        "featured_rank": 7,
+        "features": [
+            "Clip-path portrait",
+            "Rated skill bars",
+            "References block",
+            "Rich sidebar",
+        ],
+        "thumbnail_static": "img/resume_templates/creative_studio.svg",
+        "selection_gradient": "from-amber-100 via-rose-50 to-violet-100",
+        "selection_title_class": "text-violet-900",
+    },
 ]
 
 DEFAULT_TEMPLATE_ID: str = DEFAULT_RESUME_TEMPLATES[0]["id"]
 
 
 def _normalize_template_record(record: Dict[str, Any]) -> Dict[str, Any]:
+    tid = record["id"]
+    caps = template_ui_capabilities(tid)
+    for key in _CAPABILITY_KEYS:
+        if key in record:
+            caps[key] = bool(record[key])
     return {
-        "id": record["id"],
+        "id": tid,
         "name": record.get("name", ""),
         "description": record.get("description", ""),
         "role_label": record.get("role_label") or record.get("name", ""),
@@ -156,6 +212,7 @@ def _normalize_template_record(record: Dict[str, Any]) -> Dict[str, Any]:
         "selection_gradient": record.get("selection_gradient", ""),
         "selection_title_class": record.get("selection_title_class", ""),
         "is_active": bool(record.get("is_active", True)),
+        **caps,
     }
 
 

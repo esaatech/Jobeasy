@@ -1,3 +1,4 @@
+{% with caps=selected_template_capabilities %}
 <!-- Step 1: Personal Information -->
 <div class="form-step" data-step="1">
     <h2 class="headline-secondary mb-6">Personal Information</h2>
@@ -23,5 +24,58 @@
             <input type="tel" name="phone" value="{{ resume_instance.personal_info.phone|default:'' }}"
                 class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
         </div>
+        <div id="extended-contact-fields"
+             class="md:col-span-2 space-y-6 {% if not caps.supports_extended_contact %}hidden{% endif %}">
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Location (city / region)</label>
+                <input type="text" name="location" value="{{ resume_instance.personal_info.location|default:'' }}"
+                    placeholder="e.g. Austin, TX"
+                    class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Street address <span class="text-gray-400 font-normal">(optional)</span></label>
+                <input type="text" name="street_address" value="{{ resume_instance.personal_info.street_address|default:'' }}"
+                    class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">LinkedIn or portfolio URL</label>
+                <input type="text" name="linkedin" value="{{ resume_instance.personal_info.linkedin|default:'' }}"
+                    placeholder="https://"
+                    class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+            </div>
+        </div>
+        <div id="profile-photo-fields"
+             class="md:col-span-2 border border-dashed border-emerald-300 rounded-lg p-4 bg-emerald-50/40 {% if not caps.supports_profile_photo %}hidden{% endif %}">
+            <label class="block text-sm font-bold text-gray-700 mb-2">Profile photo <span class="text-gray-400 font-normal">(optional)</span></label>
+            <input type="file" name="profile_photo_file" id="profile_photo_file" accept="image/jpeg,image/png,image/webp,image/gif"
+                class="block w-full text-sm text-gray-700 file:mr-3 file:rounded file:border-0 file:bg-emerald-600 file:text-white file:px-4 file:py-2">
+            {% if user.is_authenticated %}
+            <p class="text-xs text-gray-500 mt-2">When you continue from this step (<strong class="font-semibold text-gray-600">Next</strong> or <strong class="font-semibold text-gray-600">Save and exit</strong>), your photo is uploaded securely and stored with this resume like your other details.</p>
+            {% else %}
+            <p class="text-xs text-gray-500 mt-2">Your photo stays with this draft in your browser until you create an account, then we save everything together with your resume.</p>
+            {% endif %}
+            <p id="profile_photo_pending_remove_note"
+               class="hidden mt-3 text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+                This photo will be removed when you click <strong class="font-semibold">Next</strong> or <strong class="font-semibold">Save and exit</strong>.
+            </p>
+            <div id="profile_photo_preview_wrap"
+                 class="mt-3 flex flex-wrap items-end gap-4 {% if not profile_photo_preview_url %}hidden{% endif %}"
+                 data-profile-persisted="{% if profile_photo_preview_url %}true{% else %}false{% endif %}"
+                 {% if profile_photo_preview_url %}data-server-thumb-url="{{ profile_photo_preview_url }}"{% endif %}>
+                <div>
+                    <p class="text-xs font-semibold text-gray-600 mb-1">Current photo</p>
+                    <img id="profile_photo_preview_img"
+                         {% if profile_photo_preview_url %}src="{{ profile_photo_preview_url }}"{% endif %}
+                         alt="Profile preview"
+                         class="w-28 h-28 object-cover rounded-lg border border-gray-200 shadow-sm"
+                         width="112" height="112" />
+                </div>
+                <button type="button" id="profile_photo_remove_btn"
+                    class="text-sm font-semibold text-red-600 hover:text-red-800 hover:underline mb-1 {% if not profile_photo_preview_url %}hidden{% endif %}">
+                    Remove photo
+                </button>
+            </div>
+        </div>
     </div>
-</div> 
+</div>
+{% endwith %}
