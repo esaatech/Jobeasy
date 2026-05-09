@@ -3,57 +3,199 @@
         <h2 class="text-2xl font-bold text-gray-800 mb-6">Choose Resume Template</h2>
         <div class="border-b-2 border-emerald-500 mb-6"></div>
         {% if resume_template_sections %}
+            {% with sec_count=resume_template_sections|length %}
+            {% if sec_count > 1 %}
+            <div class="relative" data-template-sections>
+                <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <p class="text-xs text-gray-500 sm:order-2">Each slide is one category. Swipe or use arrows.</p>
+                    <div class="flex items-center justify-center gap-2 sm:justify-start sm:order-1">
+                        <button type="button"
+                                class="js-template-sections-prev inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 shadow-sm hover:bg-gray-50 disabled:pointer-events-none disabled:opacity-30"
+                                aria-label="Previous template category">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+                            </svg>
+                        </button>
+                        <div class="js-template-sections-dots flex items-center justify-center gap-1.5 px-2">
+                            {% for section in resume_template_sections %}
+                            <button type="button"
+                                    class="js-template-sections-dot h-2 w-2 shrink-0 rounded-full bg-gray-300 transition-colors"
+                                    aria-label="Go to category {{ forloop.counter }}"
+                                    data-index="{{ forloop.counter0 }}"></button>
+                            {% endfor %}
+                        </div>
+                        <button type="button"
+                                class="js-template-sections-next inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-700 shadow-sm hover:bg-gray-50 disabled:pointer-events-none disabled:opacity-30"
+                                aria-label="Next template category">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="relative">
+                    <div class="js-template-sections-scroller flex snap-x snap-mandatory overflow-x-auto scroll-smooth scrollbar-hide pb-2">
+                        {% for section in resume_template_sections %}
+                        <div class="w-full shrink-0 grow-0 snap-start box-border basis-full pl-1 pr-4 sm:pl-0 sm:pr-6">
+                            {% if section.heading %}
+                            <h3 class="mb-4 text-center text-lg font-semibold text-gray-800">{{ section.heading }}</h3>
+                            {% endif %}
+                            <div class="flex flex-wrap justify-center gap-4">
+                                {% for t in section.templates %}
+                                <label class="group w-full max-w-sm cursor-pointer sm:w-[260px] sm:max-w-none sm:shrink-0">
+                                    <input type="radio" name="template_id" value="{{ t.id }}" class="peer hidden"
+                                           {% if selected_template == t.id %}checked{% endif %}>
+                                    <div class="flex h-full flex-col items-center rounded-xl border-2 border-gray-200 bg-gray-50 p-4 transition-all peer-checked:border-emerald-500">
+                                        <div class="mb-3 flex h-20 w-full items-center justify-center rounded bg-gradient-to-r px-2 {{ t.selection_gradient }}">
+                                            <span class="text-center text-lg font-bold leading-tight {{ t.selection_title_class }}">{{ t.name }}</span>
+                                        </div>
+                                        <span class="mb-3 text-center text-gray-600">{{ t.short_label }}</span>
+                                        <button type="button" onclick="showTemplatePreview('{{ t.id }}')"
+                                                class="text-sm font-medium text-emerald-600 hover:text-emerald-700">
+                                            Preview Template
+                                        </button>
+                                    </div>
+                                </label>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="js-template-sections-fade-left pointer-events-none absolute left-0 top-0 z-[1] h-full w-10 bg-gradient-to-r from-white via-white/90 to-transparent opacity-0 transition-opacity"></div>
+                    <div class="js-template-sections-fade-right pointer-events-none absolute right-0 top-0 z-[1] h-full w-10 bg-gradient-to-l from-white via-white/90 to-transparent transition-opacity"></div>
+                </div>
+            </div>
+            {% else %}
             {% for section in resume_template_sections %}
                 <div class="{% if not forloop.first %}mt-10{% endif %}">
                 {% if section.heading %}
-                <h3 class="text-lg font-semibold text-gray-800 mb-4">{{ section.heading }}</h3>
+                <h3 class="mb-4 text-center text-lg font-semibold text-gray-800">{{ section.heading }}</h3>
                 {% endif %}
                 <div class="relative">
-                    <div class="flex flex-nowrap gap-6 overflow-x-auto scrollbar-hide pb-2 md:grid md:grid-cols-2 md:gap-6 md:overflow-visible lg:grid-cols-3 xl:grid-cols-4">
+                    <div class="flex flex-wrap justify-center gap-4">
                         {% for t in section.templates %}
-                        <label class="block cursor-pointer group min-w-[260px] md:min-w-0">
-                            <input type="radio" name="template_id" value="{{ t.id }}" class="hidden peer"
+                        <label class="group w-full max-w-sm cursor-pointer sm:w-[260px] sm:max-w-none sm:shrink-0">
+                            <input type="radio" name="template_id" value="{{ t.id }}" class="peer hidden"
                                    {% if selected_template == t.id %}checked{% endif %}>
-                            <div class="rounded-xl border-2 border-gray-200 peer-checked:border-emerald-500 bg-gray-50 p-4 flex flex-col items-center transition-all">
-                                <div class="w-full h-20 bg-gradient-to-r {{ t.selection_gradient }} rounded mb-3 flex items-center justify-center px-2">
-                                    <span class="text-lg font-bold {{ t.selection_title_class }} text-center leading-tight">{{ t.name }}</span>
+                            <div class="flex h-full flex-col items-center rounded-xl border-2 border-gray-200 bg-gray-50 p-4 transition-all peer-checked:border-emerald-500">
+                                <div class="mb-3 flex h-20 w-full items-center justify-center rounded bg-gradient-to-r px-2 {{ t.selection_gradient }}">
+                                    <span class="text-center text-lg font-bold leading-tight {{ t.selection_title_class }}">{{ t.name }}</span>
                                 </div>
-                                <span class="text-gray-600 text-center mb-3">{{ t.short_label }}</span>
+                                <span class="mb-3 text-center text-gray-600">{{ t.short_label }}</span>
                                 <button type="button" onclick="showTemplatePreview('{{ t.id }}')"
-                                        class="text-sm text-emerald-600 hover:text-emerald-700 font-medium">
+                                        class="text-sm font-medium text-emerald-600 hover:text-emerald-700">
                                     Preview Template
                                 </button>
                             </div>
                         </label>
                         {% endfor %}
                     </div>
-                    <div class="pointer-events-none absolute left-0 top-0 h-full w-8 bg-gradient-to-r from-white to-transparent md:hidden"></div>
-                    <div class="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-white to-transparent md:hidden"></div>
                 </div>
                 </div>
             {% endfor %}
+            {% endif %}
+            {% endwith %}
         {% else %}
         <div class="relative">
-            <div class="flex flex-nowrap gap-6 overflow-x-auto scrollbar-hide pb-2 md:grid md:grid-cols-2 md:gap-6 md:overflow-visible lg:grid-cols-3 xl:grid-cols-4">
+            <div class="flex flex-wrap justify-center gap-4 pb-2">
                 {% for t in resume_templates %}
-                <label class="block cursor-pointer group min-w-[260px] md:min-w-0">
-                    <input type="radio" name="template_id" value="{{ t.id }}" class="hidden peer"
+                <label class="group w-full max-w-sm cursor-pointer sm:w-[260px] sm:max-w-none sm:shrink-0">
+                    <input type="radio" name="template_id" value="{{ t.id }}" class="peer hidden"
                            {% if selected_template == t.id %}checked{% endif %}>
-                    <div class="rounded-xl border-2 border-gray-200 peer-checked:border-emerald-500 bg-gray-50 p-4 flex flex-col items-center transition-all">
-                        <div class="w-full h-20 bg-gradient-to-r {{ t.selection_gradient }} rounded mb-3 flex items-center justify-center">
+                    <div class="flex h-full flex-col items-center rounded-xl border-2 border-gray-200 bg-gray-50 p-4 transition-all peer-checked:border-emerald-500">
+                        <div class="mb-3 flex h-20 w-full items-center justify-center rounded bg-gradient-to-r {{ t.selection_gradient }}">
                             <span class="text-lg font-bold {{ t.selection_title_class }}">{{ t.name }}</span>
                         </div>
-                        <span class="text-gray-600 text-center mb-3">{{ t.short_label }}</span>
+                        <span class="mb-3 text-center text-gray-600">{{ t.short_label }}</span>
                         <button type="button" onclick="showTemplatePreview('{{ t.id }}')"
-                                class="text-sm text-emerald-600 hover:text-emerald-700 font-medium">
+                                class="text-sm font-medium text-emerald-600 hover:text-emerald-700">
                             Preview Template
                         </button>
                     </div>
                 </label>
                 {% endfor %}
             </div>
-            <div class="pointer-events-none absolute left-0 top-0 h-full w-8 bg-gradient-to-r from-white to-transparent md:hidden"></div>
-            <div class="pointer-events-none absolute right-0 top-0 h-full w-8 bg-gradient-to-l from-white to-transparent md:hidden"></div>
         </div>
         {% endif %}
     </div>
+    <script>
+    (function () {
+        function initTemplateSectionCarousel(root) {
+            if (root.dataset.templateSectionsCarousel === "1") return;
+            root.dataset.templateSectionsCarousel = "1";
+            var scroller = root.querySelector(".js-template-sections-scroller");
+            var prevBtn = root.querySelector(".js-template-sections-prev");
+            var nextBtn = root.querySelector(".js-template-sections-next");
+            var dots = root.querySelectorAll(".js-template-sections-dot");
+            var fadeL = root.querySelector(".js-template-sections-fade-left");
+            var fadeR = root.querySelector(".js-template-sections-fade-right");
+            if (!scroller || !prevBtn || !nextBtn) return;
+
+            function slideLeft(i) {
+                var c = scroller.children;
+                if (!c[i]) return 0;
+                return c[i].offsetLeft;
+            }
+
+            function currentIndex() {
+                var c = scroller.children;
+                if (!c.length) return 0;
+                var mid = scroller.scrollLeft + scroller.clientWidth * 0.35;
+                var idx = 0;
+                for (var i = 0; i < c.length; i++) {
+                    if (c[i].offsetLeft <= mid) idx = i;
+                }
+                return idx;
+            }
+
+            function goTo(index) {
+                var c = scroller.children;
+                if (!c.length) return;
+                var i = Math.min(Math.max(0, index), c.length - 1);
+                scroller.scrollTo({ left: slideLeft(i), behavior: "smooth" });
+            }
+
+            function refresh() {
+                var left = scroller.scrollLeft;
+                var max = scroller.scrollWidth - scroller.clientWidth - 1;
+                prevBtn.disabled = left <= 1;
+                nextBtn.disabled = left >= max;
+                if (fadeL) fadeL.style.opacity = left <= 1 ? "0" : "1";
+                if (fadeR) fadeR.style.opacity = left >= max ? "0" : "1";
+                var idx = currentIndex();
+                dots.forEach(function (d, i) {
+                    d.setAttribute("aria-current", i === idx ? "true" : "false");
+                    if (i === idx) {
+                        d.classList.add("bg-emerald-500", "ring-2", "ring-emerald-200");
+                        d.classList.remove("bg-gray-300");
+                    } else {
+                        d.classList.remove("bg-emerald-500", "ring-2", "ring-emerald-200");
+                        d.classList.add("bg-gray-300");
+                    }
+                });
+            }
+
+            prevBtn.addEventListener("click", function () {
+                goTo(currentIndex() - 1);
+            });
+            nextBtn.addEventListener("click", function () {
+                goTo(currentIndex() + 1);
+            });
+            dots.forEach(function (dot) {
+                dot.addEventListener("click", function () {
+                    var i = parseInt(dot.getAttribute("data-index"), 10);
+                    if (!isNaN(i)) goTo(i);
+                });
+            });
+            scroller.addEventListener("scroll", function () {
+                window.requestAnimationFrame(refresh);
+            }, { passive: true });
+            window.addEventListener("resize", function () {
+                refresh();
+            });
+            refresh();
+        }
+
+        document.querySelectorAll("[data-template-sections]").forEach(initTemplateSectionCarousel);
+    })();
+    </script>
