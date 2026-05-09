@@ -1,4 +1,5 @@
 {% load resume_filters %}
+{% include 'resume_templates/includes/resume_portrait_photo_styles.html' %}
 <style>
     .creative-studio-template ul {
         list-style-type: disc;
@@ -8,14 +9,6 @@
     }
     .creative-studio-template li { margin-bottom: 4px; }
     .creative-studio-template p { margin-bottom: 8px; }
-
-    .creative-studio-photo {
-        clip-path: polygon(15% 5%, 92% 12%, 96% 82%, 58% 98%, 10% 84%, 6% 42%);
-        aspect-ratio: 1;
-        object-fit: cover;
-        width: 168px;
-        max-width: 100%;
-    }
 
     /*
      * PDF: Printable width < Tailwind md (768px) is normal. Do not rely on md: / print: utilities
@@ -151,22 +144,7 @@
     <div class="creative-studio-row flex flex-col md:flex-row print:flex-row gap-8 print:gap-8 items-stretch">
         <!-- Sidebar -->
         <aside class="creative-studio-sidebar w-full md:w-[240px] print:w-[240px] print:max-w-none shrink-0 bg-white/80 backdrop-blur-sm border border-violet-200/70 rounded-2xl p-6 shadow-sm">
-            {% if resume_data.personal_info.profile_photo_display_url %}
-            <div class="flex justify-center mb-6">
-                <img src="{{ resume_data.personal_info.profile_photo_display_url }}"
-                     alt=""
-                     width="168"
-                     height="168"
-                     class="creative-studio-photo rounded-sm shadow-lg border-4 border-white"
-                     referrerpolicy="no-referrer"/>
-            </div>
-            {% else %}
-            <div class="flex justify-center mb-6">
-                <div class="creative-studio-photo bg-gradient-to-br from-violet-300 via-fuchsia-200 to-amber-200 opacity-85 border-4 border-white shadow-lg flex items-center justify-center text-white text-5xl font-bold">
-                    {{ resume_data.personal_info.full_name|default:"?"|slice:":1"|upper }}
-                </div>
-            </div>
-            {% endif %}
+            {% include 'resume_templates/includes/resume_portrait_photo.html' %}
 
             <h2 class="text-lg font-black text-violet-900 tracking-tight text-center">{{ resume_data.personal_info.full_name|default_if_none:"" }}</h2>
             <p class="text-center text-fuchsia-800 font-semibold text-sm mb-4">{{ resume_data.personal_info.title|default_if_none:"" }}</p>

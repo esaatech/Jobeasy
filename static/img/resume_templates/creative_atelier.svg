@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="340" height="440" viewBox="0 0 340 440" role="img" aria-label="Creative Atelier resume preview">
+  <defs>
+    <filter id="ca-shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="2" stdDeviation="2" flood-opacity=".14"/>
+    </filter>
+    <linearGradient id="ca-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffe4e6;stop-opacity:1"/>
+      <stop offset="50%" style="stop-color:#ffffff;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#e2e8f0;stop-opacity:1"/>
+    </linearGradient>
+    <linearGradient id="ca-avatar" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fb7185"/>
+      <stop offset="100%" stop-color="#334155"/>
+    </linearGradient>
+    <clipPath id="ca-mask" clipPathUnits="userSpaceOnUse">
+      <polygon points="68.4,59.2 111.5,63.7 113.8,108.5 92.5,118.7 65.6,109.8 63.4,82.9"/>
+    </clipPath>
+  </defs>
+  <rect width="340" height="440" fill="url(#ca-bg)"/>
+  <rect x="20" y="16" width="300" height="408" rx="8" fill="#ffffff" stroke="#fecdd3" filter="url(#ca-shadow)"/>
+  <!-- Main column -->
+  <rect x="32" y="32" width="196" height="376" rx="8" fill="#ffffff" stroke="#fce7f3"/>
+  <text x="44" y="54" fill="#881337" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" font-weight="700">ABOUT</text>
+  <rect x="44" y="60" width="168" height="3" rx="1" fill="#fecdd3"/>
+  <rect x="44" y="68" width="152" height="3" rx="1" fill="#e2e8f0"/>
+  <text x="44" y="94" fill="#1e293b" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" font-weight="700">EXPERIENCE</text>
+  <rect x="48" y="102" width="4" height="52" rx="1" fill="#fb7185"/>
+  <rect x="58" y="104" width="150" height="4" rx="1" fill="#cbd5e1"/>
+  <rect x="58" y="112" width="140" height="3" rx="1" fill="#e2e8f0"/>
+  <rect x="58" y="120" width="138" height="3" rx="1" fill="#e2e8f0"/>
+  <text x="44" y="176" fill="#1e293b" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" font-weight="700">EDUCATION</text>
+  <rect x="44" y="182" width="120" height="3" rx="1" fill="#cbd5e1"/>
+  <!-- Sidebar: organic mask uses same userSpace coords as creative_studio.svg; translate to center in 236–308 rail (was 238,40 which pushed art past the right edge). -->
+  <rect x="236" y="32" width="72" height="376" rx="8" fill="#fafafa" stroke="#e2e8f0"/>
+  <g transform="translate(183, -4)">
+    <g clip-path="url(#ca-mask)">
+      <rect x="58" y="54" width="62" height="72" fill="url(#ca-avatar)"/>
+      <text x="88" y="99" text-anchor="middle" fill="#ffffff" font-family="ui-sans-serif,system-ui,sans-serif" font-size="14" font-weight="800">CA</text>
+    </g>
+  </g>
+  <text x="272" y="156" text-anchor="middle" fill="#0f172a" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" font-weight="800">Alex Rowe</text>
+  <text x="272" y="168" text-anchor="middle" fill="#be123c" font-family="ui-sans-serif,system-ui,sans-serif" font-size="7" font-weight="600">Art Director</text>
+  <text x="246" y="188" fill="#e11d48" font-family="ui-sans-serif,system-ui,sans-serif" font-size="6" font-weight="700">SKILLS</text>
+  <rect x="244" y="194" width="56" height="5" rx="2" fill="#ffe4e6"/>
+  <rect x="246" y="196" width="36" height="1" rx="0.5" fill="#fb7185"/>
+  <rect x="244" y="204" width="56" height="5" rx="2" fill="#ffe4e6"/>
+  <rect x="246" y="206" width="44" height="1" rx="0.5" fill="#64748b"/>
+</svg>

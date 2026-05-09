@@ -9,7 +9,7 @@ To add a template:
    only featured templates appear there, capped at FEATURED_LANDING_MAX.
 
 Wizard-only sections (optional photo, extended contact rows, references repeater, rated-skills panel) are shown
-only for template IDs listed in ``_TEMPLATE_CAPABILITY_OVERRIDES`` (default: ``creative_studio``).
+only for template IDs listed in ``_TEMPLATE_CAPABILITY_OVERRIDES`` (creative photo-forward layouts).
 """
 
 from __future__ import annotations
@@ -36,6 +36,8 @@ _BLANK_CAPABILITY_FLAGS: Dict[str, bool] = {k: False for k in _CAPABILITY_KEYS}
 # Only templates listed here expose extra wizard sections; defaults are False for everyone else (including unknown DB slug).
 _TEMPLATE_CAPABILITY_OVERRIDES: Dict[str, Dict[str, bool]] = {
     "creative_studio": {k: True for k in _CAPABILITY_KEYS},
+    "studio_folio": {k: True for k in _CAPABILITY_KEYS},
+    "creative_atelier": {k: True for k in _CAPABILITY_KEYS},
 }
 
 
@@ -187,6 +189,48 @@ DEFAULT_RESUME_TEMPLATES: List[Dict[str, Any]] = [
         "thumbnail_static": "img/resume_templates/creative_studio.svg",
         "selection_gradient": "from-amber-100 via-rose-50 to-violet-100",
         "selection_title_class": "text-violet-900",
+    },
+    {
+        "id": "studio_folio",
+        "name": "Studio Folio",
+        "description": (
+            "Portrait-centered header with a two-column experience grid, selected-work spotlight, "
+            "and the same organic portrait mask as other creative templates—ideal for designers and makers."
+        ),
+        "role_label": "Portfolio / studio",
+        "short_label": "Folio grid + portrait",
+        "featured": False,
+        "featured_rank": 8,
+        "features": [
+            "Work-forward layout",
+            "Experience cards",
+            "Unified portrait mask",
+            "Rated + soft skills",
+        ],
+        "thumbnail_static": "img/resume_templates/studio_folio.svg",
+        "selection_gradient": "from-stone-200 via-orange-50 to-stone-100",
+        "selection_title_class": "text-stone-900",
+    },
+    {
+        "id": "creative_atelier",
+        "name": "Creative Atelier",
+        "description": (
+            "Editorial main column for your story plus a right-rail sidebar for the portrait, contact, "
+            "rated skills, and references—with identical portrait treatment when switching from Creative Studio."
+        ),
+        "role_label": "Editorial / atelier",
+        "short_label": "Narrative + side portrait",
+        "featured": False,
+        "featured_rank": 9,
+        "features": [
+            "Narrative-first column",
+            "Right sidebar portrait",
+            "Rated skill bars",
+            "References block",
+        ],
+        "thumbnail_static": "img/resume_templates/creative_atelier.svg",
+        "selection_gradient": "from-rose-100 via-white to-slate-200",
+        "selection_title_class": "text-slate-900",
     },
 ]
 

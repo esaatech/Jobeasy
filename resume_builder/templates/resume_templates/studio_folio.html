@@ -1,0 +1,210 @@
+{% load resume_filters %}
+{% include 'resume_templates/includes/resume_portrait_photo_styles.html' %}
+<style>
+    .studio_folio-template ul {
+        list-style-type: disc;
+        margin-left: 18px;
+        padding-left: 8px;
+        margin-bottom: 8px;
+    }
+    .studio_folio-template li { margin-bottom: 4px; }
+    .studio_folio-template p { margin-bottom: 8px; }
+    .studio_folio-template {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+    .studio_folio-work-grid {
+        display: grid !important;
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+        box-sizing: border-box;
+    }
+    .studio_folio-template .studio_folio-split {
+        display: grid !important;
+        grid-template-columns: 1fr;
+        gap: 2rem;
+        box-sizing: border-box;
+    }
+    .studio_folio-template .folio-skill-label {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: baseline !important;
+        gap: 0.5rem !important;
+        min-width: 0 !important;
+    }
+    .studio_folio-template .folio-skill-name {
+        min-width: 0 !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+    .studio_folio-template .folio-skill-level {
+        flex-shrink: 0 !important;
+        white-space: nowrap !important;
+        font-variant-numeric: tabular-nums !important;
+    }
+    @media (min-width: 768px), print {
+        .studio_folio-work-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        }
+        .studio_folio-template .studio_folio-split {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        }
+    }
+    @media print {
+        .studio_folio-template {
+            overflow: visible !important;
+        }
+        .studio_folio-template .folio-contact-linkedin {
+            overflow: visible !important;
+            text-overflow: clip !important;
+            white-space: normal !important;
+            overflow-wrap: anywhere !important;
+            word-break: break-word !important;
+        }
+    }
+</style>
+
+<div class="studio_folio-template bg-gradient-to-b from-stone-100 via-orange-50/40 to-stone-50 p-8 rounded-xl text-gray-900">
+    <header class="max-w-3xl mx-auto text-center mb-12">
+        {% include 'resume_templates/includes/resume_portrait_photo.html' %}
+        <h1 class="text-3xl font-black text-stone-900 tracking-tight">{{ resume_data.personal_info.full_name|default_if_none:"" }}</h1>
+        <p class="text-orange-900 font-semibold mt-1">{{ resume_data.personal_info.title|default_if_none:"" }}</p>
+        <div class="mt-5 flex flex-wrap justify-center gap-x-4 gap-y-1 text-sm text-stone-600">
+            {% if resume_data.personal_info.email %}<span class="break-words">{{ resume_data.personal_info.email }}</span>{% endif %}
+            {% if resume_data.personal_info.phone %}<span>{{ resume_data.personal_info.phone }}</span>{% endif %}
+            {% if resume_data.personal_info.location %}<span>{{ resume_data.personal_info.location }}</span>{% endif %}
+        </div>
+        {% if resume_data.personal_info.linkedin %}
+        <p class="folio-contact-linkedin mt-2 text-sm text-orange-800 truncate max-w-xl mx-auto">{{ resume_data.personal_info.linkedin }}</p>
+        {% endif %}
+    </header>
+
+    {% if resume_data.additional.projects %}
+    <section class="mb-12 max-w-5xl mx-auto">
+        <h2 class="text-xs uppercase tracking-[0.2em] font-bold text-orange-800 mb-3">Selected work</h2>
+        <div class="bg-white/95 border border-stone-200 rounded-2xl p-6 sm:p-8 shadow-sm text-gray-800 leading-relaxed prose prose-sm max-w-none">{{ resume_data.additional.projects|safe }}</div>
+    </section>
+    {% endif %}
+
+    {% if resume_data.personal_info.summary %}
+    <section class="mb-12 max-w-3xl mx-auto">
+        <h2 class="text-xs uppercase tracking-[0.2em] font-bold text-stone-800 mb-3">About</h2>
+        <div class="text-gray-700 leading-relaxed text-sm">{{ resume_data.personal_info.summary|safe }}</div>
+    </section>
+    {% endif %}
+
+    <section class="mb-12 max-w-5xl mx-auto">
+        <h2 class="text-xs uppercase tracking-[0.2em] font-bold text-stone-800 mb-5">Experience</h2>
+        <div class="studio_folio-work-grid grid grid-cols-1 md:grid-cols-2 gap-5 print:grid-cols-2">
+            {% for job in resume_data.experience %}
+            <article class="border border-stone-200/90 rounded-2xl p-5 bg-white/95 shadow-sm">
+                <h3 class="font-bold text-gray-900">{{ job.company|default_if_none:"" }}</h3>
+                <p class="text-orange-800 font-semibold text-sm mt-1">{% firstof job.title job.position '' %}</p>
+                {% if job.start_date or job.end_date %}
+                <p class="text-xs text-stone-500 mt-1">
+                    {{ job.start_date|default_if_none:""|default:"" }}
+                    –
+                    {{ job.end_date|default_if_none:""|default:"" }}
+                </p>
+                {% endif %}
+                <div class="text-sm text-gray-700 mt-3">{{ job.description|safe }}</div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="mb-12 max-w-4xl mx-auto">
+        <h2 class="text-xs uppercase tracking-[0.2em] font-bold text-stone-800 mb-4">Education</h2>
+        <div class="space-y-4">
+            {% for edu in resume_data.education %}
+            <article class="border-l-4 border-orange-400 pl-4">
+                <h3 class="font-bold">{{ edu.degree|default_if_none:"" }}</h3>
+                <p class="text-sm text-orange-900">{{ edu.institution|default_if_none:"" }}</p>
+                {% if edu.start_date or edu.end_date %}
+                <p class="text-xs text-stone-500 mt-1">
+                    {{ edu.start_date|default_if_none:""|default:"" }}
+                    –
+                    {{ edu.end_date|default_if_none:""|default:"" }}
+                </p>
+                {% endif %}
+                {% if edu.description %}
+                <div class="text-sm text-gray-700 mt-2">{{ edu.description|safe }}</div>
+                {% endif %}
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+
+    <div class="studio_folio-split grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-8 mb-12 max-w-5xl mx-auto">
+        <section>
+            <h2 class="text-xs uppercase tracking-[0.2em] font-bold text-stone-800 mb-3">Rated skills</h2>
+            <div class="space-y-3">
+                {% for item in resume_data.skills.rated %}
+                {% if item.name %}
+                <div class="min-w-0">
+                    <div class="folio-skill-label flex justify-between gap-2 mb-1 min-w-0 text-xs font-semibold text-gray-600">
+                        <span class="folio-skill-name truncate min-w-0 pr-2">{{ item.name|trim }}</span>
+                        <span class="folio-skill-level shrink-0 whitespace-nowrap tabular-nums">{{ item.level }}/10</span>
+                    </div>
+                    <div class="h-2 rounded-full bg-stone-200 overflow-hidden">
+                        <div class="h-full rounded-full bg-gradient-to-r from-orange-500 to-amber-600"
+                             style="width: {% widthratio item.level 10 100 %}%;"></div>
+                    </div>
+                </div>
+                {% endif %}
+                {% endfor %}
+                {% if not resume_data.skills.rated %}
+                <p class="text-xs text-stone-500">Add rated or technical skills in the wizard to show bars here.</p>
+                {% endif %}
+            </div>
+        </section>
+        <section>
+            <h2 class="text-xs uppercase tracking-[0.2em] font-bold text-stone-800 mb-3">Soft skills</h2>
+            <div class="flex flex-wrap gap-2">
+                {% for skill in resume_data.skills.soft %}
+                <span class="bg-orange-100 text-orange-950 text-xs font-medium px-2 py-1 rounded-full">{{ skill|trim }}</span>
+                {% endfor %}
+            </div>
+            <h3 class="text-xs uppercase tracking-wider text-stone-600 font-bold mb-2 mt-6">Languages</h3>
+            <div class="flex flex-wrap gap-2">
+                {% for lang in resume_data.skills.languages %}
+                <span class="bg-stone-200 text-stone-900 text-xs font-medium px-2 py-1 rounded-full">{{ lang|trim }}</span>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+
+    {% if resume_data.additional.references %}
+    <section class="mb-12 max-w-4xl mx-auto">
+        <h2 class="text-xs uppercase tracking-[0.2em] font-bold text-stone-800 mb-4">References</h2>
+        <div class="studio_folio-work-grid grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-4">
+            {% for ref in resume_data.additional.references %}
+            {% if ref.name or ref.affiliation or ref.email or ref.phone %}
+            <div class="border border-orange-200/80 bg-orange-50/60 rounded-xl p-4 text-sm">
+                {% if ref.name %}<div class="font-bold text-gray-900">{{ ref.name }}</div>{% endif %}
+                {% if ref.affiliation %}<div class="text-gray-600">{{ ref.affiliation }}</div>{% endif %}
+                {% if ref.email %}<div class="text-orange-900 break-words">{{ ref.email }}</div>{% endif %}
+                {% if ref.phone %}<div class="text-gray-700">{{ ref.phone }}</div>{% endif %}
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <div class="studio_folio-split grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-8 max-w-5xl mx-auto">
+        <div>
+            <h2 class="text-xs uppercase tracking-[0.2em] font-bold text-stone-800 mb-2">Certifications</h2>
+            <div class="text-sm text-gray-700">{{ resume_data.additional.certifications|safe }}</div>
+        </div>
+        <div>
+            <h2 class="text-xs uppercase tracking-[0.2em] font-bold text-stone-800 mb-2">Technical focus</h2>
+            <div class="flex flex-wrap gap-2">
+                {% for skill in resume_data.skills.technical %}
+                <span class="border border-stone-300 bg-white text-stone-800 text-xs font-medium px-2 py-1 rounded-md">{{ skill|trim }}</span>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
