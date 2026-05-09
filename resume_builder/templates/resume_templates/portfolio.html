@@ -5,6 +5,51 @@
     .portfolio-template ol { list-style-type: decimal; margin-left: 20px; padding-left: 12px; margin-bottom: 8px; }
     .portfolio-template li { margin-bottom: 4px; }
     .portfolio-template p { margin-bottom: 8px; }
+
+    /*
+     * PDF/playwright: printable width is usually under Tailwind lg (1024px), so Tailwind lg:grid-cols-12
+     * collapses to one column with aside order-first. Mirror lg layout with plain CSS via print OR min-width,
+     * same pattern as creative_studio.html.
+     */
+    @media (min-width: 1024px), print {
+        .portfolio-template .portfolio-shell {
+            display: grid;
+            grid-template-columns: repeat(12, minmax(0, 1fr));
+            gap: 2.5rem;
+            align-items: start;
+        }
+        .portfolio-template .portfolio-main {
+            grid-column: span 8;
+            order: 1;
+            min-width: 0;
+        }
+        .portfolio-template .portfolio-aside {
+            grid-column: span 4;
+            order: 2;
+            min-width: 0;
+        }
+    }
+    @media print {
+        /* Desktop preview: certs in sidebar only — hide lg:hidden duplicate in PDF */
+        .portfolio-template .portfolio-certs-mobile {
+            display: none !important;
+        }
+        .portfolio-template .portfolio-certs-sidebar {
+            display: block !important;
+        }
+        /* Match sm: styling for timeline when PDF width skips sm breakpoints */
+        .portfolio-template .portfolio-exp-entry {
+            padding-left: 1rem;
+            margin-left: 0.25rem;
+            border-left-width: 2px;
+            border-left-style: solid;
+        }
+        .portfolio-template .portfolio-exp-meta {
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+    }
 </style>
 
 <div class="portfolio-template max-w-5xl mx-auto text-gray-900">
@@ -18,8 +63,8 @@
         </div>
     </header>
 
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 px-2 sm:px-0">
-        <div class="lg:col-span-8 space-y-10 order-2 lg:order-1">
+    <div class="portfolio-shell grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 px-2 sm:px-0">
+        <div class="portfolio-main lg:col-span-8 space-y-10 order-2 lg:order-1">
             {% if resume_data.additional.projects %}
             <section>
                 <h2 class="text-lg sm:text-xl font-bold text-gray-900 border-b-2 border-teal-600 pb-2 mb-4">Selected projects</h2>
@@ -39,8 +84,8 @@
             <section>
                 <h2 class="text-lg sm:text-xl font-bold text-gray-900 border-b-2 border-teal-600 pb-2 mb-4">Experience</h2>
                 {% for exp in resume_data.experience %}
-                <div class="mb-6 pl-0 sm:pl-4 border-l-0 sm:border-l-2 border-teal-200 sm:ml-1">
-                    <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1">
+                <div class="portfolio-exp-entry mb-6 pl-0 sm:pl-4 border-l-0 sm:border-l-2 border-teal-200 sm:ml-1">
+                    <div class="portfolio-exp-meta flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1">
                         <div>
                             <h3 class="font-semibold text-gray-900">{{ exp.title }}</h3>
                             <p class="text-teal-700 text-sm">{{ exp.company }}</p>
@@ -65,14 +110,14 @@
             </section>
 
             {% if resume_data.additional.certifications %}
-            <section class="lg:hidden">
+            <section class="portfolio-certs-mobile lg:hidden">
                 <h2 class="text-lg font-bold text-gray-900 border-b-2 border-teal-600 pb-2 mb-3">Certifications</h2>
                 <div class="text-gray-700 text-sm">{{ resume_data.additional.certifications|safe }}</div>
             </section>
             {% endif %}
         </div>
 
-        <aside class="lg:col-span-4 order-1 lg:order-2 space-y-6">
+        <aside class="portfolio-aside lg:col-span-4 order-1 lg:order-2 space-y-6">
             {% if resume_data.skills.technical or resume_data.skills.soft or resume_data.skills.languages %}
             <div class="bg-gray-50 border border-gray-200 rounded-xl p-4 sm:p-5">
                 <h2 class="text-sm font-bold uppercase tracking-wide text-gray-500 mb-3">Skills</h2>
@@ -92,7 +137,7 @@
             {% endif %}
 
             {% if resume_data.additional.certifications %}
-            <div class="hidden lg:block bg-gray-50 border border-gray-200 rounded-xl p-4 sm:p-5">
+            <div class="portfolio-certs-sidebar hidden lg:block bg-gray-50 border border-gray-200 rounded-xl p-4 sm:p-5">
                 <h2 class="text-sm font-bold uppercase tracking-wide text-gray-500 mb-3">Certifications</h2>
                 <div class="text-gray-700 text-sm">{{ resume_data.additional.certifications|safe }}</div>
             </div>

@@ -2,6 +2,8 @@
 
 This project includes Playwright for end-to-end tests **and** for **server-side resume PDF generation** (`pdf_generator` uses headless Chromium). The Python package is installed via Poetry, but **browser binaries are a separate install** and must be present on each machine or container.
 
+**Multi-column résumé templates (PDF)** must follow spacing/breakpoint rules so Playwright/Chromium keeps sidebar + main; see [`pdf_generator/RESUME_PDF_LAYOUT.md`](pdf_generator/RESUME_PDF_LAYOUT.md).
+
 ## Installation
 
 ```bash

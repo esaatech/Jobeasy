@@ -16,12 +16,141 @@
         width: 168px;
         max-width: 100%;
     }
+
+    /*
+     * PDF: Printable width < Tailwind md (768px) is normal. Do not rely on md: / print: utilities
+     * alone (Tailwind may inject after this block). Use grid with !important for the shell —
+     * same robust pattern as portfolio.html portfolio-shell / plain CSS pdf_generator notes.
+     */
+    .creative-studio-template {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+    .creative-studio-row {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+        width: 100%;
+        box-sizing: border-box;
+        align-items: stretch;
+    }
+    .creative-studio-sidebar {
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        min-width: 0;
+    }
+    .creative-studio-main {
+        flex: 1 1 auto;
+        min-width: 0;
+        width: 100%;
+        box-sizing: border-box;
+    }
+    .creative-studio-template .creative-studio-grid-lg2,
+    .creative-studio-template .creative-studio-grid-md2 {
+        display: grid !important;
+        grid-template-columns: 1fr;
+        box-sizing: border-box;
+    }
+    .creative-studio-template .creative-studio-skill-label {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: baseline !important;
+        gap: 0.5rem !important;
+        min-width: 0 !important;
+    }
+    .creative-studio-template .creative-studio-skill-name {
+        min-width: 0 !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+    .creative-studio-template .creative-studio-skill-level {
+        flex-shrink: 0 !important;
+        white-space: nowrap !important;
+        font-variant-numeric: tabular-nums !important;
+    }
+    /* Wide screen: desktop two-column shell */
+    @media (min-width: 768px) {
+        .creative-studio-template .creative-studio-row {
+            display: grid !important;
+            grid-template-columns: 240px minmax(0, 1fr);
+            gap: 2rem !important;
+            width: 100%;
+        }
+        .creative-studio-template .creative-studio-sidebar {
+            width: auto !important;
+            max-width: none !important;
+            min-width: 0;
+        }
+        .creative-studio-template .creative-studio-main {
+            min-width: 0 !important;
+            width: auto !important;
+            flex: unset;
+            max-width: none;
+        }
+    }
+    @media (min-width: 1024px) {
+        .creative-studio-template .creative-studio-grid-lg2 {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        }
+    }
+    @media (min-width: 768px) {
+        .creative-studio-template .creative-studio-grid-md2 {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        }
+    }
+    @media print {
+        .creative-studio-template .creative-studio-row {
+            display: grid !important;
+            grid-template-columns: 240px minmax(0, 1fr) !important;
+            gap: 2rem !important;
+            width: 100% !important;
+            align-items: start;
+        }
+        .creative-studio-template .creative-studio-sidebar {
+            width: auto !important;
+            max-width: none !important;
+            min-width: 0 !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            background: #fff !important;
+            background-color: #fff !important;
+        }
+        .creative-studio-template .creative-studio-main {
+            min-width: 0 !important;
+            width: auto !important;
+            max-width: none !important;
+            flex: unset !important;
+            overflow: visible !important;
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            background: #fff !important;
+            background-color: #fff !important;
+        }
+        .creative-studio-template {
+            overflow: visible !important;
+        }
+        .creative-studio-template .creative-studio-grid-lg2 {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        }
+        .creative-studio-template .creative-studio-grid-md2 {
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        }
+        .creative-studio-template .creative-studio-contact-linkedin {
+            overflow: visible !important;
+            text-overflow: clip !important;
+            white-space: normal !important;
+            overflow-wrap: anywhere !important;
+            word-break: break-word !important;
+        }
+    }
 </style>
 
 <div class="creative-studio-template bg-gradient-to-br from-amber-50 via-rose-50 to-violet-100 p-8 rounded-xl text-gray-900">
-    <div class="flex flex-col md:flex-row gap-8 items-stretch">
+    <div class="creative-studio-row flex flex-col md:flex-row print:flex-row gap-8 print:gap-8 items-stretch">
         <!-- Sidebar -->
-        <aside class="w-full md:w-[240px] shrink-0 bg-white/80 backdrop-blur-sm border border-violet-200/70 rounded-2xl p-6 shadow-sm">
+        <aside class="creative-studio-sidebar w-full md:w-[240px] print:w-[240px] print:max-w-none shrink-0 bg-white/80 backdrop-blur-sm border border-violet-200/70 rounded-2xl p-6 shadow-sm">
             {% if resume_data.personal_info.profile_photo_display_url %}
             <div class="flex justify-center mb-6">
                 <img src="{{ resume_data.personal_info.profile_photo_display_url }}"
@@ -57,7 +186,7 @@
                 <li class="text-gray-600 text-xs">{{ resume_data.personal_info.street_address }}</li>
                 {% endif %}
                 {% if resume_data.personal_info.linkedin %}
-                <li class="truncate text-violet-700">{{ resume_data.personal_info.linkedin }}</li>
+                <li class="creative-studio-contact-linkedin truncate text-violet-700">{{ resume_data.personal_info.linkedin }}</li>
                 {% endif %}
             </ul>
 
@@ -65,10 +194,10 @@
             <div class="space-y-3">
                 {% for item in resume_data.skills.rated %}
                 {% if item.name %}
-                <div>
-                    <div class="flex justify-between text-xs font-semibold text-gray-600 mb-1">
-                        <span>{{ item.name|trim }}</span>
-                        <span>{{ item.level }}/10</span>
+                <div class="min-w-0">
+                    <div class="creative-studio-skill-label flex justify-between gap-2 mb-1 min-w-0 text-xs font-semibold text-gray-600">
+                        <span class="creative-studio-skill-name truncate min-w-0 pr-2">{{ item.name|trim }}</span>
+                        <span class="creative-studio-skill-level shrink-0 whitespace-nowrap tabular-nums">{{ item.level }}/10</span>
                     </div>
                     <div class="h-2 rounded-full bg-violet-100 overflow-hidden">
                         <div class="h-full rounded-full bg-gradient-to-r from-fuchsia-500 to-violet-600"
@@ -100,7 +229,7 @@
         </aside>
 
         <!-- Main column -->
-        <div class="flex-1 bg-white/90 backdrop-blur-sm border border-violet-100 rounded-2xl p-8 shadow-sm min-w-0">
+        <div class="creative-studio-main flex-1 bg-white/90 backdrop-blur-sm border border-violet-100 rounded-2xl p-8 shadow-sm min-w-0 print:min-w-0">
             {% if resume_data.personal_info.summary %}
             <section class="mb-10">
                 <h2 class="text-sm uppercase tracking-[0.2em] font-bold text-fuchsia-700 mb-2">About</h2>
@@ -152,7 +281,7 @@
                 </div>
             </section>
 
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-10">
+            <div class="creative-studio-grid-lg2 grid grid-cols-1 lg:grid-cols-2 print:grid-cols-2 gap-8 mb-10">
                 <section>
                     <h2 class="text-sm uppercase tracking-[0.2em] font-bold text-violet-800 mb-3">Soft skills</h2>
                     <div class="flex flex-wrap gap-2">
@@ -171,7 +300,7 @@
                 </section>
             </div>
 
-            <section class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <section class="creative-studio-grid-md2 grid grid-cols-1 md:grid-cols-2 print:grid-cols-2 gap-8">
                 <div>
                     <h2 class="text-sm uppercase tracking-[0.2em] font-bold text-violet-800 mb-2">Certifications</h2>
                     <div class="text-sm text-gray-700">{{ resume_data.additional.certifications|safe }}</div>

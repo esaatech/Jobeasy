@@ -75,7 +75,18 @@ class PlaywrightPDFGenerator:
         
         # Create full HTML document with proper styling for PDF
         full_html = self._create_pdf_html_document(html_content, options)
-        
+        # Viewport + print media so @media print and (min-width), print rules in templates
+        # (e.g. creative_studio) evaluate like real PDF output; single-column templates
+        # (e.g. professional) do not rely on this for their outer shell.
+        try:
+            self.page.set_viewport_size({"width": 1280, "height": 1600})
+            self.page.emulate_media(media="print")
+        except Exception:
+            logger.debug(
+                "Could not set viewport or print media emulation before PDF render; continuing.",
+                exc_info=True,
+            )
+
         # Set content and generate PDF
         self.page.set_content(full_html)
         
@@ -140,6 +151,10 @@ class PlaywrightPDFGenerator:
     <style>
         /* PDF-specific styles */
         @media print {{
+            html {{
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }}
             body {{
                 margin: 0;
                 padding: 0;
@@ -149,11 +164,6 @@ class PlaywrightPDFGenerator:
             
             .no-print {{
                 display: none !important;
-            }}
-            
-            * {{
-                color: black !important;
-                background: white !important;
             }}
         }}
         
