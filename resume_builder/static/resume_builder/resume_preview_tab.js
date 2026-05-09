@@ -3,6 +3,26 @@ function resumePreviewDefaultTemplateId() {
     return (el && el.dataset.defaultTemplate) ? el.dataset.defaultTemplate : 'professional';
 }
 
+function resumePreviewTabSkeletonHtml() {
+    return [
+        '<div class="animate-pulse space-y-5 px-1 py-2" aria-busy="true">',
+        '<div class="h-14 rounded-md bg-slate-200 w-4/5 max-w-xl mx-auto"></div>',
+        '<div class="h-2.5 bg-slate-100 rounded w-36 mx-auto"></div>',
+        '<div class="space-y-2.5 pt-4 max-w-2xl mx-auto">',
+        '<div class="h-2 bg-slate-100 rounded"></div>',
+        '<div class="h-2 bg-slate-100 rounded w-11/12 max-w-2xl"></div>',
+        '<div class="h-2 bg-slate-100 rounded w-4/5"></div>',
+        '</div>',
+        '<div class="h-2 bg-slate-200 rounded w-40 max-w-md mx-auto mt-8"></div>',
+        '<div class="space-y-2 max-w-2xl mx-auto">',
+        '<div class="h-2 bg-slate-100 rounded"></div>',
+        '<div class="h-2 bg-slate-100 rounded w-[92%]"></div>',
+        '<div class="h-2 bg-slate-100 rounded w-[88%]"></div>',
+        '</div>',
+        '</div>'
+    ].join('');
+}
+
 class ResumePreviewTab {
     constructor() {
         this.currentResumeId = null;
@@ -56,10 +76,10 @@ class ResumePreviewTab {
         
         console.log('🔗 Full URL:', fullUrl);
         
-        // Show loading state
+        // Document-style skeleton (matches template gallery Row 2 loading treatment)
         const resumeContent = document.getElementById('resumeContent');
         if (resumeContent) {
-            resumeContent.innerHTML = '<div class="text-center py-8"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div><p class="mt-2 text-gray-600">Loading resume...</p></div>';
+            resumeContent.innerHTML = resumePreviewTabSkeletonHtml();
         }
         
         // Use HTMX to load the entire tab content
@@ -114,3 +134,5 @@ function switchResumeTemplate(templateId) {
         console.warn('⚠️ ResumePreviewTab not initialized');
     }
 }
+
+window.getTemplatePreviewSkeletonHtml = resumePreviewTabSkeletonHtml;

@@ -12,8 +12,10 @@
     </div>
     
     <div class="preview-content">
-        <div class="resume-preview" id="resumePreview">
-            <!-- Template content will be loaded here -->
+        <div class="rounded-lg bg-gray-100 p-4 sm:p-6">
+            <div class="resume-preview" id="resumePreview">
+                <!-- Template content will be loaded here -->
+            </div>
         </div>
     </div>
 </div>
@@ -100,6 +102,13 @@ class TemplatePreview {
     
     async loadTemplatePreview(templateId) {
         console.log('🔧 TemplatePreview: loadTemplatePreview called with:', templateId);
+
+        const skeleton = typeof window.getTemplatePreviewSkeletonHtml === 'function'
+            ? window.getTemplatePreviewSkeletonHtml()
+            : '<div class="animate-pulse p-4 space-y-3"><div class="h-8 bg-slate-200 rounded"></div><div class="h-2 bg-slate-100 rounded w-2/3"></div></div>';
+        if (this.resumePreview) {
+            this.resumePreview.innerHTML = skeleton;
+        }
         
         try {
             const userLocale = navigator.language || 'en-US';
@@ -159,6 +168,13 @@ class TemplatePreview {
         
         const url = `/resume/api/resume/${resumeId}/preview/?template=${encodeURIComponent(this.currentTemplate)}`;
         console.log('🌐 Making API call to:', url);
+
+        if (this.resumePreview) {
+            const skeleton = typeof window.getTemplatePreviewSkeletonHtml === 'function'
+                ? window.getTemplatePreviewSkeletonHtml()
+                : '<div class="animate-pulse p-4 space-y-3"><div class="h-8 bg-slate-200 rounded"></div></div>';
+            this.resumePreview.innerHTML = skeleton;
+        }
         
         try {
             const response = await fetch(url, {

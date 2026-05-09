@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="340" height="440" viewBox="0 0 340 440" role="img" aria-label="Creative resume preview">
+  <defs>
+    <filter id="cre-sh" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-opacity=".12"/>
+    </filter>
+    <linearGradient id="cre-bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#eef2ff"/>
+      <stop offset="100%" stop-color="#faf5ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="340" height="440" fill="#fafafa"/>
+  <g filter="url(#cre-sh)">
+    <rect x="28" y="16" width="284" height="408" rx="8" fill="url(#cre-bg)" stroke="#e9d5ff"/>
+  </g>
+  <!-- Matches creative.html: centered name (gradient approximated), Expertise 3 cards -->
+  <text x="170" y="44" text-anchor="middle" fill="#7c3aed" font-family="ui-sans-serif,system-ui,sans-serif" font-size="15" font-weight="800">Sarah Johnson</text>
+  <text x="170" y="64" text-anchor="middle" fill="#4b5563" font-family="ui-sans-serif,system-ui,sans-serif" font-size="10">Senior Software Engineer</text>
+  <text x="170" y="82" text-anchor="middle" fill="#6b7280" font-family="ui-sans-serif,system-ui,sans-serif" font-size="7">email | phone</text>
+  <rect x="60" y="94" width="220" height="2" fill="#e5e7eb" rx="1"/>
+  <rect x="80" y="102" width="180" height="2" fill="#e5e7eb" rx="1"/>
+  <text x="170" y="128" text-anchor="middle" fill="#111827" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" font-weight="700">Expertise</text>
+  <rect x="40" y="138" width="78" height="70" rx="4" fill="#ffffff" stroke="#e5e7eb"/>
+  <rect x="131" y="138" width="78" height="70" rx="4" fill="#ffffff" stroke="#e5e7eb"/>
+  <rect x="222" y="138" width="78" height="70" rx="4" fill="#ffffff" stroke="#e5e7eb"/>
+  <text x="79" y="150" text-anchor="middle" fill="#9333ea" font-family="ui-sans-serif,system-ui,sans-serif" font-size="6" font-weight="600">Technical</text>
+  <text x="170" y="150" text-anchor="middle" fill="#4f46e5" font-family="ui-sans-serif,system-ui,sans-serif" font-size="6" font-weight="600">Soft Skills</text>
+  <text x="261" y="150" text-anchor="middle" fill="#2563eb" font-family="ui-sans-serif,system-ui,sans-serif" font-size="6" font-weight="600">Languages</text>
+  <rect x="48" y="158" width="22" height="6" rx="3" fill="#ede9fe"/>
+  <rect x="72" y="158" width="24" height="6" rx="3" fill="#ede9fe"/>
+  <rect x="48" y="168" width="26" height="6" rx="3" fill="#ede9fe"/>
+  <rect x="139" y="158" width="24" height="6" rx="3" fill="#e0e7ff"/>
+  <rect x="165" y="158" width="28" height="6" rx="3" fill="#e0e7ff"/>
+  <rect x="230" y="158" width="30" height="6" rx="3" fill="#dbeafe"/>
+  <rect x="262" y="158" width="22" height="6" rx="3" fill="#dbeafe"/>
+  <text x="170" y="232" text-anchor="middle" fill="#111827" font-family="ui-sans-serif,system-ui,sans-serif" font-size="9" font-weight="700">Professional Journey</text>
+  <rect x="48" y="242" width="244" height="52" rx="4" fill="#ffffff" stroke="#e5e7eb"/>
+  <rect x="58" y="254" width="100" height="5" fill="#111827" rx="1"/>
+  <rect x="58" y="264" width="72" height="3" fill="#9333ea" rx="1"/>
+  <rect x="58" y="272" width="200" height="2" fill="#f3f4f6" rx="1"/>
+</svg>

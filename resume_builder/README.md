@@ -158,10 +158,13 @@ if (pendingResumeData) {
 ### Resume Templates Gallery
 - **Dedicated Page**: `/resume/resume_templates/` - Standalone template gallery
 - **Template Cards**: Visual cards with template screenshots and descriptions
+- **Card thumbnails**: Static files under `static/img/resume_templates/` (mostly SVG wireframes aligned with each layout). `ResumeTemplate.thumbnail_static` stores paths such as `img/resume_templates/professional.svg`. Migration `0008_row1_template_svg_thumbnails` updates legacy DB rows that still pointed at removed `.png` assets. **Creative Studio** uses a masked initials placeholder in the SVG (no hot-linked photos) so thumbnails work offline and with strict CSP.
+- **Gallery image crop**: Thumbnail `<img>` uses `object-cover object-top` in `resume_templates/resume_templates.html` so previews fill the card (tall SVGs are cropped like a page teaser).
 - **Preview Functionality**: Uses same backend endpoint as create_resume_form (`preview_template`)
-- **Modal Interface**: Consistent modal design with template navigation tabs
+- **Modal Interface**: Gray tray plus white “sheet” with shadow; document-style skeleton while `fetch` loads HTML (`partials/template_preview_modal.html`). `window.getTemplatePreviewSkeletonHtml` is shared with the resume assistant sidebar preview where applicable.
 - **Backend Integration**: Fetches real template HTML from `preview_template` view
 - **Use Template**: Direct redirect to create_resume with selected template
+- **Deploy**: After changing files under `static/`, run `collectstatic` when using `CompressedManifestStaticFilesStorage` so hashed asset names stay in sync.
 
 **Features:**
 - **Template Navigation**: Switch between templates within the modal

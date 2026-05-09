@@ -27,7 +27,10 @@
                     <p class="text-xs font-semibold uppercase tracking-wide text-blue-700 mt-4 mb-1">Description</p>
                     <p id="previewTemplateDescription" class="text-sm text-gray-700 leading-relaxed"></p>
                 </div>
-                <div id="previewContent" class="resume-preview prose max-w-none"></div>
+                <div id="previewContent" class="rounded-lg bg-gray-100 p-4 sm:p-6 min-h-[280px]">
+                    <div id="previewSheet" class="resume-preview prose max-w-none bg-white rounded-xl max-w-4xl mx-auto px-4 sm:px-8 py-6 min-h-[220px] ring-1 ring-gray-900/10"
+                     style="box-shadow: 0 20px 44px -18px rgba(15, 23, 42, 0.24), 0 0 0 1px rgba(15, 23, 42, 0.06);"></div>
+                </div>
             </div>
             <div class="flex justify-end gap-3 p-6 border-t border-gray-200 shrink-0">
                 <button type="button" onclick="closeTemplatePreview()"
@@ -90,17 +93,43 @@
         });
     }
 
+    function getTemplatePreviewSkeletonHtml() {
+        return [
+            '<div class="animate-pulse space-y-5 px-1 py-2" aria-busy="true">',
+            '<div class="h-14 rounded-md bg-slate-200 w-4/5 max-w-xl mx-auto"></div>',
+            '<div class="h-2.5 bg-slate-100 rounded w-36 mx-auto"></div>',
+            '<div class="space-y-2.5 pt-4 max-w-2xl mx-auto">',
+            '<div class="h-2 bg-slate-100 rounded"></div>',
+            '<div class="h-2 bg-slate-100 rounded w-11/12 max-w-2xl"></div>',
+            '<div class="h-2 bg-slate-100 rounded w-4/5"></div>',
+            '</div>',
+            '<div class="h-2 bg-slate-200 rounded w-40 max-w-md mx-auto mt-8"></div>',
+            '<div class="space-y-2 max-w-2xl mx-auto">',
+            '<div class="h-2 bg-slate-100 rounded"></div>',
+            '<div class="h-2 bg-slate-100 rounded w-[92%]"></div>',
+            '<div class="h-2 bg-slate-100 rounded w-[88%]"></div>',
+            '</div>',
+            '</div>'
+        ].join('');
+    }
+
+    window.getTemplatePreviewSkeletonHtml = getTemplatePreviewSkeletonHtml;
+
     function loadTemplatePreview(templateId) {
-        const previewContent = document.getElementById('previewContent');
+        const previewSheet = document.getElementById('previewSheet');
+        if (!previewSheet) return;
         const userLocale = navigator.language || 'en-US';
+        previewSheet.innerHTML = getTemplatePreviewSkeletonHtml();
         fetch(`/resume/preview/${encodeURIComponent(templateId)}/?locale=${userLocale}`)
             .then(response => {
                 if (!response.ok) throw new Error('Failed to load template');
                 return response.text();
             })
-            .then(html => { previewContent.innerHTML = html; })
+            .then(html => {
+                previewSheet.innerHTML = html;
+            })
             .catch(() => {
-                previewContent.innerHTML = '<p class="text-sm text-gray-500 text-center py-8">Unable to load template preview.</p>';
+                previewSheet.innerHTML = '<p class="text-sm text-gray-500 text-center py-8">Unable to load template preview.</p>';
             });
     }
 

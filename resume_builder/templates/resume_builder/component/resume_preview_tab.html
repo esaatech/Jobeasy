@@ -64,9 +64,11 @@
                 </div>
             </div>
             
-            <!-- Resume Display -->
-            <div class="resume-preview" id="resumeContent">
-                {{ resume_html|safe }}
+            <!-- Resume display: tray + sheet shadow (aligned with template preview modal) -->
+            <div class="rounded-lg bg-gray-100 p-4 sm:p-6">
+                <div class="resume-preview" id="resumeContent">
+                    {{ resume_html|safe }}
+                </div>
             </div>
         {% else %}
             <!-- No Resume Selected -->

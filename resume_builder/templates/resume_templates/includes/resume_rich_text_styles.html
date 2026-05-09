@@ -1,0 +1,29 @@
+{# Pass wrapper_class: root template class (e.g. professional-template) for CKEditor list/paragraph rules. #}
+<style>
+    .{{ wrapper_class }} ul {
+        list-style-type: disc;
+        margin-left: 20px;
+        padding-left: 20px;
+        margin-bottom: 10px;
+    }
+    .{{ wrapper_class }} ol {
+        list-style-type: decimal;
+        margin-left: 20px;
+        padding-left: 20px;
+        margin-bottom: 10px;
+    }
+    .{{ wrapper_class }} li {
+        margin-bottom: 5px;
+    }
+    .{{ wrapper_class }} ul ul {
+        list-style-type: circle;
+        margin-top: 5px;
+    }
+    .{{ wrapper_class }} ol ol {
+        list-style-type: lower-alpha;
+        margin-top: 5px;
+    }
+    .{{ wrapper_class }} p {
+        margin-bottom: 10px;
+    }
+</style>

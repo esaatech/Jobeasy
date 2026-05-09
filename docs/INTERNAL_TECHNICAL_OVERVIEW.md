@@ -107,7 +107,7 @@ Prefix is the site root unless noted.
 ## 5. Resume templates (product concept)
 
 - Templates are defined in code (e.g. **`resume_builder/template_registry.py`**) with IDs such as **professional**, **modern**, **creative**.  
-- Each template has metadata: name, description, optional thumbnail path, **featured** flags for marketing pages.  
+- Each template has metadata: name, description, optional **thumbnail** path under `static/` (gallery cards and marketing use `thumbnail_static`, often SVG), **featured** flags for marketing pages.  
 - The marketing page **`/landing_page/resumes/`** shows up to a small number of **featured** templates with previews and “Use this template” actions that deep-link into resume creation with a `template` query parameter.
 
 ---

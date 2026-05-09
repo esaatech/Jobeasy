@@ -30,9 +30,13 @@
                 </div>
             </div>
             
-            <!-- Resume Content -->
-            <div class="p-6" id="resumeContent">
-                {{ resume_html|safe }}
+            <!-- Resume content: gray tray + sheet (same chrome as Row 2 gallery previews) -->
+            <div class="bg-gray-100 p-6 sm:p-8">
+                <div class="bg-white rounded-xl max-w-4xl mx-auto px-4 sm:px-8 py-6 sm:py-8 shadow-xl ring-1 ring-gray-900/10"
+                     style="box-shadow: 0 20px 44px -18px rgba(15, 23, 42, 0.24), 0 0 0 1px rgba(15, 23, 42, 0.06);"
+                     id="resumeContent">
+                    {{ resume_html|safe }}
+                </div>
             </div>
         </div>
         {% else %}

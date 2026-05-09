@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="340" height="440" viewBox="0 0 340 440" role="img" aria-label="Professional resume preview">
+  <defs>
+    <filter id="pro-sh" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-opacity=".12"/>
+    </filter>
+  </defs>
+  <rect width="340" height="440" fill="#fafafa"/>
+  <g filter="url(#pro-sh)">
+    <rect x="28" y="16" width="284" height="408" rx="4" fill="#ffffff" stroke="#e5e7eb"/>
+  </g>
+  <!-- Matches professional.html: centered header -->
+  <text x="170" y="44" text-anchor="middle" fill="#111827" font-family="ui-sans-serif,system-ui,sans-serif" font-size="14" font-weight="700">Sarah Johnson</text>
+  <text x="170" y="62" text-anchor="middle" fill="#4b5563" font-family="ui-sans-serif,system-ui,sans-serif" font-size="10">Senior Software Engineer</text>
+  <text x="170" y="80" text-anchor="middle" fill="#6b7280" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8">email | phone</text>
+  <text x="44" y="104" fill="#111827" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" font-weight="600">Professional Summary</text>
+  <rect x="44" y="108" width="252" height="1" fill="#d1d5db"/>
+  <rect x="44" y="116" width="232" height="3" fill="#e5e7eb" rx="1"/>
+  <rect x="44" y="122" width="244" height="3" fill="#e5e7eb" rx="1"/>
+  <text x="44" y="146" fill="#111827" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" font-weight="600">Professional Experience</text>
+  <rect x="44" y="150" width="252" height="1" fill="#d1d5db"/>
+  <text x="44" y="168" fill="#111827" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" font-weight="700">Senior Software Engineer</text>
+  <text x="44" y="180" fill="#4b5563" font-family="ui-sans-serif,system-ui,sans-serif" font-size="7">TechCorp Inc.</text>
+  <text x="236" y="168" fill="#6b7280" font-family="ui-sans-serif,system-ui,sans-serif" font-size="7">2022 - Present</text>
+  <rect x="44" y="188" width="228" height="3" fill="#f3f4f6" rx="1"/>
+  <rect x="44" y="194" width="208" height="3" fill="#f3f4f6" rx="1"/>
+  <text x="44" y="218" fill="#111827" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" font-weight="600">Education</text>
+  <rect x="44" y="222" width="252" height="1" fill="#d1d5db"/>
+  <text x="44" y="238" fill="#111827" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" font-weight="600">B.S. Computer Science</text>
+  <text x="44" y="250" fill="#4b5563" font-family="ui-sans-serif,system-ui,sans-serif" font-size="7">University of Technology</text>
+  <text x="44" y="274" fill="#111827" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" font-weight="600">Skills</text>
+  <rect x="44" y="278" width="252" height="1" fill="#d1d5db"/>
+  <rect x="44" y="288" width="118" height="40" rx="2" fill="#fafafa"/>
+  <rect x="170" y="288" width="118" height="40" rx="2" fill="#fafafa"/>
+  <text x="50" y="298" fill="#111827" font-family="ui-sans-serif,system-ui,sans-serif" font-size="6" font-weight="600">Technical Skills</text>
+  <text x="176" y="298" fill="#111827" font-family="ui-sans-serif,system-ui,sans-serif" font-size="6" font-weight="600">Soft Skills</text>
+  <rect x="50" y="306" width="42" height="8" rx="4" fill="#f3f4f6"/>
+  <rect x="96" y="306" width="38" height="8" rx="4" fill="#f3f4f6"/>
+  <rect x="176" y="306" width="44" height="8" rx="4" fill="#f3f4f6"/>
+  <rect x="176" y="318" width="36" height="8" rx="4" fill="#f3f4f6"/>
+</svg>

@@ -8,6 +8,15 @@
       <stop offset="50%" style="stop-color:#fdf2f8;stop-opacity:1" />
       <stop offset="100%" style="stop-color:#ede9fe;stop-opacity:1" />
     </linearGradient>
+    <linearGradient id="cs-avatar-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a78bfa"/>
+      <stop offset="50%" stop-color="#e879f9"/>
+      <stop offset="100%" stop-color="#818cf8"/>
+    </linearGradient>
+    <!-- Organic mask scaled to match creative_studio.html clip-path proportions -->
+    <clipPath id="cs-photo-mask" clipPathUnits="userSpaceOnUse">
+      <polygon points="68.4,59.2 111.5,63.7 113.8,108.5 92.5,118.7 65.6,109.8 63.4,82.9"/>
+    </clipPath>
   </defs>
   <rect width="340" height="440" fill="url(#cs-gradient)"/>
   <ellipse cx="-20" cy="120" rx="90" ry="120" fill="#fbbf24" opacity=".15"/>
@@ -15,8 +24,12 @@
   <rect x="28" y="16" width="284" height="408" rx="6" fill="#ffffff" stroke="#e9d5ff" filter="url(#cs-shadow)"/>
   <!-- Sidebar -->
   <rect x="40" y="36" width="96" height="368" rx="8" fill="#faf5ff" stroke="#e9d5ff"/>
-  <ellipse cx="88" cy="88" rx="36" ry="42" fill="#ddd6fe" opacity=".85"/>
-  <circle cx="88" cy="86" r="28" fill="#fcd34d" opacity=".5"/>
+  <!-- Sidebar: avatar with same organic mask as creative_studio.html -->
+  <g clip-path="url(#cs-photo-mask)">
+    <rect x="58" y="54" width="62" height="72" fill="url(#cs-avatar-grad)"/>
+    <ellipse cx="88" cy="74" rx="13" ry="15" fill="#ffffff" opacity="0.18"/>
+    <text x="88" y="99" text-anchor="middle" fill="#ffffff" font-family="ui-sans-serif,system-ui,sans-serif" font-size="16" font-weight="800">JL</text>
+  </g>
   <text x="88" y="152" text-anchor="middle" fill="#5b21b6" font-family="ui-sans-serif,system-ui,sans-serif" font-size="10" font-weight="700">CONTACT</text>
   <rect x="54" y="162" width="68" height="4" rx="2" fill="#e9d5ff"/>
   <rect x="54" y="174" width="68" height="4" rx="2" fill="#e9d5ff"/>
