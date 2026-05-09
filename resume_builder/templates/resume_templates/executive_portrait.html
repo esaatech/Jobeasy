@@ -1,20 +1,33 @@
 {% load resume_filters %}
-
+{% include 'resume_templates/includes/resume_portrait_photo_styles.html' %}
 <style>
-    .executive-template ul { list-style-type: disc; margin-left: 20px; padding-left: 12px; margin-bottom: 8px; }
-    .executive-template ol { list-style-type: decimal; margin-left: 20px; padding-left: 12px; margin-bottom: 8px; }
-    .executive-template li { margin-bottom: 4px; }
-    .executive-template p { margin-bottom: 8px; }
+    .executive_portrait-template ul { list-style-type: disc; margin-left: 20px; padding-left: 12px; margin-bottom: 8px; }
+    .executive_portrait-template ol { list-style-type: decimal; margin-left: 20px; padding-left: 12px; margin-bottom: 8px; }
+    .executive_portrait-template li { margin-bottom: 4px; }
+    .executive_portrait-template p { margin-bottom: 8px; }
 </style>
 
-<div class="executive-template max-w-3xl mx-auto text-gray-900">
+<div class="executive_portrait-template max-w-3xl mx-auto text-gray-900">
     <header class="bg-slate-900 text-white px-5 py-8 sm:px-8 rounded-t-lg">
-        <h1 class="text-2xl sm:text-3xl font-bold">{{ resume_data.personal_info.full_name }}</h1>
-        <p class="text-slate-300 mt-1 text-base sm:text-lg">{{ resume_data.personal_info.title }}</p>
-        <div class="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-300">
-            <span>{{ resume_data.personal_info.email }}</span>
-            <span class="hidden sm:inline" aria-hidden="true">|</span>
-            <span>{{ resume_data.personal_info.phone }}</span>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
+            <div class="flex-1 min-w-0 order-2 sm:order-1">
+                <h1 class="text-2xl sm:text-3xl font-bold">{{ resume_data.personal_info.full_name }}</h1>
+                <p class="text-slate-300 mt-1 text-base sm:text-lg">{{ resume_data.personal_info.title }}</p>
+                <div class="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-300">
+                    {% if resume_data.personal_info.email %}<span class="break-words">{{ resume_data.personal_info.email }}</span>{% endif %}
+                    {% if resume_data.personal_info.email and resume_data.personal_info.phone %}<span class="hidden sm:inline" aria-hidden="true">|</span>{% endif %}
+                    {% if resume_data.personal_info.phone %}<span>{{ resume_data.personal_info.phone }}</span>{% endif %}
+                </div>
+                {% if resume_data.personal_info.linkedin %}
+                <p class="mt-2 text-xs text-slate-400 break-words">{{ resume_data.personal_info.linkedin }}</p>
+                {% endif %}
+                {% if resume_data.personal_info.location %}
+                <p class="mt-1 text-xs text-slate-400">{{ resume_data.personal_info.location }}</p>
+                {% endif %}
+            </div>
+            <div class="shrink-0 flex justify-center sm:justify-end order-1 sm:order-2">
+                {% include 'resume_templates/includes/resume_portrait_photo.html' with portrait_wrapper_class='flex justify-center sm:justify-end mb-0' %}
+            </div>
         </div>
     </header>
     <div class="px-4 sm:px-8 py-6 border border-t-0 border-slate-200 rounded-b-lg bg-white">

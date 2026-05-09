@@ -9,7 +9,7 @@ To add a template:
    only featured templates appear there, capped at FEATURED_LANDING_MAX.
 
 Wizard-only sections (optional photo, extended contact rows, references repeater, rated-skills panel) are shown
-only for template IDs listed in ``_TEMPLATE_CAPABILITY_OVERRIDES`` (creative photo-forward layouts).
+only for template IDs listed in ``_TEMPLATE_CAPABILITY_OVERRIDES`` (photo-forward and Executive Portrait layouts).
 """
 
 from __future__ import annotations
@@ -38,6 +38,12 @@ _TEMPLATE_CAPABILITY_OVERRIDES: Dict[str, Dict[str, bool]] = {
     "creative_studio": {k: True for k in _CAPABILITY_KEYS},
     "studio_folio": {k: True for k in _CAPABILITY_KEYS},
     "creative_atelier": {k: True for k in _CAPABILITY_KEYS},
+    "executive_portrait": {
+        "supports_extended_contact": True,
+        "supports_profile_photo": True,
+        "supports_references": False,
+        "supports_rated_skills": False,
+    },
 }
 
 
@@ -128,6 +134,27 @@ DEFAULT_RESUME_TEMPLATES: List[Dict[str, Any]] = [
         "selection_title_class": "text-slate-100",
     },
     {
+        "id": "executive_portrait",
+        "name": "Executive Portrait",
+        "description": (
+            "For directors and senior leaders who want measurable impact upfront. Same bold Executive "
+            "layout with a portrait in the header—use when your leadership brand needs a face alongside outcomes."
+        ),
+        "role_label": "Executive / leadership",
+        "short_label": "Bold header + portrait",
+        "featured": False,
+        "featured_rank": 5,
+        "features": [
+            "Executive header + photo",
+            "Outcome-oriented",
+            "Condensed timeline",
+            "Leadership-ready",
+        ],
+        "thumbnail_static": "img/resume_templates/executive_portrait.svg",
+        "selection_gradient": "from-slate-700 to-slate-900",
+        "selection_title_class": "text-slate-100",
+    },
+    {
         "id": "portfolio",
         "name": "Portfolio",
         "description": (
@@ -137,7 +164,7 @@ DEFAULT_RESUME_TEMPLATES: List[Dict[str, Any]] = [
         "role_label": "Project / portfolio",
         "short_label": "Projects first",
         "featured": False,
-        "featured_rank": 5,
+        "featured_rank": 6,
         "features": [
             "Projects spotlight",
             "Sidebar skills",
@@ -158,7 +185,7 @@ DEFAULT_RESUME_TEMPLATES: List[Dict[str, Any]] = [
         "role_label": "ATS plain",
         "short_label": "Parser-friendly",
         "featured": False,
-        "featured_rank": 6,
+        "featured_rank": 7,
         "features": [
             "Single column",
             "Standard headings",
@@ -179,7 +206,7 @@ DEFAULT_RESUME_TEMPLATES: List[Dict[str, Any]] = [
         "role_label": "Creative / studio",
         "short_label": "Photo + refs + bars",
         "featured": False,
-        "featured_rank": 7,
+        "featured_rank": 8,
         "features": [
             "Clip-path portrait",
             "Rated skill bars",
@@ -200,7 +227,7 @@ DEFAULT_RESUME_TEMPLATES: List[Dict[str, Any]] = [
         "role_label": "Portfolio / studio",
         "short_label": "Folio grid + portrait",
         "featured": False,
-        "featured_rank": 8,
+        "featured_rank": 9,
         "features": [
             "Work-forward layout",
             "Experience cards",
@@ -221,7 +248,7 @@ DEFAULT_RESUME_TEMPLATES: List[Dict[str, Any]] = [
         "role_label": "Editorial / atelier",
         "short_label": "Narrative + side portrait",
         "featured": False,
-        "featured_rank": 9,
+        "featured_rank": 10,
         "features": [
             "Narrative-first column",
             "Right sidebar portrait",

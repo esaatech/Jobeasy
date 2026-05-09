@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="340" height="440" viewBox="0 0 340 440" role="img" aria-label="Executive Portrait resume preview">
+  <defs>
+    <filter id="ep-shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-opacity=".12"/>
+    </filter>
+    <linearGradient id="ep-avatar" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#64748b"/>
+      <stop offset="100%" stop-color="#0f172a"/>
+    </linearGradient>
+    <clipPath id="ep-mask" clipPathUnits="userSpaceOnUse">
+      <polygon points="68.4,59.2 111.5,63.7 113.8,108.5 92.5,118.7 65.6,109.8 63.4,82.9"/>
+    </clipPath>
+  </defs>
+  <rect width="340" height="440" fill="#fafafa"/>
+  <g filter="url(#ep-shadow)">
+    <rect x="28" y="16" width="284" height="408" rx="4" fill="#ffffff" stroke="#e5e7eb"/>
+  </g>
+  <!-- Dark header band with portrait on the right (matches HTML flex header) -->
+  <rect x="28" y="16" width="284" height="92" rx="4" fill="#0f172a"/>
+  <rect x="28" y="92" width="284" height="16" fill="#ffffff"/>
+  <text x="44" y="52" fill="#ffffff" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12" font-weight="700">Morgan Lee</text>
+  <text x="44" y="68" fill="#cbd5e1" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8">Chief Operating Officer</text>
+  <text x="44" y="84" fill="#94a3b8" font-family="ui-sans-serif,system-ui,sans-serif" font-size="7">email • phone</text>
+  <g transform="translate(198, -20)">
+    <g clip-path="url(#ep-mask)">
+      <rect x="58" y="54" width="62" height="72" fill="url(#ep-avatar)"/>
+      <text x="88" y="96" text-anchor="middle" fill="#ffffff" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12" font-weight="800">ML</text>
+    </g>
+  </g>
+  <rect x="44" y="112" width="48" height="3" rx="1" fill="#f59e0b"/>
+  <text x="44" y="132" fill="#475569" font-family="ui-sans-serif,system-ui,sans-serif" font-size="7" font-weight="700" letter-spacing="0.06em">EXECUTIVE SUMMARY</text>
+  <rect x="44" y="140" width="252" height="4" fill="#e2e8f0" rx="1"/>
+  <rect x="44" y="148" width="228" height="4" fill="#e2e8f0" rx="1"/>
+  <text x="44" y="186" fill="#475569" font-family="ui-sans-serif,system-ui,sans-serif" font-size="7" font-weight="700" letter-spacing="0.06em">PROFESSIONAL EXPERIENCE</text>
+  <rect x="44" y="194" width="252" height="1" fill="#cbd5e1"/>
+  <text x="44" y="206" fill="#111827" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8" font-weight="700">VP Operations</text>
+  <text x="44" y="218" fill="#64748b" font-family="ui-sans-serif,system-ui,sans-serif" font-size="7">Summit Group</text>
+  <rect x="44" y="224" width="220" height="3" fill="#f1f5f9" rx="1"/>
+  <text x="44" y="248" fill="#475569" font-family="ui-sans-serif,system-ui,sans-serif" font-size="7" font-weight="700" letter-spacing="0.06em">CORE CAPABILITIES</text>
+  <rect x="44" y="254" width="252" height="1" fill="#cbd5e1"/>
+  <rect x="44" y="262" width="54" height="14" rx="2" fill="#f1f5f9"/>
+  <rect x="104" y="262" width="62" height="14" rx="2" fill="#f1f5f9"/>
+  <rect x="172" y="262" width="48" height="14" rx="2" fill="#f1f5f9"/>
+</svg>
