@@ -1,0 +1,95 @@
+{% load resume_filters %}
+
+<style>
+    .new_grad_profile-template ul { list-style-type: disc; margin-left: 20px; padding-left: 8px; margin-bottom: 8px; }
+    .new_grad_profile-template ol { list-style-type: decimal; margin-left: 20px; padding-left: 8px; margin-bottom: 8px; }
+    .new_grad_profile-template li { margin-bottom: 4px; }
+    .new_grad_profile-template p { margin-bottom: 8px; }
+</style>
+
+<div class="new_grad_profile-template max-w-3xl mx-auto text-gray-900 px-3 sm:px-0">
+    <header class="text-center border-b-2 border-sky-600 pb-4 mb-6">
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">{{ resume_data.personal_info.full_name }}</h1>
+        {% if resume_data.personal_info.title %}<p class="text-sky-800 font-medium mt-1">{{ resume_data.personal_info.title }}</p>{% endif %}
+        <div class="mt-3 text-sm text-gray-600 flex flex-wrap justify-center gap-x-3 gap-y-1">
+            <span>{{ resume_data.personal_info.email }}</span>
+            <span class="hidden sm:inline">·</span>
+            <span>{{ resume_data.personal_info.phone }}</span>
+            {% if resume_data.personal_info.location %}
+            <span class="hidden sm:inline">·</span>
+            <span>{{ resume_data.personal_info.location }}</span>
+            {% endif %}
+        </div>
+    </header>
+
+    {% if resume_data.personal_info.summary %}
+    <section class="mb-8">
+        <h2 class="text-sm font-bold uppercase tracking-wide text-sky-800 border-b border-sky-200 pb-2 mb-3">Summary</h2>
+        <div class="text-gray-700 text-sm leading-relaxed">{{ resume_data.personal_info.summary|safe }}</div>
+    </section>
+    {% endif %}
+
+    <section class="mb-8">
+        <h2 class="text-sm font-bold uppercase tracking-wide text-sky-800 border-b border-sky-200 pb-2 mb-4">Education</h2>
+        {% for edu in resume_data.education %}
+        <div class="mb-4">
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-baseline gap-1">
+                <div>
+                    <h3 class="font-semibold">{{ edu.degree }}</h3>
+                    <p class="text-sky-800 text-sm">{{ edu.institution }}</p>
+                </div>
+                <p class="text-gray-500 text-sm">{{ edu.start_date }} — {{ edu.end_date|default:"Present" }}</p>
+            </div>
+            {% if edu.description %}<div class="mt-2 text-sm text-gray-700">{{ edu.description|safe }}</div>{% endif %}
+        </div>
+        {% endfor %}
+    </section>
+
+    <section class="mb-8">
+        <h2 class="text-sm font-bold uppercase tracking-wide text-sky-800 border-b border-sky-200 pb-2 mb-2">Experience &amp; activities</h2>
+        <p class="text-xs text-gray-500 mb-4">Internships, part-time work, volunteering, clubs, and research.</p>
+        {% for exp in resume_data.experience %}
+        <div class="mb-5">
+            <div class="flex flex-col sm:flex-row sm:justify-between sm:items-baseline gap-1">
+                <div>
+                    <h3 class="font-semibold text-gray-900">{{ exp.title }}</h3>
+                    <p class="text-sky-800 text-sm">{{ exp.company }}</p>
+                </div>
+                <p class="text-gray-500 text-sm whitespace-nowrap">{{ exp.start_date }} — {{ exp.end_date|default:"Present" }}</p>
+            </div>
+            <div class="mt-2 text-gray-700 text-sm">{{ exp.description|safe }}</div>
+        </div>
+        {% endfor %}
+    </section>
+
+    {% if resume_data.skills.technical or resume_data.skills.soft or resume_data.skills.languages %}
+    <section class="mb-8">
+        <h2 class="text-sm font-bold uppercase tracking-wide text-sky-800 border-b border-sky-200 pb-2 mb-3">Skills</h2>
+        <div class="flex flex-wrap gap-2 text-sm">
+            {% for skill in resume_data.skills.technical %}
+            <span class="bg-sky-100 text-sky-950 px-2 py-0.5 rounded">{{ skill|trim }}</span>
+            {% endfor %}
+            {% for skill in resume_data.skills.soft %}
+            <span class="bg-slate-100 text-slate-800 px-2 py-0.5 rounded">{{ skill|trim }}</span>
+            {% endfor %}
+            {% for lang in resume_data.skills.languages %}
+            <span class="border border-sky-200 text-gray-800 px-2 py-0.5 rounded">{{ lang|trim }}</span>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% if resume_data.additional.projects %}
+    <section class="mb-8">
+        <h2 class="text-sm font-bold uppercase tracking-wide text-sky-800 border-b border-sky-200 pb-2 mb-3">Projects</h2>
+        <div class="text-sm text-gray-700">{{ resume_data.additional.projects|safe }}</div>
+    </section>
+    {% endif %}
+
+    {% if resume_data.additional.certifications %}
+    <section class="mb-6">
+        <h2 class="text-sm font-bold uppercase tracking-wide text-sky-800 border-b border-sky-200 pb-2 mb-3">Certifications</h2>
+        <div class="text-sm text-gray-700">{{ resume_data.additional.certifications|safe }}</div>
+    </section>
+    {% endif %}
+</div>

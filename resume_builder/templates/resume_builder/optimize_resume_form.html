@@ -5,7 +5,7 @@
         {% csrf_token %}
         
         <!-- Template Selection Section -->
-       {% include 'partials/template_selection.html' with selected_template=selected_template resume_templates=resume_templates %}
+       {% include 'partials/template_selection.html' with selected_template=selected_template resume_templates=resume_templates resume_template_sections=resume_template_sections %}
 
         <!-- Resume Upload Section -->
         <div class="bg-white p-8 border border-gray-200">

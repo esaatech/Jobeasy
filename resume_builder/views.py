@@ -44,6 +44,7 @@ from subscriptions.decorators import check_subscription_access
 from .template_registry import (
     DEFAULT_TEMPLATE_ID,
     get_resume_embedded_style_tag,
+    get_resume_template_gallery_sections,
     normalize_template_id,
     template_ui_capabilities,
     templates_for_gallery,
@@ -574,6 +575,7 @@ def create_resume(request, resume_id=None):
         'resume_instance': resume_instance,
         'date_options': date_options,
         'resume_templates': templates_for_gallery(),
+        'resume_template_sections': get_resume_template_gallery_sections(),
         'selected_template': selected_template,
         'default_template_id': DEFAULT_TEMPLATE_ID,
         'profile_photo_preview_url': profile_photo_preview_url,
@@ -841,6 +843,7 @@ def upload_resume(request):
         {
             'hero_content': hero_content,
             'resume_templates': templates_for_gallery(),
+            'resume_template_sections': get_resume_template_gallery_sections(),
             'selected_template': DEFAULT_TEMPLATE_ID,
             'default_template_id': DEFAULT_TEMPLATE_ID,
         },
@@ -890,6 +893,7 @@ def view_resume(request, resume_id=None):
                 'resume_html': html_content,
                 'is_htmx_request': True,
                 'resume_templates': templates_for_gallery(),
+                'resume_template_sections': get_resume_template_gallery_sections(),
                 'default_template_id': DEFAULT_TEMPLATE_ID,
             }
             return render(request, 'resume_builder/component/resume_preview_tab.html', context)
@@ -2171,6 +2175,7 @@ def ai_resume_assistant(request):
             'page_description': 'Create your perfect resume with our AI assistant. Chat naturally and see your resume update in real-time.'
         },
         'resume_templates': templates_for_gallery(),
+        'resume_template_sections': get_resume_template_gallery_sections(),
         'default_template_id': DEFAULT_TEMPLATE_ID,
     }
     return render(request, 'resume_builder/resumeassistant.html', context)
@@ -2513,6 +2518,7 @@ def resume_templates(request):
             'page_description': 'Choose from our professional resume templates designed to help you stand out to employers.'
         },
         'resume_templates': templates_for_gallery(),
+        'resume_template_sections': get_resume_template_gallery_sections(),
         'default_template_id': DEFAULT_TEMPLATE_ID,
     }
     return render(request, 'resume_templates/resume_templates.html', context)

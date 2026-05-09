@@ -16,6 +16,13 @@ def resume_pdf_path(instance, filename):
     return f'resumes/{instance.user.id}/resume_{timestamp}{ext}'
 
 
+class GallerySection(models.TextChoices):
+    """Where the template appears in the public gallery / wizard grouping."""
+
+    GENERAL = "general", "General"
+    STUDENTS = "students", "Students & recent grads"
+
+
 class ResumeTemplate(models.Model):
     template_id = models.SlugField(max_length=50, unique=True)
     name = models.CharField(max_length=100)
@@ -26,6 +33,12 @@ class ResumeTemplate(models.Model):
     thumbnail_static = models.CharField(max_length=255, blank=True, default="")
     selection_gradient = models.CharField(max_length=120, blank=True, default="")
     selection_title_class = models.CharField(max_length=120, blank=True, default="")
+    gallery_section = models.CharField(
+        max_length=32,
+        choices=GallerySection.choices,
+        default=GallerySection.GENERAL,
+        db_index=True,
+    )
     featured = models.BooleanField(default=False)
     featured_rank = models.PositiveIntegerField(default=999)
     is_active = models.BooleanField(default=True)

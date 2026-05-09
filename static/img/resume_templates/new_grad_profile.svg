@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="340" height="440" viewBox="0 0 340 440" role="img" aria-label="Campus Profile resume preview">
+  <defs>
+    <filter id="ngpf-shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-opacity=".12"/>
+    </filter>
+  </defs>
+  <rect width="340" height="440" fill="#f0f9ff"/>
+  <g filter="url(#ngpf-shadow)">
+    <rect x="28" y="16" width="284" height="408" rx="4" fill="#ffffff" stroke="#bae6fd"/>
+  </g>
+  <rect x="44" y="32" width="252" height="2" fill="#0284c7"/>
+  <text x="170" y="60" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="13" font-weight="800" fill="#0c4a6e">Sam Rivera</text>
+  <text x="170" y="78" text-anchor="middle" fill="#0369a1" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8">Campus leader&#183; Biology</text>
+  <text x="48" y="104" fill="#0369a1" font-family="ui-sans-serif,system-ui,sans-serif" font-size="7" font-weight="700">SUMMARY</text>
+  <rect x="48" y="110" width="244" height="3" fill="#e0f2fe" rx="1"/>
+  <rect x="48" y="118" width="220" height="3" fill="#e0f2fe" rx="1"/>
+  <text x="48" y="144" fill="#0369a1" font-family="ui-sans-serif,system-ui,sans-serif" font-size="7" font-weight="700">EDUCATION</text>
+  <rect x="48" y="150" width="200" height="4" fill="#bae6fd" rx="1"/>
+  <text x="48" y="180" fill="#0369a1" font-family="ui-sans-serif,system-ui,sans-serif" font-size="7" font-weight="700">EXPERIENCE &amp; ACTIVITIES</text>
+  <rect x="48" y="188" width="244" height="3" fill="#e0f2fe" rx="1"/>
+  <rect x="48" y="196" width="230" height="3" fill="#e0f2fe" rx="1"/>
+  <text x="48" y="224" fill="#0369a1" font-family="ui-sans-serif,system-ui,sans-serif" font-size="7" font-weight="700">SKILLS</text>
+  <rect x="48" y="232" width="48" height="12" rx="2" fill="#e0f2fe"/>
+  <rect x="102" y="232" width="52" height="12" rx="2" fill="#e0f2fe"/>
+  <rect x="160" y="232" width="44" height="12" rx="2" fill="#e0f2fe"/>
+</svg>

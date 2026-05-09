@@ -9,4 +9,4 @@
 <input type="hidden" name="resume_id" id="resumeId" value="{{ resume_instance.id|default:'' }}">
 
 <!-- Template Selection Section -->
-{% include 'partials/template_selection.html' with selected_template=selected_template resume_templates=resume_templates %} 
+{% include 'partials/template_selection.html' with selected_template=selected_template resume_templates=resume_templates resume_template_sections=resume_template_sections %} 

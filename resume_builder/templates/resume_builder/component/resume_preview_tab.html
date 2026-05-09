@@ -18,6 +18,27 @@
         {% if resume %}
         <div class="flex items-center gap-3">
             <!-- Template Selector -->
+            {% if resume_template_sections %}
+            <div class="template-selector flex flex-col gap-3 max-w-full">
+                {% for section in resume_template_sections %}
+                <div class="flex flex-col gap-1.5">
+                    {% if section.heading %}
+                    <span class="text-[10px] font-semibold uppercase tracking-wide text-gray-400">{{ section.heading }}</span>
+                    {% endif %}
+                    <div class="flex flex-wrap gap-2">
+                        {% for t in section.templates %}
+                        <button type="button"
+                                class="template-btn {% if resume.template_id == t.id %}active{% endif %}"
+                                data-template="{{ t.id }}"
+                                onclick="switchResumeTemplate('{{ t.id }}')">
+                            {{ t.name }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
             <div class="template-selector flex flex-wrap gap-2">
                 {% for t in resume_templates %}
                 <button type="button"
@@ -28,6 +49,7 @@
                 </button>
                 {% endfor %}
             </div>
+            {% endif %}
             
             <!-- Download Buttons -->
             <div class="flex items-center gap-2">

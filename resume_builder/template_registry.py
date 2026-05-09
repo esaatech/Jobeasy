@@ -7,6 +7,8 @@ To add a template:
 3. Optional: set thumbnail_static to a path under static/ for gallery cards.
 4. Marketing /landing_page/resumes/: set ``featured`` True and ``featured_rank`` (1–4 typical);
    only featured templates appear there, capped at FEATURED_LANDING_MAX.
+5. Gallery grouping: set ``gallery_section`` (``general`` vs ``students``) on templates and in Django admin;
+   the public / wizard UI renders subsection headings for general templates, then a "Students & recent grads" block.
 
 Wizard-only sections (optional photo, extended contact rows, references repeater, rated-skills panel) are shown
 only for template IDs listed in ``_TEMPLATE_CAPABILITY_OVERRIDES`` (photo-forward and Executive Portrait layouts).
@@ -14,7 +16,7 @@ only for template IDs listed in ``_TEMPLATE_CAPABILITY_OVERRIDES`` (photo-forwar
 
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from django.apps import apps
 from django.core.exceptions import AppRegistryNotReady
@@ -22,6 +24,19 @@ from django.db.utils import OperationalError, ProgrammingError
 
 # Max featured templates shown on marketing landing pages (e.g. /landing_page/resumes/).
 FEATURED_LANDING_MAX: int = 4
+
+# Gallery / wizard grouping (matches ResumeTemplate.GallerySection in models).
+GALLERY_SECTION_GENERAL: str = "general"
+GALLERY_SECTION_STUDENTS: str = "students"
+STUDENT_GALLERY_SECTION_HEADING: str = "Students & recent grads"
+
+# General gallery: ordered subsections (each row is typically 3 cards on lg grids).
+GENERAL_GALLERY_SUBSECTIONS: List[Tuple[str, Tuple[str, ...]]] = [
+    ("Classic & contemporary", ("professional", "modern", "creative")),
+    ("Leadership & portfolio", ("executive", "executive_portrait", "portfolio")),
+    ("Creative studios", ("ats_plain", "creative_studio", "studio_folio", "creative_atelier")),
+]
+GENERAL_GALLERY_LEFTOVER_HEADING: str = "More layouts"
 
 # Wizard/UI: optional fields rendered only when the selected template supports them (data retained if user switches templates).
 _CAPABILITY_KEYS: tuple[str, ...] = (
@@ -259,6 +274,72 @@ DEFAULT_RESUME_TEMPLATES: List[Dict[str, Any]] = [
         "selection_gradient": "from-rose-100 via-white to-slate-200",
         "selection_title_class": "text-slate-900",
     },
+    {
+        "id": "new_grad_ats",
+        "name": "Campus ATS",
+        "description": (
+            "Minimal single-column layout with education and projects up front—built for campus recruiting "
+            "and applicant tracking systems when you are light on formal work history."
+        ),
+        "role_label": "Student / new grad · ATS",
+        "short_label": "Education + keywords first",
+        "featured": False,
+        "featured_rank": 11,
+        "gallery_section": GALLERY_SECTION_STUDENTS,
+        "features": [
+            "Single column",
+            "Education-forward",
+            "Projects block",
+            "Parser-friendly skills",
+        ],
+        "thumbnail_static": "img/resume_templates/new_grad_ats.svg",
+        "selection_gradient": "from-slate-100 to-white",
+        "selection_title_class": "text-slate-800",
+    },
+    {
+        "id": "new_grad_projects",
+        "name": "Project Focus",
+        "description": (
+            "Highlights coursework and projects in the main column with a skills sidebar—ideal for CS, design, "
+            "and builders who want proof before job titles."
+        ),
+        "role_label": "Student / new grad · Projects",
+        "short_label": "Projects + skills rail",
+        "featured": False,
+        "featured_rank": 12,
+        "gallery_section": GALLERY_SECTION_STUDENTS,
+        "features": [
+            "Projects first",
+            "Print-safe two column",
+            "Sidebar skills",
+            "Internships supported",
+        ],
+        "thumbnail_static": "img/resume_templates/new_grad_projects.svg",
+        "selection_gradient": "from-indigo-100 to-indigo-50",
+        "selection_title_class": "text-indigo-900",
+    },
+    {
+        "id": "new_grad_profile",
+        "name": "Campus Profile",
+        "description": (
+            "Clear single-column flow: summary, education, then experience for internships, clubs, and "
+            "volunteering—without looking like an executive layout."
+        ),
+        "role_label": "Student / new grad · Activities",
+        "short_label": "Activities + education",
+        "featured": False,
+        "featured_rank": 13,
+        "gallery_section": GALLERY_SECTION_STUDENTS,
+        "features": [
+            "Single column",
+            "Scannable sections",
+            "Leadership-friendly",
+            "PDF-safe layout",
+        ],
+        "thumbnail_static": "img/resume_templates/new_grad_profile.svg",
+        "selection_gradient": "from-sky-100 to-slate-50",
+        "selection_title_class": "text-sky-900",
+    },
 ]
 
 DEFAULT_TEMPLATE_ID: str = DEFAULT_RESUME_TEMPLATES[0]["id"]
@@ -283,6 +364,7 @@ def _normalize_template_record(record: Dict[str, Any]) -> Dict[str, Any]:
         "selection_gradient": record.get("selection_gradient", ""),
         "selection_title_class": record.get("selection_title_class", ""),
         "is_active": bool(record.get("is_active", True)),
+        "gallery_section": str(record.get("gallery_section", GALLERY_SECTION_GENERAL)),
         **caps,
     }
 
@@ -316,6 +398,9 @@ def _iter_db_templates() -> Iterable[Dict[str, Any]]:
                     "selection_gradient": item.selection_gradient,
                     "selection_title_class": item.selection_title_class,
                     "is_active": item.is_active,
+                    "gallery_section": getattr(
+                        item, "gallery_section", GALLERY_SECTION_GENERAL
+                    ),
                 }
             )
             for item in templates
@@ -400,6 +485,41 @@ def templates_for_api() -> List[Dict[str, Any]]:
 def templates_for_gallery() -> List[Dict[str, Any]]:
     """Context for gallery + form cards (includes static thumbnail paths)."""
     return list(get_resume_templates())
+
+
+def get_resume_template_gallery_sections() -> List[Dict[str, Any]]:
+    """Ordered sections for gallery UI: general subsections (3-row style groups), then students."""
+    all_t = get_resume_templates()
+    general = [
+        t
+        for t in all_t
+        if t.get("gallery_section", GALLERY_SECTION_GENERAL) == GALLERY_SECTION_GENERAL
+    ]
+    students = [t for t in all_t if t.get("gallery_section") == GALLERY_SECTION_STUDENTS]
+    sections: List[Dict[str, Any]] = []
+
+    if general:
+        general_by_id = {t["id"]: t for t in general}
+        assigned: set[str] = set()
+        for heading, ids in GENERAL_GALLERY_SUBSECTIONS:
+            bucket = [general_by_id[i] for i in ids if i in general_by_id]
+            assigned.update(t["id"] for t in bucket)
+            if bucket:
+                sections.append({"heading": heading, "templates": bucket})
+        leftover = [t for t in general if t["id"] not in assigned]
+        if leftover:
+            sections.append(
+                {"heading": GENERAL_GALLERY_LEFTOVER_HEADING, "templates": leftover}
+            )
+
+    if students:
+        sections.append(
+            {"heading": STUDENT_GALLERY_SECTION_HEADING, "templates": students}
+        )
+
+    if not sections:
+        sections.append({"heading": None, "templates": all_t})
+    return sections
 
 
 def featured_templates_for_landing(max_count: int = FEATURED_LANDING_MAX) -> List[Dict[str, Any]]:

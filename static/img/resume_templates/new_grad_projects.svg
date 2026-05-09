@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="340" height="440" viewBox="0 0 340 440" role="img" aria-label="Project Focus resume preview">
+  <defs>
+    <filter id="ngp-shadow" x="-5%" y="-5%" width="110%" height="110%">
+      <feDropShadow dx="0" dy="1" stdDeviation="1.5" flood-opacity=".12"/>
+    </filter>
+  </defs>
+  <rect width="340" height="440" fill="#f5f3ff"/>
+  <g filter="url(#ngp-shadow)">
+    <rect x="28" y="16" width="284" height="408" rx="4" fill="#ffffff" stroke="#c7d2fe"/>
+  </g>
+  <text x="170" y="44" text-anchor="middle" font-family="ui-sans-serif,system-ui,sans-serif" font-size="12" font-weight="800" fill="#1e1b4b">Jordan Kim</text>
+  <text x="170" y="62" text-anchor="middle" fill="#4338ca" font-family="ui-sans-serif,system-ui,sans-serif" font-size="8">CS New Grad</text>
+  <rect x="40" y="76" width="170" height="300" rx="4" fill="#eef2ff" stroke="#a5b4fc"/>
+  <text x="48" y="92" fill="#312e81" font-family="ui-sans-serif,system-ui,sans-serif" font-size="7" font-weight="700">PROJECTS</text>
+  <rect x="48" y="100" width="150" height="24" rx="2" fill="#ffffff" stroke="#c7d2fe"/>
+  <rect x="48" y="130" width="154" height="3" fill="#a5b4fc" rx="1"/>
+  <rect x="48" y="138" width="140" height="3" fill="#e0e7ff" rx="1"/>
+  <text x="48" y="164" fill="#312e81" font-family="ui-sans-serif,system-ui,sans-serif" font-size="7" font-weight="700">EXPERIENCE</text>
+  <rect x="48" y="172" width="130" height="3" fill="#e0e7ff" rx="1"/>
+  <rect x="222" y="76" width="78" height="120" rx="4" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="226" y="94" fill="#64748b" font-family="ui-sans-serif,system-ui,sans-serif" font-size="6" font-weight="700">SKILLS</text>
+  <rect x="228" y="102" width="32" height="10" rx="2" fill="#e0e7ff"/>
+  <rect x="264" y="102" width="28" height="10" rx="2" fill="#e0e7ff"/>
+  <rect x="228" y="116" width="36" height="10" rx="2" fill="#e0e7ff"/>
+</svg>
