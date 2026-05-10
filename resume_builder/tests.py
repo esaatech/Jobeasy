@@ -5,6 +5,7 @@ from resume_builder.resume_display import augment_resume_dict_for_rendering
 from resume_builder.template_registry import (
     GALLERY_SECTION_STUDENTS,
     STUDENT_GALLERY_SECTION_HEADING,
+    gallery_section_index_for_template_id,
     get_resume_template_gallery_sections,
 )
 
@@ -93,3 +94,14 @@ class GallerySectionsTests(TestCase):
                 self.assertIn(tid, ids)
         for t in student_section["templates"]:
             self.assertEqual(t.get("gallery_section"), GALLERY_SECTION_STUDENTS)
+
+    def test_gallery_section_index_matches_template_slide(self):
+        sections = get_resume_template_gallery_sections()
+        for idx, sec in enumerate(sections):
+            for t in sec.get("templates") or []:
+                tid = t["id"]
+                with self.subTest(template_id=tid):
+                    self.assertEqual(
+                        gallery_section_index_for_template_id(sections, tid),
+                        idx,
+                    )

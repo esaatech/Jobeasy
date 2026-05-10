@@ -45,6 +45,7 @@ from .template_registry import (
     DEFAULT_TEMPLATE_ID,
     get_resume_embedded_style_tag,
     get_resume_template_gallery_sections,
+    gallery_section_index_for_template_id,
     normalize_template_id,
     template_ui_capabilities,
     templates_for_gallery,
@@ -550,6 +551,11 @@ def create_resume(request, resume_id=None):
     else:
         selected_template = normalize_template_id(request.GET.get('template'))
 
+    resume_template_sections = get_resume_template_gallery_sections()
+    selected_template_section_index = gallery_section_index_for_template_id(
+        resume_template_sections, selected_template
+    )
+
     profile_photo_preview_url = ''
     if resume_instance:
         profile_photo_preview_url = (
@@ -575,8 +581,9 @@ def create_resume(request, resume_id=None):
         'resume_instance': resume_instance,
         'date_options': date_options,
         'resume_templates': templates_for_gallery(),
-        'resume_template_sections': get_resume_template_gallery_sections(),
+        'resume_template_sections': resume_template_sections,
         'selected_template': selected_template,
+        'selected_template_section_index': selected_template_section_index,
         'default_template_id': DEFAULT_TEMPLATE_ID,
         'profile_photo_preview_url': profile_photo_preview_url,
         'selected_template_capabilities': template_ui_capabilities(selected_template),

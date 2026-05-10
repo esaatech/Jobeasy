@@ -5,7 +5,7 @@
         {% if resume_template_sections %}
             {% with sec_count=resume_template_sections|length %}
             {% if sec_count > 1 %}
-            <div class="relative" data-template-sections>
+            <div class="relative" data-template-sections data-initial-section-index="{{ selected_template_section_index|default:0 }}">
                 <div class="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <p class="text-xs text-gray-500 sm:order-2">Each slide is one category. Swipe or use arrows.</p>
                     <div class="flex items-center justify-center gap-2 sm:justify-start sm:order-1">
@@ -193,7 +193,44 @@
             window.addEventListener("resize", function () {
                 refresh();
             });
-            refresh();
+
+            /** Scroll carousel to the slide for this resume's template (server index + checked radio fallback; load event catches late layout). */
+            function scrollToCheckedSection() {
+                var targetIndex = -1;
+                var attr = root.getAttribute("data-initial-section-index");
+                if (attr !== null && attr !== "") {
+                    var parsed = parseInt(attr, 10);
+                    var n = scroller.children.length;
+                    if (!isNaN(parsed) && parsed >= 0 && n && parsed < n) {
+                        targetIndex = parsed;
+                    }
+                }
+                if (targetIndex < 0) {
+                    var checked = root.querySelector('input[name="template_id"]:checked');
+                    if (checked) {
+                        var panels = scroller.children;
+                        for (var j = 0; j < panels.length; j++) {
+                            if (panels[j].contains(checked)) {
+                                targetIndex = j;
+                                break;
+                            }
+                        }
+                    }
+                }
+                if (targetIndex < 0) {
+                    refresh();
+                    return;
+                }
+                var left = slideLeft(targetIndex);
+                scroller.scrollLeft = left;
+                scroller.scrollTo({ left: left, behavior: "auto" });
+                window.requestAnimationFrame(refresh);
+            }
+
+            window.requestAnimationFrame(function () {
+                window.requestAnimationFrame(scrollToCheckedSection);
+            });
+            window.addEventListener("load", scrollToCheckedSection, { once: true });
         }
 
         document.querySelectorAll("[data-template-sections]").forEach(initTemplateSectionCarousel);

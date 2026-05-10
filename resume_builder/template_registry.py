@@ -522,6 +522,18 @@ def get_resume_template_gallery_sections() -> List[Dict[str, Any]]:
     return sections
 
 
+def gallery_section_index_for_template_id(
+    sections: List[Dict[str, Any]], template_id: Optional[str]
+) -> int:
+    """Carousel slide index (0-based) that contains this template id."""
+    tid = normalize_template_id(template_id)
+    for i, sec in enumerate(sections or []):
+        for t in sec.get("templates") or []:
+            if str(t.get("id")) == tid:
+                return i
+    return 0
+
+
 def featured_templates_for_landing(max_count: int = FEATURED_LANDING_MAX) -> List[Dict[str, Any]]:
     """
     Templates marked featured=True, ordered by featured_rank (then list order).
