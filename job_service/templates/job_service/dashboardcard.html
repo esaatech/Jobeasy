@@ -26,6 +26,7 @@ Shows different content based on user's subscription status.
 </div>
 {% endif %}
 {% else %}
+{% if show_job_service_automation_ui %}
     {% comment %} Check for active applications (pending or processing) {% endcomment %}
     {% with active_application=user.job_application_requests.all|first %}
         {% if active_application and active_application.status == 'pending' or active_application.status == 'processing' %}
@@ -50,4 +51,5 @@ Shows different content based on user's subscription status.
             </div>
         {% endif %}
     {% endwith %}
+{% endif %}
 {% endif %} 

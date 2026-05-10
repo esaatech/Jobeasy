@@ -26,7 +26,15 @@
             
             <!-- Job Info -->
             <div class="flex-1">
+                {% if job_application.source == 'dashboard' %}
+                <h3 class="text-lg font-semibold text-gray-900">
+                    <a href="{% url 'dashboard:job_application_detail' job_application.id %}" class="hover:text-blue-700 hover:underline">
+                        {{ job_application.job_name }}
+                    </a>
+                </h3>
+                {% else %}
                 <h3 class="text-lg font-semibold text-gray-900">{{ job_application.job_name }}</h3>
+                {% endif %}
                 <p class="text-sm text-gray-500">{{ job_application.created_at|date:"M d, Y - g:i A" }}</p>
                 <div class="flex items-center space-x-2 mt-1">
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium

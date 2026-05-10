@@ -148,6 +148,7 @@
     // Create URL templates for JavaScript to use
     window.resumeViewUrlTemplate = "{% url 'resume_builder:view_resume_by_id' 99999 %}".replace('99999', '{resume_id}');
     window.resumeDownloadUrlTemplate = "{% url 'resume_builder:download_resume_file' 99999 'pdf' %}".replace('99999', '{resume_id}');
+    window.jobApplicationDetailUrlTemplate = "{% url 'dashboard:job_application_detail' 999999 %}".replace('999999', '{job_id}');
     
     // Function to download cover letter PDF using cover letter app's flow
     async function downloadCoverLetterPDF(coverLetterContent) {

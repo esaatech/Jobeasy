@@ -6,7 +6,8 @@
 {% block extra_css %}
 <style>
     .interview-prep-container {
-        padding: 2rem;
+        /* Horizontal padding comes from .page-width (same as dashboard); keep vertical rhythm only */
+        padding: 0.5rem 0 2rem;
     }
     
     .interview-prep-header {
@@ -20,6 +21,8 @@
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         padding: 2rem;
         min-height: 400px;
+        width: 100%;
+        box-sizing: border-box;
     }
     
     .loading-spinner {
@@ -71,7 +74,7 @@
     /* Mobile Styles */
     @media (max-width: 768px) {
         .interview-prep-container {
-            padding: 1rem;
+            padding: 0.25rem 0 1rem;
         }
         
         .interview-prep-header {
@@ -114,7 +117,7 @@
     /* Small Mobile Styles */
     @media (max-width: 480px) {
         .interview-prep-container {
-            padding: 0.75rem;
+            padding: 0.25rem 0 0.75rem;
         }
         
         .interview-prep-header {
@@ -157,7 +160,7 @@
     /* Extra Small Mobile Styles */
     @media (max-width: 360px) {
         .interview-prep-container {
-            padding: 0.5rem;
+            padding: 0 0 0.5rem;
         }
         
         .interview-prep-header {
@@ -200,22 +203,24 @@
 {% endblock %}
 
 {% block content %}
-<div class="page-width">
-    <div class="interview-prep-container">
-        <div class="interview-prep-header">
-            <h1 class="headline-primary">Interview Preparation</h1>
-            <p class="subheadline">Practice common interview questions. Choose a category to get started.</p>
-        </div>
-        
-        {% include 'question_answer/partials/category_dropdown.html' %}
-        
-        <div id="qaContent" class="qa-content" hx-get="{% url 'qa:load_questions' %}?category=General" hx-trigger="load" hx-indicator="#loadingSpinner">
-            <!-- Content will be loaded here -->
-        </div>
-        
-        <!-- Loading spinner moved outside qaContent so it can serve as HTMX indicator -->
-        <div class="loading-spinner" id="loadingSpinner" style="display: none;">
-            <div class="spinner"></div>
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="page-width">
+        <div class="interview-prep-container">
+            <div class="interview-prep-header">
+                <h1 class="headline-primary">Interview Preparation</h1>
+                <p class="subheadline">Practice common interview questions. Choose a category to get started.</p>
+            </div>
+            
+            {% include 'question_answer/partials/category_dropdown.html' %}
+            
+            <div id="qaContent" class="qa-content" hx-get="{% url 'qa:load_questions' %}?category=General" hx-trigger="load" hx-indicator="#loadingSpinner">
+                <!-- Content will be loaded here -->
+            </div>
+            
+            <!-- Loading spinner moved outside qaContent so it can serve as HTMX indicator -->
+            <div class="loading-spinner" id="loadingSpinner" style="display: none;">
+                <div class="spinner"></div>
+            </div>
         </div>
     </div>
 </div>

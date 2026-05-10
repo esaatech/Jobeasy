@@ -1,0 +1,141 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="page-width">
+        <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+            <div>
+                <a href="{% url 'job_service:my_applications' %}" class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                    Back to My Job Applications
+                </a>
+                <h1 class="text-2xl font-bold text-gray-900 mt-2">{{ job_application.job_name }}</h1>
+                <p class="text-sm text-gray-500 mt-1">
+                    Created {{ job_application.created_at|date:"M d, Y" }} at {{ job_application.created_at|date:"g:i A" }}
+                </p>
+                <p class="text-xs text-gray-500 mt-1">
+                    Application type: <span class="font-medium text-gray-700">{{ job_application.get_application_kind_display }}</span>
+                    · Status: <span class="font-medium text-gray-700">{{ job_application.get_status_display }}</span>
+                </p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <a href="{% url 'email_utility:email_compose' 'job_application' job_application.id %}"
+                   class="inline-flex items-center px-4 py-2 rounded-lg border border-green-600 text-green-700 bg-white hover:bg-green-50 text-sm font-medium">
+                    Compose email
+                </a>
+            </div>
+        </div>
+
+        <form method="post" class="bg-white rounded-lg shadow border border-gray-200 p-6 mb-6">
+            {% csrf_token %}
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Company (optional)</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label for="company_name" class="block text-sm font-medium text-gray-700 mb-1">Company name</label>
+                    <input type="text" name="company_name" id="company_name"
+                           value="{{ job_application.company_name }}"
+                           class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           placeholder="Add later if unknown">
+                </div>
+                <div>
+                    <label for="company_email" class="block text-sm font-medium text-gray-700 mb-1">Company email</label>
+                    <input type="email" name="company_email" id="company_email"
+                           value="{{ job_application.company_email }}"
+                           class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           placeholder="Filled when you send email, or edit here">
+                </div>
+            </div>
+            <button type="submit" class="text-sm font-medium text-white bg-gray-800 hover:bg-gray-900 px-4 py-2 rounded-lg">
+                Save company details
+            </button>
+        </form>
+
+        {% if job_application.email_subject %}
+        <div class="bg-white rounded-lg shadow border border-gray-200 p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-2">Suggested email subject</h2>
+            <p class="text-sm text-gray-700">{{ job_application.email_subject }}</p>
+        </div>
+        {% endif %}
+
+        <div class="bg-white rounded-lg shadow border border-gray-200 p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-3">Job description</h2>
+            {% if job_description_display %}
+            <div class="text-sm text-gray-700 whitespace-pre-wrap max-h-96 overflow-y-auto border border-gray-100 rounded-lg p-4 bg-gray-50">{{ job_description_display }}</div>
+            {% else %}
+            <p class="text-sm text-gray-500">No job description was stored for this application.</p>
+            {% endif %}
+        </div>
+
+        <div class="bg-white rounded-lg shadow border border-gray-200 p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Documents</h2>
+            <div class="space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-2 border border-gray-100 rounded-lg p-4">
+                    <div>
+                        <p class="font-medium text-gray-900">Resume</p>
+                        {% if job_application.resume %}
+                        <p class="text-sm text-gray-600">{{ job_application.resume.name }}</p>
+                        {% else %}
+                        <p class="text-sm text-gray-500">No resume linked to this application.</p>
+                        {% endif %}
+                    </div>
+                    {% if job_application.resume %}
+                    <div class="flex gap-2">
+                        <a href="{% url 'resume_builder:view_resume_by_id' job_application.resume.id %}" target="_blank"
+                           class="text-sm px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700">Open</a>
+                        <a href="{% url 'resume_builder:download_resume_file' job_application.resume.id 'pdf' %}"
+                           class="text-sm px-3 py-1.5 rounded-lg border border-gray-300 text-gray-800 hover:bg-gray-50">Download PDF</a>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="flex flex-wrap items-center justify-between gap-2 border border-gray-100 rounded-lg p-4">
+                    <div>
+                        <p class="font-medium text-gray-900">Cover letter</p>
+                        {% if job_application.cover_letter %}
+                        <p class="text-sm text-gray-600">{{ job_application.cover_letter.title }}</p>
+                        {% else %}
+                        <p class="text-sm text-gray-500">No cover letter for this application.</p>
+                        {% endif %}
+                    </div>
+                    {% if job_application.cover_letter %}
+                    <div class="flex gap-2">
+                        <a href="{% url 'coverletter:cover_letter_view' job_application.cover_letter.id %}" target="_blank"
+                           class="text-sm px-3 py-1.5 rounded-lg bg-purple-600 text-white hover:bg-purple-700">Open</a>
+                        <a href="{% url 'coverletter:download_cover_letter_pdf' job_application.cover_letter.id %}"
+                           class="text-sm px-3 py-1.5 rounded-lg border border-gray-300 text-gray-800 hover:bg-gray-50">Download PDF</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white rounded-lg shadow border border-gray-200 p-6">
+            <details class="group">
+                <summary class="cursor-pointer text-lg font-semibold text-gray-900 list-none flex items-center justify-between">
+                    <span>Emails sent from Jobeas</span>
+                    <span class="text-sm font-normal text-gray-500 group-open:hidden">Show</span>
+                    <span class="text-sm font-normal text-gray-500 hidden group-open:inline">Hide</span>
+                </summary>
+                <p class="text-sm text-gray-500 mt-2 mb-4">Outbound messages only. Replies from the employer are not imported yet.</p>
+                {% if outbound_emails %}
+                <ul class="space-y-4">
+                    {% for em in outbound_emails %}
+                    <li class="border border-gray-100 rounded-lg p-4 bg-gray-50">
+                        <div class="flex flex-wrap justify-between gap-2 text-sm text-gray-600 mb-2">
+                            <span class="font-medium text-gray-900">{{ em.recipient_email }}</span>
+                            <span>{{ em.sent_at|date:"M d, Y g:i A" }} · {{ em.get_status_display }}</span>
+                        </div>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Subject</p>
+                        <p class="text-sm text-gray-800 mb-2">{{ em.subject }}</p>
+                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Message</p>
+                        <div class="text-sm text-gray-700 whitespace-pre-wrap max-h-48 overflow-y-auto">{{ em.message }}</div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-sm text-gray-500">No emails sent yet for this application.</p>
+                {% endif %}
+            </details>
+        </div>
+    </div>
+</div>
+{% endblock %}

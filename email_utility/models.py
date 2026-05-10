@@ -67,6 +67,7 @@ class EmailHistory(models.Model):
     ATTACHMENT_TYPE_CHOICES = [
         ('resume', 'Resume'),
         ('cover_letter', 'Cover Letter'),
+        ('job_application', 'Job Application'),
     ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='email_history')

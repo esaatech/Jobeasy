@@ -5,14 +5,16 @@
 <div class="min-h-screen bg-gray-50 py-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <!-- Header -->
-        <div class="flex justify-between items-center mb-8">
+        <div class="flex justify-between items-center mb-8 gap-4">
             <div>
                 <h1 class="text-3xl font-bold text-gray-900 mb-2">My Job Applications</h1>
                 <p class="text-lg text-gray-600">Track all your job application requests</p>
             </div>
-            <a href="{% url 'job_service:start_application' %}" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors">
+            {% if show_job_service_automation_ui %}
+            <a href="{% url 'job_service:start_application' %}" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors shrink-0">
                 Start New Application
             </a>
+            {% endif %}
         </div>
 
         <!-- Filters -->
@@ -116,7 +118,7 @@
                         {% endif %}
                     {% else %}
                         {% if application.source == 'dashboard' %}
-                        <a href="/email/compose/job_application/{{ application.id }}/" 
+                        <a href="{% url 'dashboard:job_application_detail' application.id %}" 
                            class="flex-1 bg-blue-600 text-white text-center py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors">
                             Open
                         </a>
@@ -171,9 +173,11 @@
             </div>
             <h3 class="text-lg font-medium text-gray-900 mb-2">No applications yet</h3>
             <p class="text-gray-600 mb-6">Start your first job application to get the ball rolling!</p>
+            {% if show_job_service_automation_ui %}
             <a href="{% url 'job_service:start_application' %}" class="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors">
                 Start Your First Application
             </a>
+            {% endif %}
         </div>
         {% endif %}
     </div>

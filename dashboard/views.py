@@ -1,4 +1,4 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -24,6 +24,7 @@ from resume_builder.resume_extra import (
 )
 from .models import JobApplication
 from subscriptions.models import UserSubscription, SubscriptionPlan
+from email_utility.models import EmailHistory
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +61,7 @@ def get_unified_job_applications(user):
             'cover_letter': app.cover_letter,
             'can_email': app.status == 'completed' or app.cover_letter is not None,
             'can_delete': True,
-            'detail_url': None,
+            'detail_url': reverse('dashboard:job_application_detail', args=[app.id]),
         })
 
     for req in service_requests:
@@ -214,6 +215,41 @@ def job_applications_list(request):
     }
     
     return render(request, 'dashboard/job_applications_list.html', context)
+
+@login_required
+@require_http_methods(['GET', 'POST'])
+def job_application_detail(request, job_id):
+    """Hub page for a dashboard job application: context, artifacts, outbound email log."""
+    job_application = get_object_or_404(
+        JobApplication.objects.select_related('resume', 'cover_letter'),
+        id=job_id,
+        user=request.user,
+    )
+
+    if request.method == 'POST':
+        job_application.company_name = (request.POST.get('company_name') or '').strip()
+        raw_email = (request.POST.get('company_email') or '').strip()
+        job_application.company_email = raw_email if raw_email else ''
+        job_application.save(update_fields=['company_name', 'company_email'])
+        return redirect('dashboard:job_application_detail', job_id=job_id)
+
+    display_description = (job_application.job_description or '').strip()
+    if not display_description and job_application.cover_letter:
+        display_description = (job_application.cover_letter.job_description or '').strip()
+
+    outbound_emails = EmailHistory.objects.filter(
+        user=request.user,
+        attachment_type='job_application',
+        attachment_id=job_application.id,
+    ).order_by('-sent_at')
+
+    context = {
+        'job_application': job_application,
+        'job_description_display': display_description,
+        'outbound_emails': outbound_emails,
+        'hero_content': {'page_title': job_application.job_name},
+    }
+    return render(request, 'dashboard/job_application_detail.html', context)
 
 def _optimize_resume_for_job_application(user, job_description, resume, job_name, include_email_subject=True):
     """
@@ -440,6 +476,7 @@ def generate_job_application(request):
         job_application = JobApplication.objects.create(
             user=request.user,
             job_name=job_name,
+            job_description=job_description,
             cover_letter=cover_letter,
             resume=optimized_resume if optimize_resume and optimized_resume else None,
             email_subject=(

@@ -97,14 +97,26 @@ This section ties **HLD components** to **modules and entry points** (file paths
 | `Resume` | [`resume_builder/models.py`](../../resume_builder/models.py) |
 | `CoverLetter` | [`coverletter/models.py`](../../coverletter/models.py) |
 
-### 3.5 Frontend trigger (not domain logic)
+### 3.5 Application hub (manual job application)
+
+| Concern | Location |
+|---------|----------|
+| Detail page (posting text, company fields, artifacts, outbound email disclosure) | [`dashboard/views.py`](../../dashboard/views.py) `job_application_detail`, template [`dashboard/templates/dashboard/job_application_detail.html`](../../dashboard/templates/dashboard/job_application_detail.html) |
+| Route | [`dashboard/urls.py`](../../dashboard/urls.py) `job-applications/<id>/` |
+| List “Open” (dashboard rows) | [`job_service/templates/job_service/my_applications.html`](../../job_service/templates/job_service/my_applications.html) → detail URL |
+| Outbound email log | [`email_utility.models.EmailHistory`](../../email_utility/models.py) with `attachment_type=job_application` and `attachment_id` = dashboard `JobApplication.id`; successful send also updates `JobApplication.company_email` in [`email_utility/views.py`](../../email_utility/views.py) `send_email` |
+| Manual vs automatic | [`dashboard.models.JobApplication.application_kind`](../../dashboard/models.py) (`manual` default; `automatic` reserved for platform flows) |
+
+Unified **My Job Applications** still merges dashboard `JobApplication` rows (`source: dashboard`) with `JobApplicationRequest` (`source: job_service_request`); only dashboard rows use this detail view in the MVP.
+
+### 3.6 Frontend trigger (not domain logic)
 
 | Artifact | Path |
 |----------|------|
 | POST + UI update | [`dashboard/static/dashboard/dashboard.js`](../../dashboard/static/dashboard/dashboard.js) |
 | Route | [`dashboard/urls.py`](../../dashboard/urls.py) → `api/generate-job-application/` |
 
-### 3.6 Resume rendering (presentation)
+### 3.7 Resume rendering (presentation)
 
 | Concern | Module |
 |---------|--------|

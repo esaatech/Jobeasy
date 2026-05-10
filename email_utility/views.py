@@ -466,6 +466,9 @@ def yahoo_callback(request):
 def email_compose(request, document_type, document_id):
     """Show email composition form"""
     try:
+        # When composing from a dashboard JobApplication but previewing resume/CL only, still
+        # record sends against the JobApplication id for EmailHistory threading.
+        job_application_send_id = None
         # Initialize variables
         cover_letter = None
         resume = None
@@ -493,6 +496,7 @@ def email_compose(request, document_type, document_id):
             # Try dashboard JobApplication first
             try:
                 job_app = DashboardJobApplication.objects.get(id=document_id, user=request.user)
+                job_application_send_id = job_app.id
                 cover_letter = job_app.cover_letter
                 resume = job_app.resume
                 
@@ -561,6 +565,7 @@ def email_compose(request, document_type, document_id):
             'document_type': document_type,
             'document_name': document_name,
             'attachment_type': attachment_type,
+            'job_application_send_id': job_application_send_id,
             'is_gmail_connected': any(account["provider"] == "gmail" for account in sender_accounts),
             'gmail_address': selected_sender["email"] if selected_sender else None,
             'sender_accounts': sender_accounts,
@@ -720,6 +725,10 @@ def send_email(request):
                 # No PDF generation for cover letters - content goes in email body
                 pdf_bytes = None
                 attachment_path = None
+            elif document_type == 'job_application' and not resume:
+                # Dashboard job application with cover letter only (no resume PDF)
+                pdf_bytes = None
+                attachment_path = None
             else:
                 return JsonResponse({
                     'success': False,
@@ -789,7 +798,21 @@ def send_email(request):
                 email_history.status = 'sent'
                 email_history.gmail_message_id = result['message_id']
                 email_history.save()
-                
+                if document_type == 'job_application':
+                    try:
+                        from dashboard.models import JobApplication as DashboardJobApplication
+
+                        ja = DashboardJobApplication.objects.filter(
+                            pk=document_id, user=request.user
+                        ).first()
+                        if ja:
+                            ja.company_email = recipient_email
+                            ja.save(update_fields=['company_email'])
+                    except Exception:
+                        logger.exception(
+                            'send_email: could not update JobApplication.company_email'
+                        )
+
                 response_data = {
                     'success': True,
                     'message': 'Email sent successfully!',

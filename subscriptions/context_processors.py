@@ -6,8 +6,11 @@ def subscription_context(request):
     """
     Context processor to make user's current subscription available globally.
     """
+    debug = settings.DEBUG
     context = {
-        'show_ultimate_upgrade_promo': settings.DEBUG,
+        'show_ultimate_upgrade_promo': debug,
+        # Automated job-service flow (start application, in-progress card): local/dev only
+        'show_job_service_automation_ui': debug,
     }
     
     if request.user.is_authenticated:

@@ -157,7 +157,7 @@ function updateJobApplicationItem(jobId, data) {
                         </svg>
                     </div>
                     <div class="flex-1">
-                        <h3 class="text-lg font-semibold text-gray-900">${data.job_name}</h3>
+                        <h3 class="text-lg font-semibold text-gray-900"><a href="${(window.jobApplicationDetailUrlTemplate || '').replace('{job_id}', data.job_id)}" class="hover:text-blue-700 hover:underline">${data.job_name}</a></h3>
                         <p class="text-sm text-gray-500">${data.created_at}</p>
                         <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                             Completed
