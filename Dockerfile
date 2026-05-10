@@ -53,8 +53,8 @@ RUN poetry run playwright install chromium --with-deps
 # Make entrypoint executable
 RUN chmod +x /app/entrypoint.sh
 
-# Expose port 8009 to match Cloud Run configuration
-EXPOSE 8009
+# Cloud Run sets $PORT at runtime (commonly 8080). The entrypoint binds uvicorn to $PORT.
+EXPOSE 8080
 
 # Set entrypoint
 ENTRYPOINT ["/app/entrypoint.sh"] 
