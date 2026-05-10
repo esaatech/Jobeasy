@@ -33,12 +33,21 @@ def normalize_optimization_result(data: dict) -> dict:
                 break
 
     if d.get("reordered_technical_skills") is None:
-        skills = d.get("Skills") or d.get("skills") or d.get("technical_skills")
+        skills = (
+            d.get("Skills")
+            or d.get("skills")
+            or d.get("technical_skills")
+            or d.get("Technical Skills")
+        )
         if isinstance(skills, list) and skills:
             d["reordered_technical_skills"] = coerce_skill_list(skills)
 
     if d.get("reordered_soft_skills") is None:
-        ss = d.get("Soft Skills") or d.get("soft_skills")
+        ss = (
+            d.get("Soft Skills")
+            or d.get("soft_skills")
+            or d.get("Soft skills")
+        )
         if isinstance(ss, list) and ss:
             d["reordered_soft_skills"] = coerce_skill_list(ss)
 
@@ -71,7 +80,12 @@ def normalize_optimization_result(data: dict) -> dict:
             d["improvement_suggestions"] = imp
 
     if d.get("reordered_projects") is None:
-        pr = d.get("Projects") or d.get("projects")
+        pr = (
+            d.get("Projects")
+            or d.get("projects")
+            or d.get("Selected Projects")
+            or d.get("selected_projects")
+        )
         if isinstance(pr, list):
             d["reordered_projects"] = pr
 
@@ -112,7 +126,14 @@ def optimize_resume_for_job(job_description, resume_data, include_email_subject=
         Do not include any additional formatting, headers, extra text, or appendices beyond these two sections."""
     
     try:
-        # Prepare the user prompt with resume data
+        _proj = resume_data.get("projects") or []
+        if isinstance(_proj, list) and _proj:
+            projects_lines = "\n".join(
+                f"- {str(p).strip()}" for p in _proj if str(p).strip()
+            )
+        else:
+            projects_lines = "(none provided)"
+
         user_prompt = f"""
         Please optimize this resume for the following job description:
 
@@ -127,17 +148,27 @@ def optimize_resume_for_job(job_description, resume_data, include_email_subject=
         Languages: {format_items_for_prompt(resume_data.get('languages') or [])}
         
         Experience: {resume_data.get('experience', [])}
-        Projects: {resume_data.get('projects', [])}
+        Project highlights (reorder these bullets in OPTIMIZATION JSON — most relevant to the job first):
+        {projects_lines}
 
         Please provide:
         1. An optimized professional summary that highlights relevant experience
-        2. Reordered skills (most relevant first)
+        2. Reordered skills (most relevant first), using technical vs soft vs languages when applicable
         3. Relevant experience sections
         4. ATS score (0-100)
         5. Keyword matches
         6. Improvement suggestions
-        7. Reordered projects (if applicable)
-        
+        7. Reordered project bullets (same items as in Project highlights — new order only; do not invent projects)
+
+        In the OPTIMIZATION JSON object, use these exact keys so they can be applied automatically:
+        optimized_summary (string),
+        reordered_technical_skills (array of strings),
+        reordered_soft_skills (array of strings),
+        reordered_languages (array of strings),
+        reordered_projects (array of strings — the project bullets, reordered),
+        relevant_experience (array), ats_score (number), keyword_matches (array of strings),
+        improvement_suggestions (array of strings).
+
         {f'The email subject should be compelling, professional, and specific to the role. Use formats like "Application for [Position] at [Company]" or "[Position] - Application for [Company]".' if include_email_subject else ''}
         """
 

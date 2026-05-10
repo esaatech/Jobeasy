@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import re
+from html import unescape
 from typing import Any, Dict, List, Optional
+
+from django.utils.html import escape
 
 
 def coerce_references_list(raw: Any, *, limit: int = 12) -> List[Dict[str, str]]:
@@ -60,6 +64,56 @@ def merge_additional_payload(
     if "references" in payload:
         base["references"] = coerce_references_list(payload.get("references"))
     return base
+
+
+def _strip_html_tags(text: str) -> str:
+    return re.sub(r"<[^>]+>", "", text)
+
+
+def extract_project_bullets_from_html(html: str) -> List[str]:
+    """
+    Parse CKEditor / template HTML under additional.projects into plain bullet lines.
+    Used so job optimization can reorder projects and write back HTML.
+    """
+    if not html:
+        return []
+    s = str(html).strip()
+    if not s:
+        return []
+    items = re.findall(r"<li[^>]*>(.*?)</li>", s, flags=re.I | re.S)
+    if items:
+        out: List[str] = []
+        for x in items:
+            t = _strip_html_tags(unescape(x)).strip()
+            if t:
+                out.append(t)
+        return out
+    paras = re.findall(r"<p[^>]*>(.*?)</p>", s, flags=re.I | re.S)
+    if paras:
+        out = []
+        for x in paras:
+            t = _strip_html_tags(unescape(x)).strip()
+            if t:
+                out.append(t)
+        return out
+    plain = re.sub(r"<br\s*/?>", "\n", s, flags=re.I)
+    plain = _strip_html_tags(unescape(plain))
+    return [ln.strip() for ln in plain.splitlines() if ln.strip()]
+
+
+def bullets_to_projects_html(bullets: List[str]) -> str:
+    """Build minimal list HTML for resume templates (additional.projects|safe)."""
+    if not bullets:
+        return ""
+    parts: List[str] = []
+    for b in bullets:
+        text = str(b).strip()
+        if not text:
+            continue
+        parts.append(f"<li>{escape(text)}</li>")
+    if not parts:
+        return ""
+    return "<ul>" + "".join(parts) + "</ul>"
 
 
 def merge_skills_payload(

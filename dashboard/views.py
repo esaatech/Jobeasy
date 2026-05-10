@@ -18,6 +18,10 @@ from ai_service.prompt_formatting import (
     format_bullet_item,
     format_items_for_prompt,
 )
+from resume_builder.resume_extra import (
+    bullets_to_projects_html,
+    extract_project_bullets_from_html,
+)
 from .models import JobApplication
 from subscriptions.models import UserSubscription, SubscriptionPlan
 
@@ -226,17 +230,27 @@ def _optimize_resume_for_job_application(user, job_description, resume, job_name
     # Prepare structured resume data for the AI function
     # Extract skills from the existing skills structure using correct keys
     existing_skills = resume.skills or {}
-    technical_skills = existing_skills.get('technical', [])
-    soft_skills = existing_skills.get('soft', [])
-    languages = existing_skills.get('languages', [])
-    
+    technical_skills = list(existing_skills.get("technical") or [])
+    soft_skills = list(existing_skills.get("soft") or [])
+    languages = list(existing_skills.get("languages") or [])
+    if not technical_skills and existing_skills.get("rated"):
+        technical_skills = [
+            str(r.get("name", "")).strip()
+            for r in (existing_skills.get("rated") or [])
+            if isinstance(r, dict) and r.get("name")
+        ]
+
+    project_bullets = extract_project_bullets_from_html(
+        (resume.additional or {}).get("projects") or ""
+    )
+
     resume_data = {
-        'professional_summary': resume.personal_info.get('summary', ''),
-        'experience': resume.experience,
-        'technical_skills': technical_skills,
-        'soft_skills': soft_skills,
-        'languages': languages,
-        'projects': getattr(resume, 'projects', []),  # If you have a projects field
+        "professional_summary": resume.personal_info.get("summary", ""),
+        "experience": resume.experience,
+        "technical_skills": technical_skills,
+        "soft_skills": soft_skills,
+        "languages": languages,
+        "projects": project_bullets,
     }
     try:
         logger.info(
@@ -265,8 +279,23 @@ def _optimize_resume_for_job_application(user, job_description, resume, job_name
             combined_skills["soft"] = coerce_skill_list(result["reordered_soft_skills"])
         if result.get("reordered_languages") is not None:
             combined_skills["languages"] = coerce_skill_list(result["reordered_languages"])
-        # Use reordered projects if present
-        new_projects = result.get("reordered_projects", getattr(resume, "projects", []))
+        new_additional = dict(resume.additional) if resume.additional else {}
+        projects_updated = False
+        rp = result.get("reordered_projects")
+        if isinstance(rp, list) and rp:
+            lines: list[str] = []
+            for p in rp:
+                if isinstance(p, str) and p.strip():
+                    lines.append(p.strip())
+                elif isinstance(p, dict):
+                    title = p.get("title") or p.get("name") or p.get("description")
+                    if title:
+                        lines.append(str(title).strip())
+                elif p is not None:
+                    lines.append(str(p).strip())
+            if lines:
+                new_additional["projects"] = bullets_to_projects_html(lines)
+                projects_updated = True
 
         # Get AI-generated title for the resume
         resume_title = result.get("title", f"Optimized for {job_name}")
@@ -284,7 +313,7 @@ def _optimize_resume_for_job_application(user, job_description, resume, job_name
             experience=resume.experience,  # Source timeline unchanged; relevant_experience holds AI-ranked copy
             education=resume.education,
             skills=combined_skills,
-            additional=resume.additional,
+            additional=new_additional,
             is_optimized=True,
             relevant_experience=result.get("relevant_experience", []),
             ats_score=result.get("ats_score", 0),
@@ -293,14 +322,11 @@ def _optimize_resume_for_job_application(user, job_description, resume, job_name
             optimized_content=opt_text,
             template_id=resume.template_id,
         )
-        # If your Resume model has a projects field, set it after creation
-        if hasattr(optimized_resume, "projects"):
-            optimized_resume.projects = new_projects
-            optimized_resume.save()
         logger.info(
-            "dashboard.optimize: created optimized_resume_id=%s summary_len=%s",
+            "dashboard.optimize: created optimized_resume_id=%s summary_len=%s projects_updated=%s",
             optimized_resume.id,
             len(new_personal_info.get("summary") or ""),
+            projects_updated,
         )
         return optimized_resume, None, result
     except Exception as e:
