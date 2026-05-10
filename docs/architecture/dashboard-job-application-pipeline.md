@@ -1,0 +1,134 @@
+# Dashboard job application and resume optimization pipeline
+
+| Field | Value |
+|--------|--------|
+| **Document ID** | `ARCH-DASH-JA-001` |
+| **Short reference** | “JA pipeline doc” / `ARCH-DASH-JA-001` |
+| **Scope** | Dashboard “Generate” flow: optional cover letter + optional resume optimization + `JobApplication` record |
+| **Audience** | Engineers extending orchestration, AI prompts, or persistence for job applications |
+
+This document is the **canonical map** for this feature set. For deeper product intent and bug-fix backlog, see the tracked plan in-repo (historically: job-gen false-positive / join-hardening work).
+
+---
+
+## 1. Purpose
+
+Describe **where business logic lives** and how requests move through **Django views**, **AI services**, and **persistence**, so future work can cite a **stable document ID** instead of ad-hoc chat.
+
+---
+
+## 2. High-level design (HLD)
+
+### 2.1 Context
+
+- **Actor**: Authenticated user on the **dashboard**.
+- **Goal**: From one job description (and selected resume), optionally generate a **cover letter**, optionally create an **optimized copy** of the resume, and record a **job application** linking artifacts.
+- **External system**: **OpenAI** (via shared client in `ai_service`), model usage is defined in the respective AI modules.
+
+### 2.2 Logical components
+
+| Component | Responsibility |
+|-----------|----------------|
+| **Dashboard orchestration** | Validates input, sequencing, creates/updates `CoverLetter`, calls optimization helper, creates `JobApplication`, returns JSON |
+| **Cover letter AI** | Builds chat completion from job text + resume text; parses structured sections |
+| **Resume optimization AI** | Builds chat completion from job + structured resume snapshot; parses `TITLE` / optional `EMAIL_SUBJECT` / `OPTIMIZATION` JSON |
+| **Persistence** | `Resume`, `CoverLetter`, `JobApplication` models |
+| **Standalone cover letter UI** | Alternate entry point (not dashboard) with different resume-text construction |
+
+### 2.3 Primary request flow (dashboard)
+
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant DashAPI as dashboard.views.generate_job_application
+    participant CL_AI as ai_service.cover_letter
+    participant RO_AI as ai_service.resume_optimization
+    participant DB as Django ORM
+
+    Browser->>DashAPI: POST /dashboard/api/generate-job-application/
+    alt generate_cover_letter
+        DashAPI->>DB: Create CoverLetter (processing)
+        DashAPI->>CL_AI: generate_cover_letter_from_raw_text(...)
+        CL_AI-->>DashAPI: dict (success, cover_letter, ...)
+        DashAPI->>DB: Update CoverLetter
+    end
+    alt optimize_resume
+        DashAPI->>RO_AI: optimize_resume_for_job(...) via _optimize_resume_for_job_application
+        RO_AI-->>DashAPI: dict (title, optimization fields, ...)
+        DashAPI->>DB: Create Resume (is_optimized)
+    end
+    DashAPI->>DB: Create JobApplication
+    DashAPI-->>Browser: JsonResponse
+```
+
+---
+
+## 3. Low-level implementation map (LLD pointer)
+
+This section ties **HLD components** to **modules and entry points** (file paths relative to repository root).
+
+### 3.1 Orchestration and resume snapshot formatting
+
+| Artifact | Module | Key symbols |
+|----------|--------|-------------|
+| HTTP API | [`dashboard/views.py`](../../dashboard/views.py) | `generate_job_application`, `get_unified_job_applications` |
+| Resume → text for cover letter | [`dashboard/views.py`](../../dashboard/views.py) | `_format_resume_content` |
+| Build optimized `Resume` row | [`dashboard/views.py`](../../dashboard/views.py) | `_optimize_resume_for_job_application` |
+
+### 3.2 AI services
+
+| Concern | Module | Key symbols |
+|---------|--------|-------------|
+| Cover letter generation | [`ai_service/cover_letter.py`](../../ai_service/cover_letter.py) | `generate_cover_letter_from_raw_text`, `parse_ai_response`, `clean_cover_letter_content` |
+| Resume optimization | [`ai_service/resume_optimization.py`](../../ai_service/resume_optimization.py) | `optimize_resume_for_job`, `parse_ai_response`, `parse_optimization_data` |
+| Shared / related helpers | [`ai_service/open_ai.py`](../../ai_service/open_ai.py), [`ai_service/structured_resume.py`](../../ai_service/structured_resume.py) | Client, structured extraction (used elsewhere in product) |
+
+### 3.3 Standalone cover letter (non-dashboard)
+
+| Artifact | Module | Notes |
+|----------|--------|--------|
+| Form + POST handler | [`coverletter/views.py`](../../coverletter/views.py) | `job_cover_letter` builds `resume_text` differently than `_format_resume_content` |
+
+### 3.4 Data models
+
+| Model | Module |
+|-------|--------|
+| `JobApplication` | [`dashboard/models.py`](../../dashboard/models.py) |
+| `Resume` | [`resume_builder/models.py`](../../resume_builder/models.py) |
+| `CoverLetter` | [`coverletter/models.py`](../../coverletter/models.py) |
+
+### 3.5 Frontend trigger (not domain logic)
+
+| Artifact | Path |
+|----------|------|
+| POST + UI update | [`dashboard/static/dashboard/dashboard.js`](../../dashboard/static/dashboard/dashboard.js) |
+| Route | [`dashboard/urls.py`](../../dashboard/urls.py) → `api/generate-job-application/` |
+
+### 3.6 Resume rendering (presentation)
+
+| Concern | Module |
+|---------|--------|
+| HTML template choice | `resume_templates/<template_id>.html` |
+| Registry / valid IDs | [`resume_builder/template_registry.py`](../../resume_builder/template_registry.py) |
+| Render helper | [`resume_builder/views.py`](../../resume_builder/views.py) `_render_resume_template_html` |
+
+---
+
+## 4. Design notes (behavioral contract, summary)
+
+- **Templates** share one structured JSON **resume model**; `template_id` selects layout. Optimization **copies** `template_id` from the source resume when creating an optimized row (see `_optimize_resume_for_job_application`).
+- **Optimization scope** implemented in `_optimize_resume_for_job_application` is **not** identical to the full list of fields the AI prompt may discuss; **experience** on the new `Resume` is populated from the **source** `experience` unless product code is extended to merge AI-produced experience into `experience` (or templates are changed to read `relevant_experience`).
+- **Standalone vs dashboard** cover-letter paths may use **different** resume serialization; behavior and failure modes can differ.
+
+---
+
+## 5. How to cite this document
+
+- **In PRs / tickets**: `ARCH-DASH-JA-001` or `docs/architecture/dashboard-job-application-pipeline.md`
+- **In code comments** (optional): `See ARCH-DASH-JA-001`
+
+---
+
+## 6. Related documentation
+
+- [`docs/INTERNAL_TECHNICAL_OVERVIEW.md`](../INTERNAL_TECHNICAL_OVERVIEW.md) — wider product technical overview (if aligned with current tree)

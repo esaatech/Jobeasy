@@ -6,14 +6,22 @@ from django.views.decorators.http import require_http_methods
 import json
 import time
 import re
+import logging
 from django.urls import reverse
 from resume_builder.models import Resume
 from coverletter.models import CoverLetter
 from job_service.models import JobApplicationRequest
 from ai_service.cover_letter import generate_cover_letter_from_raw_text
 from ai_service.resume_optimization import optimize_resume_for_job
+from ai_service.prompt_formatting import (
+    coerce_skill_list,
+    format_bullet_item,
+    format_items_for_prompt,
+)
 from .models import JobApplication
 from subscriptions.models import UserSubscription, SubscriptionPlan
+
+logger = logging.getLogger(__name__)
 
 UNIFIED_STATUS_CHOICES = [
     ('processing', 'Processing'),
@@ -113,7 +121,7 @@ def _format_resume_content(resume):
             if exp.get('achievements'):
                 content_parts.append("Key Achievements:")
                 for achievement in exp['achievements']:
-                    content_parts.append(f"• {achievement}")
+                    content_parts.append(f"• {format_bullet_item(achievement)}")
             content_parts.append("")
     
     # Education
@@ -132,7 +140,7 @@ def _format_resume_content(resume):
         content_parts.append("SKILLS")
         for category, skill_list in resume.skills.items():
             if isinstance(skill_list, list):
-                content_parts.append(f"{category}: {', '.join(skill_list)}")
+                content_parts.append(f"{category}: {format_items_for_prompt(skill_list)}")
             else:
                 content_parts.append(f"{category}: {skill_list}")
         content_parts.append("")
@@ -142,7 +150,7 @@ def _format_resume_content(resume):
         content_parts.append("ADDITIONAL INFORMATION")
         for key, value in resume.additional.items():
             if isinstance(value, list):
-                content_parts.append(f"{key}: {', '.join(value)}")
+                content_parts.append(f"{key}: {format_items_for_prompt(value)}")
             else:
                 content_parts.append(f"{key}: {value}")
         content_parts.append("")
@@ -231,52 +239,72 @@ def _optimize_resume_for_job_application(user, job_description, resume, job_name
         'projects': getattr(resume, 'projects', []),  # If you have a projects field
     }
     try:
+        logger.info(
+            "dashboard.optimize: start resume_id=%s user=%s job_name=%r",
+            getattr(resume, "id", None),
+            getattr(user, "id", None),
+            job_name,
+        )
         result = optimize_resume_for_job(job_description, resume_data, include_email_subject=include_email_subject)
-        print(result)
+        if result.get("success") is False:
+            err = result.get("error", "Resume optimization failed")
+            logger.warning("dashboard.optimize: AI service error: %s", err)
+            return None, err, result
         if not result:
             return None, 'AI did not return a result.', None
         # Build new personal_info with optimized summary
         new_personal_info = dict(resume.personal_info) if resume.personal_info else {}
-        if result.get('optimized_summary'):
-            new_personal_info['summary'] = result['optimized_summary']
+        summary = result.get("optimized_summary")
+        if isinstance(summary, str) and summary.strip():
+            new_personal_info["summary"] = summary.strip()
         # Map the new explicit skills structure back to the expected format (your model's keys)
         combined_skills = dict(resume.skills) if resume.skills else {}
-        if result.get('reordered_technical_skills') is not None:
-            combined_skills['technical'] = result['reordered_technical_skills']
-        if result.get('reordered_soft_skills') is not None:
-            combined_skills['soft'] = result['reordered_soft_skills']
-        if result.get('reordered_languages') is not None:
-            combined_skills['languages'] = result['reordered_languages']
+        if result.get("reordered_technical_skills") is not None:
+            combined_skills["technical"] = coerce_skill_list(result["reordered_technical_skills"])
+        if result.get("reordered_soft_skills") is not None:
+            combined_skills["soft"] = coerce_skill_list(result["reordered_soft_skills"])
+        if result.get("reordered_languages") is not None:
+            combined_skills["languages"] = coerce_skill_list(result["reordered_languages"])
         # Use reordered projects if present
-        new_projects = result.get('reordered_projects', getattr(resume, 'projects', []))
-        
+        new_projects = result.get("reordered_projects", getattr(resume, "projects", []))
+
         # Get AI-generated title for the resume
-        resume_title = result.get('title', f"Optimized for {job_name}")
-        
+        resume_title = result.get("title", f"Optimized for {job_name}")
+
+        opt_text = result.get("optimized_summary") or ""
+        if not isinstance(opt_text, str):
+            opt_text = str(opt_text)
+
         # Create the optimized Resume object
         optimized_resume = Resume.objects.create(
             user=user,
             name=resume_title,  # Use AI-generated title
             original_content=resume.original_content,
             personal_info=new_personal_info,
-            experience=resume.experience,  # Optionally, you could use result['relevant_experience'] here if you want to replace experience
+            experience=resume.experience,  # Source timeline unchanged; relevant_experience holds AI-ranked copy
             education=resume.education,
             skills=combined_skills,
             additional=resume.additional,
             is_optimized=True,
-            relevant_experience=result.get('relevant_experience', []),
-            ats_score=result.get('ats_score', 0),
-            keyword_matches=result.get('keyword_matches', []),
-            improvement_suggestions=result.get('improvement_suggestions', []),
-            optimized_content=result.get('optimized_summary', ''),
+            relevant_experience=result.get("relevant_experience", []),
+            ats_score=result.get("ats_score", 0),
+            keyword_matches=result.get("keyword_matches", []),
+            improvement_suggestions=result.get("improvement_suggestions", []),
+            optimized_content=opt_text,
             template_id=resume.template_id,
         )
         # If your Resume model has a projects field, set it after creation
-        if hasattr(optimized_resume, 'projects'):
+        if hasattr(optimized_resume, "projects"):
             optimized_resume.projects = new_projects
             optimized_resume.save()
+        logger.info(
+            "dashboard.optimize: created optimized_resume_id=%s summary_len=%s",
+            optimized_resume.id,
+            len(new_personal_info.get("summary") or ""),
+        )
         return optimized_resume, None, result
     except Exception as e:
+        logger.exception("dashboard.optimize: exception")
         return None, str(e), None
 
 @login_required
@@ -305,7 +333,10 @@ def generate_job_application(request):
         job_name = job_description[:50] + "..." if len(job_description) > 50 else job_description
         
         cover_letter = None
-        
+        # Set before cover-letter branch so JobApplication creation never reads an unbound local
+        # when cover_letter exists but the try block fails before assignment.
+        cover_letter_result = None
+
         # Generate cover letter if requested
         if generate_cover_letter:
             start_time = time.time()
@@ -328,7 +359,7 @@ def generate_job_application(request):
                 resume_content = _format_resume_content(resume)
                 
                 # Generate cover letter using AI (with email subject generation)
-                result = generate_cover_letter_from_raw_text(
+                cover_letter_result = generate_cover_letter_from_raw_text(
                     job_description, 
                     resume_content, 
                     applicant_name,
@@ -337,19 +368,19 @@ def generate_job_application(request):
                 
                 processing_time = time.time() - start_time
                 
-                if result['success']:
-                    cover_letter.content = result['cover_letter']
+                if cover_letter_result['success']:
+                    cover_letter.content = cover_letter_result['cover_letter']
                     # Update title if provided by AI
-                    if result.get('title'):
-                        cover_letter.title = result['title']
+                    if cover_letter_result.get('title'):
+                        cover_letter.title = cover_letter_result['title']
                         # Update job_name to use the AI-generated title
-                        job_name = result['title']
+                        job_name = cover_letter_result['title']
                     cover_letter.status = 'completed'
                     cover_letter.processing_time = processing_time
                     cover_letter.save()
                 else:
                     cover_letter.status = 'failed'
-                    cover_letter.error_message = result.get('error', 'Unknown error occurred')
+                    cover_letter.error_message = cover_letter_result.get('error', 'Unknown error occurred')
                     cover_letter.processing_time = processing_time
                     cover_letter.save()
                     
@@ -385,7 +416,15 @@ def generate_job_application(request):
             job_name=job_name,
             cover_letter=cover_letter,
             resume=optimized_resume if optimize_resume and optimized_resume else None,
-            email_subject=result.get('email_subject') if cover_letter and result.get('success') else resume_email_subject,
+            email_subject=(
+                cover_letter_result.get('email_subject')
+                if (
+                    cover_letter
+                    and cover_letter_result
+                    and cover_letter_result.get('success')
+                )
+                else resume_email_subject
+            ),
             status='completed' if not error_message else 'failed'
         )
         

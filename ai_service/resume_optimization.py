@@ -1,4 +1,82 @@
+import logging
+
 from .open_ai import client
+from .prompt_formatting import coerce_skill_list, format_items_for_prompt
+
+logger = logging.getLogger(__name__)
+
+
+def normalize_optimization_result(data: dict) -> dict:
+    """
+    Map common AI / JSON key aliases onto fields _optimize_resume_for_job_application expects.
+    Models often return Title Case keys (e.g. 'Professional Summary', 'Skills').
+    """
+    if not data:
+        return data
+    d = dict(data)
+
+    opt = d.get("optimized_summary")
+    has_summary = isinstance(opt, str) and bool(opt.strip())
+    if not has_summary:
+        for k in (
+            "Professional Summary",
+            "professional_summary",
+            "Summary",
+            "summary",
+        ):
+            v = d.get(k)
+            if isinstance(v, str) and v.strip():
+                d["optimized_summary"] = v.strip()
+                break
+            if v is not None and not isinstance(v, (dict, list, str)):
+                d["optimized_summary"] = str(v).strip()
+                break
+
+    if d.get("reordered_technical_skills") is None:
+        skills = d.get("Skills") or d.get("skills") or d.get("technical_skills")
+        if isinstance(skills, list) and skills:
+            d["reordered_technical_skills"] = coerce_skill_list(skills)
+
+    if d.get("reordered_soft_skills") is None:
+        ss = d.get("Soft Skills") or d.get("soft_skills")
+        if isinstance(ss, list) and ss:
+            d["reordered_soft_skills"] = coerce_skill_list(ss)
+
+    if d.get("reordered_languages") is None:
+        lang = d.get("Languages") or d.get("languages")
+        if isinstance(lang, list) and lang:
+            d["reordered_languages"] = coerce_skill_list(lang)
+
+    if not d.get("relevant_experience"):
+        ex = d.get("Experience") or d.get("experience")
+        if isinstance(ex, list):
+            d["relevant_experience"] = ex
+
+    if d.get("ats_score") is None:
+        ats = d.get("ATS Score") or d.get("ATS")
+        if ats is not None:
+            try:
+                d["ats_score"] = int(str(ats).strip().rstrip("%"))
+            except (ValueError, TypeError):
+                d["ats_score"] = 0
+
+    if not d.get("keyword_matches"):
+        km = d.get("Keyword Matches") or d.get("keyword_matches")
+        if isinstance(km, list):
+            d["keyword_matches"] = [str(x) for x in km]
+
+    if not d.get("improvement_suggestions"):
+        imp = d.get("Improvement Suggestions") or d.get("improvement_suggestions")
+        if isinstance(imp, list):
+            d["improvement_suggestions"] = imp
+
+    if d.get("reordered_projects") is None:
+        pr = d.get("Projects") or d.get("projects")
+        if isinstance(pr, list):
+            d["reordered_projects"] = pr
+
+    return d
+
 
 def optimize_resume_for_job(job_description, resume_data, include_email_subject=False):
     """
@@ -44,9 +122,9 @@ def optimize_resume_for_job(job_description, resume_data, include_email_subject=
         RESUME DATA:
         Professional Summary: {resume_data.get('professional_summary', 'N/A')}
         
-        Technical Skills: {', '.join(resume_data.get('technical_skills', []))}
-        Soft Skills: {', '.join(resume_data.get('soft_skills', []))}
-        Languages: {', '.join(resume_data.get('languages', []))}
+        Technical Skills: {format_items_for_prompt(resume_data.get('technical_skills') or [])}
+        Soft Skills: {format_items_for_prompt(resume_data.get('soft_skills') or [])}
+        Languages: {format_items_for_prompt(resume_data.get('languages') or [])}
         
         Experience: {resume_data.get('experience', [])}
         Projects: {resume_data.get('projects', [])}
@@ -63,6 +141,10 @@ def optimize_resume_for_job(job_description, resume_data, include_email_subject=
         {f'The email subject should be compelling, professional, and specific to the role. Use formats like "Application for [Position] at [Company]" or "[Position] - Application for [Company]".' if include_email_subject else ''}
         """
 
+        logger.info(
+            "resume_optimization: calling OpenAI (include_email_subject=%s)",
+            include_email_subject,
+        )
         response = client.chat.completions.create(
             model="gpt-4",
             messages=[
@@ -74,16 +156,25 @@ def optimize_resume_for_job(job_description, resume_data, include_email_subject=
 
         # Clean and parse the response
         response_content = response.choices[0].message.content.strip()
-        
+        logger.debug("resume_optimization: raw response length=%s", len(response_content))
+
         # Parse the structured response
         result = parse_ai_response(response_content, include_email_subject)
-        
+        os = result.get("optimized_summary")
+        has_summary = isinstance(os, str) and bool(os.strip())
+        logger.info(
+            "resume_optimization: parsed ok title=%r has_optimized_summary=%s",
+            result.get("title"),
+            has_summary,
+        )
+
         return {
             'success': True,
             **result
         }
 
     except Exception as e:
+        logger.exception("resume_optimization: failed")
         return {
             'success': False,
             'error': str(e)
@@ -172,8 +263,8 @@ def parse_ai_response(response_content, include_email_subject):
         # Try to parse the content as optimization data
         optimization_data = parse_optimization_data(response_content)
         result.update(optimization_data)
-    
-    return result
+
+    return normalize_optimization_result(result)
 
 def parse_optimization_data(optimization_content):
     """
