@@ -81,10 +81,11 @@ print(f'[entrypoint] DATABASE engine={engine} HOST={host} NAME={name}')
 " || die "django.setup() failed (see Python traceback above). Check SECRET_KEY and DATABASE_* env vars."
 
 log "migrate"
-if command -v timeout >/dev/null 2>&1 && [ -n "${MIGRATE_TIMEOUT_SEC:-180}" ]; then
-  log "using timeout ${MIGRATE_TIMEOUT_SEC}s for migrate"
-  timeout "${MIGRATE_TIMEOUT_SEC}" python manage.py migrate --noinput \
-    || die "migrate failed or exceeded ${MIGRATE_TIMEOUT_SEC}s (DB unreachable? wrong DJANGO_ENV/DATABASE_URL_PROD?)"
+MIG_SEC="${MIGRATE_TIMEOUT_SEC:-180}"
+if command -v timeout >/dev/null 2>&1 && [ -n "$MIG_SEC" ]; then
+  log "using timeout ${MIG_SEC}s for migrate"
+  timeout "$MIG_SEC" python manage.py migrate --noinput \
+    || die "migrate failed or exceeded ${MIG_SEC}s (DB unreachable? wrong DJANGO_ENV/DATABASE_URL_PROD?)"
 else
   python manage.py migrate --noinput || die "migrate failed (see output above)"
 fi
