@@ -1,0 +1,167 @@
+[
+  {
+    "category": "Software Engineer",
+    "question": "How do you explain time and space complexity when reviewing an algorithm you wrote?",
+    "answer": "I state the input size (n), identify dominant loops or recursive branches, and give Big-O for average and worst cases when they differ.  For space, I count extra structures (arrays, hash maps, recursion stack depth) versus in-place work.  I tie it back to expected data sizes at [company/product scale], and mention when constants or cache locality still matter despite same asymptotic class."
+  },
+  {
+    "category": "Software Engineer",
+    "question": "When would you choose a hash map versus a sorted structure (e.g. tree or sorted array) for lookups or ranges?",
+    "answer": "Hash maps win for average O(1) single-key lookups when ordering and range scans are not needed and equality/hash semantics are clear.  Sorted structures help when I need ordering, predecessor/successor, or range queries at logarithmic cost.  I also consider memory, collision/hash churn, and concurrency characteristics before committing."
+  },
+  {
+    "category": "Software Engineer",
+    "question": "Describe how you would debug an intermittent production issue that does not reproduce locally.",
+    "answer": "I narrow scope with timelines, deploys, feature flags, and correlated logs or traces; check dashboards for latency/error spikes and saturation.  I add temporary correlation IDs, tighten logging around suspected boundaries, and use sampling if volume is high.  For rare races I consider concurrency tooling or replay from sanitized fixtures, always pairing mitigation (circuit breaker, rollback) with root-cause follow-up."
+  },
+  {
+    "category": "Software Engineer",
+    "question": "Outline a high-level design for a URL shortening service at large scale.",
+    "answer": "Clarify read/write ratio, retention, and uniqueness guarantees.  Use an API layer, ID generator (distributed sequence or hash + collision handling), storage for mappings, and caches for hot URLs; optionally asynchronous analytics.  Discuss redirection latency, cache eviction, abuse prevention, and failover for the ID or DB tier."
+  },
+  {
+    "category": "Software Engineer",
+    "question": "How do you think about the testing pyramid for a service your team owns?",
+    "answer": "Most confidence comes from fast unit tests around pure logic, narrower integration tests at boundaries (DB, queues, HTTP), and a thin slice of end-to-end tests for critical paths.  I avoid duplicating the same scenario at every layer, track flaky tests aggressively, and align coverage with risk—payments and migrations earn heavier integration checks."
+  },
+  {
+    "category": "Software Engineer",
+    "question": "Compare REST and GraphQL from a system-design perspective: when is each appropriate?",
+    "answer": "REST fits straightforward CRUD, caching-friendly GET semantics, and teams preferring fixed coarse endpoints.  GraphQL helps heterogeneous clients that need shaped payloads and fewer round-trips, at the cost of resolver discipline, query-cost limits, and sometimes harder HTTP caching.  I mention versioning, authorization at field level, and observability for expensive queries."
+  },
+  {
+    "category": "Software Engineer",
+    "question": "Explain the difference between a mutex and a semaphore in concurrent programs.",
+    "answer": "A mutex typically grants exclusive access to one holder at a time for a critical section.  A semaphore counts permits—often used to bound parallelism or manage a pool of resources; binary semaphores resemble mutexes but semantics differ by platform.  I discuss deadlock avoidance, lock ordering, and prefer higher-level primitives when the language/runtime provides them."
+  },
+  {
+    "category": "Software Engineer",
+    "question": "How do you approach refactoring legacy code without stopping feature delivery?",
+    "answer": "I characterize hotspots with metrics (bugs, change churn), fence risky areas with tests—or characterize behavior before edits—and slice refactors behind seams or feature flags.  I ship incremental steps, pair on ambiguous domains, and document contracts so the team shares mental models instead of one-off hero fixes."
+  },
+  {
+    "category": "Frontend Engineer",
+    "question": "What triggers a re-render in React and how do you diagnose unnecessary renders?",
+    "answer": "State or context updates in ancestors, prop changes, and parent renders typically propagate downward.  I verify with React DevTools Profiler, check for unstable inline objects/functions as props, mistaken context providers, and expensive work running during render.  I reach for memoization only after measurement, and prefer lifting state narrowly or splitting subtrees."
+  },
+  {
+    "category": "Frontend Engineer",
+    "question": "How do you decide whether state belongs in a local component, context, or a dedicated store?",
+    "answer": "Local state when only one subtree cares and colocation keeps boundaries clear.  Context for moderate shared concerns without wanting global serialization overhead—but avoid overly broad providers that rerender everything.  External stores help cross-cutting domain state, devtools/time-travel needs, or middleware; I weigh bundle size, test ergonomics, and SSR hydration implications."
+  },
+  {
+    "category": "Frontend Engineer",
+    "question": "Describe common pitfalls with useEffect dependencies and stale closures.",
+    "answer": "Omitting dependencies captures stale props/state; over-listening retriggers too often.  I align effects with the true triggers, split effects by concern, and use functional updates or refs where appropriate.  For async work inside effects I cancel or ignore outdated responses with an AbortController or flags to avoid race-driven UI bugs."
+  },
+  {
+    "category": "Frontend Engineer",
+    "question": "How would you build an accessible autocomplete or combobox component?",
+    "answer": "Follow combobox patterns: keyboard navigation, aria-expanded/controls/activedescendant, sensible focus management, and visible selection state.  Debounce network calls, handle loading and empty states, and preserve usability without a mouse.  I verify with automated axe checks and manual screen-reader passes."
+  },
+  {
+    "category": "Frontend Engineer",
+    "question": "Explain browser CORS and when a preflight OPTIONS request occurs.",
+    "answer": "CORS lets servers declare which origins may read responses via headers; browsers enforce it for cross-origin fetches.  Preflight happens for non-simple methods, certain headers, or content types—OPTIONS probes allowed rules before the real request.  Misconfigured Allowed headers/methods or credentials mismatches are frequent debugging targets."
+  },
+  {
+    "category": "Frontend Engineer",
+    "question": "How do you improve Largest Contentful Paint (LCP) on a content-heavy page?",
+    "answer": "Reduce critical-path blocking: optimize hero image sizing/format (responsive srcset, priority hints), trim render-blocking CSS/JS, improve server/API latency for HTML and data, and stabilize layout to avoid late shifts.  I measure field and lab data, validate fixes in CI with budgets, and avoid premature micro-optimizations elsewhere."
+  },
+  {
+    "category": "Frontend Engineer",
+    "question": "Contrast client-side rendering, server-side rendering, and static generation for a typical web app.",
+    "answer": "CSR shifts rendering to the browser—flexible but slower first meaningful paint without careful code-splitting.  SSR improves SEO and first paint when HTML is assembled per request but adds server cost and caching complexity.  Static generation excels for mostly stable pages at build time; hybrid frameworks mix patterns per route.  I choose based on freshness needs, auth, edge caching, and team operational footprint."
+  },
+  {
+    "category": "Frontend Engineer",
+    "question": "How do event bubbling and capturing work in the DOM?",
+    "answer": "Events travel capturing phase from window to target, then bubble from target upward.  Listeners can register for either phase; stopPropagation/preventDefault affect propagation and default actions differently.  Understanding this matters for delegated handlers, nested interactive widgets, and avoiding duplicate handlers."
+  },
+  {
+    "category": "Backend Engineer",
+    "question": "How do you design RESTful APIs to be idempotent where it matters?",
+    "answer": "Safe GET/HEAD methods should not mutate state; PUT replaces with repeatable outcome; DELETE repeated calls converge to deleted.  POST creates resources and may not be idempotent—I use idempotency keys or dedupe tokens for payments-style operations.  Document error bodies and status codes so clients retry safely."
+  },
+  {
+    "category": "Backend Engineer",
+    "question": "When do you add or avoid a database index?",
+    "answer": "Add indexes for selective filters, joins, and sorts that appear in hot queries—validated with EXPLAIN plans and production metrics.  Avoid over-indexing writes-heavy tables where each index taxes inserts/updates; consider partial or covering indexes when appropriate.  Revisit after schema or access-pattern changes."
+  },
+  {
+    "category": "Backend Engineer",
+    "question": "Explain ACID versus BASE in distributed data stores.",
+    "answer": "ACID emphasizes atomicity, consistency, isolation, durability—classic transactional guarantees, sometimes relaxed isolation levels for scale.  BASE highlights basically available, soft state, eventual consistency—common in partitioned NoSQL systems favoring availability/latency under partition.  I map product consistency needs (financial vs social counters) to the right store and patterns."
+  },
+  {
+    "category": "Backend Engineer",
+    "question": "When would you choose asynchronous messaging over synchronous HTTP between services?",
+    "answer": "Queues or streams help decouple producers/consumers, absorb bursts, and tolerate downstream outages within SLA—but add complexity for ordering, duplicates, and observability.  Synchronous calls suit low-latency queries needing immediate answers or simpler debugging.  I outline poison-message handling, retry/backoff, and idempotent consumers."
+  },
+  {
+    "category": "Backend Engineer",
+    "question": "How do you detect and fix an N+1 query problem?",
+    "answer": "Spot repeated queries per request in logs/APM or ORM debug traces.  Fixes include eager loading/joins, batch loaders, or denormalized read models for heavy paths.  I verify query counts before/after and guard regressions with tests or runtime assertions in non-production environments."
+  },
+  {
+    "category": "Backend Engineer",
+    "question": "Outline strategies for API rate limiting at scale.",
+    "answer": "Token bucket or leaky bucket algorithms per user/IP/API key; centralized counters in Redis or edge proxies; differentiated limits for expensive endpoints.  Communicate limits via headers, return consistent 429 semantics, and coordinate with fairness across regions/shards.  Abuse detection may layer behavioral signals beyond naive counters."
+  },
+  {
+    "category": "Backend Engineer",
+    "question": "Compare JWT bearer tokens versus opaque session tokens validated server-side.",
+    "answer": "JWTs can be verified without hitting a session store if signatures and claims are sufficient—watch revocation, clock skew, and payload size.  Opaque tokens simplify revocation via centralized lookup but add latency per request.  Hybrid approaches store minimal references client-side while authoritative state stays server-side for sensitive domains."
+  },
+  {
+    "category": "Backend Engineer",
+    "question": "How do you approach schema migrations on a high-traffic database?",
+    "answer": "Prefer backwards-compatible phases (expand/contract), avoid long locks with concurrent index creation where supported, batch backfills, and feature flags toggling writers/readers.  Rehearse rollback, monitor replication lag, and schedule risky steps off peak.  Document blast radius and observability checks before applying."
+  },
+  {
+    "category": "AI Engineer",
+    "question": "What is retrieval-augmented generation (RAG) and what failure modes do you watch for?",
+    "answer": "RAG grounds generation by retrieving documents/snippets relevant to the query, reducing reliance on stale parametric knowledge.  Failures include poor retrieval (wrong chunking, bad embeddings), contradictory context, hallucinations despite sources, and latency from vector search plus reranking.  I discuss evaluation sets, citation fidelity, and hygiene of the knowledge base."
+  },
+  {
+    "category": "AI Engineer",
+    "question": "How do you compare prompt engineering, retrieval, and fine-tuning for improving a product LLM feature?",
+    "answer": "Prompting is fastest for scoped behavior when base capability suffices.  Retrieval upgrades factual grounding without weight updates.  Fine-tuning helps stable tone/format/domain vocabulary but costs data curation and ops; it does not replace grounding for volatile facts.  I pick based on failure taxonomy, latency budget, and governance constraints."
+  },
+  {
+    "category": "AI Engineer",
+    "question": "How would you evaluate LLM outputs before shipping to users?",
+    "answer": "Combine automated checks (reference-based metrics where applicable, structural validators, regression suites on golden prompts) with human rubrics on representative slices.  Track hallucination rate, refusal appropriateness, toxicity/PII leakage, and task success in shadow or canary traffic.  Iterate using error clustering—not headline accuracy alone."
+  },
+  {
+    "category": "AI Engineer",
+    "question": "Explain when you would use a vector database versus keyword or hybrid search.",
+    "answer": "Pure semantic search suits paraphrases and conceptual matches; keyword/BM25 excels on exact SKUs, codes, and rare tokens.  Hybrid retrieval merges both with learned or heuristic fusion.  I factor freshness of embeddings, cost of reindexing, multilingual needs, and explainability requirements."
+  },
+  {
+    "category": "AI Engineer",
+    "question": "What techniques reduce latency and cost for LLM-heavy applications?",
+    "answer": "Smaller models or cascading routers for easy cases, prompt compression, caching identical or near-identical queries, streaming UX, batching where allowed, and quantization/specialized inference stacks for serving.  I measure tokens in/out per workflow and cap tool-call loops in agents to prevent runaway spend."
+  },
+  {
+    "category": "AI Engineer",
+    "question": "How do you handle safety, PII, and policy constraints in production LLM features?",
+    "answer": "Classify and filter inputs/outputs, redact or block sensitive spans, enforce allow-listed tools, and log with retention policies aligned to regulation.  Use structured moderation stages and human escalation paths for edge cases.  Document model cards limitations and user-visible disclaimers where appropriate."
+  },
+  {
+    "category": "AI Engineer",
+    "question": "Describe trade-offs between single-shot prompts and multi-step agent workflows.",
+    "answer": "Single-shot prompts are simpler, cheaper, and easier to test but brittle for multi-hop tasks.  Agents add planning/tool use at the cost of reliability loops, higher latency, and observability complexity.  I constrain tools/schemas tightly, add termination budgets, and prefer deterministic orchestration for mission-critical steps."
+  },
+  {
+    "category": "AI Engineer",
+    "question": "How do you version prompts, models, and retrieval indexes through deployment?",
+    "answer": "Treat prompts as code with review and semver-ish tags; pin model identifiers and record rollout timestamps; rebuild/version embeddings pipelines alongside corpus snapshots.  Use shadow traffic or A/B flags to compare variants, and keep rollback artifacts so regressions are reversible without guessing prior state."
+  },
+  {
+    "category": "AI Engineer",
+    "question": "What is the transformer architecture at a high level and why does it matter for LLMs?",
+    "answer": "Transformers map token embeddings through stacked self-attention layers where each position attends to others via learned queries/keys/values, plus feed-forward blocks and residuals/normalization.  Parallelizable attention scales with data and compute, underpinning modern LLMs.  Practical answers tie attention to context limits, KV-cache inference behavior, and scaling laws without deriving math unnecessarily."
+  }
+]

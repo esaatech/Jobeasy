@@ -8,6 +8,10 @@ class Category(models.Model):
     name = models.CharField(max_length=100, unique=True)
     description = models.TextField(blank=True)
 
+    class Meta:
+        verbose_name = 'Interview category / profession'
+        verbose_name_plural = 'Interview categories / professions'
+
     def __str__(self):
         return self.name
 
