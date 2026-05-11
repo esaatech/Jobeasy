@@ -709,7 +709,12 @@ def send_email(request):
 
                 from resume_builder.resume_display import augment_resume_dict_for_rendering
 
-                resume_data = augment_resume_dict_for_rendering(resume_data, request=request)
+                resume_data = augment_resume_dict_for_rendering(
+                    resume_data,
+                    request=request,
+                    resume_id=document.pk,
+                    force_inline_profile_photo=True,
+                )
 
                 pdf_bytes = PDFGenerator.generate_from_template(
                     f'resume_templates/{document.template_id}.html',

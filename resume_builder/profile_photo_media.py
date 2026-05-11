@@ -5,7 +5,8 @@ Storage policy
 --------------
 - Pointers live on ``Resume.personal_info`` JSON: ``profile_image_gcs_bucket`` +
   ``profile_image_blob``, or ``profile_image_local_path`` under Django default storage.
-  Do not persist signed URLs; ``profile_photo_display_url`` is derived at render time.
+  Browser display URLs use an authenticated same-origin proxy or inline data for PDFs — not V4
+  signed URLs (Cloud Run ADC has no private signing key).
 
 Replacement uploads
 -------------------
@@ -25,13 +26,15 @@ replace/delete per product preference.
 
 from __future__ import annotations
 
+import base64
 import logging
+import mimetypes
 import os
-from datetime import timedelta
 from typing import Any, Dict, Optional
 
 from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
+from django.urls import reverse
 
 logger = logging.getLogger(__name__)
 
@@ -186,38 +189,90 @@ def ingest_profile_photo(resume: Any, upload: UploadedFile) -> Dict[str, Any]:
     return personal_info
 
 
+def gcs_profile_photo_data_uri(bucket_name: str, blob_name: str) -> str:
+    """
+    Load portrait bytes from GCS using ADC (works on Cloud Run without a signing key).
+    Returns a data: URI for HTML/PDF contexts where cookie-auth proxy URLs cannot load.
+    """
+    try:
+        from google.cloud import storage
+
+        client = storage.Client(project=(getattr(settings, "GCP_PROJECT_ID", "") or None))
+        blob = client.bucket(bucket_name).blob(blob_name)
+        data = blob.download_as_bytes()
+        if not data:
+            return ""
+        ctype = (
+            (blob.content_type or "").split(";")[0].strip()
+            or mimetypes.guess_type(blob_name)[0]
+            or "image/jpeg"
+        )
+        b64 = base64.standard_b64encode(data).decode("ascii")
+        return f"data:{ctype};base64,{b64}"
+    except Exception as exc:
+        logger.warning("Could not load GCS profile photo for inline data URI: %s", exc)
+        return ""
+
+
+def local_storage_profile_photo_data_uri(local_path: str) -> str:
+    """Embed MEDIA-backed portrait bytes as data URI (PDF/export contexts)."""
+    try:
+        from django.core.files.storage import default_storage
+
+        rel = str(local_path).lstrip("/").replace("\\", "/")
+        if not default_storage.exists(rel):
+            return ""
+        with default_storage.open(rel, "rb") as fh:
+            data = fh.read()
+        if not data:
+            return ""
+        ctype = mimetypes.guess_type(rel)[0] or "image/jpeg"
+        b64 = base64.standard_b64encode(data).decode("ascii")
+        return f"data:{ctype};base64,{b64}"
+    except Exception as exc:
+        logger.warning("Could not load local profile photo for inline data URI: %s", exc)
+        return ""
+
+
 def resolve_profile_photo_display_url(
-    personal_info: Optional[Dict[str, Any]], *, request=None
+    personal_info: Optional[Dict[str, Any]],
+    *,
+    request=None,
+    resume_id: Optional[int] = None,
+    force_inline_from_storage: bool = False,
 ) -> str:
-    """HTTPS URL suitable for <img src> (signed GET for private GCS, absolute MEDIA_URL otherwise)."""
+    """
+    URL or data URI suitable for <img src>.
+
+    Cloud Run credentials cannot sign V4 URLs without a private key; use the authenticated
+    proxy when resume_id + request are available, or embed bytes when rendering PDF/offline HTML.
+    """
     if not personal_info:
         return ""
     bucket_name = personal_info.get("profile_image_gcs_bucket")
     blob_name = personal_info.get("profile_image_blob")
-    ttl = int(getattr(settings, "GCS_PROFILE_SIGNED_URL_TTL_SECONDS", 3600))
 
     if (
         bucket_name
         and blob_name
         and getattr(settings, "ENABLE_GCS_PROFILE_UPLOAD", False)
     ):
-        try:
-            from google.cloud import storage
-
-            client = storage.Client(project=(getattr(settings, "GCP_PROJECT_ID", "") or None))
-            blob = client.bucket(bucket_name).blob(blob_name)
-            return blob.generate_signed_url(
-                version="v4",
-                expiration=timedelta(seconds=max(60, ttl)),
-                method="GET",
+        if force_inline_from_storage:
+            return gcs_profile_photo_data_uri(bucket_name, blob_name)
+        if request is not None and resume_id is not None:
+            path = reverse(
+                "resume_builder:profile_photo_proxy",
+                kwargs={"resume_id": resume_id},
             )
-        except Exception as exc:
-            logger.warning("Could not generate profile photo signed URL: %s", exc)
-            return ""
+            return request.build_absolute_uri(path)
+        return gcs_profile_photo_data_uri(bucket_name, blob_name)
 
     local_path = personal_info.get("profile_image_local_path")
     if not local_path:
         return ""
+
+    if force_inline_from_storage:
+        return local_storage_profile_photo_data_uri(local_path)
 
     media_url = getattr(settings, "MEDIA_URL", "/media/")
     if not media_url.startswith("/"):

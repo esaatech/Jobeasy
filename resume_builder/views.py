@@ -1,12 +1,13 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, HttpResponse, FileResponse
+from django.http import JsonResponse, HttpResponse, FileResponse, Http404
 from .models import Resume
 from .forms import ResumeForm
 import json
 from pydantic import BaseModel, Field
 from typing import List, Tuple
 import os
+import mimetypes
 import tempfile
 from django.conf import settings
 import logging
@@ -20,7 +21,7 @@ import uuid
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_http_methods, require_GET
 from datetime import datetime, timedelta
 
 # Import libraries for file processing
@@ -61,8 +62,20 @@ from .resume_extra import merge_additional_payload, merge_skills_payload
 load_dotenv()
 
 
-def _render_resume_template_html(request, resume_data: dict, template_id: str) -> str:
-    augmented = augment_resume_dict_for_rendering(resume_data, request=request)
+def _render_resume_template_html(
+    request,
+    resume_data: dict,
+    template_id: str,
+    *,
+    resume_id: int | None = None,
+    force_inline_profile_photo: bool = False,
+) -> str:
+    augmented = augment_resume_dict_for_rendering(
+        resume_data,
+        request=request,
+        resume_id=resume_id,
+        force_inline_profile_photo=force_inline_profile_photo,
+    )
     tid = normalize_template_id(template_id)
     return render_to_string(f'resume_templates/{tid}.html', {'resume_data': augmented})
 
@@ -568,6 +581,7 @@ def create_resume(request, resume_id=None):
                     'additional': {},
                 },
                 request=request,
+                resume_id=resume_instance.pk,
             )['personal_info'].get('profile_photo_display_url', '')
         )
 
@@ -886,7 +900,9 @@ def view_resume(request, resume_id=None):
         )
         
         # Render the resume with the chosen template
-        html_content = _render_resume_template_html(request, resume_data, template_id)
+        html_content = _render_resume_template_html(
+            request, resume_data, template_id, resume_id=resume.pk
+        )
         
         # Check if this is an HTMX request (for AI assistant integration)
         is_htmx_request = request.headers.get('HX-Request') == 'true'
@@ -1261,7 +1277,12 @@ def save_resume(request):
                     }
                 }
                 
-                html_content = _render_resume_template_html(request, resume_template_data, resume.template_id)
+                html_content = _render_resume_template_html(
+                    request,
+                    resume_template_data,
+                    resume.template_id,
+                    resume_id=resume.pk if resume.pk else None,
+                )
                 
                 full_html = f"""
 <!DOCTYPE html>
@@ -1409,7 +1430,9 @@ def get_resume_content(request, resume_id):
     }
     
     template_id = normalize_template_id(resume.template_id)
-    html_content = _render_resume_template_html(request, resume_data, template_id)
+    html_content = _render_resume_template_html(
+        request, resume_data, template_id, resume_id=resume.pk
+    )
     
     return HttpResponse(html_content)
 
@@ -1496,7 +1519,12 @@ def download_resume_file(request, resume_id, format_type='html'):
                 }
                 template_id = normalize_template_id(resume.template_id)
 
-        augmented_resume_data = augment_resume_dict_for_rendering(resume_data, request=request)
+        augmented_resume_data = augment_resume_dict_for_rendering(
+            resume_data,
+            request=request,
+            resume_id=resume.pk,
+            force_inline_profile_photo=True,
+        )
 
         inline = (request.GET.get('inline') or '').strip().lower() in ('1', 'true', 'yes', 'on')
 
@@ -1858,6 +1886,62 @@ def save_additional(request):
     return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
 
 @login_required
+@require_GET
+def profile_photo_proxy(request, resume_id):
+    """
+    Serve stored portrait bytes for the authenticated owner (same-origin <img src>).
+    Avoids V4 signed URLs, which require a private key — unavailable on Cloud Run ADC.
+    """
+    resume = get_object_or_404(Resume, pk=resume_id, user=request.user)
+    pi = resume.personal_info or {}
+    bucket_name = pi.get("profile_image_gcs_bucket")
+    blob_name = pi.get("profile_image_blob")
+
+    if (
+        bucket_name
+        and blob_name
+        and getattr(settings, "ENABLE_GCS_PROFILE_UPLOAD", False)
+    ):
+        try:
+            from google.cloud import storage
+
+            client = storage.Client(
+                project=(getattr(settings, "GCP_PROJECT_ID", "") or None)
+            )
+            blob = client.bucket(bucket_name).blob(blob_name)
+            data = blob.download_as_bytes()
+            if not data:
+                raise Http404("Portrait object empty")
+            ctype = (
+                (blob.content_type or "").split(";")[0].strip()
+                or mimetypes.guess_type(blob_name)[0]
+                or "application/octet-stream"
+            )
+            resp = HttpResponse(data, content_type=ctype)
+            resp["Cache-Control"] = "private, max-age=3600"
+            return resp
+        except Http404:
+            raise
+        except Exception:
+            logger.exception("profile_photo_proxy GCS read failed resume_id=%s", resume_id)
+            raise Http404("Portrait not available")
+
+    local_path = pi.get("profile_image_local_path")
+    if local_path:
+        from django.core.files.storage import default_storage
+
+        rel = str(local_path).lstrip("/").replace("\\", "/")
+        if default_storage.exists(rel):
+            with default_storage.open(rel, "rb") as fh:
+                data = fh.read()
+            ctype = mimetypes.guess_type(rel)[0] or "application/octet-stream"
+            resp = HttpResponse(data, content_type=ctype)
+            resp["Cache-Control"] = "private, max-age=3600"
+            return resp
+
+    raise Http404("No portrait for this resume")
+
+@login_required
 @require_http_methods(["POST"])
 def upload_profile_photo(request):
     """Multipart upload for optional profile portrait (stored in GCS or local MEDIA)."""
@@ -1891,7 +1975,9 @@ def upload_profile_photo(request):
         return JsonResponse({'success': False, 'error': 'Failed to upload photo'}, status=500)
 
     resume.refresh_from_db()
-    display_url = resolve_profile_photo_display_url(resume.personal_info or {}, request=request)
+    display_url = resolve_profile_photo_display_url(
+        resume.personal_info or {}, request=request, resume_id=resume.pk
+    )
     stored_as = profile_photo_storage_backend(resume.personal_info or {})
     payload = {'success': True, 'profile_photo_display_url': display_url, 'stored_as': stored_as}
     return JsonResponse(payload)
@@ -1987,8 +2073,19 @@ def preview_anonymous_resume(request):
                 fallback_template_id=DEFAULT_TEMPLATE_ID,
             )
 
-            html_content = _render_resume_template_html(request, resume_data, template_id)
-            augmented = augment_resume_dict_for_rendering(resume_data, request=request)
+            html_content = _render_resume_template_html(
+                request,
+                resume_data,
+                template_id,
+                resume_id=None,
+                force_inline_profile_photo=False,
+            )
+            augmented = augment_resume_dict_for_rendering(
+                resume_data,
+                request=request,
+                resume_id=None,
+                force_inline_profile_photo=False,
+            )
 
             context = {
                 'resume': None,  # No saved resume object
@@ -2473,7 +2570,9 @@ def get_resume_preview(request, resume_id):
         }
         
         # Render the resume with the chosen template
-        html_content = _render_resume_template_html(request, resume_data, template_id)
+        html_content = _render_resume_template_html(
+            request, resume_data, template_id, resume_id=resume.pk
+        )
         
         return HttpResponse(html_content, content_type='text/html')
         
