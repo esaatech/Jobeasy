@@ -138,15 +138,16 @@ CHANNEL_LAYERS = {
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-
-
+# Persistent connections: use 0 on Cloud Run/serverless to avoid exhausting Postgres
+# max_connections (each worker holds connections for conn_max_age seconds between requests).
+DATABASE_CONN_MAX_AGE = max(0, config("DATABASE_CONN_MAX_AGE", default=600, cast=int))
 
 
 if DJANGO_ENV == "production":
     DATABASES = {
         'default': dj_database_url.config(
             default=config("DATABASE_URL_PROD"),
-            conn_max_age=600,
+            conn_max_age=DATABASE_CONN_MAX_AGE,
             ssl_require=True
         )
     }
@@ -155,7 +156,7 @@ else:
     DATABASES = {
         'default': dj_database_url.config(
             default=config("DATABASE_URL_LOCAL", default="postgresql://engrjoel:local_password@localhost:5432/jobeas_local"),
-            conn_max_age=600,
+            conn_max_age=DATABASE_CONN_MAX_AGE,
         )
     }
 
