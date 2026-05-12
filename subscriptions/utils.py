@@ -76,7 +76,8 @@ def get_all_plans_with_stripe_prices(request=None):
     
     plans_qs = SubscriptionPlan.objects.filter(is_active=True)
     if not settings.DEBUG:
-        plans_qs = plans_qs.exclude(name__in=['Test'])
+        # Hide test plan in production; Ultimate can be excluded here while not offered.
+        plans_qs = plans_qs.exclude(name__in=['Test', 'Ultimate'])
 
     for plan in plans_qs.prefetch_related('durations'):
         plan.durations_with_stripe = get_plan_durations_with_stripe_prices(plan, request)
