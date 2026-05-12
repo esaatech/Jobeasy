@@ -108,6 +108,7 @@ class PlanDuration(BaseModel):
     """
     DURATION_TYPES = (
         ('ONE_TIME', 'One Time'),
+        ('WEEKLY', 'Weekly'),
         ('MONTHLY', 'Monthly'),
         ('QUARTERLY', 'Quarterly'),
         ('SEMI_ANNUAL', 'Semi-Annual'),

@@ -3,8 +3,8 @@ from __future__ import annotations
 """
 Localized / country-aware *display* helpers for subscription prices.
 
-Billing is charged in STRIPE_BILLING_CURRENCY (default MXN). Optional approximate
-lines for visitors in CA/US use PRICING_APPROX_* env vars (see jobeas/settings.py).
+Billing is charged in STRIPE_BILLING_CURRENCY (default USD). Optional approximate
+lines for visitors in CA/US use PRICING_APPROX_* env vars when billing is MXN (see jobeas/settings.py).
 """
 from decimal import Decimal
 
@@ -27,7 +27,7 @@ def get_client_country_code(request):
 
 def format_money_amount(amount: Decimal, currency: str) -> str:
     """Human-readable amount in the billing currency (no locale dependency)."""
-    currency = (currency or getattr(settings, 'STRIPE_BILLING_CURRENCY', 'mxn')).upper()
+    currency = (currency or getattr(settings, 'STRIPE_BILLING_CURRENCY', 'usd')).upper()
     s = f'{amount:,.2f}'
     if currency == 'MXN':
         return f'MXN ${s}'
@@ -45,7 +45,7 @@ def approximate_secondary_line(amount: Decimal, billing_currency: str, country_c
     Uses PRICING_APPROX_CAD_PER_MXN / PRICING_APPROX_USD_PER_MXN: multiply MXN
     amount by the rate to get approximate CAD/USD for display only.
     """
-    billing_currency = (billing_currency or 'MXN').upper()
+    billing_currency = (billing_currency or 'USD').upper()
     if billing_currency != 'MXN' or not country_code:
         return None
     try:
@@ -74,7 +74,7 @@ def attach_price_display(duration, request):
     """Set price_display_primary / price_display_secondary on a PlanDuration instance."""
     billing_currency = (
         getattr(duration, 'stripe_currency', None)
-        or getattr(settings, 'STRIPE_BILLING_CURRENCY', 'mxn').upper()
+        or getattr(settings, 'STRIPE_BILLING_CURRENCY', 'usd').upper()
     )
     if duration.has_stripe_price and getattr(duration, 'stripe_price', None) is not None:
         amt = duration.stripe_price

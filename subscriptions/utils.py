@@ -26,7 +26,7 @@ def get_stripe_price_info(plan_duration):
         print(f"Error fetching Stripe price: {e}")
         # Fallback to Django price and configured billing currency
         fallback_cur = getattr(
-            settings, 'STRIPE_BILLING_CURRENCY', 'mxn'
+            settings, 'STRIPE_BILLING_CURRENCY', 'usd'
         ).upper()
         return plan_duration.price, fallback_cur
 
@@ -51,6 +51,16 @@ def get_plan_durations_with_stripe_prices(plan, request=None):
         attach_price_display(duration, request)
 
         durations.append(duration)
+
+    _DURATION_UI_ORDER = {
+        'WEEKLY': 0,
+        'MONTHLY': 1,
+        'QUARTERLY': 2,
+        'SEMI_ANNUAL': 3,
+        'YEARLY': 4,
+        'ONE_TIME': 5,
+    }
+    durations.sort(key=lambda d: _DURATION_UI_ORDER.get(d.duration_type, 99))
 
     return durations
 

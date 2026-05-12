@@ -315,8 +315,10 @@ DEFAULT_FROM_EMAIL = os.environ.get('FROM_EMAIL', 'support@jobeas.com')
 ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'admin@jobeas.com')
 SITE_URL = os.environ.get('SITE_URL', 'https://jobeas.com')
 
-# Stripe catalog / display: amounts in PlanDuration.price are in this currency's major units (e.g. MXN pesos).
-STRIPE_BILLING_CURRENCY = os.environ.get('STRIPE_BILLING_CURRENCY', 'mxn').lower().strip()
+# Stripe catalog / display: amounts in PlanDuration.price are in this currency's major units (e.g. usd dollars).
+STRIPE_BILLING_CURRENCY = os.environ.get('STRIPE_BILLING_CURRENCY', 'usd').lower().strip()
+# Optional: used only if Stripe Price ID checkout fails and the app falls back to inline price_data.
+STRIPE_FALLBACK_PRODUCT_ID = os.environ.get('STRIPE_FALLBACK_PRODUCT_ID', '').strip()
 
 
 def _optional_decimal_env(name: str):

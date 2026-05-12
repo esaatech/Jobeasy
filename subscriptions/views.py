@@ -18,6 +18,7 @@ import os
 print('DEBUG: STRIPE_SECRET_KEY at runtime:', os.getenv('MYAPP_STRIPE_SECRET_KEY'))
 stripe.api_key = os.getenv('MYAPP_STRIPE_SECRET_KEY')  # Use MYAPP_ prefix for live mode
 from .utils import get_all_plans_with_stripe_prices, get_stripe_price_info
+from .billing_periods import fallback_period_delta, stripe_recurring_interval
 from email_utility.services.notification_service import NotificationService
 
 class PlanPurchaseView(LoginRequiredMixin, DetailView):
@@ -255,21 +256,19 @@ def process_payment(request, plan_id, duration_id):
                         )
                         print(f"DEBUG: Set current_period_end: {subscription.current_period_end}")
                     else:
-                        # Calculate period end based on duration
-                        if duration.duration_type == 'MONTHLY':
-                            subscription.current_period_end = subscription.current_period_start + timezone.timedelta(days=30)
-                        else:  # YEARLY
-                            subscription.current_period_end = subscription.current_period_start + timezone.timedelta(days=365)
+                        subscription.current_period_end = (
+                            subscription.current_period_start
+                            + fallback_period_delta(duration.duration_type)
+                        )
                         print(f"DEBUG: Calculated current_period_end: {subscription.current_period_end}")
                         
                 except Exception as period_error:
                     print(f"DEBUG: Error setting period data: {period_error}")
                     # Use fallback period calculation
                     subscription.current_period_start = timezone.now()
-                    if duration.duration_type == 'MONTHLY':
-                        subscription.current_period_end = timezone.now() + timezone.timedelta(days=30)
-                    else:  # YEARLY
-                        subscription.current_period_end = timezone.now() + timezone.timedelta(days=365)
+                    subscription.current_period_end = (
+                        timezone.now() + fallback_period_delta(duration.duration_type)
+                    )
                     print("DEBUG: Used fallback period calculation")
                 
                 subscription.save()
@@ -304,6 +303,19 @@ def process_payment(request, plan_id, duration_id):
                 }, status=400)
             
             print(f"DEBUG: Fallback - amount: {stripe_amount}, currency: {currency}")
+            product_id = getattr(settings, 'STRIPE_FALLBACK_PRODUCT_ID', '').strip() or None
+            if not product_id:
+                try:
+                    product_id = stripe.Price.retrieve(duration.stripe_price_id).product
+                except Exception:
+                    product_id = 'prod_SegXaYLN4lwmr7'
+            recurring_fb = {'interval': stripe_recurring_interval(duration.duration_type)}
+            if duration.duration_type == 'QUARTERLY':
+                recurring_fb['interval_count'] = 3
+                recurring_fb['interval'] = 'month'
+            elif duration.duration_type == 'SEMI_ANNUAL':
+                recurring_fb['interval_count'] = 6
+                recurring_fb['interval'] = 'month'
             # Fallback: Create subscription with manual amount
             stripe_subscription = stripe.Subscription.create(
                 customer=customer.id,
@@ -311,10 +323,8 @@ def process_payment(request, plan_id, duration_id):
                     'price_data': {
                         'unit_amount': int(stripe_amount * 100),
                         'currency': currency.lower(),
-                        'recurring': {
-                            'interval': 'month' if duration.duration_type == 'MONTHLY' else 'year'
-                        },
-                        'product': 'prod_SegXaYLN4lwmr7'  # Your product ID
+                        'recurring': recurring_fb,
+                        'product': product_id,
                     }
                 }],
                 payment_behavior='default_incomplete',
@@ -380,21 +390,19 @@ def process_payment(request, plan_id, duration_id):
                     )
                     print(f"DEBUG: Set current_period_end: {subscription.current_period_end}")
                 else:
-                    # Calculate period end based on duration
-                    if duration.duration_type == 'MONTHLY':
-                        subscription.current_period_end = subscription.current_period_start + timezone.timedelta(days=30)
-                    else:  # YEARLY
-                        subscription.current_period_end = subscription.current_period_start + timezone.timedelta(days=365)
+                    subscription.current_period_end = (
+                        subscription.current_period_start
+                        + fallback_period_delta(duration.duration_type)
+                    )
                     print(f"DEBUG: Calculated current_period_end: {subscription.current_period_end}")
                     
             except Exception as period_error:
                 print(f"DEBUG: Error setting period data: {period_error}")
                 # Use fallback period calculation
                 subscription.current_period_start = timezone.now()
-                if duration.duration_type == 'MONTHLY':
-                    subscription.current_period_end = timezone.now() + timezone.timedelta(days=30)
-                else:  # YEARLY
-                    subscription.current_period_end = timezone.now() + timezone.timedelta(days=365)
+                subscription.current_period_end = (
+                    timezone.now() + fallback_period_delta(duration.duration_type)
+                )
                 print("DEBUG: Used fallback period calculation")
             
             subscription.save()

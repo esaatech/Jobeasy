@@ -1,17 +1,17 @@
 from django.core.management.base import BaseCommand
 from subscriptions.models import SubscriptionPlan, PlanDuration
 
+
 class Command(BaseCommand):
     help = 'Update Django PlanDuration objects with test mode Stripe Price IDs'
 
     def add_arguments(self, parser):
         parser.add_argument('--plus-monthly-id', type=str, help='Test Stripe Price ID for Plus Monthly')
-        parser.add_argument('--plus-annual-id', type=str, help='Test Stripe Price ID for Plus Annual')
+        parser.add_argument('--plus-weekly-id', type=str, help='Test Stripe Price ID for Plus Weekly')
         parser.add_argument('--ultimate-monthly-id', type=str, help='Test Stripe Price ID for Ultimate Monthly')
-        parser.add_argument('--ultimate-annual-id', type=str, help='Test Stripe Price ID for Ultimate Annual')
+        parser.add_argument('--ultimate-weekly-id', type=str, help='Test Stripe Price ID for Ultimate Weekly')
 
     def handle(self, *args, **options):
-        # Get plans
         plus_plan = SubscriptionPlan.objects.filter(name='Plus', is_active=True).first()
         ultimate_plan = SubscriptionPlan.objects.filter(name='Ultimate', is_active=True).first()
 
@@ -23,16 +23,15 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR('Ultimate plan not found'))
             return
 
-        # Update Plus plan durations
         if plus_plan:
             plus_monthly = PlanDuration.objects.filter(
-                plan=plus_plan, 
+                plan=plus_plan,
                 duration_type='MONTHLY'
             ).first()
-            
-            plus_annual = PlanDuration.objects.filter(
-                plan=plus_plan, 
-                duration_type='YEARLY'
+
+            plus_weekly = PlanDuration.objects.filter(
+                plan=plus_plan,
+                duration_type='WEEKLY'
             ).first()
 
             if plus_monthly and options['plus_monthly_id']:
@@ -42,23 +41,22 @@ class Command(BaseCommand):
                     self.style.SUCCESS(f'Updated Plus Monthly: {options["plus_monthly_id"]}')
                 )
 
-            if plus_annual and options['plus_annual_id']:
-                plus_annual.stripe_price_id = options['plus_annual_id']
-                plus_annual.save()
+            if plus_weekly and options['plus_weekly_id']:
+                plus_weekly.stripe_price_id = options['plus_weekly_id']
+                plus_weekly.save()
                 self.stdout.write(
-                    self.style.SUCCESS(f'Updated Plus Annual: {options["plus_annual_id"]}')
+                    self.style.SUCCESS(f'Updated Plus Weekly: {options["plus_weekly_id"]}')
                 )
 
-        # Update Ultimate plan durations
         if ultimate_plan:
             ultimate_monthly = PlanDuration.objects.filter(
-                plan=ultimate_plan, 
+                plan=ultimate_plan,
                 duration_type='MONTHLY'
             ).first()
-            
-            ultimate_annual = PlanDuration.objects.filter(
-                plan=ultimate_plan, 
-                duration_type='YEARLY'
+
+            ultimate_weekly = PlanDuration.objects.filter(
+                plan=ultimate_plan,
+                duration_type='WEEKLY'
             ).first()
 
             if ultimate_monthly and options['ultimate_monthly_id']:
@@ -68,11 +66,11 @@ class Command(BaseCommand):
                     self.style.SUCCESS(f'Updated Ultimate Monthly: {options["ultimate_monthly_id"]}')
                 )
 
-            if ultimate_annual and options['ultimate_annual_id']:
-                ultimate_annual.stripe_price_id = options['ultimate_annual_id']
-                ultimate_annual.save()
+            if ultimate_weekly and options['ultimate_weekly_id']:
+                ultimate_weekly.stripe_price_id = options['ultimate_weekly_id']
+                ultimate_weekly.save()
                 self.stdout.write(
-                    self.style.SUCCESS(f'Updated Ultimate Annual: {options["ultimate_annual_id"]}')
+                    self.style.SUCCESS(f'Updated Ultimate Weekly: {options["ultimate_weekly_id"]}')
                 )
 
-        self.stdout.write(self.style.SUCCESS('Test Price IDs updated successfully!')) 
+        self.stdout.write(self.style.SUCCESS('Test Price IDs updated successfully!'))

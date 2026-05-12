@@ -10,10 +10,11 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--plus-monthly-id', type=str, help='Stripe Price ID for Plus Monthly')
-        parser.add_argument('--plus-annual-id', type=str, help='Stripe Price ID for Plus Annual')
+        parser.add_argument('--plus-weekly-id', type=str, help='Stripe Price ID for Plus Weekly')
         parser.add_argument('--ultimate-monthly-id', type=str, help='Stripe Price ID for Ultimate Monthly')
-        parser.add_argument('--ultimate-annual-id', type=str, help='Stripe Price ID for Ultimate Annual')
+        parser.add_argument('--ultimate-weekly-id', type=str, help='Stripe Price ID for Ultimate Weekly')
         parser.add_argument('--test-monthly-id', type=str, help='Stripe Price ID for Test Monthly')
+        parser.add_argument('--test-weekly-id', type=str, help='Stripe Price ID for Test Weekly')
 
     def handle(self, *args, **options):
         with transaction.atomic():
@@ -196,78 +197,104 @@ class Command(BaseCommand):
         
         # Free plan - no durations needed (always free)
         
-        # Plus plan durations
+        # Plus plan durations (USD catalog; push to Stripe via provision_stripe_catalog --currency usd --apply)
+        weekly_plus, created = PlanDuration.objects.get_or_create(
+            plan=plus_plan,
+            duration_type='WEEKLY',
+            defaults={
+                'price': Decimal('5.00'),
+                'is_active': True,
+            }
+        )
+        if created:
+            self.stdout.write('Created Plus Weekly duration')
+        else:
+            if weekly_plus.price != Decimal('5.00'):
+                weekly_plus.price = Decimal('5.00')
+                weekly_plus.save()
+                self.stdout.write('Updated Plus Weekly duration price')
+        weekly_plus.is_active = True
+        weekly_plus.save(update_fields=['is_active', 'updated_at'])
+
         monthly_plus, created = PlanDuration.objects.get_or_create(
             plan=plus_plan,
             duration_type='MONTHLY',
             defaults={
-                'price': Decimal('9.99'),
+                'price': Decimal('15.00'),
                 'is_active': True,
             }
         )
         if created:
             self.stdout.write('Created Plus Monthly duration')
         else:
-            # Update existing price if different
-            if monthly_plus.price != Decimal('9.99'):
-                monthly_plus.price = Decimal('9.99')
+            if monthly_plus.price != Decimal('15.00'):
+                monthly_plus.price = Decimal('15.00')
                 monthly_plus.save()
                 self.stdout.write('Updated Plus Monthly duration price')
-            
-        yearly_plus, created = PlanDuration.objects.get_or_create(
-            plan=plus_plan,
-            duration_type='YEARLY',
+        monthly_plus.is_active = True
+        monthly_plus.save(update_fields=['is_active', 'updated_at'])
+
+        PlanDuration.objects.filter(plan=plus_plan, duration_type='YEARLY').update(is_active=False)
+
+        # Ultimate plan durations
+        weekly_ultimate, created = PlanDuration.objects.get_or_create(
+            plan=ultimate_plan,
+            duration_type='WEEKLY',
             defaults={
-                'price': Decimal('99.99'),
+                'price': Decimal('10.00'),
                 'is_active': True,
             }
         )
         if created:
-            self.stdout.write('Created Plus Yearly duration')
+            self.stdout.write('Created Ultimate Weekly duration')
         else:
-            # Update existing price if different
-            if yearly_plus.price != Decimal('99.99'):
-                yearly_plus.price = Decimal('99.99')
-                yearly_plus.save()
-                self.stdout.write('Updated Plus Yearly duration price')
+            if weekly_ultimate.price != Decimal('10.00'):
+                weekly_ultimate.price = Decimal('10.00')
+                weekly_ultimate.save()
+                self.stdout.write('Updated Ultimate Weekly duration price')
+        weekly_ultimate.is_active = True
+        weekly_ultimate.save(update_fields=['is_active', 'updated_at'])
 
-        # Ultimate plan durations
         monthly_ultimate, created = PlanDuration.objects.get_or_create(
             plan=ultimate_plan,
             duration_type='MONTHLY',
             defaults={
-                'price': Decimal('40.00'),
+                'price': Decimal('39.90'),
                 'is_active': True,
             }
         )
         if created:
             self.stdout.write('Created Ultimate Monthly duration')
         else:
-            # Update existing price if different
-            if monthly_ultimate.price != Decimal('40.00'):
-                monthly_ultimate.price = Decimal('40.00')
+            if monthly_ultimate.price != Decimal('39.90'):
+                monthly_ultimate.price = Decimal('39.90')
                 monthly_ultimate.save()
                 self.stdout.write('Updated Ultimate Monthly duration price')
-            
-        yearly_ultimate, created = PlanDuration.objects.get_or_create(
-            plan=ultimate_plan,
-            duration_type='YEARLY',
-            defaults={
-                'price': Decimal('400.00'),
-                'is_active': True,
-            }
-        )
-        if created:
-            self.stdout.write('Created Ultimate Yearly duration')
-        else:
-            # Update existing price if different
-            if yearly_ultimate.price != Decimal('400.00'):
-                yearly_ultimate.price = Decimal('400.00')
-                yearly_ultimate.save()
-                self.stdout.write('Updated Ultimate Yearly duration price')
+        monthly_ultimate.is_active = True
+        monthly_ultimate.save(update_fields=['is_active', 'updated_at'])
+
+        PlanDuration.objects.filter(plan=ultimate_plan, duration_type='YEARLY').update(is_active=False)
 
         # Test plan durations
         if test_plan:
+            weekly_test, created = PlanDuration.objects.get_or_create(
+                plan=test_plan,
+                duration_type='WEEKLY',
+                defaults={
+                    'price': Decimal('0.05'),
+                    'is_active': True,
+                }
+            )
+            if created:
+                self.stdout.write('Created Test Weekly duration')
+            else:
+                if weekly_test.price != Decimal('0.05'):
+                    weekly_test.price = Decimal('0.05')
+                    weekly_test.save()
+                    self.stdout.write('Updated Test Weekly duration price')
+            weekly_test.is_active = True
+            weekly_test.save(update_fields=['is_active', 'updated_at'])
+
             monthly_test, created = PlanDuration.objects.get_or_create(
                 plan=test_plan,
                 duration_type='MONTHLY',
@@ -279,28 +306,14 @@ class Command(BaseCommand):
             if created:
                 self.stdout.write('Created Test Monthly duration')
             else:
-                # Update existing price if different
                 if monthly_test.price != Decimal('0.10'):
                     monthly_test.price = Decimal('0.10')
                     monthly_test.save()
                     self.stdout.write('Updated Test Monthly duration price')
-                
-            yearly_test, created = PlanDuration.objects.get_or_create(
-                plan=test_plan,
-                duration_type='YEARLY',
-                defaults={
-                    'price': Decimal('1.00'),
-                    'is_active': True,
-                }
-            )
-            if created:
-                self.stdout.write('Created Test Yearly duration')
-            else:
-                # Update existing price if different
-                if yearly_test.price != Decimal('1.00'):
-                    yearly_test.price = Decimal('1.00')
-                    yearly_test.save()
-                    self.stdout.write('Updated Test Yearly duration price')
+            monthly_test.is_active = True
+            monthly_test.save(update_fields=['is_active', 'updated_at'])
+
+            PlanDuration.objects.filter(plan=test_plan, duration_type='YEARLY').update(is_active=False)
         else:
             self.stdout.write('Skipping Test plan durations (production mode)')
 
@@ -385,9 +398,9 @@ class Command(BaseCommand):
                 duration_type='MONTHLY'
             ).first()
             
-            plus_annual = PlanDuration.objects.filter(
+            plus_weekly = PlanDuration.objects.filter(
                 plan=plus_plan, 
-                duration_type='YEARLY'
+                duration_type='WEEKLY'
             ).first()
 
             if plus_monthly and options['plus_monthly_id']:
@@ -397,11 +410,11 @@ class Command(BaseCommand):
                     self.style.SUCCESS(f'Updated Plus Monthly: {options["plus_monthly_id"]}')
                 )
 
-            if plus_annual and options['plus_annual_id']:
-                plus_annual.stripe_price_id = options['plus_annual_id']
-                plus_annual.save()
+            if plus_weekly and options['plus_weekly_id']:
+                plus_weekly.stripe_price_id = options['plus_weekly_id']
+                plus_weekly.save()
                 self.stdout.write(
-                    self.style.SUCCESS(f'Updated Plus Annual: {options["plus_annual_id"]}')
+                    self.style.SUCCESS(f'Updated Plus Weekly: {options["plus_weekly_id"]}')
                 )
 
         # Update Ultimate plan durations
@@ -411,9 +424,9 @@ class Command(BaseCommand):
                 duration_type='MONTHLY'
             ).first()
             
-            ultimate_annual = PlanDuration.objects.filter(
+            ultimate_weekly = PlanDuration.objects.filter(
                 plan=ultimate_plan, 
-                duration_type='YEARLY'
+                duration_type='WEEKLY'
             ).first()
 
             if ultimate_monthly and options['ultimate_monthly_id']:
@@ -423,11 +436,11 @@ class Command(BaseCommand):
                     self.style.SUCCESS(f'Updated Ultimate Monthly: {options["ultimate_monthly_id"]}')
                 )
 
-            if ultimate_annual and options['ultimate_annual_id']:
-                ultimate_annual.stripe_price_id = options['ultimate_annual_id']
-                ultimate_annual.save()
+            if ultimate_weekly and options['ultimate_weekly_id']:
+                ultimate_weekly.stripe_price_id = options['ultimate_weekly_id']
+                ultimate_weekly.save()
                 self.stdout.write(
-                    self.style.SUCCESS(f'Updated Ultimate Annual: {options["ultimate_annual_id"]}')
+                    self.style.SUCCESS(f'Updated Ultimate Weekly: {options["ultimate_weekly_id"]}')
                 )
 
         # Update Test plan durations
@@ -436,6 +449,10 @@ class Command(BaseCommand):
                 plan=test_plan, 
                 duration_type='MONTHLY'
             ).first()
+            test_weekly = PlanDuration.objects.filter(
+                plan=test_plan,
+                duration_type='WEEKLY',
+            ).first()
 
             if test_monthly and options['test_monthly_id']:
                 test_monthly.stripe_price_id = options['test_monthly_id']
@@ -443,16 +460,23 @@ class Command(BaseCommand):
                 self.stdout.write(
                     self.style.SUCCESS(f'Updated Test Monthly: {options["test_monthly_id"]}')
                 )
+            if test_weekly and options.get('test_weekly_id'):
+                test_weekly.stripe_price_id = options['test_weekly_id']
+                test_weekly.save()
+                self.stdout.write(
+                    self.style.SUCCESS(f'Updated Test Weekly: {options["test_weekly_id"]}')
+                )
         else:
             self.stdout.write('Skipping Test plan Price ID updates (production mode)')
 
         # Also check environment variables for Price IDs
         env_price_ids = {
             'plus_monthly_id': os.getenv('STRIPE_PLUS_MONTHLY_PRICE_ID'),
-            'plus_annual_id': os.getenv('STRIPE_PLUS_ANNUAL_PRICE_ID'),
+            'plus_weekly_id': os.getenv('STRIPE_PLUS_WEEKLY_PRICE_ID'),
             'ultimate_monthly_id': os.getenv('STRIPE_ULTIMATE_MONTHLY_PRICE_ID'),
-            'ultimate_annual_id': os.getenv('STRIPE_ULTIMATE_ANNUAL_PRICE_ID'),
+            'ultimate_weekly_id': os.getenv('STRIPE_ULTIMATE_WEEKLY_PRICE_ID'),
             'test_monthly_id': os.getenv('STRIPE_TEST_MONTHLY_PRICE_ID'),
+            'test_weekly_id': os.getenv('STRIPE_TEST_WEEKLY_PRICE_ID'),
         }
         
         # Update from environment variables if not provided as arguments
@@ -462,9 +486,9 @@ class Command(BaseCommand):
                 duration_type='MONTHLY'
             ).first()
             
-            plus_annual = PlanDuration.objects.filter(
+            plus_weekly = PlanDuration.objects.filter(
                 plan=plus_plan, 
-                duration_type='YEARLY'
+                duration_type='WEEKLY'
             ).first()
 
             if plus_monthly and env_price_ids['plus_monthly_id'] and not options['plus_monthly_id']:
@@ -474,11 +498,11 @@ class Command(BaseCommand):
                     self.style.SUCCESS(f'Updated Plus Monthly from env: {env_price_ids["plus_monthly_id"]}')
                 )
 
-            if plus_annual and env_price_ids['plus_annual_id'] and not options['plus_annual_id']:
-                plus_annual.stripe_price_id = env_price_ids['plus_annual_id']
-                plus_annual.save()
+            if plus_weekly and env_price_ids['plus_weekly_id'] and not options['plus_weekly_id']:
+                plus_weekly.stripe_price_id = env_price_ids['plus_weekly_id']
+                plus_weekly.save()
                 self.stdout.write(
-                    self.style.SUCCESS(f'Updated Plus Annual from env: {env_price_ids["plus_annual_id"]}')
+                    self.style.SUCCESS(f'Updated Plus Weekly from env: {env_price_ids["plus_weekly_id"]}')
                 )
 
         if ultimate_plan:
@@ -487,9 +511,9 @@ class Command(BaseCommand):
                 duration_type='MONTHLY'
             ).first()
             
-            ultimate_annual = PlanDuration.objects.filter(
+            ultimate_weekly = PlanDuration.objects.filter(
                 plan=ultimate_plan, 
-                duration_type='YEARLY'
+                duration_type='WEEKLY'
             ).first()
 
             if ultimate_monthly and env_price_ids['ultimate_monthly_id'] and not options['ultimate_monthly_id']:
@@ -499,11 +523,11 @@ class Command(BaseCommand):
                     self.style.SUCCESS(f'Updated Ultimate Monthly from env: {env_price_ids["ultimate_monthly_id"]}')
                 )
 
-            if ultimate_annual and env_price_ids['ultimate_annual_id'] and not options['ultimate_annual_id']:
-                ultimate_annual.stripe_price_id = env_price_ids['ultimate_annual_id']
-                ultimate_annual.save()
+            if ultimate_weekly and env_price_ids['ultimate_weekly_id'] and not options['ultimate_weekly_id']:
+                ultimate_weekly.stripe_price_id = env_price_ids['ultimate_weekly_id']
+                ultimate_weekly.save()
                 self.stdout.write(
-                    self.style.SUCCESS(f'Updated Ultimate Annual from env: {env_price_ids["ultimate_annual_id"]}')
+                    self.style.SUCCESS(f'Updated Ultimate Weekly from env: {env_price_ids["ultimate_weekly_id"]}')
                 ) 
 
         if test_plan:
@@ -511,12 +535,28 @@ class Command(BaseCommand):
                 plan=test_plan, 
                 duration_type='MONTHLY'
             ).first()
+            test_weekly = PlanDuration.objects.filter(
+                plan=test_plan,
+                duration_type='WEEKLY',
+            ).first()
 
             if test_monthly and env_price_ids['test_monthly_id'] and not options['test_monthly_id']:
                 test_monthly.stripe_price_id = env_price_ids['test_monthly_id']
                 test_monthly.save()
                 self.stdout.write(
                     self.style.SUCCESS(f'Updated Test Monthly from env: {env_price_ids["test_monthly_id"]}')
+                )
+            if (
+                test_weekly
+                and env_price_ids.get('test_weekly_id')
+                and not options.get('test_weekly_id')
+            ):
+                test_weekly.stripe_price_id = env_price_ids['test_weekly_id']
+                test_weekly.save()
+                self.stdout.write(
+                    self.style.SUCCESS(
+                        f'Updated Test Weekly from env: {env_price_ids["test_weekly_id"]}'
+                    )
                 )
         else:
             self.stdout.write('Skipping Test plan environment variable updates (production mode)') 

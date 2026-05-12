@@ -112,6 +112,10 @@ PY
 fi
 
 if [ "${SKIP_BOOTSTRAP_DATA:-0}" != "1" ]; then
+  # Seeds subscription plans/durations in Postgres (Plus/Ultimate: Weekly + Monthly USD amounts,
+  # yearly durations inactive). Optional Stripe Price IDs: STRIPE_*_PRICE_ID env vars (see
+  # setup_subscription_plans). Does NOT call Stripe API — use provision_stripe_catalog locally/CI
+  # when you need to create new Prices and write IDs (or set env vars in Cloud Run / secrets).
   log "bootstrap: setup_subscription_plans"
   python manage.py setup_subscription_plans || die "setup_subscription_plans failed"
   log "bootstrap: bulk_add_testimonials"

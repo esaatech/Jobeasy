@@ -6,7 +6,7 @@ Stripe does NOT let you "move" live subscriptions, customers, or payment methods
 between accounts. This command only recreates catalog (products + prices) and
 updates Django price IDs so new checkouts use the new account.
 
-Currency: pass --currency (default mxn via STRIPE_PROVISION_CURRENCY). Amounts are
+Currency: pass --currency (default usd via STRIPE_PROVISION_CURRENCY). Amounts are
 Django PlanDuration.price in *major* units (unit_amount = price * 100 for MXN/CAD/USD).
 
 For your legacy CAD catalog on a fresh project, you can sync DB prices first:
@@ -17,12 +17,12 @@ Usage:
   poetry run python manage.py provision_stripe_catalog --seed-legacy-cad-prices --currency cad --dry-run
   poetry run python manage.py provision_stripe_catalog --seed-legacy-cad-prices --currency cad --apply
 
-Mexico (MXN) — live CAD→MXN (ECB via Frankfurter), then push to Stripe:
-  poetry run python manage.py provision_stripe_catalog --seed-mxn-from-cad-fx --apply
+  poetry run python manage.py provision_stripe_catalog --seed-usd-catalog-prices --currency usd --dry-run
+  poetry run python manage.py provision_stripe_catalog --seed-usd-catalog-prices --currency usd --apply
 
 Uses MYAPP_STRIPE_SECRET_KEY if STRIPE_DESTINATION_SECRET_KEY is unset (same .env as the app).
 
-Stripe does not convert catalog prices for you; this command uses a mid-market rate, writes MXN
+Stripe does not convert catalog prices for you; the MXN seed path uses a mid-market rate, writes MXN
 amounts to Django, then creates MXN recurring Prices.
 
 Optional:
@@ -50,11 +50,22 @@ LEGACY_CAD_PRICES = {
 }
 
 RECURRING_MAP = {
+    'WEEKLY': 'week',
     'MONTHLY': 'month',
     'YEARLY': 'year',
     'QUARTERLY': 'month',
     'SEMI_ANNUAL': 'month',
     'ONE_TIME': None,
+}
+
+# Default USD catalog (Weekly + Monthly). Use --seed-usd-catalog-prices to write into Django.
+CATALOG_USD_PRICES = {
+    ('Plus', 'WEEKLY'): Decimal('5.00'),
+    ('Plus', 'MONTHLY'): Decimal('15.00'),
+    ('Ultimate', 'WEEKLY'): Decimal('10.00'),
+    ('Ultimate', 'MONTHLY'): Decimal('39.90'),
+    ('Test', 'WEEKLY'): Decimal('0.05'),
+    ('Test', 'MONTHLY'): Decimal('0.10'),
 }
 
 
@@ -94,6 +105,42 @@ def _seed_legacy_cad_prices(stdout, style):
             stdout.write(style.SUCCESS(f'  [seed] {plan_name} {duration_type} -> ${amount} CAD (DB)'))
         else:
             stdout.write(f'  [seed] {plan_name} {duration_type} already ${amount} CAD')
+    return updated
+
+
+def _seed_usd_catalog_prices(stdout, style):
+    """Sync Plus/Ultimate/(Test) weekly+monthly USD amounts; deactivate yearly durations."""
+    updated = 0
+    for (plan_name, duration_type), amount in CATALOG_USD_PRICES.items():
+        plan = SubscriptionPlan.objects.filter(name__iexact=plan_name, is_active=True).first()
+        if not plan:
+            stdout.write(style.WARNING(f'  [seed-usd] No plan named {plan_name!r}, skipping.'))
+            continue
+        dur, created = PlanDuration.objects.get_or_create(
+            plan=plan,
+            duration_type=duration_type,
+            defaults={'price': amount, 'is_active': True},
+        )
+        dirty = False
+        if not created and dur.price != amount:
+            dur.price = amount
+            dirty = True
+        if not dur.is_active:
+            dur.is_active = True
+            dirty = True
+        if dirty or created:
+            dur.save()
+            updated += 1
+        stdout.write(
+            style.SUCCESS(f'  [seed-usd] {plan_name} {duration_type} -> US${amount}')
+        )
+
+    for plan_name in ('Plus', 'Ultimate', 'Test'):
+        plan = SubscriptionPlan.objects.filter(name__iexact=plan_name, is_active=True).first()
+        if plan:
+            n = PlanDuration.objects.filter(plan=plan, duration_type='YEARLY').update(is_active=False)
+            if n:
+                stdout.write(style.WARNING(f'  [seed-usd] Deactivated YEARLY for {plan_name}'))
     return updated
 
 
@@ -167,13 +214,18 @@ class Command(BaseCommand):
         parser.add_argument(
             '--currency',
             type=str,
-            default=os.environ.get('STRIPE_PROVISION_CURRENCY', 'mxn').lower().strip(),
-            help='Stripe currency code (default: mxn, or STRIPE_PROVISION_CURRENCY). Examples: mxn, cad, usd.',
+            default=os.environ.get('STRIPE_PROVISION_CURRENCY', 'usd').lower().strip(),
+            help='Stripe currency code (default: usd, or STRIPE_PROVISION_CURRENCY). Examples: usd, mxn, cad.',
         )
         parser.add_argument(
             '--seed-legacy-cad-prices',
             action='store_true',
             help='Update Django PlanDuration.price to match the legacy CAD catalog (Plus/Ultimate/Test) before provisioning.',
+        )
+        parser.add_argument(
+            '--seed-usd-catalog-prices',
+            action='store_true',
+            help='Write default Weekly+Monthly USD amounts to Django (Plus/Ultimate/Test), deactivate YEARLY, then provision.',
         )
         parser.add_argument(
             '--seed-mxn-from-cad-fx',
@@ -184,15 +236,25 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         apply_changes = options['apply']
         dry_run = options['dry_run'] or not apply_changes
-        currency = (options['currency'] or 'mxn').lower().strip()
+        currency = (options['currency'] or 'usd').lower().strip()
         if len(currency) != 3:
             self.stderr.write(self.style.ERROR('--currency must be a 3-letter ISO code (e.g. cad, mxn).'))
             return
 
-        if options['seed_legacy_cad_prices'] and options['seed_mxn_from_cad_fx']:
+        seed_flags = sum(
+            1
+            for k in (
+                'seed_legacy_cad_prices',
+                'seed_mxn_from_cad_fx',
+                'seed_usd_catalog_prices',
+            )
+            if options[k]
+        )
+        if seed_flags > 1:
             self.stderr.write(
                 self.style.ERROR(
-                    'Use only one of --seed-legacy-cad-prices or --seed-mxn-from-cad-fx, not both.'
+                    'Use only one seed flag: --seed-legacy-cad-prices, '
+                    '--seed-mxn-from-cad-fx, or --seed-usd-catalog-prices.'
                 )
             )
             return
@@ -201,6 +263,12 @@ class Command(BaseCommand):
             self.stdout.write('Seeding legacy CAD prices into Django...')
             n = _seed_legacy_cad_prices(self.stdout, self.style)
             self.stdout.write(self.style.SUCCESS(f'Seed complete ({n} row(s) updated).\n'))
+
+        if options['seed_usd_catalog_prices']:
+            self.stdout.write('Seeding default USD catalog (weekly + monthly) into Django...')
+            n = _seed_usd_catalog_prices(self.stdout, self.style)
+            self.stdout.write(self.style.SUCCESS(f'USD seed complete ({n} row(s) touched).\n'))
+            currency = 'usd'
 
         if options['seed_mxn_from_cad_fx']:
             self.stdout.write('Fetching live CAD→MXN and seeding Django with converted MXN amounts...')

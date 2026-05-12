@@ -13,9 +13,9 @@ class Command(BaseCommand):
             help='Stripe Price ID for Plus Monthly'
         )
         parser.add_argument(
-            '--plus-yearly-id',
+            '--plus-weekly-id',
             type=str,
-            help='Stripe Price ID for Plus Yearly'
+            help='Stripe Price ID for Plus Weekly'
         )
         parser.add_argument(
             '--ultimate-monthly-id',
@@ -23,26 +23,24 @@ class Command(BaseCommand):
             help='Stripe Price ID for Ultimate Monthly'
         )
         parser.add_argument(
-            '--ultimate-yearly-id',
+            '--ultimate-weekly-id',
             type=str,
-            help='Stripe Price ID for Ultimate Yearly'
+            help='Stripe Price ID for Ultimate Weekly'
         )
 
     def handle(self, *args, **options):
-        # Update Plus Plan prices
         plus_plan = SubscriptionPlan.objects.get(name='Plus')
-        
-        # Plus Monthly: $19.99
+
         plus_monthly, created = PlanDuration.objects.get_or_create(
             plan=plus_plan,
             duration_type='MONTHLY',
             defaults={
-                'price': Decimal('19.99'),
+                'price': Decimal('15.00'),
                 'is_active': True,
             }
         )
         if not created:
-            plus_monthly.price = Decimal('19.99')
+            plus_monthly.price = Decimal('15.00')
         if options['plus_monthly_id']:
             plus_monthly.stripe_price_id = options['plus_monthly_id']
         plus_monthly.save()
@@ -52,40 +50,37 @@ class Command(BaseCommand):
             )
         )
 
-        # Plus Yearly: $191.99
-        plus_yearly, created = PlanDuration.objects.get_or_create(
+        plus_weekly, created = PlanDuration.objects.get_or_create(
             plan=plus_plan,
-            duration_type='YEARLY',
+            duration_type='WEEKLY',
             defaults={
-                'price': Decimal('191.99'),
+                'price': Decimal('5.00'),
                 'is_active': True,
             }
         )
         if not created:
-            plus_yearly.price = Decimal('191.99')
-        if options['plus_yearly_id']:
-            plus_yearly.stripe_price_id = options['plus_yearly_id']
-        plus_yearly.save()
+            plus_weekly.price = Decimal('5.00')
+        if options['plus_weekly_id']:
+            plus_weekly.stripe_price_id = options['plus_weekly_id']
+        plus_weekly.save()
         self.stdout.write(
             self.style.SUCCESS(
-                f'Updated Plus Yearly: ${plus_yearly.price} (Price ID: {plus_yearly.stripe_price_id})'
+                f'Updated Plus Weekly: ${plus_weekly.price} (Price ID: {plus_weekly.stripe_price_id})'
             )
         )
 
-        # Update Ultimate Plan prices
         ultimate_plan = SubscriptionPlan.objects.get(name='Ultimate')
-        
-        # Ultimate Monthly: $49.99
+
         ultimate_monthly, created = PlanDuration.objects.get_or_create(
             plan=ultimate_plan,
             duration_type='MONTHLY',
             defaults={
-                'price': Decimal('49.99'),
+                'price': Decimal('39.90'),
                 'is_active': True,
             }
         )
         if not created:
-            ultimate_monthly.price = Decimal('49.99')
+            ultimate_monthly.price = Decimal('39.90')
         if options['ultimate_monthly_id']:
             ultimate_monthly.stripe_price_id = options['ultimate_monthly_id']
         ultimate_monthly.save()
@@ -95,36 +90,38 @@ class Command(BaseCommand):
             )
         )
 
-        # Ultimate Yearly: $399.99
-        ultimate_yearly, created = PlanDuration.objects.get_or_create(
+        ultimate_weekly, created = PlanDuration.objects.get_or_create(
             plan=ultimate_plan,
-            duration_type='YEARLY',
+            duration_type='WEEKLY',
             defaults={
-                'price': Decimal('399.99'),
+                'price': Decimal('10.00'),
                 'is_active': True,
             }
         )
         if not created:
-            ultimate_yearly.price = Decimal('399.99')
-        if options['ultimate_yearly_id']:
-            ultimate_yearly.stripe_price_id = options['ultimate_yearly_id']
-        ultimate_yearly.save()
+            ultimate_weekly.price = Decimal('10.00')
+        if options['ultimate_weekly_id']:
+            ultimate_weekly.stripe_price_id = options['ultimate_weekly_id']
+        ultimate_weekly.save()
         self.stdout.write(
             self.style.SUCCESS(
-                f'Updated Ultimate Yearly: ${ultimate_yearly.price} (Price ID: {ultimate_yearly.stripe_price_id})'
+                f'Updated Ultimate Weekly: ${ultimate_weekly.price} (Price ID: {ultimate_weekly.stripe_price_id})'
             )
         )
 
+        PlanDuration.objects.filter(
+            plan__name__in=['Plus', 'Ultimate'], duration_type='YEARLY'
+        ).update(is_active=False)
+
         self.stdout.write(self.style.SUCCESS('Successfully updated all plan prices!'))
-        
-        # Show current status
+
         self.stdout.write('\nCurrent Plan Status:')
         self.stdout.write('=' * 50)
         for plan in SubscriptionPlan.objects.filter(name__in=['Plus', 'Ultimate']):
             self.stdout.write(f'\n{plan.name} Plan:')
-            for duration in plan.durations.all():
+            for duration in plan.durations.all().order_by('duration_type'):
                 status = '✓' if duration.stripe_price_id else '✗'
                 self.stdout.write(
                     f'  {status} {duration.duration_type}: ${duration.price} '
-                    f'(Price ID: {duration.stripe_price_id or "NOT SET"})'
-                ) 
+                    f'(active={duration.is_active}, Price ID: {duration.stripe_price_id or "NOT SET"})'
+                )
