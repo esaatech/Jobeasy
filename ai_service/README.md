@@ -1,8 +1,19 @@
 # AI Service Module
 
+## Documentation map
+
+| Document | Contents |
+|----------|----------|
+| **[`docs/AI_PLATFORM.md`](docs/AI_PLATFORM.md)** | **Primary reference:** configurable prompts (`AIService` / `AIPromptConfiguration`), model catalog (`AIModel`), multi-provider roadmap, resume–job evaluation structured output, dashboard product ideas, admin playground, setup commands |
+| This README | Legacy detail: OpenAI resume parsing (RISEN), cover letter/optimization, AI assistant task schema |
+
+For new work on prompts, Gemini evaluation, or model configuration, start with **`docs/AI_PLATFORM.md`**.
+
+---
+
 ## Overview
 
-The `ai_service` module provides AI-powered functionality for the Jobeas resume builder platform. It handles resume parsing, content generation, and optimization using OpenAI's GPT models with structured output formatting.
+The `ai_service` module provides AI-powered functionality for the Jobeas resume builder platform. It handles resume parsing, content generation, and optimization using OpenAI's GPT models with structured output formatting. **Resume–job fit evaluation** uses Google Gemini with database-driven prompts and a structured JSON schema (see platform doc above).
 
 ## Architecture
 

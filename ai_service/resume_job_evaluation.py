@@ -7,6 +7,7 @@ Instruction text is loaded from DB: ``AIService`` slug ``resume_job_evaluation``
 ``AIPromptConfiguration`` rows. Seed defaults with::
 
     python manage.py setup_resume_job_evaluation
+    python manage.py setup_ai_models
 """
 
 from __future__ import annotations
@@ -15,9 +16,9 @@ import json
 import logging
 from typing import Any
 
-from django.conf import settings
 from pydantic import ValidationError
 
+from .generation_config import GenerationConfig, resolve_generation_config
 from .gemini_schema import ResumeJobEvaluationPayload
 from .gemini_client import gemini_generate_structured_sync
 from .models import AIService, AIPromptConfiguration, ResumeJobEvaluation
@@ -43,6 +44,25 @@ def parse_pending_evaluation_result(raw: str | None) -> dict[str, Any] | None:
     return data
 
 
+def _parse_temperature_param(raw: str | float | None) -> float | None:
+    if raw is None or raw == "":
+        return None
+    try:
+        return float(raw)
+    except (TypeError, ValueError):
+        return None
+
+
+def conclusion_from_evaluation(eval_data: dict[str, Any] | None) -> str:
+    """Extract ``proceed_reasoning`` for list/detail labels."""
+    if not isinstance(eval_data, dict):
+        return ""
+    dims = eval_data.get("dimension_summaries")
+    if not isinstance(dims, dict):
+        return ""
+    return str(dims.get("proceed_reasoning") or "").strip()[:8000]
+
+
 def persist_resume_job_evaluation_result(
     pk: object,
     *,
@@ -52,7 +72,7 @@ def persist_resume_job_evaluation_result(
 ) -> None:
     """Persist fields on ``ResumeJobEvaluation`` after ``evaluate_resume_against_job`` returns."""
     pc = prompt_config
-    gemini_mid = fallback_gemini_model_id
+    gemini_mid = str(result.get("gemini_model") or fallback_gemini_model_id)[:128]
     eval_data = result.get("evaluation") if result.get("success") else None
     raw_text = result.get("raw_text") or ""
     if raw_text:
@@ -83,18 +103,40 @@ def persist_resume_job_evaluation_result(
         result.get("instruction_slug") or (pc.slug if pc else "") or ""
     )[:80]
 
-    ResumeJobEvaluation.objects.filter(pk=pk).update(
-        succeeded=result["success"],
-        error_message=str(result.get("error") or "")[:8000],
-        evaluation_json=eval_data,
-        raw_response_text=raw_text,
-        recommendation=rec,
-        overall_score=overall_int if result["success"] else None,
-        optimization_potential=opt_int if result["success"] else None,
-        instruction_slug=slug_snap,
-        gemini_model=str(result.get("gemini_model") or gemini_mid)[:128],
-        prompt_config_id=result.get("prompt_config_id") or (pc.pk if pc else None),
-    )
+    temp_used = result.get("temperature")
+    if temp_used is not None:
+        try:
+            temp_used = float(temp_used)
+        except (TypeError, ValueError):
+            temp_used = None
+
+    ai_model_pk = result.get("ai_model_id")
+    if ai_model_pk is not None:
+        try:
+            ai_model_pk = int(ai_model_pk)
+        except (TypeError, ValueError):
+            ai_model_pk = None
+
+    update_fields: dict[str, Any] = {
+        "succeeded": result["success"],
+        "error_message": str(result.get("error") or "")[:8000],
+        "evaluation_json": eval_data,
+        "raw_response_text": raw_text,
+        "recommendation": rec,
+        "overall_score": overall_int if result["success"] else None,
+        "optimization_potential": opt_int if result["success"] else None,
+        "instruction_slug": slug_snap,
+        "gemini_model": gemini_mid,
+        "ai_model_id": ai_model_pk,
+        "temperature_used": temp_used,
+        "prompt_config_id": result.get("prompt_config_id") or (pc.pk if pc else None),
+    }
+    if result["success"]:
+        ai_conclusion = conclusion_from_evaluation(eval_data)
+        if ai_conclusion:
+            update_fields["conclusion"] = ai_conclusion
+
+    ResumeJobEvaluation.objects.filter(pk=pk).update(**update_fields)
 
 
 def _summarize_validation_error(exc: ValidationError) -> str:
@@ -117,7 +159,7 @@ def resolve_prompt_config(prompt_config_pk: int | None) -> AIPromptConfiguration
             service__slug=RESUME_JOB_EVALUATION_SERVICE_SLUG,
             service__is_active=True,
         )
-        .select_related("service")
+        .select_related("service", "ai_model")
         .first()
     )
 
@@ -128,10 +170,19 @@ def get_default_prompt_config() -> AIPromptConfiguration | None:
     ).first()
     if not svc:
         return None
-    pref = svc.prompts.filter(is_default=True, is_active=True).first()
+    pref = (
+        svc.prompts.filter(is_default=True, is_active=True)
+        .select_related("ai_model")
+        .first()
+    )
     if pref:
         return pref
-    return svc.prompts.filter(is_active=True).order_by("id").first()
+    return (
+        svc.prompts.filter(is_active=True)
+        .select_related("ai_model")
+        .order_by("id")
+        .first()
+    )
 
 
 def build_user_prompt(job_description: str, resume_text: str) -> str:
@@ -154,11 +205,23 @@ def normalize_evaluation(payload: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
+def _meta_from_config(cfg: AIPromptConfiguration, gen: GenerationConfig) -> dict[str, Any]:
+    return {
+        "prompt_config_id": cfg.pk,
+        "instruction_slug": cfg.slug,
+        "gemini_model": gen.model_id,
+        "ai_model_id": gen.ai_model_id,
+        "temperature": gen.temperature,
+    }
+
+
 def evaluate_resume_against_job(
     job_description: str,
     resume_text: str,
     *,
     prompt_config: AIPromptConfiguration | None = None,
+    ai_model_id: int | None = None,
+    temperature: float | None = None,
     gemini_model: str | None = None,
 ) -> dict[str, Any]:
     """Run evaluation. Returns a dict with keys: success, evaluation, error, raw_text."""
@@ -178,28 +241,25 @@ def evaluate_resume_against_job(
             "instruction_slug": None,
         }
 
+    gen = resolve_generation_config(
+        cfg,
+        ai_model_id=ai_model_id,
+        temperature=temperature,
+        model_id_override=gemini_model,
+    )
+
     system_instruction = cfg.system_prompt.strip()
     user_block = build_user_prompt(job_description, resume_text)
 
-    mid = gemini_model or getattr(
-        settings, "GEMINI_RESUME_JOB_EVAL_MODEL", "gemini-2.5-flash"
-    )
-
     raw: str | None = None
-    base_meta = {
-        "prompt_config_id": cfg.pk,
-        "instruction_slug": cfg.slug,
-        "gemini_model": mid,
-    }
+    base_meta = _meta_from_config(cfg, gen)
 
     try:
         out = gemini_generate_structured_sync(
             system_instruction=system_instruction,
             user_text=user_block,
-            model_id=mid,
-            temperature=float(
-                getattr(settings, "GEMINI_RESUME_JOB_EVAL_TEMPERATURE", 0.35)
-            ),
+            model_id=gen.model_id,
+            temperature=gen.temperature,
             response_schema=ResumeJobEvaluationPayload,
         )
         raw = out["raw"]

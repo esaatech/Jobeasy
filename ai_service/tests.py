@@ -8,9 +8,15 @@ from pydantic import ValidationError
 
 from ai_service.admin import ResumeJobEvaluationAdmin
 from ai_service.forms import ResumeJobEvaluationAdminForm
+from ai_service.generation_config import resolve_generation_config
 from ai_service.gemini_schema import ResumeJobEvaluationPayload
-from ai_service.models import ResumeJobEvaluation
-from ai_service.resume_job_evaluation import parse_pending_evaluation_result
+from ai_service.models import AIModel, AIPromptConfiguration, AIService, ResumeJobEvaluation
+from ai_service.resume_job_evaluation import (
+    RESUME_JOB_EVALUATION_SERVICE_SLUG,
+    conclusion_from_evaluation,
+    parse_pending_evaluation_result,
+    persist_resume_job_evaluation_result,
+)
 from ai_service.gemini_client import (
     gemini_generate_structured_sync,
     gemini_generate_text_sync,
@@ -50,7 +56,7 @@ class ResumeJobEvaluationSchemaTests(SimpleTestCase):
                 "domain_match": "",
                 "operational_experience_match": "",
                 "optimization_surface_vs_foundational_notes": "",
-                "proceed_reasoning": "",
+                "proceed_reasoning": "Proceed with interview.",
             },
         }
 
@@ -253,6 +259,19 @@ class GeminiServiceLiveIntegrationTests(SimpleTestCase):
         self.assertIn("note_status", names)
 
 
+class ConclusionFromEvaluationTests(SimpleTestCase):
+    def test_extracts_proceed_reasoning(self):
+        d = ResumeJobEvaluationSchemaTests()._valid_dict()
+        self.assertEqual(
+            conclusion_from_evaluation(d),
+            "Proceed with interview.",
+        )
+
+    def test_empty_when_missing(self):
+        self.assertEqual(conclusion_from_evaluation(None), "")
+        self.assertEqual(conclusion_from_evaluation({}), "")
+
+
 class ResumeJobEvaluationPersistOnSaveTests(TestCase):
     """Admin Save persists ``pending_evaluation_result`` when present and valid."""
 
@@ -278,6 +297,8 @@ class ResumeJobEvaluationPersistOnSaveTests(TestCase):
             "error": None,
             "raw_text": '{"overall_score":72}',
             "gemini_model": "gemini-2.5-flash",
+            "ai_model_id": None,
+            "temperature": 0.35,
             "instruction_slug": "v1-0",
             "prompt_config_id": None,
         }
@@ -302,6 +323,9 @@ class ResumeJobEvaluationPersistOnSaveTests(TestCase):
         pending = json.dumps(self._evaluation_result())
         form = ResumeJobEvaluationAdminForm(
             data={
+                "name": "Flash baseline",
+                "description": "Health-tech Rails job",
+                "conclusion": "",
                 "job_description": "jd",
                 "resume_text": "rt",
                 "prompt_config": "",
@@ -316,11 +340,29 @@ class ResumeJobEvaluationPersistOnSaveTests(TestCase):
         admin.save_model(request, obj, form, change=True)
 
         obj.refresh_from_db()
+        self.assertEqual(obj.name, "Flash baseline")
+        self.assertEqual(obj.description, "Health-tech Rails job")
         self.assertTrue(obj.succeeded)
         self.assertEqual(obj.recommendation, "Moderate Fit")
         self.assertEqual(obj.overall_score, 72)
         self.assertIsInstance(obj.evaluation_json, dict)
         self.assertEqual(obj.error_message, "")
+        self.assertEqual(obj.temperature_used, 0.35)
+        self.assertEqual(obj.conclusion, "Proceed with interview.")
+
+    def test_persist_sets_conclusion_from_proceed_reasoning(self):
+        obj = ResumeJobEvaluation.objects.create(
+            job_description="jd",
+            resume_text="rt",
+        )
+        persist_resume_job_evaluation_result(
+            pk=obj.pk,
+            result=self._evaluation_result(),
+            prompt_config=None,
+            fallback_gemini_model_id="gemini-2.5-flash",
+        )
+        obj.refresh_from_db()
+        self.assertEqual(obj.conclusion, "Proceed with interview.")
 
     def test_save_model_empty_pending_leaves_evaluation_unchanged(self):
         obj = ResumeJobEvaluation.objects.create(
@@ -334,6 +376,9 @@ class ResumeJobEvaluationPersistOnSaveTests(TestCase):
         )
         form = ResumeJobEvaluationAdminForm(
             data={
+                "name": "",
+                "description": "",
+                "conclusion": "Keep this note",
                 "job_description": "jd updated",
                 "resume_text": "rt",
                 "prompt_config": "",
@@ -349,5 +394,55 @@ class ResumeJobEvaluationPersistOnSaveTests(TestCase):
 
         obj.refresh_from_db()
         self.assertEqual(obj.job_description, "jd updated")
+        self.assertEqual(obj.conclusion, "Keep this note")
         self.assertEqual(obj.recommendation, "Strong Fit")
         self.assertEqual(obj.overall_score, 90)
+
+
+class GenerationConfigResolverTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.flash = AIModel.objects.create(
+            provider=AIModel.Provider.GEMINI,
+            model_id="gemini-2.5-flash",
+            display_name="Flash",
+            default_temperature=0.35,
+            sort_order=20,
+        )
+        cls.pro = AIModel.objects.create(
+            provider=AIModel.Provider.GEMINI,
+            model_id="gemini-2.5-pro",
+            display_name="Pro",
+            default_temperature=0.2,
+            sort_order=30,
+        )
+        svc = AIService.objects.create(
+            slug=RESUME_JOB_EVALUATION_SERVICE_SLUG,
+            name="Eval",
+            is_active=True,
+        )
+        cls.prompt = AIPromptConfiguration.objects.create(
+            service=svc,
+            name="v1",
+            slug="v1-0",
+            system_prompt="test",
+            ai_model=cls.flash,
+            temperature=0.4,
+            is_default=True,
+            is_active=True,
+        )
+
+    def test_override_beats_prompt(self):
+        gen = resolve_generation_config(
+            self.prompt,
+            ai_model_id=self.pro.pk,
+            temperature=0.1,
+        )
+        self.assertEqual(gen.model_id, "gemini-2.5-pro")
+        self.assertEqual(gen.temperature, 0.1)
+        self.assertEqual(gen.ai_model_id, self.pro.pk)
+
+    def test_prompt_beats_env_when_set(self):
+        gen = resolve_generation_config(self.prompt)
+        self.assertEqual(gen.model_id, "gemini-2.5-flash")
+        self.assertEqual(gen.temperature, 0.4)

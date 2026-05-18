@@ -1,6 +1,57 @@
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 # Create your models here.
+
+
+class AIModel(models.Model):
+    """Catalog of provider model ids (e.g. Gemini 2.5 Flash) for prompts and runs."""
+
+    class Provider(models.TextChoices):
+        GEMINI = "gemini", "Google Gemini"
+        OPENAI = "openai", "OpenAI"
+
+    provider = models.CharField(
+        max_length=32,
+        choices=Provider.choices,
+        default=Provider.GEMINI,
+    )
+    model_id = models.CharField(
+        max_length=128,
+        help_text="API model id (e.g. gemini-2.5-flash).",
+    )
+    display_name = models.CharField(max_length=128)
+    description = models.TextField(blank=True)
+    is_active = models.BooleanField(
+        default=True,
+        help_text="Inactive models are hidden from admin dropdowns.",
+    )
+    sort_order = models.PositiveSmallIntegerField(default=0)
+    default_temperature = models.DecimalField(
+        max_digits=3,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(2)],
+        help_text="Suggested default when a prompt does not set temperature.",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["sort_order", "display_name"]
+        verbose_name = "AI model"
+        verbose_name_plural = "AI models"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["provider", "model_id"],
+                name="ai_service_aimodel_provider_model_id_uniq",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.display_name} ({self.model_id})"
+
 
 class AIService(models.Model):
     """Model for defining AI services that can have configurable prompts."""
@@ -11,15 +62,15 @@ class AIService(models.Model):
     is_active = models.BooleanField(default=True, help_text="Whether this service is currently available")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         ordering = ['name']
         verbose_name = "AI Service"
         verbose_name_plural = "AI Services"
-    
+
     def __str__(self):
         return self.name
-    
+
     def get_default_prompt(self):
         """Get the default prompt for this service."""
         return self.prompts.filter(is_default=True, is_active=True).first()
@@ -33,25 +84,40 @@ class AIPromptConfiguration(models.Model):
     slug = models.SlugField(max_length=50, help_text="Used in code to identify this prompt variant (e.g., 'default', 'with_email_subject')")
 
     system_prompt = models.TextField(help_text="The system prompt that will be sent to the AI")
+    ai_model = models.ForeignKey(
+        AIModel,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="prompt_configurations",
+        help_text="Default model for runs using this prompt variant.",
+    )
+    temperature = models.DecimalField(
+        max_digits=3,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(2)],
+        help_text="Sampling temperature for this prompt (0–2). Leave blank to use the model or env default.",
+    )
     is_active = models.BooleanField(default=True, help_text="Whether this prompt is currently active")
     is_default = models.BooleanField(default=False, help_text="Whether this is the default prompt for this service")
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     class Meta:
         unique_together = ['service', 'slug']
         ordering = ['service', 'name']
         verbose_name = "AI Prompt Configuration"
         verbose_name_plural = "AI Prompt Configurations"
-    
+
     def __str__(self):
         return f"{self.service.name} - {self.name}"
-    
+
     def save(self, *args, **kwargs):
         """Ensure only one default prompt per service."""
         if self.is_default:
-            # Set all other prompts for this service to not default
             AIPromptConfiguration.objects.filter(
                 service=self.service,
                 is_default=True
@@ -66,6 +132,20 @@ class ResumeJobEvaluation(models.Model):
     Each row captures inputs, optional prompt FK, structured JSON output, and status.
     """
 
+    name = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Short label for this run (e.g. “Trend Micro Pro” or “Test resume v2”).",
+    )
+    description = models.TextField(
+        blank=True,
+        help_text="What you are testing—resume variant, model comparison, job source, etc.",
+    )
+    conclusion = models.TextField(
+        blank=True,
+        help_text="Summary verdict; auto-filled from proceed_reasoning after a successful evaluation.",
+    )
+
     job_description = models.TextField()
     resume_text = models.TextField()
     prompt_config = models.ForeignKey(
@@ -75,10 +155,23 @@ class ResumeJobEvaluation(models.Model):
         on_delete=models.SET_NULL,
         related_name="resume_job_evaluations",
     )
+    ai_model = models.ForeignKey(
+        AIModel,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="resume_job_evaluations",
+        help_text="Model catalog row used for this run.",
+    )
     gemini_model = models.CharField(
         max_length=128,
         blank=True,
-        help_text="Gemini model id used for this run.",
+        help_text="Gemini model id used for this run (snapshot).",
+    )
+    temperature_used = models.FloatField(
+        null=True,
+        blank=True,
+        help_text="Temperature used for this run.",
     )
 
     succeeded = models.BooleanField(default=False)
@@ -105,8 +198,13 @@ class ResumeJobEvaluation(models.Model):
         verbose_name_plural = "Resume-job evaluations"
 
     def __str__(self) -> str:
+        label = (self.name or "").strip()
         if self.pk is None:
-            return "Evaluation (new)"
+            return label or "Evaluation (new)"
+        if label:
+            if self.recommendation:
+                return f"{label} — {self.recommendation}"
+            return label
         no_run_yet = (
             self.evaluation_json is None
             and not (self.raw_response_text or "").strip()

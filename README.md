@@ -5,10 +5,28 @@ A comprehensive resume builder and job application platform with AI-powered feat
 ## Features
 
 - AI-powered resume parsing and optimization
+- Resume–job fit evaluation (structured Gemini output; admin playground)
+- Configurable AI prompts and model catalog per task (see documentation below)
 - Real-time chat interface for resume building
 - Multiple resume templates
 - WebSocket support for live updates
 - PostgreSQL database with Redis for caching
+
+## Documentation
+
+| Topic | Location |
+|-------|----------|
+| **AI platform** (prompts, models, resume–job evaluation, multi-provider roadmap, future user dashboard) | [`ai_service/docs/AI_PLATFORM.md`](ai_service/docs/AI_PLATFORM.md) |
+| AI module overview (parsing, OpenAI assistant, legacy flows) | [`ai_service/README.md`](ai_service/README.md) |
+
+**Quick setup (evaluation + model catalog):**
+
+```bash
+poetry run python manage.py setup_ai_models
+poetry run python manage.py setup_resume_job_evaluation
+```
+
+Admin: **Resume-job evaluations** (playground), **AI Prompt Configurations**, **AI models**.
 
 ## System Architecture Flow for generating Resume using chatbot 
 
@@ -273,7 +291,9 @@ poetry run python manage.py showmigrations | rg '\[ \]'
 
 Copy `.env.example` to `.env` and fill in real values.
 
-- `OPENAI_API_KEY`: OpenAI API key for AI features
+- `OPENAI_API_KEY`: OpenAI API key (resume parsing, cover letter, optimization, assistant)
+- `GEMINI_API_KEY` or `GOOGLE_API_KEY`: **required in production** for resume–job evaluation (set one; see `.env.example`)
+- Model id and temperature for evaluation: configure in admin (**AI models**, **AI Prompt Configurations**), not env. Optional `GEMINI_RESUME_JOB_EVAL_MODEL` / `GEMINI_RESUME_JOB_EVAL_TEMPERATURE` are code fallbacks only if a prompt has no model linked (defaults: `gemini-2.5-flash`, `0.35`)
 - `DATABASE_URL_LOCAL`: local PostgreSQL connection string for development
 - `DATABASE_URL_PROD`: production PostgreSQL connection string
 - `REDIS_URL`: Redis connection string for WebSocket

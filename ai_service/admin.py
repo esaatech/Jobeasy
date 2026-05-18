@@ -15,7 +15,7 @@ from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
 from .forms import ResumeJobEvaluationAdminForm
-from .models import AIService, AIPromptConfiguration, ResumeJobEvaluation
+from .models import AIModel, AIService, AIPromptConfiguration, ResumeJobEvaluation
 from .resume_job_evaluation import (
     evaluate_resume_against_job,
     get_default_prompt_config,
@@ -26,6 +26,22 @@ from .resume_job_evaluation import (
 
 
 # Register your models here.
+
+
+@admin.register(AIModel)
+class AIModelAdmin(admin.ModelAdmin):
+    list_display = [
+        'display_name',
+        'model_id',
+        'provider',
+        'is_active',
+        'sort_order',
+        'default_temperature',
+    ]
+    list_filter = ['provider', 'is_active']
+    search_fields = ['display_name', 'model_id', 'description']
+    ordering = ['sort_order', 'display_name']
+
 
 @admin.register(AIService)
 class AIServiceAdmin(admin.ModelAdmin):
@@ -74,7 +90,17 @@ class AIPromptConfigurationInline(admin.TabularInline):
 @admin.register(AIPromptConfiguration)
 class AIPromptConfigurationAdmin(admin.ModelAdmin):
     """Admin interface for AI Prompt Configuration model."""
-    list_display = ['service', 'name', 'slug', 'is_active', 'is_default', 'updated_at', 'preview_link']
+    list_display = [
+        'service',
+        'name',
+        'slug',
+        'ai_model',
+        'temperature',
+        'is_active',
+        'is_default',
+        'updated_at',
+        'preview_link',
+    ]
     list_filter = ['service', 'is_active', 'is_default', 'created_at', 'updated_at']
     search_fields = ['service__name', 'name', 'slug', 'system_prompt']
     readonly_fields = ['created_at', 'updated_at', 'preview_system_prompt']
@@ -87,6 +113,10 @@ class AIPromptConfigurationAdmin(admin.ModelAdmin):
         ('Prompt Content', {
             'fields': ('system_prompt', 'preview_system_prompt'),
             'description': 'Enter the system prompt that will be sent to the AI. Use the preview below to see how it will look.'
+        }),
+        ('Generation', {
+            'fields': ('ai_model', 'temperature'),
+            'description': 'Default model and temperature for runs using this prompt variant.',
         }),
         ('Status', {
             'fields': ('is_active', 'is_default'),
@@ -122,7 +152,7 @@ class AIPromptConfigurationAdmin(admin.ModelAdmin):
     
     def get_queryset(self, request):
         """Optimize queryset with service information."""
-        return super().get_queryset(request).select_related('service')
+        return super().get_queryset(request).select_related('service', 'ai_model')
     
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         """Filter services to only show active ones."""
@@ -155,22 +185,30 @@ class ResumeJobEvaluationAdmin(admin.ModelAdmin):
     change_form_template = "admin/ai_service/resumejobevaluation/change_form.html"
     add_form_template = "admin/ai_service/resumejobevaluation/add_form.html"
     list_display = [
-        'id',
-        'succeeded',
+        'display_name',
         'recommendation',
         'overall_score',
-        'instruction_slug',
-        'prompt_config',
+        'gemini_model',
+        'short_description',
+        'short_conclusion',
+        'succeeded',
         'created_at',
     ]
-    list_filter = ['succeeded', 'instruction_slug', 'created_at']
-    search_fields = ['recommendation', 'job_description']
+    list_filter = ['succeeded', 'instruction_slug', 'gemini_model', 'created_at']
+    search_fields = [
+        'name',
+        'description',
+        'conclusion',
+        'recommendation',
+        'job_description',
+    ]
     autocomplete_fields = ['prompt_config']
 
     readonly_fields = [
         '_results_header',
         'ro_succeeded',
         'ro_gemini_model',
+        'ro_temperature',
         'ro_instruction_slug',
         'ro_recommendation',
         'ro_overall_score',
@@ -183,16 +221,25 @@ class ResumeJobEvaluationAdmin(admin.ModelAdmin):
 
     fieldsets = (
         (
+            'Label',
+            {
+                'description': mark_safe(
+                    '<p>Use <strong>Name</strong> and <strong>Description</strong> to tell test runs apart in the list. '
+                    '<strong>Conclusion</strong> is filled from the evaluator’s '
+                    '<code>proceed_reasoning</code> when you save a successful evaluation (you can edit it).</p>'
+                ),
+                'fields': ('name', 'description', 'conclusion'),
+            },
+        ),
+        (
             'Inputs',
             {
                 'description': mark_safe(
-                    '<p>Set <strong>GEMINI_API_KEY</strong> / <strong>GOOGLE_API_KEY</strong> and optionally '
-                    '<code>GEMINI_RESUME_JOB_EVAL_MODEL</code>.</p>'
-                    '<p>Use <strong>Get evaluation</strong> in the Evaluation section—inputs do not '
-                    'need to be saved first.</p>'
-                    '<p>Use <strong>Save</strong> to persist inputs and the last successful preview '
-                    'from this page. You can also use <strong>Save last evaluation to record</strong> '
-                    'without changing other fields.'
+                    '<p>Set <strong>GEMINI_API_KEY</strong> / <strong>GOOGLE_API_KEY</strong>. '
+                    'Model and temperature are taken from the selected <strong>Prompt config</strong> '
+                    '(edit under AI Prompt Configurations).</p>'
+                    '<p>Use <strong>Get evaluation</strong>—inputs do not need to be saved first.</p>'
+                    '<p><strong>Save</strong> persists inputs and the last successful preview.</p>'
                 ),
                 'fields': ('job_description', 'resume_text', 'prompt_config'),
             },
@@ -224,6 +271,30 @@ class ResumeJobEvaluationAdmin(admin.ModelAdmin):
     @staticmethod
     def _empty_dash() -> str:
         return format_html('<span class="resume-eval-empty">—</span>')
+
+    @staticmethod
+    def _truncate(text: str, limit: int = 72) -> str:
+        text = (text or "").strip().replace("\n", " ")
+        if not text:
+            return ""
+        if len(text) <= limit:
+            return text
+        return text[: limit - 1] + "…"
+
+    @admin.display(description="Name", ordering="name")
+    def display_name(self, obj: ResumeJobEvaluation) -> str:
+        label = (obj.name or "").strip()
+        return label if label else f"#{obj.pk}"
+
+    @admin.display(description="Description", ordering="description")
+    def short_description(self, obj: ResumeJobEvaluation) -> str:
+        snippet = self._truncate(obj.description, 60)
+        return snippet or "—"
+
+    @admin.display(description="Conclusion", ordering="conclusion")
+    def short_conclusion(self, obj: ResumeJobEvaluation) -> str:
+        snippet = self._truncate(obj.conclusion, 80)
+        return snippet or "—"
 
     @staticmethod
     def _succeeded_icon(value: bool) -> str:
@@ -277,6 +348,14 @@ class ResumeJobEvaluationAdmin(admin.ModelAdmin):
         text = (obj.gemini_model or '').strip()
         inner = text if text else self._empty_dash()
         return self._ro_span('resume-eval-ro-gemini-model', inner)
+
+    @admin.display(description="Temperature")
+    def ro_temperature(self, obj: ResumeJobEvaluation) -> str:
+        if obj.temperature_used is None:
+            inner = self._empty_dash()
+        else:
+            inner = str(obj.temperature_used)
+        return self._ro_span('resume-eval-ro-temperature', inner)
 
     @admin.display(description="Instruction slug")
     def ro_instruction_slug(self, obj: ResumeJobEvaluation) -> str:
@@ -385,18 +464,11 @@ class ResumeJobEvaluationAdmin(admin.ModelAdmin):
             }
             return HttpResponse(json.dumps(payload, cls=DjangoJSONEncoder), status=400, content_type='application/json')
 
-        gemini_mid = getattr(
-            settings,
-            'GEMINI_RESUME_JOB_EVAL_MODEL',
-            'gemini-2.5-flash',
-        ).strip()
-
         try:
             result = evaluate_resume_against_job(
                 jd,
                 rt,
                 prompt_config=pc,
-                gemini_model=gemini_mid,
             )
             return HttpResponse(json.dumps(result, cls=DjangoJSONEncoder), content_type='application/json')
         except Exception as exc:  # noqa: BLE001
@@ -456,11 +528,6 @@ class ResumeJobEvaluationAdmin(admin.ModelAdmin):
         obj = get_object_or_404(ResumeJobEvaluation, pk=object_id)
         if not self.has_change_permission(request, obj):
             return HttpResponseForbidden('Change permission denied.')
-        gemini_mid = getattr(
-            settings,
-            'GEMINI_RESUME_JOB_EVAL_MODEL',
-            'gemini-2.5-flash',
-        ).strip()
         pc = obj.prompt_config or get_default_prompt_config()
         if pc is None:
             messages.error(
@@ -473,8 +540,8 @@ class ResumeJobEvaluationAdmin(admin.ModelAdmin):
                 obj.job_description,
                 obj.resume_text,
                 prompt_config=pc,
-                gemini_model=gemini_mid,
             )
+            gemini_mid = str(result.get('gemini_model') or 'gemini-2.5-flash').strip()
             persist_resume_job_evaluation_result(
                 pk=obj.pk,
                 result=result,

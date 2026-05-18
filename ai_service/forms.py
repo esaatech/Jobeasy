@@ -14,7 +14,19 @@ class ResumeJobEvaluationAdminForm(forms.ModelForm):
 
     class Meta:
         model = ResumeJobEvaluation
-        fields = ("job_description", "resume_text", "prompt_config")
+        fields = (
+            "name",
+            "description",
+            "conclusion",
+            "job_description",
+            "resume_text",
+            "prompt_config",
+        )
+        widgets = {
+            "name": forms.TextInput(attrs={"size": 80}),
+            "description": forms.Textarea(attrs={"rows": 2}),
+            "conclusion": forms.Textarea(attrs={"rows": 3}),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -28,6 +40,6 @@ class ResumeJobEvaluationAdminForm(forms.ModelForm):
         self.fields["prompt_config"].queryset = qs
         self.fields["prompt_config"].required = False
         self.fields["prompt_config"].help_text = (
-            "Uses the service default if left empty when you run Gemini. Edit prompts under "
-            "AI Prompt Configurations for slug resume_job_evaluation."
+            "Uses the service default if left empty when you run Gemini. Set model and temperature "
+            "on each prompt under AI Prompt Configurations (slug resume_job_evaluation)."
         )

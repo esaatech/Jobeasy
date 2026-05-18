@@ -18,9 +18,9 @@
   {% if pending_field %}{{ pending_field }}{% endif %}
   <p class="help" style="margin-top:10px;margin-bottom:0;">
     {% blocktranslate trimmed %}
+      Model and temperature come from the selected prompt configuration (edit under AI Prompt Configurations).
       Uses the job description and resume text from this form—you do not need to press Django
-      &quot;Save&quot; before running Gemini. Summary fields below update live after each run.
-      Django &quot;Save&quot; stores inputs and the last successful preview from this page.
+      &quot;Save&quot; before running Gemini. Django &quot;Save&quot; stores inputs and the last successful preview.
     {% endblocktranslate %}
   </p>
   <div id="resume-eval-message" style="margin-top:12px;"></div>
@@ -160,6 +160,11 @@
 
     var slug = payload && payload.instruction_slug ? String(payload.instruction_slug).trim() : "";
     setRo("resume-eval-ro-instruction-slug", slug ? esc(slug) : dash());
+
+    var temp = payload && payload.temperature != null && payload.temperature !== ""
+      ? String(payload.temperature)
+      : "";
+    setRo("resume-eval-ro-temperature", temp ? esc(temp) : dash());
   }
 
   var lastResult = null;
