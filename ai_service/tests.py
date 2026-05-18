@@ -1,3 +1,353 @@
-from django.test import TestCase
+import json
 
-# Create your tests here.
+from django.contrib.admin.sites import site
+from django.contrib.auth import get_user_model
+from django.contrib.messages.storage.fallback import FallbackStorage
+from django.test import RequestFactory, SimpleTestCase, TestCase
+from pydantic import ValidationError
+
+from ai_service.admin import ResumeJobEvaluationAdmin
+from ai_service.forms import ResumeJobEvaluationAdminForm
+from ai_service.gemini_schema import ResumeJobEvaluationPayload
+from ai_service.models import ResumeJobEvaluation
+from ai_service.resume_job_evaluation import parse_pending_evaluation_result
+from ai_service.gemini_client import (
+    gemini_generate_structured_sync,
+    gemini_generate_text_sync,
+)
+from ai_service.gemini_service import GeminiService, resolve_credentials_from_django
+
+
+class ResumeJobEvaluationSchemaTests(SimpleTestCase):
+    def _valid_dict(self) -> dict:
+        return {
+            "overall_score": 72,
+            "recommendation": "Moderate Fit",
+            "optimization_potential": 81,
+            "confidence": "Medium",
+            "strengths": ["Evidence-backed skill"],
+            "gaps": ["Missing GCP cert"],
+            "hard_requirement_analysis": [
+                {
+                    "requirement": "5+ years Python",
+                    "match_status": "partially_met",
+                    "evidence_quote": "",
+                    "notes": "",
+                }
+            ],
+            "transferable_skills": [
+                {
+                    "from_skill": "AWS",
+                    "adjacent_skill": "GCP",
+                    "evidence_quote": "",
+                    "notes": "",
+                }
+            ],
+            "risk_level": "Moderate",
+            "dimension_summaries": {
+                "core_competency_match": "ok",
+                "seniority_match": "",
+                "domain_match": "",
+                "operational_experience_match": "",
+                "optimization_surface_vs_foundational_notes": "",
+                "proceed_reasoning": "",
+            },
+        }
+
+    def test_valid_payload_accepted_and_dump_stable(self):
+        d = self._valid_dict()
+        p = ResumeJobEvaluationPayload.model_validate(d)
+        out = p.model_dump(mode="json")
+        self.assertEqual(out["overall_score"], 72)
+        self.assertEqual(out["recommendation"], "Moderate Fit")
+
+    def test_invalid_recommendation_rejected(self):
+        d = self._valid_dict()
+        d["recommendation"] = "Proceed with caution"
+        with self.assertRaises(ValidationError):
+            ResumeJobEvaluationPayload.model_validate(d)
+
+    def test_overall_score_out_of_range_rejected(self):
+        d = self._valid_dict()
+        d["overall_score"] = 101
+        with self.assertRaises(ValidationError):
+            ResumeJobEvaluationPayload.model_validate(d)
+
+    def test_extra_top_level_fields_ignored(self):
+        d = self._valid_dict()
+        d["unexpected"] = {"x": 1}
+        p = ResumeJobEvaluationPayload.model_validate(d)
+        self.assertNotIn("unexpected", p.model_dump())
+
+
+class GeminiClientUnitTests(SimpleTestCase):
+    """Validation rules on ``gemini_client`` helpers (no outbound HTTP)."""
+
+    def test_gemini_generate_structured_sync_raises_without_schema(self):
+        """``response_schema`` is required — guard against accidental unstructured calls."""
+        with self.assertRaises(ValueError) as ctx:
+            gemini_generate_structured_sync(  # type: ignore[call-arg]
+                system_instruction="x",
+                user_text="y",
+                response_schema=None,
+            )
+        self.assertIn("response_schema", str(ctx.exception).lower())
+
+
+class GeminiClientLiveIntegrationTests(SimpleTestCase):
+    """Live HTTP tests for :mod:`ai_service.gemini_client` entrypoints (skipped without API keys).
+
+    Run with credentials::
+
+        poetry run python manage.py test ai_service.tests.GeminiClientLiveIntegrationTests -v 2
+
+    Validates ``gemini_generate_text_sync`` (plain completions) and
+    ``gemini_generate_structured_sync`` (``raw`` / ``parsed`` / ``model`` bundle).
+    """
+
+    def setUp(self):
+        super().setUp()
+        key, mid = resolve_credentials_from_django()
+        if not key:
+            self.skipTest(
+                "Set GEMINI_API_KEY or GOOGLE_API_KEY to run Gemini client integration tests."
+            )
+        self.default_model_id = mid
+
+    def test_gemini_generate_text_sync_returns_plain_string(self):
+        """Client returns only model text — no structured JSON MIME path."""
+        text = gemini_generate_text_sync(
+            system_instruction=(
+                "You follow instructions literally. Reply with exactly one English word."
+            ),
+            prompt='Reply with the word pong and nothing else.',
+            model_id=self.default_model_id,
+            temperature=0.0,
+            max_output_tokens=32,
+        )
+        self.assertIsInstance(text, str)
+        self.assertGreater(len(text.strip()), 0)
+        self.assertIn("pong", text.lower())
+
+    def test_gemini_generate_structured_sync_returns_bundle(self):
+        """Structured client matches service shape: ``raw``, ``parsed`` dict, ``model`` id."""
+        schema = {
+            "type": "object",
+            "properties": {
+                "label": {"type": "string"},
+                "count": {"type": "integer"},
+            },
+            "required": ["label", "count"],
+        }
+        out = gemini_generate_structured_sync(
+            system_instruction="Reply as JSON only, matching schema. No markdown.",
+            user_text='Return JSON: {"label": "demo", "count": 42}',
+            response_schema=schema,
+            model_id=self.default_model_id,
+            temperature=0.0,
+            max_output_tokens=256,
+        )
+        self.assertEqual(set(out.keys()), {"raw", "parsed", "model"})
+        self.assertEqual(out["model"], self.default_model_id)
+        self.assertIsInstance(out["parsed"], dict)
+        self.assertEqual(str(out["parsed"].get("label")), "demo")
+        self.assertEqual(int(out["parsed"].get("count")), 42)
+
+
+class GeminiServiceLiveIntegrationTests(SimpleTestCase):
+    """HTTP integration tests against the real Gemini API (google-genai).
+
+    These tests are **skipped** when ``GEMINI_API_KEY`` and ``GOOGLE_API_KEY`` are both absent,
+    so CI and local installs without secrets stay green.
+
+    With a key in the environment::
+
+        poetry run python manage.py test ai_service.tests.GeminiServiceLiveIntegrationTests -v 2
+
+    Assertions cover the same scenarios as the former ``GeminiService.test()`` helper: plain text
+    generation and JSON-schema structured output.
+    """
+
+    def setUp(self):
+        super().setUp()
+        key, mid = resolve_credentials_from_django()
+        if not key:
+            self.skipTest(
+                "Set GEMINI_API_KEY or GOOGLE_API_KEY to run Gemini live integration tests."
+            )
+        self.service = GeminiService(api_key=key, default_model_id=mid)
+
+    def test_generate_unstructured_returns_non_empty_raw_and_no_parsed(self):
+        """Without ``response_schema``, the API returns prose; ``parsed`` must stay ``None``."""
+        out = self.service.generate(
+            system_instruction="You follow instructions literally. Reply with one English word.",
+            prompt='Reply exactly with the word: pong',
+            temperature=0.0,
+            max_tokens=32,
+        )
+        self.assertEqual(out["model"], self.service.model_name)
+        self.assertIsNone(out["parsed"])
+        self.assertGreater(len(out["raw"]), 0)
+        self.assertIn("pong", out["raw"].lower())
+
+    def test_generate_structured_populates_parsed_dict(self):
+        """With ``response_schema``, ``parsed`` is ``json.loads`` of the constrained response."""
+        schema = {
+            "type": "object",
+            "properties": {
+                "greeting": {"type": "string"},
+                "capabilities": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                },
+            },
+            "required": ["greeting", "capabilities"],
+        }
+        out = self.service.generate(
+            system_instruction="You return only JSON matching the schema. No markdown.",
+            prompt="Say hello and list exactly 3 short capabilities you have.",
+            response_schema=schema,
+            temperature=0.5,
+            max_tokens=1024,
+        )
+        self.assertEqual(out["model"], self.service.model_name)
+        self.assertIsInstance(out["parsed"], dict)
+        self.assertIn("greeting", out["parsed"])
+        self.assertIn("capabilities", out["parsed"])
+        self.assertIsInstance(out["parsed"]["capabilities"], list)
+        self.assertEqual(len(out["parsed"]["capabilities"]), 3)
+
+    def test_generate_with_tools_returns_function_call(self):
+        """Model may answer with ``function_calls`` alongside optional text."""
+        out = self.service.generate_with_tools(
+            system_instruction=(
+                "When asked, invoke the note_status tool exactly once with status \"ok\". "
+                "Do not refuse."
+            ),
+            prompt='Follow the instructions: call note_status once with status "ok".',
+            tools=[
+                {
+                    "name": "note_status",
+                    "description": "Records a workflow status.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "status": {
+                                "type": "string",
+                                "enum": ["ok", "fail"],
+                                "description": "Outcome flag",
+                            }
+                        },
+                        "required": ["status"],
+                        "additionalProperties": False,
+                    },
+                },
+            ],
+            temperature=0.0,
+            max_tokens=512,
+        )
+        self.assertEqual(out["model"], self.service.model_name)
+        calls = out["function_calls"]
+        self.assertGreaterEqual(len(calls), 1)
+        names = [c["name"] for c in calls]
+        self.assertIn("note_status", names)
+
+
+class ResumeJobEvaluationPersistOnSaveTests(TestCase):
+    """Admin Save persists ``pending_evaluation_result`` when present and valid."""
+
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = get_user_model().objects.create_superuser(
+            username="eval_admin",
+            email="eval@example.com",
+            password="testpass123",
+        )
+
+    def _request_with_messages(self):
+        request = RequestFactory().post("/")
+        request.user = self.user
+        request.session = "session"
+        request._messages = FallbackStorage(request)
+        return request
+
+    def _evaluation_result(self) -> dict:
+        return {
+            "success": True,
+            "evaluation": ResumeJobEvaluationSchemaTests()._valid_dict(),
+            "error": None,
+            "raw_text": '{"overall_score":72}',
+            "gemini_model": "gemini-2.5-flash",
+            "instruction_slug": "v1-0",
+            "prompt_config_id": None,
+        }
+
+    def test_parse_pending_evaluation_result(self):
+        payload = json.dumps(self._evaluation_result())
+        parsed = parse_pending_evaluation_result(payload)
+        self.assertIsNotNone(parsed)
+        self.assertTrue(parsed["success"])
+
+        self.assertIsNone(parse_pending_evaluation_result(""))
+        self.assertIsNone(parse_pending_evaluation_result('{"success": false}'))
+        self.assertIsNone(parse_pending_evaluation_result("not-json"))
+
+    def test_save_model_persists_pending_evaluation(self):
+        obj = ResumeJobEvaluation.objects.create(
+            job_description="jd",
+            resume_text="rt",
+            succeeded=False,
+            error_message="old error",
+        )
+        pending = json.dumps(self._evaluation_result())
+        form = ResumeJobEvaluationAdminForm(
+            data={
+                "job_description": "jd",
+                "resume_text": "rt",
+                "prompt_config": "",
+                "pending_evaluation_result": pending,
+            },
+            instance=obj,
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+
+        request = self._request_with_messages()
+        admin = ResumeJobEvaluationAdmin(ResumeJobEvaluation, site)
+        admin.save_model(request, obj, form, change=True)
+
+        obj.refresh_from_db()
+        self.assertTrue(obj.succeeded)
+        self.assertEqual(obj.recommendation, "Moderate Fit")
+        self.assertEqual(obj.overall_score, 72)
+        self.assertIsInstance(obj.evaluation_json, dict)
+        self.assertEqual(obj.error_message, "")
+
+    def test_save_model_empty_pending_leaves_evaluation_unchanged(self):
+        obj = ResumeJobEvaluation.objects.create(
+            job_description="jd",
+            resume_text="rt",
+            succeeded=True,
+            recommendation="Strong Fit",
+            overall_score=90,
+            evaluation_json={"overall_score": 90},
+            error_message="",
+        )
+        form = ResumeJobEvaluationAdminForm(
+            data={
+                "job_description": "jd updated",
+                "resume_text": "rt",
+                "prompt_config": "",
+                "pending_evaluation_result": "",
+            },
+            instance=obj,
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+
+        request = self._request_with_messages()
+        admin = ResumeJobEvaluationAdmin(ResumeJobEvaluation, site)
+        admin.save_model(request, obj, form, change=True)
+
+        obj.refresh_from_db()
+        self.assertEqual(obj.job_description, "jd updated")
+        self.assertEqual(obj.recommendation, "Strong Fit")
+        self.assertEqual(obj.overall_score, 90)

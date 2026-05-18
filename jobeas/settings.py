@@ -108,6 +108,16 @@ ASGI_APPLICATION = 'jobeas.asgi.application'
 # Environment configuration
 DJANGO_ENV = config("DJANGO_ENV", default="development")
 
+# Google Gemini (`google-genai` / ADK-compatible) — e.g. resume–job evaluation in admin playground
+GEMINI_API_KEY = (config("GEMINI_API_KEY", default="").strip()) or ""
+GOOGLE_API_KEY_FALLBACK = (config("GOOGLE_API_KEY", default="").strip()) or ""
+GEMINI_RESUME_JOB_EVAL_MODEL = config(
+    "GEMINI_RESUME_JOB_EVAL_MODEL", default="gemini-2.5-flash"
+).strip()
+GEMINI_RESUME_JOB_EVAL_TEMPERATURE = config(
+    "GEMINI_RESUME_JOB_EVAL_TEMPERATURE", default=0.35, cast=float
+)
+
 """ 
 # Channel Layers Configuration
 if DJANGO_ENV == "production" and config('REDIS_URL', default=None):

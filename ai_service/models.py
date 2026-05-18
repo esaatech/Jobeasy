@@ -57,3 +57,62 @@ class AIPromptConfiguration(models.Model):
                 is_default=True
             ).exclude(id=self.id).update(is_default=False)
         super().save(*args, **kwargs)
+
+
+class ResumeJobEvaluation(models.Model):
+    """
+    Persisted Gemini evaluation run (production trail + admin playground).
+
+    Each row captures inputs, optional prompt FK, structured JSON output, and status.
+    """
+
+    job_description = models.TextField()
+    resume_text = models.TextField()
+    prompt_config = models.ForeignKey(
+        AIPromptConfiguration,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="resume_job_evaluations",
+    )
+    gemini_model = models.CharField(
+        max_length=128,
+        blank=True,
+        help_text="Gemini model id used for this run.",
+    )
+
+    succeeded = models.BooleanField(default=False)
+    error_message = models.TextField(blank=True)
+
+    overall_score = models.PositiveSmallIntegerField(null=True, blank=True)
+    optimization_potential = models.PositiveSmallIntegerField(null=True, blank=True)
+    recommendation = models.CharField(max_length=128, blank=True)
+    instruction_slug = models.SlugField(
+        max_length=80,
+        blank=True,
+        help_text="Snapshot of prompt_configuration.slug used for versioning.",
+    )
+
+    evaluation_json = models.JSONField(null=True, blank=True)
+    raw_response_text = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Resume-job evaluation"
+        verbose_name_plural = "Resume-job evaluations"
+
+    def __str__(self) -> str:
+        if self.pk is None:
+            return "Evaluation (new)"
+        no_run_yet = (
+            self.evaluation_json is None
+            and not (self.raw_response_text or "").strip()
+            and not (self.error_message or "").strip()
+        )
+        if no_run_yet:
+            return f"Evaluation {self.pk} [draft] {self.recommendation or ''}".strip()
+        status = "ok" if self.succeeded else "fail"
+        return f"Evaluation {self.pk} [{status}] {self.recommendation or ''}".strip()

@@ -1,0 +1,289 @@
+{% load i18n static %}
+<div id="resume-eval-widget" class="module" style="margin-bottom:20px;">
+  <h2>{% translate "Evaluation" %}</h2>
+  <div class="form-row" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <button type="button" id="resume-eval-submit" class="button default">
+      {% translate "Get evaluation" %}
+    </button>
+    {% if persist_url %}
+    <button type="button" id="resume-eval-persist" class="button" disabled
+            title="{% translate 'Stores the last Gemini result into this saved record (scores, JSON, raw).' %}">
+      {% translate "Save last evaluation to record" %}
+    </button>
+    {% endif %}
+    <span id="resume-eval-spinner" style="display:none;color:#417690;font-weight:600;">
+      {% translate "Running…" %}
+    </span>
+  </div>
+  {% if pending_field %}{{ pending_field }}{% endif %}
+  <p class="help" style="margin-top:10px;margin-bottom:0;">
+    {% blocktranslate trimmed %}
+      Uses the job description and resume text from this form—you do not need to press Django
+      &quot;Save&quot; before running Gemini. Summary fields below update live after each run.
+      Django &quot;Save&quot; stores inputs and the last successful preview from this page.
+    {% endblocktranslate %}
+  </p>
+  <div id="resume-eval-message" style="margin-top:12px;"></div>
+</div>
+
+<script>
+(function () {
+  var evaluateUrl = "{{ evaluate_url|escapejs }}";
+  var persistUrl = "{{ persist_url|default:''|escapejs }}";
+  var iconYes = "{% static 'admin/img/icon-yes.svg' %}";
+  var iconNo = "{% static 'admin/img/icon-no.svg' %}";
+
+  function getCookie(name) {
+    var v = null;
+    if (document.cookie) {
+      var parts = document.cookie.split(";");
+      for (var i = 0; i < parts.length; i++) {
+        var cookie = parts[i].trim();
+        if (cookie.indexOf(name + "=") === 0) {
+          v = decodeURIComponent(cookie.slice(name.length + 1));
+          break;
+        }
+      }
+    }
+    return v;
+  }
+  var csrftoken = getCookie("csrftoken");
+
+  function setBusy(on) {
+    var btn = document.getElementById("resume-eval-submit");
+    var sp = document.getElementById("resume-eval-spinner");
+    if (btn) { btn.disabled = !!on; }
+    if (sp) { sp.style.display = on ? "inline" : "none"; }
+  }
+
+  function esc(s) {
+    var d = document.createElement("div");
+    d.textContent = s == null ? "" : String(s);
+    return d.innerHTML;
+  }
+
+  function setRo(id, html) {
+    var el = document.getElementById(id);
+    if (el) { el.innerHTML = html; }
+  }
+
+  function dash() {
+    return '<span class="resume-eval-empty">—</span>';
+  }
+
+  function succeededIcon(ok) {
+    if (ok === true) {
+      return '<img src="' + iconYes + '" alt="True">';
+    }
+    if (ok === false) {
+      return '<img src="' + iconNo + '" alt="False">';
+    }
+    return dash();
+  }
+
+  function evaluationJsonPre(bodyStr) {
+    return (
+      '<pre style="white-space:pre-wrap;font-size:12px;max-height:520px;' +
+      'overflow:auto;background:#0d1117;color:#e6edf3;padding:14px;' +
+      'border-radius:6px;font-family:ui-monospace,Consolas,monospace;margin:0;">' +
+      esc(bodyStr) +
+      "</pre>"
+    );
+  }
+
+  function updateReadonlyFields(payload) {
+    var ok = !!(payload && payload.success);
+    var ev = payload && payload.evaluation;
+
+    setRo("resume-eval-ro-succeeded", succeededIcon(ok));
+
+    if (ok && ev) {
+      setRo(
+        "resume-eval-ro-recommendation",
+        ev.recommendation != null && String(ev.recommendation).trim()
+          ? esc(String(ev.recommendation).trim())
+          : dash()
+      );
+      var ov = ev.overall_score;
+      var op = ev.optimization_potential;
+      setRo(
+        "resume-eval-ro-overall-score",
+        ov !== null && ov !== undefined && ov !== "" ? esc(String(ov)) : dash()
+      );
+      setRo(
+        "resume-eval-ro-optimization-potential",
+        op !== null && op !== undefined && op !== "" ? esc(String(op)) : dash()
+      );
+      try {
+        setRo(
+          "resume-eval-ro-evaluation-json",
+          evaluationJsonPre(JSON.stringify(ev, null, 2))
+        );
+      } catch (e) {
+        setRo("resume-eval-ro-evaluation-json", "<em>No JSON payload yet.</em>");
+      }
+    } else {
+      setRo("resume-eval-ro-recommendation", dash());
+      setRo("resume-eval-ro-overall-score", dash());
+      setRo("resume-eval-ro-optimization-potential", dash());
+      if (!ok) {
+        var rawFail = payload && payload.raw_text ? String(payload.raw_text).substring(0, 14000) : "";
+        if (rawFail) {
+          setRo(
+            "resume-eval-ro-evaluation-json",
+            '<pre style="white-space:pre-wrap;font-size:11px;max-height:280px;overflow:auto;' +
+            'background:#fff8f8;padding:12px;border-radius:6px;border:1px solid #ebb;margin:0;">' +
+            esc(rawFail) +
+            "</pre>"
+          );
+        } else {
+          setRo("resume-eval-ro-evaluation-json", "<em>No JSON payload yet.</em>");
+        }
+      }
+    }
+
+    var err = "";
+    if (!ok) {
+      err = payload && payload.error ? String(payload.error).trim() : "";
+    }
+    if (err) {
+      setRo(
+        "resume-eval-ro-error-message",
+        '<span style="color:#ba2121;white-space:pre-wrap;">' + esc(err) + "</span>"
+      );
+    } else if (ok) {
+      setRo("resume-eval-ro-error-message", dash());
+    }
+
+    var model = payload && payload.gemini_model ? String(payload.gemini_model).trim() : "";
+    setRo("resume-eval-ro-gemini-model", model ? esc(model) : dash());
+
+    var slug = payload && payload.instruction_slug ? String(payload.instruction_slug).trim() : "";
+    setRo("resume-eval-ro-instruction-slug", slug ? esc(slug) : dash());
+  }
+
+  var lastResult = null;
+
+  function updatePersist(enabled) {
+    var pb = document.getElementById("resume-eval-persist");
+    if (!pb || !persistUrl) { return; }
+    pb.disabled = !enabled;
+  }
+
+  function flashMsg(ok, txt) {
+    var m = document.getElementById("resume-eval-message");
+    if (!m) { return; }
+    var cls = ok ? "success" : "error";
+    m.innerHTML = '<ul class="messagelist"><li class="' + cls + '">' + esc(txt) + "</li></ul>";
+  }
+
+  function showResults(payload) {
+    lastResult = payload;
+    updatePersist(!!persistUrl && payload && payload.success);
+    updateReadonlyFields(payload);
+
+    if (payload && payload.success && payload.evaluation != null) {
+      flashMsg(true, "{% translate "Evaluation completed. See Last run results below." %}");
+      return;
+    }
+
+    var errText = payload && payload.error ? payload.error : "{% translate "Evaluation failed." %}";
+    flashMsg(false, errText);
+  }
+
+  var runBtn = document.getElementById("resume-eval-submit");
+  if (runBtn) {
+    runBtn.addEventListener("click", function () {
+      var jdEl = document.getElementById("id_job_description");
+      var rtEl = document.getElementById("id_resume_text");
+      if (!jdEl || !rtEl) { flashMsg(false, "{% translate "Form fields not found." %}"); return; }
+      var jd = (jdEl.value || "").trim();
+      var rt = (rtEl.value || "").trim();
+      if (!jd || !rt) {
+        flashMsg(false, "{% translate "Enter both job description and resume text first." %}");
+        return;
+      }
+
+      var fd = new URLSearchParams();
+      fd.append("job_description", jdEl.value);
+      fd.append("resume_text", rtEl.value);
+      var pc = document.getElementById("id_prompt_config");
+      if (pc && pc.value) { fd.append("prompt_config", pc.value); }
+
+      setBusy(true);
+      document.getElementById("resume-eval-message").innerHTML = "";
+      updatePersist(false);
+
+      fetch(evaluateUrl, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+          "X-CSRFToken": csrftoken || "",
+          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+          "Accept": "application/json"
+        },
+        body: fd.toString()
+      }).then(function (r) {
+        return r.json().then(function (j) {
+          if (!r.ok) {
+            showResults(j && j.error ? j : { success: false, error: r.statusText, raw_text: "" });
+          } else {
+            showResults(j);
+          }
+        });
+      }).catch(function (e) {
+        showResults({ success: false, error: e && e.message ? e.message : String(e), raw_text: "" });
+      }).finally(function () {
+        setBusy(false);
+      });
+    });
+  }
+
+  var adminForm = document.getElementById("resumejobevaluation_form");
+  if (adminForm) {
+    adminForm.addEventListener("submit", function () {
+      var pendingEl = document.getElementById("id_pending_evaluation_result");
+      if (!pendingEl) { return; }
+      if (lastResult && lastResult.success) {
+        try {
+          pendingEl.value = JSON.stringify(lastResult);
+        } catch (e) {
+          pendingEl.value = "";
+        }
+      }
+    });
+  }
+
+  var persistBtn = document.getElementById("resume-eval-persist");
+  if (persistBtn && persistUrl) {
+    persistBtn.addEventListener("click", function () {
+      if (!lastResult || !lastResult.success) { return; }
+      persistBtn.disabled = true;
+      fetch(persistUrl, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+          "X-CSRFToken": csrftoken || "",
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({ result: lastResult })
+      }).then(function (r) {
+        return r.json().then(function (j) {
+          if (!r.ok || !j.ok) {
+            flashMsg(false, (j && j.error) ? j.error : "{% translate "Could not persist evaluation." %}");
+            updatePersist(true);
+          } else {
+            window.location.reload();
+          }
+        });
+      }).catch(function (e) {
+        flashMsg(false, String(e));
+        updatePersist(true);
+      });
+    });
+  }
+})();
+</script>
