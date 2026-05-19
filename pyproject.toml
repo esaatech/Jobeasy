@@ -38,6 +38,8 @@ google-cloud-storage = "^3.7.0"
 google-adk = "^1.33.0"
 google-genai = "^1.75.0"
 pydantic = ">=2.9.0,<3"
+# Pin: yarl 1.24.0 lock entries lacked cp311 Linux wheels (Cloud Build uses Python 3.11).
+yarl = "1.23.0"
 
 [tool.poetry.scripts]
 test = "test_runner:main"

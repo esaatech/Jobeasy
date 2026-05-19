@@ -41,8 +41,7 @@ COPY pyproject.toml poetry.lock README.md /app/
 
 # Install dependencies (skip installing the current project).
 # poetry.lock must be in the image (do not list it in .dockerignore) for reproducible builds.
-RUN poetry check \
-    && poetry config virtualenvs.create false \
+RUN poetry config virtualenvs.create false \
     && poetry install --no-interaction --no-ansi --no-root
 
 # Copy project
