@@ -4,7 +4,7 @@ FROM python:3.11-slim
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
-ENV POETRY_VERSION=1.7.1
+ENV POETRY_VERSION=1.8.5
 
 # Set work directory
 WORKDIR /app
