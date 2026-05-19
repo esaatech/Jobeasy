@@ -36,8 +36,8 @@ RUN apt-get update && apt-get install -y \
 # Install Poetry
 RUN pip install "poetry==$POETRY_VERSION"
 
-# Copy only requirements to cache dependencies
-COPY pyproject.toml poetry.lock /app/
+# Copy lock + metadata (README required by pyproject.toml for poetry check)
+COPY pyproject.toml poetry.lock README.md /app/
 
 # Install dependencies (skip installing the current project).
 # poetry.lock must be in the image (do not list it in .dockerignore) for reproducible builds.
