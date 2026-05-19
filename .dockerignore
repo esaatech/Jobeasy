@@ -15,5 +15,4 @@ media
 staticfiles
 .coverage
 htmlcov
-*.log
-poetry.lock 
+*.log 
