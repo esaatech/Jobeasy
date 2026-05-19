@@ -61,7 +61,7 @@ INSTALLED_APPS = [
     'pdf_generator',
     'coverletter',
     'dashboard',
-    'ai_service',
+    'ai_service.apps.AiServiceConfig',
     'utils',
     'django_ckeditor_5',
     'rest_framework',

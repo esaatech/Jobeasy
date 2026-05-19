@@ -120,6 +120,8 @@ if [ "${SKIP_BOOTSTRAP_DATA:-0}" != "1" ]; then
   python manage.py setup_ai_models || die "setup_ai_models failed"
   log "bootstrap: setup_resume_job_evaluation"
   python manage.py setup_resume_job_evaluation || die "setup_resume_job_evaluation failed"
+  log "check_ai_platform (migrations + admin + AIModel catalog)"
+  python manage.py check_ai_platform || die "check_ai_platform failed — see output above"
   log "bootstrap: setup_subscription_plans"
   python manage.py setup_subscription_plans || die "setup_subscription_plans failed"
   log "bootstrap: bulk_add_testimonials"

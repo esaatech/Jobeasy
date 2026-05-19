@@ -398,6 +398,8 @@ Each new structured task: add Pydantic model → document in prompt → seed `AI
 | Add Gemini/OpenAI catalog entries | **AI models** |
 | Run manual tests | **Resume-job evaluations** (playground) |
 
+**Deploy verification:** `entrypoint.sh` runs `python manage.py check_ai_platform`. In Cloud Logging, look for `check_ai_platform: OK`. Admin header shows `AI platform <build>` (see `ai_service/platform_version.py`). Under **AI SERVICE** you should see four models including **AI models** and **Resume-job evaluations**.
+
 ### Playground workflow
 
 1. Set **Name** / **Description** so list rows are identifiable.

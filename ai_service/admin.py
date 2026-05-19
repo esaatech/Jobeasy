@@ -16,6 +16,7 @@ from django.utils.safestring import mark_safe
 
 from .forms import ResumeJobEvaluationAdminForm
 from .models import AIModel, AIService, AIPromptConfiguration, ResumeJobEvaluation
+from .platform_version import AI_PLATFORM_BUILD
 from .resume_job_evaluation import (
     evaluate_resume_against_job,
     get_default_prompt_config,
@@ -26,6 +27,9 @@ from .resume_job_evaluation import (
 
 
 # Register your models here.
+
+# Visible proof-of-deploy in admin (build id also logged by check_ai_platform).
+admin.site.site_header = f"Jobeas administration (AI platform {AI_PLATFORM_BUILD})"
 
 
 @admin.register(AIModel)

@@ -399,6 +399,19 @@ class ResumeJobEvaluationPersistOnSaveTests(TestCase):
         self.assertEqual(obj.overall_score, 90)
 
 
+class CheckAiPlatformCommandTests(TestCase):
+    def test_check_ai_platform_passes_after_seed(self):
+        AIModel.objects.create(
+            provider=AIModel.Provider.GEMINI,
+            model_id="gemini-2.5-flash",
+            display_name="Gemini 2.5 Flash",
+            is_active=True,
+        )
+        from django.core.management import call_command
+
+        call_command("check_ai_platform")
+
+
 class GenerationConfigResolverTests(TestCase):
     @classmethod
     def setUpTestData(cls):
