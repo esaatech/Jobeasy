@@ -68,6 +68,7 @@ INSTALLED_APPS = [
     'subscriptions',
     'settings',
     'question_answer',
+    'blog',
 
 ]
 
@@ -353,7 +354,16 @@ CKEDITOR_5_CONFIGS = {
             'heading', '|',
             'bold', 'italic', '|',
             'bulletedList', 'numberedList', '|',
-            'blockQuote'
+            'blockQuote',
+        ],
+    },
+    'blog': {
+        'toolbar': [
+            'heading', '|',
+            'bold', 'italic', 'link', '|',
+            'bulletedList', 'numberedList', 'blockQuote', '|',
+            'uploadImage', 'insertTable', '|',
+            'undo', 'redo',
         ],
     },
 }

@@ -16,6 +16,10 @@
             {% endif %}
             
             <!-- Always visible links -->
+            <a href="{% url 'blog:index' %}" class="nav-item {% if request.resolver_match.namespace == 'blog' %}active{% endif %}">
+                <span class="icon">📰</span>
+                Blog
+            </a>
             <a href="{% url 'job_service:interview_prep' %}" class="nav-item">
                 <span class="icon">💬</span>
                 Interview Prep
@@ -95,6 +99,10 @@
                 </a>
             {% endif %}
             
+            <a href="{% url 'blog:index' %}" class="mobile-nav-item">
+                <span class="icon">📰</span>
+                Blog
+            </a>
             <a href="{% url 'job_service:interview_prep' %}" class="mobile-nav-item">
                 <span class="icon">💬</span>
                 Interview Prep

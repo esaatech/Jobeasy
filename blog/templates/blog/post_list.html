@@ -1,0 +1,126 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_head %}
+<meta name="description" content="{{ meta_description }}">
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'blog/css/blog.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="bg-gradient-to-br from-blue-50 to-indigo-100 py-14">
+    <div class="page-width text-center">
+        <h1 class="headline-primary mb-4">
+            {% if active_category %}{{ active_category.name }}{% else %}Jobeas Blog{% endif %}
+        </h1>
+        <p class="subheadline max-w-2xl mx-auto">
+            {% if active_category and active_category.description %}
+                {{ active_category.description }}
+            {% else %}
+                Career tips, resume advice, and job search strategies to help you land your next role.
+            {% endif %}
+        </p>
+    </div>
+</div>
+
+<div class="py-12 bg-white">
+    <div class="page-width">
+        <div class="flex flex-col lg:flex-row gap-10">
+            <aside class="lg:w-64 flex-shrink-0">
+                <div class="sticky top-24 space-y-8">
+                    <div>
+                        <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">Categories</h2>
+                        <nav class="flex flex-wrap lg:flex-col gap-2" aria-label="Blog categories">
+                            <a
+                                href="{% url 'blog:index' %}{% if search_query %}?q={{ search_query|urlencode }}{% endif %}"
+                                class="blog-category-pill inline-block px-3 py-1.5 rounded-full text-sm font-medium {% if not active_category_slug %}is-active bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}"
+                            >
+                                All posts
+                            </a>
+                            {% for cat in categories %}
+                            <a
+                                href="{% url 'blog:category' slug=cat.slug %}"
+                                class="blog-category-pill inline-block px-3 py-1.5 rounded-full text-sm font-medium {% if active_category_slug == cat.slug %}is-active bg-blue-600 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}"
+                            >
+                                {{ cat.name }}
+                                <span class="opacity-75">({{ cat.post_count }})</span>
+                            </a>
+                            {% endfor %}
+                        </nav>
+                    </div>
+
+                    {% if active_tag %}
+                    <div class="p-4 rounded-lg bg-blue-50 border border-blue-100">
+                        <p class="text-sm text-gray-700">
+                            Filtering by tag:
+                            <strong>#{{ active_tag }}</strong>
+                        </p>
+                        <a href="{% url 'blog:index' %}{% if active_category_slug %}?category={{ active_category_slug|urlencode }}{% endif %}" class="text-sm text-blue-600 hover:underline mt-1 inline-block">Clear tag</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </aside>
+
+            <div class="flex-grow min-w-0">
+                <form method="get" action="{% if active_category %}{% url 'blog:category' slug=active_category.slug %}{% else %}{% url 'blog:index' %}{% endif %}" class="mb-8">
+                    {% if active_tag %}
+                    <input type="hidden" name="tag" value="{{ active_tag }}">
+                    {% endif %}
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <label for="blog-search" class="sr-only">Search articles</label>
+                        <input
+                            id="blog-search"
+                            type="search"
+                            name="q"
+                            value="{{ search_query }}"
+                            placeholder="Search articles…"
+                            class="flex-grow px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                        <button type="submit" class="btn btn-primary px-6 py-2.5 whitespace-nowrap">
+                            Search
+                        </button>
+                    </div>
+                </form>
+
+                {% if search_query %}
+                <p class="text-sm text-gray-600 mb-6">
+                    Results for &ldquo;{{ search_query }}&rdquo;
+                    {% if active_category %} in {{ active_category.name }}{% endif %}
+                </p>
+                {% endif %}
+
+                {% if posts %}
+                <div class="grid gap-8 sm:grid-cols-2">
+                    {% for post in posts %}
+                    {% include 'blog/partials/post_card.html' %}
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-16 px-4 rounded-xl bg-gray-50 border border-gray-100">
+                    <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                    </svg>
+                    <h2 class="headline-tertiary text-gray-900">No articles yet</h2>
+                    <p class="body-text-small text-gray-600 mt-2 max-w-md mx-auto">
+                        {% if search_query or active_tag or active_category %}
+                        Nothing matched your filters. Try another category or search term.
+                        {% else %}
+                        Check back soon for new career and job search content.
+                        {% endif %}
+                    </p>
+                    {% if active_category_slug or active_tag or search_query %}
+                    <a href="{% url 'blog:index' %}" class="inline-block mt-6 text-blue-600 font-semibold hover:text-blue-800">
+                        View all posts
+                    </a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

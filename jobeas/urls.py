@@ -33,6 +33,8 @@ urlpatterns = [
     path('settings/', include('settings.urls')),
     path('qa/', include('question_answer.urls')),
     path('email/', include('email_utility.urls')),
+    path('', include('blog.urls')),
+    path('ckeditor5/', include('django_ckeditor_5.urls')),
 ]
 
 # Serve media files in development
