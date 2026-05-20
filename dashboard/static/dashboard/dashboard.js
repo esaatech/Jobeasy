@@ -40,11 +40,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Job application generation functionality
+    // Job application generation (two-phase: evaluate fit, then generate)
     const generateBtn = document.getElementById('generate-btn');
     
     generateBtn.addEventListener('click', withSubscriptionCheck('Plus', async function() {
-        // Validation
         const selectedResume = document.querySelector('input[name="selected_resume"]:checked');
         const jobDescription = document.getElementById('job-description').value;
         const optimizeResume = document.getElementById('optimize-resume').checked;
@@ -65,48 +64,235 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        // Disable button for 3 seconds to prevent multiple clicks
         generateBtn.disabled = true;
-        generateBtn.textContent = 'Generating...';
-        setTimeout(() => {
-            generateBtn.disabled = false;
-            generateBtn.textContent = 'Generate';
-        }, 3000); // Re-enable after 3 seconds
+        generateBtn.textContent = 'Checking fit…';
 
-        // Create processing item immediately
-        const jobId = Date.now();
+        let jobId = Date.now();
         createProcessingItem(jobId);
-        
-        // Send AJAX request
+
         try {
-            const formData = new FormData();
-            formData.append('resume_id', selectedResume.value);
-            formData.append('job_description', jobDescription);
-            formData.append('optimize_resume', optimizeResume);
-            formData.append('generate_cover_letter', generateCoverLetter);
-            
-            const response = await fetch('/dashboard/api/generate-job-application/', {
+            const evalForm = new FormData();
+            evalForm.append('resume_id', selectedResume.value);
+            evalForm.append('job_description', jobDescription);
+
+            const evalResponse = await fetch('/dashboard/api/evaluate-job-fit/', {
                 method: 'POST',
-                body: formData,
-                headers: {
-                    'X-CSRFToken': getCookie('csrftoken')
-                }
+                body: evalForm,
+                headers: { 'X-CSRFToken': getCookie('csrftoken') },
             });
-            
-            const data = await response.json();
-            
-            if (data.status === 'completed') {
-                updateJobApplicationItem(jobId, data);
-            } else if (data.status === 'failed') {
-                updateJobApplicationItem(jobId, data);
+            const evalData = await evalResponse.json();
+
+            if (!evalData.success) {
+                updateJobApplicationItem(jobId, {
+                    status: 'failed',
+                    error: evalData.error || 'Job fit evaluation failed',
+                });
+                return;
             }
-            
+
+            const tier = evalData.tier || 'bypass';
+
+            if ((tier === 'yellow' || tier === 'red') && evalData.job_id) {
+                removeProcessingItem(jobId);
+                prependFitReviewListItem(evalData);
+                showFitGateBanner(evalData);
+                if (evalData.counts) {
+                    updateDashboardCounts(evalData.counts);
+                }
+                const card = document.getElementById(`job-application-${evalData.job_id}`);
+                if (card) {
+                    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+                return;
+            }
+
+            generateBtn.textContent = 'Generating…';
+            const evaluationId = evalData.evaluation_id;
+
+            await runGenerateJobApplication({
+                jobId,
+                resumeId: selectedResume.value,
+                jobDescription,
+                optimizeResume,
+                generateCoverLetter,
+                evaluationId,
+                forceProceed: false,
+            });
         } catch (error) {
             console.error('Error:', error);
             updateJobApplicationItem(jobId, { status: 'failed', error: 'Network error' });
+        } finally {
+            generateBtn.disabled = false;
+            generateBtn.textContent = 'Generate';
         }
     }));
 });
+
+async function runGenerateJobApplication({
+    jobId,
+    resumeId,
+    jobDescription,
+    optimizeResume,
+    generateCoverLetter,
+    evaluationId,
+    forceProceed,
+}) {
+    const formData = new FormData();
+    formData.append('resume_id', resumeId);
+    formData.append('job_description', jobDescription);
+    formData.append('optimize_resume', optimizeResume);
+    formData.append('generate_cover_letter', generateCoverLetter);
+    if (evaluationId != null) {
+        formData.append('evaluation_id', evaluationId);
+    }
+    if (forceProceed) {
+        formData.append('force_proceed', 'true');
+    }
+
+    const response = await fetch('/dashboard/api/generate-job-application/', {
+        method: 'POST',
+        body: formData,
+        headers: { 'X-CSRFToken': getCookie('csrftoken') },
+    });
+
+    const data = await response.json();
+
+    if (data.status === 'completed' || data.status === 'failed') {
+        updateJobApplicationItem(jobId, data);
+    } else {
+        updateJobApplicationItem(jobId, {
+            status: 'failed',
+            error: data.error || 'Generation failed',
+        });
+    }
+}
+
+function removeProcessingItem(jobId) {
+    const item = document.getElementById(`job-application-${jobId}`);
+    if (item) {
+        item.remove();
+    }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function formatCompletedScoreChip(fitSummary) {
+    if (!fitSummary || fitSummary.overall_score == null || fitSummary.overall_score === '') {
+        return '';
+    }
+    const score = Number(fitSummary.overall_score);
+    let chipClass = 'bg-red-100 text-red-800';
+    if (score >= 70) {
+        chipClass = 'bg-green-100 text-green-800';
+    } else if (score >= 50) {
+        chipClass = 'bg-amber-100 text-amber-800';
+    }
+    return `<span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${chipClass}">Score ${score}</span>`;
+}
+
+function updateDashboardCounts(counts) {
+    if (!counts) return;
+    const resumeEl = document.getElementById('resume-count');
+    const clEl = document.getElementById('cover-letter-count');
+    const jobEl = document.getElementById('job-application-count');
+    if (resumeEl) resumeEl.textContent = counts.resumes;
+    if (clEl) clEl.textContent = counts.cover_letters;
+    if (jobEl) jobEl.textContent = counts.job_applications;
+}
+
+function showFitGateBanner(evalData) {
+    const banner = document.getElementById('fit-gate-banner');
+    if (!banner) return;
+
+    const summary = evalData.summary || {};
+    const score = summary.overall_score ?? evalData.overall_score ?? '—';
+    const recommendation = summary.recommendation ?? evalData.recommendation ?? '—';
+    const detailUrl = evalData.detail_url || (
+        window.jobApplicationDetailUrlTemplate
+            ? window.jobApplicationDetailUrlTemplate.replace('{job_id}', evalData.job_id)
+            : '#'
+    );
+
+    banner.className = 'mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 flex flex-wrap items-center justify-between gap-3';
+    banner.innerHTML = `
+        <p class="text-sm text-amber-900">
+            <span class="font-semibold">Fit check complete</span> — score ${escapeHtml(String(score))}
+            (${escapeHtml(String(recommendation))}). Review before generating resume or cover letter.
+        </p>
+        <a href="${detailUrl}" class="btn btn-secondary btn-sm whitespace-nowrap">Open application</a>
+    `;
+    banner.classList.remove('hidden');
+}
+
+function prependFitReviewListItem(evalData) {
+    const container = document.getElementById('job-applications-container');
+    if (!container) return;
+
+    const emptyState = container.querySelector('.text-center, .bg-gray-50');
+    if (emptyState && emptyState.closest('#job-applications-container') === container) {
+        const wrapper = emptyState.closest('.bg-gray-50') || emptyState;
+        if (wrapper.parentElement === container) {
+            wrapper.remove();
+        }
+    }
+
+    const summary = evalData.summary || {};
+    const score = summary.overall_score ?? evalData.overall_score ?? '—';
+    const recommendation = summary.recommendation ?? evalData.recommendation ?? '—';
+    const optPotential = summary.optimization_potential;
+    const optLine = optPotential != null && optPotential !== ''
+        ? ` · Opt. potential ${escapeHtml(String(optPotential))}%`
+        : '';
+    const detailUrl = evalData.detail_url || (
+        window.jobApplicationDetailUrlTemplate
+            ? window.jobApplicationDetailUrlTemplate.replace('{job_id}', evalData.job_id)
+            : '#'
+    );
+    const createdAt = evalData.created_at || new Date().toLocaleString();
+    const jobName = escapeHtml(evalData.job_name || 'Job application');
+    const realId = evalData.job_id;
+
+    const html = `
+        <div id="job-application-${realId}">
+            <div class="bg-white rounded-lg shadow-md p-6 mb-4 border-l-4 border-amber-500">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <div class="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center flex-shrink-0">
+                            <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                            </svg>
+                        </div>
+                        <div class="flex-1">
+                            <h3 class="text-lg font-semibold text-gray-900">
+                                <a href="${detailUrl}" class="hover:text-blue-700 hover:underline">${jobName}</a>
+                            </h3>
+                            <p class="text-sm text-gray-500">${escapeHtml(createdAt)}</p>
+                            <div class="flex flex-wrap items-center gap-2 mt-1">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">Fit Review</span>
+                                <span class="text-xs text-gray-600">Score ${escapeHtml(String(score))} · ${escapeHtml(String(recommendation))}${optLine}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex flex-col gap-3">
+                        <div class="flex flex-wrap md:flex-nowrap gap-2">
+                            <a href="${detailUrl}" class="btn btn-secondary btn-sm">Review fit</a>
+                            <button onclick="deleteJobApplication(${realId})" class="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete Job Application">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    container.insertAdjacentHTML('afterbegin', html);
+}
 
 function createProcessingItem(jobId) {
     const container = document.getElementById('job-applications-container');
@@ -159,9 +345,12 @@ function updateJobApplicationItem(jobId, data) {
                     <div class="flex-1">
                         <h3 class="text-lg font-semibold text-gray-900"><a href="${(window.jobApplicationDetailUrlTemplate || '').replace('{job_id}', data.job_id)}" class="hover:text-blue-700 hover:underline">${data.job_name}</a></h3>
                         <p class="text-sm text-gray-500">${data.created_at}</p>
-                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            Completed
-                        </span>
+                        <div class="flex flex-wrap items-center gap-2 mt-1">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                Completed
+                            </span>
+                            ${formatCompletedScoreChip(data.fit_summary)}
+                        </div>
                     </div>
                 </div>
                 <div class="flex flex-col gap-3">

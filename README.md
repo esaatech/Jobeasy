@@ -5,7 +5,8 @@ A comprehensive resume builder and job application platform with AI-powered feat
 ## Features
 
 - AI-powered resume parsing and optimization
-- Resume–job fit evaluation (structured Gemini output; admin playground)
+- Resume–job fit evaluation (Gemini) with dashboard pre-flight gate before generate
+- Job applications: fit review vs completed states with score on list and full metrics on detail
 - Configurable AI prompts and model catalog per task (see documentation below)
 - Real-time chat interface for resume building
 - Multiple resume templates
@@ -24,9 +25,10 @@ A comprehensive resume builder and job application platform with AI-powered feat
 ```bash
 poetry run python manage.py setup_ai_models
 poetry run python manage.py setup_resume_job_evaluation
+poetry run python manage.py setup_job_fit_gate
 ```
 
-Admin: **Resume-job evaluations** (playground), **AI Prompt Configurations**, **AI models**.
+Admin: **Resume-job evaluations** (playground), **Job fit gate settings**, **AI Prompt Configurations**, **AI models**.
 
 ## System Architecture Flow for generating Resume using chatbot 
 

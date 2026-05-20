@@ -41,15 +41,23 @@ class JobApplication(models.Model):
         default=APPLICATION_KIND_MANUAL,
     )
     email_subject = models.CharField(max_length=200, blank=True, null=True, help_text="AI-generated email subject line")
+    fit_evaluation = models.ForeignKey(
+        "ai_service.ResumeJobEvaluation",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="job_applications",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(
         max_length=20,
         choices=[
             ('processing', 'Processing'),
+            ('fit_review', 'Fit Review'),
             ('completed', 'Completed'),
-            ('failed', 'Failed')
+            ('failed', 'Failed'),
         ],
-        default='processing'
+        default='processing',
     )
 
     class Meta:

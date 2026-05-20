@@ -4,7 +4,7 @@
 |--------|--------|
 | **Document ID** | `ARCH-DASH-JA-001` |
 | **Short reference** | “JA pipeline doc” / `ARCH-DASH-JA-001` |
-| **Scope** | Dashboard “Generate” flow: optional cover letter + optional resume optimization + `JobApplication` record |
+| **Scope** | Dashboard “Generate” flow: optional Gemini fit gate, optional cover letter + optional resume optimization + `JobApplication` record |
 | **Audience** | Engineers extending orchestration, AI prompts, or persistence for job applications |
 
 This document is the **canonical map** for this feature set. For deeper product intent and bug-fix backlog, see the tracked plan in-repo (historically: job-gen false-positive / join-hardening work).
@@ -37,29 +37,41 @@ Describe **where business logic lives** and how requests move through **Django v
 
 ### 2.3 Primary request flow (dashboard)
 
+When **job fit gate** is enabled (`JobFitGateSettings.is_enabled`), generation is **two-phase**: evaluate first, then generate only if tier is green or user overrides from the fit review detail page.
+
 ```mermaid
 sequenceDiagram
     participant Browser
+    participant EvalAPI as dashboard.views.evaluate_job_fit
     participant DashAPI as dashboard.views.generate_job_application
+    participant EvalAI as ai_service.resume_job_evaluation
     participant CL_AI as ai_service.cover_letter
     participant RO_AI as ai_service.resume_optimization
     participant DB as Django ORM
 
+    Browser->>EvalAPI: POST /dashboard/api/evaluate-job-fit/
+    EvalAPI->>EvalAI: evaluate_resume_against_job via dashboard_job_fit
+    EvalAPI->>DB: ResumeJobEvaluation + optional JobApplication fit_review
+    EvalAPI-->>Browser: tier summary job_id
+    alt tier yellow or red
+        Browser->>Browser: Show fit review list card detail page
+    end
     Browser->>DashAPI: POST /dashboard/api/generate-job-application/
+    Note over DashAPI: evaluation_id force_proceed job_application_id
     alt generate_cover_letter
-        DashAPI->>DB: Create CoverLetter (processing)
-        DashAPI->>CL_AI: generate_cover_letter_from_raw_text(...)
-        CL_AI-->>DashAPI: dict (success, cover_letter, ...)
+        DashAPI->>DB: Create CoverLetter processing
+        DashAPI->>CL_AI: generate_cover_letter_from_raw_text
         DashAPI->>DB: Update CoverLetter
     end
     alt optimize_resume
-        DashAPI->>RO_AI: optimize_resume_for_job(...) via _optimize_resume_for_job_application
-        RO_AI-->>DashAPI: dict (title, optimization fields, ...)
-        DashAPI->>DB: Create Resume (is_optimized)
+        DashAPI->>RO_AI: optimize_resume_for_job
+        DashAPI->>DB: Create Resume is_optimized
     end
-    DashAPI->>DB: Create JobApplication
-    DashAPI-->>Browser: JsonResponse
+    DashAPI->>DB: Create or update JobApplication completed
+    DashAPI-->>Browser: JsonResponse fit_summary
 ```
+
+If gate is **disabled**, the browser skips the evaluate call’s blocking behavior and may call generate directly (bypass tier).
 
 ---
 
@@ -93,7 +105,7 @@ This section ties **HLD components** to **modules and entry points** (file paths
 
 | Model | Module |
 |-------|--------|
-| `JobApplication` | [`dashboard/models.py`](../../dashboard/models.py) |
+| `JobApplication` | [`dashboard/models.py`](../../dashboard/models.py) — statuses: `processing`, `fit_review`, `completed`, `failed`; `fit_evaluation` FK |
 | `Resume` | [`resume_builder/models.py`](../../resume_builder/models.py) |
 | `CoverLetter` | [`coverletter/models.py`](../../coverletter/models.py) |
 
@@ -101,7 +113,9 @@ This section ties **HLD components** to **modules and entry points** (file paths
 
 | Concern | Location |
 |---------|----------|
-| Detail page (posting text, company fields, artifacts, outbound email disclosure) | [`dashboard/views.py`](../../dashboard/views.py) `job_application_detail`, template [`dashboard/templates/dashboard/job_application_detail.html`](../../dashboard/templates/dashboard/job_application_detail.html) |
+| Detail page — completed | [`job_application_detail.html`](../../dashboard/templates/dashboard/job_application_detail.html) — fit metrics hero when `fit_evaluation` present, then company/email/JD |
+| Detail page — fit review | [`job_application_fit_review.html`](../../dashboard/templates/dashboard/job_application_fit_review.html) — full eval + generate CTA |
+| Shared fit hero partial | [`dashboard/templates/dashboard/partials/fit_summary_hero.html`](../../dashboard/templates/dashboard/partials/fit_summary_hero.html) |
 | Route | [`dashboard/urls.py`](../../dashboard/urls.py) `job-applications/<id>/` |
 | List “Open” (dashboard rows) | [`job_service/templates/job_service/my_applications.html`](../../job_service/templates/job_service/my_applications.html) → detail URL |
 | Outbound email log | [`email_utility.models.EmailHistory`](../../email_utility/models.py) with `attachment_type=job_application` and `attachment_id` = dashboard `JobApplication.id`; successful send also updates `JobApplication.company_email` in [`email_utility/views.py`](../../email_utility/views.py) `send_email` |
@@ -113,8 +127,9 @@ Unified **My Job Applications** still merges dashboard `JobApplication` rows (`s
 
 | Artifact | Path |
 |----------|------|
-| POST + UI update | [`dashboard/static/dashboard/dashboard.js`](../../dashboard/static/dashboard/dashboard.js) |
-| Route | [`dashboard/urls.py`](../../dashboard/urls.py) → `api/generate-job-application/` |
+| POST evaluate + generate + list cards | [`dashboard/static/dashboard/dashboard.js`](../../dashboard/static/dashboard/dashboard.js) |
+| Routes | [`dashboard/urls.py`](../../dashboard/urls.py) → `api/evaluate-job-fit/`, `api/generate-job-application/` |
+| List item partial | [`dashboard/templates/dashboard/partials/job_application_item.html`](../../dashboard/templates/dashboard/partials/job_application_item.html) — amber `fit_review`, score chip on `completed` |
 
 ### 3.7 Resume rendering (presentation)
 

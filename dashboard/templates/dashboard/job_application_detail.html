@@ -26,6 +26,8 @@
             </div>
         </div>
 
+        {% include 'dashboard/partials/fit_summary_hero.html' with fit_summary=fit_summary theme='completed' show_extended=False %}
+
         <form method="post" class="bg-white rounded-lg shadow border border-gray-200 p-6 mb-6">
             {% csrf_token %}
             <h2 class="text-lg font-semibold text-gray-900 mb-4">Company (optional)</h2>

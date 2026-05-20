@@ -10,7 +10,14 @@ from ai_service.admin import ResumeJobEvaluationAdmin
 from ai_service.forms import ResumeJobEvaluationAdminForm
 from ai_service.generation_config import resolve_generation_config
 from ai_service.gemini_schema import ResumeJobEvaluationPayload
-from ai_service.models import AIModel, AIPromptConfiguration, AIService, ResumeJobEvaluation
+from ai_service.fit_gate import classify_fit_tier, evaluation_summary, tier_allows_auto_proceed
+from ai_service.models import (
+    AIModel,
+    AIPromptConfiguration,
+    AIService,
+    JobFitGateSettings,
+    ResumeJobEvaluation,
+)
 from ai_service.resume_job_evaluation import (
     RESUME_JOB_EVALUATION_SERVICE_SLUG,
     conclusion_from_evaluation,
@@ -397,6 +404,46 @@ class ResumeJobEvaluationPersistOnSaveTests(TestCase):
         self.assertEqual(obj.conclusion, "Keep this note")
         self.assertEqual(obj.recommendation, "Strong Fit")
         self.assertEqual(obj.overall_score, 90)
+
+
+class FitGateTests(TestCase):
+    def setUp(self):
+        self.settings = JobFitGateSettings.objects.create(
+            pk=1,
+            is_enabled=True,
+            green_min_score=70,
+            yellow_min_score=50,
+        )
+
+    def test_green_strong_fit_high_score(self):
+        ev = {"overall_score": 85, "recommendation": "Strong Fit"}
+        self.assertEqual(classify_fit_tier(ev, self.settings), "green")
+        self.assertTrue(tier_allows_auto_proceed("green"))
+
+    def test_yellow_weak_fit_mid_score(self):
+        ev = {"overall_score": 62, "recommendation": "Weak Fit"}
+        self.assertEqual(classify_fit_tier(ev, self.settings), "yellow")
+
+    def test_red_poor_fit_never_auto(self):
+        ev = {"overall_score": 80, "recommendation": "Poor Fit"}
+        self.assertEqual(classify_fit_tier(ev, self.settings), "red")
+
+    def test_bypass_when_disabled(self):
+        self.settings.is_enabled = False
+        self.settings.save()
+        self.assertEqual(classify_fit_tier({"overall_score": 10}, self.settings), "bypass")
+
+    def test_evaluation_summary_extracts_proceed_reasoning(self):
+        ev = {
+            "overall_score": 72,
+            "recommendation": "Moderate Fit",
+            "dimension_summaries": {"proceed_reasoning": "Some gaps remain."},
+            "gaps": ["GCP"],
+            "strengths": ["Python"],
+        }
+        summary = evaluation_summary(ev)
+        self.assertEqual(summary["proceed_reasoning"], "Some gaps remain.")
+        self.assertEqual(summary["gaps"], ["GCP"])
 
 
 class CheckAiPlatformCommandTests(TestCase):

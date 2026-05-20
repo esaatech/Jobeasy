@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="page-width">
+        <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+            <div>
+                <a href="{% url 'dashboard:job_applications_list' %}" class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                    Back to My Job Applications
+                </a>
+                <h1 class="text-2xl font-bold text-gray-900 mt-2">{{ job_application.job_name }}</h1>
+                <p class="text-sm text-gray-500 mt-1">
+                    Created {{ job_application.created_at|date:"M d, Y" }} at {{ job_application.created_at|date:"g:i A" }}
+                </p>
+                <p class="text-xs text-gray-500 mt-1">
+                    Application type: <span class="font-medium text-gray-700">{{ job_application.get_application_kind_display }}</span>
+                    · Status: <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800">Fit Review</span>
+                </p>
+            </div>
+        </div>
+
+        {% include 'dashboard/partials/fit_summary_hero.html' with fit_summary=fit_summary theme='fit_review' show_extended=True %}
+
+        <div class="bg-white rounded-lg shadow border border-gray-200 p-6 mb-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-3">Job description</h2>
+            {% if job_description_display %}
+            <div class="text-sm text-gray-700 whitespace-pre-wrap max-h-96 overflow-y-auto border border-gray-100 rounded-lg p-4 bg-gray-50">{{ job_description_display }}</div>
+            {% else %}
+            <p class="text-sm text-gray-500">No job description was stored for this application.</p>
+            {% endif %}
+        </div>
+
+        <div class="bg-white rounded-lg shadow border border-gray-200 p-6 mb-6" id="fit-review-actions">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Actions</h2>
+            <p class="text-sm text-gray-600 mb-4">Resume and cover letter were not generated because this role may be a weak match. You can still create them if you want to apply.</p>
+            <div class="flex flex-wrap gap-4 mb-4">
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="fit-optimize-resume" class="form-checkbox h-5 w-5 text-blue-600 rounded" checked>
+                    <span class="text-gray-700 font-medium">Optimize resume</span>
+                </label>
+                <label class="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" id="fit-generate-cover-letter" class="form-checkbox h-5 w-5 text-blue-600 rounded" checked>
+                    <span class="text-gray-700 font-medium">Generate cover letter</span>
+                </label>
+            </div>
+            <div id="fit-review-generate-error" class="hidden text-sm text-red-600 mb-3"></div>
+            <div class="flex flex-wrap gap-3">
+                <button type="button" id="fit-review-generate-btn" class="btn btn-primary">
+                    Generate resume &amp; cover letter
+                </button>
+                <button type="button" id="fit-review-delete-btn" class="btn btn-secondary text-red-600 border-red-200 hover:bg-red-50">
+                    Delete application
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ job_application.job_description|json_script:"fit-review-job-description" }}
+<script>
+(function() {
+    const generateBtn = document.getElementById('fit-review-generate-btn');
+    const deleteBtn = document.getElementById('fit-review-delete-btn');
+    const errorEl = document.getElementById('fit-review-generate-error');
+    const jobApplicationId = {{ job_application.id }};
+    const evaluationId = {{ evaluation_id|default:"null" }};
+    const resumeId = {{ resume_id|default:"null" }};
+    const jobDescription = JSON.parse(
+        document.getElementById('fit-review-job-description').textContent
+    );
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    generateBtn.addEventListener('click', async function() {
+        const optimizeResume = document.getElementById('fit-optimize-resume').checked;
+        const generateCoverLetter = document.getElementById('fit-generate-cover-letter').checked;
+        errorEl.classList.add('hidden');
+        if (!optimizeResume && !generateCoverLetter) {
+            errorEl.textContent = 'Select at least one action.';
+            errorEl.classList.remove('hidden');
+            return;
+        }
+        if (!resumeId) {
+            errorEl.textContent = 'Source resume is missing for this evaluation.';
+            errorEl.classList.remove('hidden');
+            return;
+        }
+
+        generateBtn.disabled = true;
+        generateBtn.textContent = 'Generating…';
+
+        const formData = new FormData();
+        formData.append('resume_id', resumeId);
+        formData.append('job_description', jobDescription);
+        formData.append('optimize_resume', optimizeResume);
+        formData.append('generate_cover_letter', generateCoverLetter);
+        formData.append('evaluation_id', evaluationId);
+        formData.append('force_proceed', 'true');
+        formData.append('job_application_id', jobApplicationId);
+
+        try {
+            const response = await fetch('/dashboard/api/generate-job-application/', {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-CSRFToken': getCookie('csrftoken') },
+            });
+            const data = await response.json();
+            if (data.status === 'completed') {
+                window.location.href = '/dashboard/job-applications/' + jobApplicationId + '/';
+            } else {
+                errorEl.textContent = data.error || 'Generation failed';
+                errorEl.classList.remove('hidden');
+                generateBtn.disabled = false;
+                generateBtn.textContent = 'Generate resume & cover letter';
+            }
+        } catch (e) {
+            errorEl.textContent = 'Network error. Please try again.';
+            errorEl.classList.remove('hidden');
+            generateBtn.disabled = false;
+            generateBtn.textContent = 'Generate resume & cover letter';
+        }
+    });
+
+    deleteBtn.addEventListener('click', async function() {
+        if (!confirm('Delete this job application?')) {
+            return;
+        }
+        const response = await fetch('/dashboard/api/delete-job-application/' + jobApplicationId + '/', {
+            method: 'DELETE',
+            headers: { 'X-CSRFToken': getCookie('csrftoken') },
+        });
+        const data = await response.json();
+        if (data.status === 'success') {
+            window.location.href = '{% url "dashboard:dashboard" %}';
+        } else {
+            alert(data.error || 'Delete failed');
+        }
+    });
+})();
+</script>
+{% endblock %}

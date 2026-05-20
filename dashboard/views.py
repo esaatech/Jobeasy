@@ -22,14 +22,30 @@ from resume_builder.resume_extra import (
     bullets_to_projects_html,
     extract_project_bullets_from_html,
 )
+from ai_service.dashboard_job_fit import (
+    run_dashboard_job_fit_evaluation,
+    validate_evaluation_for_generate,
+)
+from ai_service.fit_gate import evaluation_summary
+from ai_service.job_fit_settings import get_job_fit_gate_settings
 from .models import JobApplication
 from subscriptions.models import UserSubscription, SubscriptionPlan
 from email_utility.models import EmailHistory
 
 logger = logging.getLogger(__name__)
 
+
+def _fit_summary_for_application(app: JobApplication) -> dict:
+    """User-facing eval subset when the job application has a successful fit evaluation."""
+    ev = getattr(app, "fit_evaluation", None)
+    if not ev or not ev.succeeded or not ev.evaluation_json:
+        return {}
+    return evaluation_summary(ev.evaluation_json)
+
+
 UNIFIED_STATUS_CHOICES = [
     ('processing', 'Processing'),
+    ('fit_review', 'Fit Review'),
     ('completed', 'Completed'),
     ('failed', 'Failed'),
     ('pending', 'Pending'),
@@ -42,12 +58,16 @@ def get_unified_job_applications(user):
     Merge dashboard-generated job applications and job_service requests.
     Returns a normalized list sorted newest-first.
     """
-    dashboard_items = user.dashboard_job_applications.select_related('resume', 'cover_letter').all()
+    dashboard_items = user.dashboard_job_applications.select_related(
+        'resume', 'cover_letter', 'fit_evaluation'
+    ).all()
     service_requests = user.job_application_requests.select_related('resume_used').all()
 
     unified = []
 
     for app in dashboard_items:
+        fit_summary = _fit_summary_for_application(app)
+
         unified.append({
             'id': app.id,
             'source': 'dashboard',
@@ -59,7 +79,10 @@ def get_unified_job_applications(user):
             'created_at': app.created_at,
             'resume': app.resume,
             'cover_letter': app.cover_letter,
-            'can_email': app.status == 'completed' or app.cover_letter is not None,
+            'fit_summary': fit_summary,
+            'can_email': app.status == 'completed' and (
+                app.cover_letter is not None or app.resume is not None
+            ),
             'can_delete': True,
             'detail_url': reverse('dashboard:job_application_detail', args=[app.id]),
         })
@@ -221,12 +244,16 @@ def job_applications_list(request):
 def job_application_detail(request, job_id):
     """Hub page for a dashboard job application: context, artifacts, outbound email log."""
     job_application = get_object_or_404(
-        JobApplication.objects.select_related('resume', 'cover_letter'),
+        JobApplication.objects.select_related(
+            'resume', 'cover_letter', 'fit_evaluation', 'fit_evaluation__resume'
+        ),
         id=job_id,
         user=request.user,
     )
 
     if request.method == 'POST':
+        if job_application.status == 'fit_review':
+            return redirect('dashboard:job_application_detail', job_id=job_id)
         job_application.company_name = (request.POST.get('company_name') or '').strip()
         raw_email = (request.POST.get('company_email') or '').strip()
         job_application.company_email = raw_email if raw_email else ''
@@ -237,16 +264,32 @@ def job_application_detail(request, job_id):
     if not display_description and job_application.cover_letter:
         display_description = (job_application.cover_letter.job_description or '').strip()
 
+    if job_application.status == 'fit_review':
+        ev = job_application.fit_evaluation
+        fit_summary = _fit_summary_for_application(job_application)
+        context = {
+            'job_application': job_application,
+            'job_description_display': display_description,
+            'fit_summary': fit_summary,
+            'evaluation_id': ev.pk if ev else None,
+            'resume_id': ev.resume_id if ev else None,
+            'hero_content': {'page_title': job_application.job_name},
+        }
+        return render(request, 'dashboard/job_application_fit_review.html', context)
+
     outbound_emails = EmailHistory.objects.filter(
         user=request.user,
         attachment_type='job_application',
         attachment_id=job_application.id,
     ).order_by('-sent_at')
 
+    fit_summary = _fit_summary_for_application(job_application)
+
     context = {
         'job_application': job_application,
         'job_description_display': display_description,
         'outbound_emails': outbound_emails,
+        'fit_summary': fit_summary,
         'hero_content': {'page_title': job_application.job_name},
     }
     return render(request, 'dashboard/job_application_detail.html', context)
@@ -372,6 +415,47 @@ def _optimize_resume_for_job_application(user, job_description, resume, job_name
 @login_required
 @csrf_exempt
 @require_http_methods(["POST"])
+def evaluate_job_fit(request):
+    """Phase 1: run shared resume–job evaluation and return tier + summary."""
+    try:
+        resume_id = request.POST.get("resume_id")
+        job_description = request.POST.get("job_description", "")
+
+        if not resume_id or not job_description.strip():
+            return JsonResponse(
+                {"success": False, "error": "Missing required fields"},
+                status=400,
+            )
+
+        resume = get_object_or_404(Resume, id=resume_id, user=request.user)
+        resume_text = _format_resume_content(resume)
+        result = run_dashboard_job_fit_evaluation(
+            user=request.user,
+            resume=resume,
+            job_description=job_description,
+            resume_text=resume_text,
+        )
+
+        if not result.get("success"):
+            status = 422 if result.get("gate_enabled") else 400
+            return JsonResponse(result, status=status)
+
+        if result.get("job_id"):
+            result["counts"] = {
+                "resumes": request.user.resumes.count(),
+                "cover_letters": request.user.cover_letters.count(),
+                "job_applications": len(get_unified_job_applications(request.user)),
+            }
+
+        return JsonResponse(result)
+    except Exception as e:
+        logger.exception("dashboard.evaluate_job_fit")
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+
+@login_required
+@csrf_exempt
+@require_http_methods(["POST"])
 def generate_job_application(request):
     """API endpoint to generate job application"""
     try:
@@ -380,7 +464,28 @@ def generate_job_application(request):
         job_description = request.POST.get('job_description')
         optimize_resume = request.POST.get('optimize_resume') == 'true'
         generate_cover_letter = request.POST.get('generate_cover_letter') == 'true'
-        
+        evaluation_id_raw = request.POST.get('evaluation_id')
+        force_proceed = request.POST.get('force_proceed') == 'true'
+        job_application_id_raw = request.POST.get('job_application_id')
+        existing_job_application = None
+        if job_application_id_raw:
+            try:
+                existing_job_application = JobApplication.objects.get(
+                    pk=int(job_application_id_raw),
+                    user=request.user,
+                    status='fit_review',
+                )
+            except (JobApplication.DoesNotExist, TypeError, ValueError):
+                return JsonResponse({
+                    'status': 'failed',
+                    'error': 'Invalid job_application_id',
+                }, status=400)
+            if not job_description.strip():
+                job_description = existing_job_application.job_description or ''
+            if not evaluation_id_raw and existing_job_application.fit_evaluation_id:
+                evaluation_id_raw = str(existing_job_application.fit_evaluation_id)
+            force_proceed = True
+
         # Validate inputs
         if not resume_id or not job_description:
             return JsonResponse({
@@ -390,6 +495,37 @@ def generate_job_application(request):
         
         # Get the resume
         resume = get_object_or_404(Resume, id=resume_id, user=request.user)
+
+        gate_settings = get_job_fit_gate_settings()
+        fit_evaluation = None
+        if gate_settings.is_enabled:
+            if not evaluation_id_raw:
+                return JsonResponse({
+                    'status': 'failed',
+                    'error': 'Run a job fit evaluation first.',
+                    'requires_evaluation': True,
+                }, status=400)
+            try:
+                evaluation_id = int(evaluation_id_raw)
+            except (TypeError, ValueError):
+                return JsonResponse({
+                    'status': 'failed',
+                    'error': 'Invalid evaluation_id',
+                }, status=400)
+
+            fit_evaluation, gate_error = validate_evaluation_for_generate(
+                user=request.user,
+                evaluation_id=evaluation_id,
+                force_proceed=force_proceed,
+                resume_id=resume.id,
+                job_description=job_description,
+            )
+            if gate_error:
+                return JsonResponse({
+                    'status': 'failed',
+                    'error': gate_error,
+                    'requires_confirmation': True,
+                }, status=403)
         
         # Extract job name from description (simple approach)
         job_name = job_description[:50] + "..." if len(job_description) > 50 else job_description
@@ -472,31 +608,50 @@ def generate_job_application(request):
                 if resume_title:
                     job_name = resume_title
         
-        # Create job application record
-        job_application = JobApplication.objects.create(
-            user=request.user,
-            job_name=job_name,
-            job_description=job_description,
-            cover_letter=cover_letter,
-            resume=optimized_resume if optimize_resume and optimized_resume else None,
-            email_subject=(
-                cover_letter_result.get('email_subject')
-                if (
-                    cover_letter
-                    and cover_letter_result
-                    and cover_letter_result.get('success')
-                )
-                else resume_email_subject
-            ),
-            status='completed' if not error_message else 'failed'
+        email_subject_value = (
+            cover_letter_result.get('email_subject')
+            if (
+                cover_letter
+                and cover_letter_result
+                and cover_letter_result.get('success')
+            )
+            else resume_email_subject
         )
+        final_status = 'completed' if not error_message else 'failed'
+
+        if existing_job_application:
+            job_application = existing_job_application
+            job_application.job_name = job_name
+            job_application.job_description = job_description
+            job_application.cover_letter = cover_letter
+            job_application.resume = (
+                optimized_resume if optimize_resume and optimized_resume else None
+            )
+            job_application.email_subject = email_subject_value
+            job_application.fit_evaluation = fit_evaluation or job_application.fit_evaluation
+            job_application.status = final_status
+            job_application.save()
+        else:
+            job_application = JobApplication.objects.create(
+                user=request.user,
+                job_name=job_name,
+                job_description=job_description,
+                cover_letter=cover_letter,
+                resume=optimized_resume if optimize_resume and optimized_resume else None,
+                email_subject=email_subject_value,
+                fit_evaluation=fit_evaluation,
+                status=final_status,
+            )
+        if fit_evaluation and fit_evaluation.job_application_id != job_application.id:
+            fit_evaluation.job_application = job_application
+            fit_evaluation.save(update_fields=['job_application'])
         
         # Get updated counts
         resume_count = request.user.resumes.count()
         cover_letter_count = request.user.cover_letters.count()
         job_application_count = len(get_unified_job_applications(request.user))
 
-        return JsonResponse({
+        response_payload = {
             'status': 'completed' if not error_message else 'failed',
             'job_id': job_application.id,
             'job_name': job_application.job_name,
@@ -510,7 +665,12 @@ def generate_job_application(request):
                 'cover_letters': cover_letter_count,
                 'job_applications': job_application_count
             }
-        })
+        }
+        fit_summary_payload = _fit_summary_for_application(job_application)
+        if fit_summary_payload:
+            response_payload['fit_summary'] = fit_summary_payload
+
+        return JsonResponse(response_payload)
         
     except Exception as e:
         return JsonResponse({

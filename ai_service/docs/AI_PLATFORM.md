@@ -255,11 +255,13 @@ No change to `AIService` / prompt versioning model—only the execution layer br
 ```bash
 python manage.py setup_ai_models
 python manage.py setup_resume_job_evaluation
+python manage.py setup_job_fit_gate
 # optional: refresh system_prompt text
 python manage.py setup_resume_job_evaluation --force
+python manage.py setup_job_fit_gate --force
 ```
 
-`entrypoint.sh` runs both when `SKIP_BOOTSTRAP_DATA` is not set (deploy).
+`entrypoint.sh` runs all three when `SKIP_BOOTSTRAP_DATA` is not set (deploy), then `check_ai_platform`.
 
 ### Recommendation labels
 
@@ -353,26 +355,89 @@ Gemini receives this class as `response_schema`; the server **always re-validate
 
 The structured payload is designed so the **UI never has to parse free text**.
 
-### Suggested user dashboard (not built yet)
+### Dashboard fit gate (implemented)
 
-For a saved job application or a “compare to job” action:
+Before cover letter / resume optimization, the dashboard runs the **same** `evaluate_resume_against_job()` used in admin. Configuration is **not** env-driven: thresholds and production prompt come from **`JobFitGateSettings`** (singleton, admin) and prompt slug **`default-job-evaluation`** (seeded by `setup_job_fit_gate`).
+
+#### Two-phase Generate flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant JS as dashboard.js
+    participant Eval as POST evaluate-job-fit
+    participant Gen as POST generate-job-application
+
+    User->>JS: Generate
+    JS->>Eval: resume_id + job_description
+    Eval->>Eval: evaluate_resume_against_job + classify_fit_tier
+    alt tier green or gate disabled
+        Eval-->>JS: evaluation_id
+        JS->>Gen: generate with evaluation_id
+        Gen-->>JS: completed JobApplication
+    else tier yellow or red
+        Eval-->>JS: job_id fit_review + summary
+        JS->>JS: Amber list card + banner
+        User->>User: Open fit review detail
+        User->>Gen: Generate anyway force_proceed
+        Gen-->>JS: updates same row to completed
+    end
+```
+
+| Endpoint | Purpose |
+|----------|---------|
+| `POST /dashboard/api/evaluate-job-fit/` | Phase 1: Gemini eval, tier, summary; creates `JobApplication` with `status=fit_review` when yellow/red |
+| `POST /dashboard/api/generate-job-application/` | Phase 2: cover letter + optimize; requires `evaluation_id` when gate enabled; accepts `force_proceed` and `job_application_id` |
+
+#### Tier rules (`ai_service/fit_gate.py`)
+
+| Tier | Default rule | Generate behavior |
+|------|----------------|-------------------|
+| **green** | Score ≥ `green_min_score` (70) and Strong/Good Fit | Auto-proceed to phase 2 |
+| **yellow** | Score 50–69 or Moderate/Weak Fit | No auto-generate; user proceeds from fit review detail |
+| **red** | Score &lt; 50 or Poor Fit | Same as yellow; Poor Fit never auto-proceeds |
+| **bypass** | `JobFitGateSettings.is_enabled` is false | Legacy single-step generate (no eval required) |
+
+Stricter of score-based and recommendation-based tiers wins.
+
+#### UI surfaces
+
+| State | `JobApplication.status` | List card | Detail page |
+|-------|-------------------------|-----------|-------------|
+| **Fit review** | `fit_review` | Amber border; score · recommendation · opt. potential; **Review fit** | [`job_application_fit_review.html`](../dashboard/templates/dashboard/job_application_fit_review.html) — full summary, gaps/strengths, **Generate resume & cover letter** |
+| **Completed** | `completed` | Green check; **score chip only** (if eval linked) | [`job_application_detail.html`](../dashboard/templates/dashboard/job_application_detail.html) — 3-metric hero at top, then company/email/JD |
+| **Completed** (no eval) | `completed` | Unchanged | Unchanged |
+
+Display helpers: `evaluation_summary()` in `fit_gate.py`; orchestration in `dashboard_job_fit.py`; views in `dashboard/views.py`.
+
+#### Models and seeds
+
+| Artifact | Notes |
+|----------|--------|
+| `JobFitGateSettings` | `is_enabled`, `green_min_score`, `yellow_min_score`, `prompt_config` FK |
+| `ResumeJobEvaluation.user` / `.resume` / `.job_application` | Audit trail for dashboard runs |
+| `JobApplication.fit_evaluation` | Links application to eval row |
+| `setup_job_fit_gate` | Seeds `default-job-evaluation` prompt + gate row |
+
+#### Code entry points (dashboard)
+
+| Function | Module |
+|----------|--------|
+| `run_dashboard_job_fit_evaluation()` | `dashboard_job_fit.py` |
+| `create_fit_review_job_application()` | `dashboard_job_fit.py` |
+| `validate_evaluation_for_generate()` | `dashboard_job_fit.py` |
+| `classify_fit_tier()` | `fit_gate.py` |
+| `evaluate_job_fit` / `generate_job_application` | `dashboard/views.py` |
+
+See also [`docs/architecture/dashboard-job-application-pipeline.md`](../../docs/architecture/dashboard-job-application-pipeline.md).
+
+### Future dashboard ideas (not built)
 
 | UI section | JSON source |
 |------------|-------------|
-| Fit score gauge | `overall_score`, `recommendation` |
-| “Should I apply?” | `dimension_summaries.proceed_reasoning`, `risk_level` |
 | Requirements checklist | `hard_requirement_analysis` (filter `missing` / `partially_met`) |
-| Strengths to lead with | `strengths` |
-| Honest gaps to address | `gaps` |
-| Resume tips only | High `optimization_potential` + `optimization_surface_vs_foundational_notes` |
-| Stretch skills | `transferable_skills` |
-
-**Implementation sketch:**
-
-1. Add `user` FK and optional `job_application` FK on `ResumeJobEvaluation` (or a thin `UserJobFitReport` model copying denormalized fields).
-2. Call `evaluate_resume_against_job` from dashboard view/API after user pastes job description.
-3. Render templates from `evaluation_json` — no second LLM call for display.
-4. Gate expensive flows: if `recommendation` is `Poor Fit` and `confidence` is `High`, suggest skipping optimization unless user overrides.
+| Stretch skills panel | `transferable_skills` |
+| Apply-for-job automation | Phase 2 product |
 
 ### Other services (same platform pattern)
 
@@ -397,8 +462,9 @@ Each new structured task: add Pydantic model → document in prompt → seed `AI
 | Change default model/temperature | Same row → `ai_model`, `temperature` |
 | Add Gemini/OpenAI catalog entries | **AI models** |
 | Run manual tests | **Resume-job evaluations** (playground) |
+| Tune dashboard gate thresholds / production prompt | **Job fit gate settings** (singleton) |
 
-**Deploy verification:** `entrypoint.sh` runs `python manage.py check_ai_platform`. In Cloud Logging, look for `check_ai_platform: OK`. Admin header shows `AI platform <build>` (see `ai_service/platform_version.py`). Under **AI SERVICE** you should see four models including **AI models** and **Resume-job evaluations**.
+**Deploy verification:** `entrypoint.sh` runs `setup_ai_models`, `setup_resume_job_evaluation`, `setup_job_fit_gate`, then `check_ai_platform`. Admin header shows `AI platform <build>`. Under **AI SERVICE**: **AI models**, **AI Prompt Configurations**, **Job fit gate settings**, **Resume-job evaluations**.
 
 ### Playground workflow
 
@@ -456,7 +522,10 @@ See `.env.example`.
 
 | Module | Responsibility |
 |--------|----------------|
-| `models.py` | `AIService`, `AIPromptConfiguration`, `AIModel`, `ResumeJobEvaluation` |
+| `models.py` | `AIService`, `AIPromptConfiguration`, `AIModel`, `JobFitGateSettings`, `ResumeJobEvaluation` |
+| `fit_gate.py` | Tier classification + `evaluation_summary()` for UI |
+| `job_fit_settings.py` | Singleton gate settings loader |
+| `dashboard_job_fit.py` | Dashboard adapter around shared evaluator |
 | `generation_config.py` | Model/temperature resolution |
 | `prompt_utils.py` | Load prompt text by service slug |
 | `eval_prompts.py` | Versioned evaluator instructions (source for seeds) |
@@ -475,6 +544,8 @@ python manage.py test ai_service.tests.ResumeJobEvaluationSchemaTests
 python manage.py test ai_service.tests.ResumeJobEvaluationPersistOnSaveTests
 python manage.py test ai_service.tests.GenerationConfigResolverTests
 python manage.py test ai_service.tests.ConclusionFromEvaluationTests
+python manage.py test ai_service.tests.FitGateTests
+python manage.py test dashboard.tests
 ```
 
 **Model calibration workflow:**
@@ -499,4 +570,4 @@ python manage.py test ai_service.tests.ConclusionFromEvaluationTests
 
 ---
 
-*Last updated: 2026-05 — aligns with `ResumeJobEvaluation` label fields, `AIModel` catalog, and `generation_config` resolver.*
+*Last updated: 2026-05-20 — dashboard fit gate, `fit_review` job applications, completed score/metrics UI, `JobFitGateSettings`, migrations `ai_service/0005`, `dashboard/0006`–`0007`.*

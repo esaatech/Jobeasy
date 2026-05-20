@@ -125,6 +125,54 @@ class AIPromptConfiguration(models.Model):
         super().save(*args, **kwargs)
 
 
+DASHBOARD_DEFAULT_EVAL_PROMPT_SLUG = "default-job-evaluation"
+
+
+class JobFitGateSettings(models.Model):
+    """
+    Singleton configuration for dashboard pre-flight job-fit gating.
+
+    One row (pk=1). Edit in admin; seeded by setup_job_fit_gate on deploy.
+    """
+
+    id = models.PositiveSmallIntegerField(primary_key=True, default=1, editable=False)
+    is_enabled = models.BooleanField(
+        default=True,
+        help_text="When off, dashboard skips evaluation and uses the legacy generate flow.",
+    )
+    green_min_score = models.PositiveSmallIntegerField(
+        default=70,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text="Scores at or above this (with Good/Strong recommendation) auto-proceed.",
+    )
+    yellow_min_score = models.PositiveSmallIntegerField(
+        default=50,
+        validators=[MinValueValidator(0), MaxValueValidator(100)],
+        help_text="Scores below green_min but at or above this require user confirmation.",
+    )
+    prompt_config = models.ForeignKey(
+        AIPromptConfiguration,
+        null=True,
+        blank=True,
+        on_delete=models.PROTECT,
+        related_name="job_fit_gate_settings",
+        help_text="Evaluator prompt used for dashboard fit checks.",
+    )
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Job fit gate settings"
+        verbose_name_plural = "Job fit gate settings"
+
+    def save(self, *args, **kwargs):
+        self.id = 1
+        super().save(*args, **kwargs)
+
+    def __str__(self) -> str:
+        state = "on" if self.is_enabled else "off"
+        return f"Job fit gate ({state}, green≥{self.green_min_score})"
+
+
 class ResumeJobEvaluation(models.Model):
     """
     Persisted Gemini evaluation run (production trail + admin playground).
@@ -144,6 +192,28 @@ class ResumeJobEvaluation(models.Model):
     conclusion = models.TextField(
         blank=True,
         help_text="Summary verdict; auto-filled from proceed_reasoning after a successful evaluation.",
+    )
+
+    user = models.ForeignKey(
+        "auth.User",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="resume_job_evaluations",
+    )
+    resume = models.ForeignKey(
+        "resume_builder.Resume",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="resume_job_evaluations",
+    )
+    job_application = models.ForeignKey(
+        "dashboard.JobApplication",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="fit_evaluations",
     )
 
     job_description = models.TextField()

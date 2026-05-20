@@ -15,7 +15,14 @@ from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
 from .forms import ResumeJobEvaluationAdminForm
-from .models import AIModel, AIService, AIPromptConfiguration, ResumeJobEvaluation
+from .models import (
+    AIModel,
+    AIService,
+    AIPromptConfiguration,
+    JobFitGateSettings,
+    ResumeJobEvaluation,
+)
+from .resume_job_evaluation import RESUME_JOB_EVALUATION_SERVICE_SLUG
 from .platform_version import AI_PLATFORM_BUILD
 from .resume_job_evaluation import (
     evaluate_resume_against_job,
@@ -30,6 +37,42 @@ from .resume_job_evaluation import (
 
 # Visible proof-of-deploy in admin (build id also logged by check_ai_platform).
 admin.site.site_header = f"Jobeas administration (AI platform {AI_PLATFORM_BUILD})"
+
+
+@admin.register(JobFitGateSettings)
+class JobFitGateSettingsAdmin(admin.ModelAdmin):
+    """Singleton: changelist redirects to the single settings row."""
+
+    list_display = [
+        "is_enabled",
+        "green_min_score",
+        "yellow_min_score",
+        "prompt_config",
+        "updated_at",
+    ]
+
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "prompt_config":
+            kwargs["queryset"] = AIPromptConfiguration.objects.filter(
+                is_active=True,
+                service__slug=RESUME_JOB_EVALUATION_SERVICE_SLUG,
+                service__is_active=True,
+            ).select_related("ai_model")
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
+    def has_add_permission(self, request):
+        return not JobFitGateSettings.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+    def changelist_view(self, request, extra_context=None):
+        from .job_fit_settings import ensure_job_fit_gate_settings
+
+        obj = ensure_job_fit_gate_settings()
+        return redirect(
+            reverse("admin:ai_service_jobfitgatesettings_change", args=(obj.pk,))
+        )
 
 
 @admin.register(AIModel)

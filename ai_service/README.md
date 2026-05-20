@@ -4,7 +4,7 @@
 
 | Document | Contents |
 |----------|----------|
-| **[`docs/AI_PLATFORM.md`](docs/AI_PLATFORM.md)** | **Primary reference:** configurable prompts (`AIService` / `AIPromptConfiguration`), model catalog (`AIModel`), multi-provider roadmap, resume–job evaluation structured output, dashboard product ideas, admin playground, setup commands |
+| **[`docs/AI_PLATFORM.md`](docs/AI_PLATFORM.md)** | **Primary reference:** configurable prompts (`AIService` / `AIPromptConfiguration`), model catalog (`AIModel`), multi-provider roadmap, resume–job evaluation, **dashboard fit gate**, admin playground, setup commands |
 | This README | Legacy detail: OpenAI resume parsing (RISEN), cover letter/optimization, AI assistant task schema |
 
 For new work on prompts, Gemini evaluation, or model configuration, start with **`docs/AI_PLATFORM.md`**.

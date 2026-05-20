@@ -1,0 +1,73 @@
+{% comment %}
+  Three-metric fit hero. Pass theme: "completed" (green) or "fit_review" (amber).
+  Pass show_extended=true to include proceed_reasoning, strengths, gaps (fit review page).
+{% endcomment %}
+{% if fit_summary.overall_score != None or fit_summary.recommendation or fit_summary.optimization_potential != None %}
+<div class="bg-white rounded-lg shadow border {% if theme == 'fit_review' %}border-amber-200{% else %}border-green-200{% endif %} p-6 mb-6">
+    <h2 class="text-lg font-semibold text-gray-900 mb-1">Job fit evaluation</h2>
+    {% if theme != 'fit_review' %}
+    <p class="text-sm text-gray-500 mb-4">Scores from your pre-generation fit check.</p>
+    {% else %}
+    <p class="text-sm text-gray-500 mb-4">Fit summary</p>
+    {% endif %}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 {% if show_extended %}mb-6{% endif %}">
+        <div class="rounded-lg border border-gray-200 p-4 text-center">
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Overall score</p>
+            <p class="text-3xl font-bold text-gray-900 mt-2">{{ fit_summary.overall_score|default:"—" }}<span class="text-lg text-gray-400 font-normal">/100</span></p>
+        </div>
+        <div class="rounded-lg border border-gray-200 p-4 text-center">
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Recommendation</p>
+            <p class="text-lg font-semibold mt-2 {% if theme == 'fit_review' %}text-amber-700{% else %}text-green-700{% endif %}">{{ fit_summary.recommendation|default:"—" }}</p>
+        </div>
+        <div class="rounded-lg border border-gray-200 p-4">
+            <p class="text-xs font-medium text-gray-500 uppercase tracking-wide text-center">Optimization potential</p>
+            <p class="text-3xl font-bold text-gray-900 mt-2 text-center">{{ fit_summary.optimization_potential|default:"—" }}{% if fit_summary.optimization_potential != None %}%{% endif %}</p>
+            {% if fit_summary.optimization_potential != None %}
+            <div class="w-full bg-gray-200 rounded-full h-2 mt-2">
+                <div class="{% if theme == 'fit_review' %}bg-amber-500{% else %}bg-green-500{% endif %} h-2 rounded-full" style="width: {{ fit_summary.optimization_potential }}%"></div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    {% if show_extended %}
+        {% if fit_summary.proceed_reasoning %}
+        <div class="mb-6">
+            <h3 class="text-sm font-semibold text-gray-900 mb-2">Why generation was paused</h3>
+            <p class="text-sm text-gray-700 bg-gray-50 rounded-lg p-4 border border-gray-100">{{ fit_summary.proceed_reasoning }}</p>
+        </div>
+        {% endif %}
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+            {% if fit_summary.strengths %}
+            <div>
+                <h3 class="text-sm font-semibold text-gray-900 mb-2">Strengths</h3>
+                <ul class="list-disc list-inside text-sm text-gray-700 space-y-1">
+                    {% for item in fit_summary.strengths %}
+                    <li>{{ item }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+            {% if fit_summary.gaps %}
+            <div>
+                <h3 class="text-sm font-semibold text-gray-900 mb-2">Gaps</h3>
+                <ul class="list-disc list-inside text-sm text-gray-700 space-y-1">
+                    {% for item in fit_summary.gaps %}
+                    <li>{{ item }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if fit_summary.confidence or fit_summary.risk_level %}
+        <p class="text-xs text-gray-500">
+            {% if fit_summary.confidence %}Confidence: {{ fit_summary.confidence }}{% endif %}
+            {% if fit_summary.confidence and fit_summary.risk_level %} · {% endif %}
+            {% if fit_summary.risk_level %}Risk: {{ fit_summary.risk_level }}{% endif %}
+        </p>
+        {% endif %}
+    {% endif %}
+</div>
+{% endif %}
