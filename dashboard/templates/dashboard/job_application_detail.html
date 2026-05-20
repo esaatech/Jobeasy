@@ -9,7 +9,7 @@
                 <a href="{% url 'job_service:my_applications' %}" class="text-sm text-blue-600 hover:text-blue-800 font-medium">
                     Back to My Job Applications
                 </a>
-                <h1 class="text-2xl font-bold text-gray-900 mt-2">{{ job_application.job_name }}</h1>
+                <h1 class="headline-dashboard mt-2">{{ job_application.job_name }}</h1>
                 <p class="text-sm text-gray-500 mt-1">
                     Created {{ job_application.created_at|date:"M d, Y" }} at {{ job_application.created_at|date:"g:i A" }}
                 </p>

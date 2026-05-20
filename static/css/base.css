@@ -549,6 +549,10 @@ body {
         font-size: 1.75rem;
     }
 
+    .headline-dashboard {
+        font-size: 1.375rem;
+    }
+
     .page-width,
     .page-width-wide,
     .page-width-narrow {
@@ -611,6 +615,17 @@ body {
     line-height: 1.4;
     color: var(--text-primary);
     margin-bottom: var(--spacing-md);
+}
+
+/* Compact Inter headings for dashboard (matches job application detail titles) */
+.headline-dashboard {
+    font-family: 'Inter', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+    color: var(--text-primary);
+    margin-bottom: 0;
 }
 
 .body-text {

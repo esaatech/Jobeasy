@@ -31,7 +31,7 @@
             <div class="xl:col-span-3">
                 <div class="bg-white rounded-lg shadow-lg p-6">
                     <div class="flex items-center justify-between mb-6">
-                        <h2 class="headline-secondary">Recent Job Applications</h2>
+                        <h2 class="headline-dashboard">Recent Job Applications</h2>
                         <div class="flex items-center space-x-4">
                             <a href="{% url 'dashboard:job_applications_list' %}" 
                                class="text-blue-600 hover:text-blue-700 font-medium text-sm">
@@ -73,12 +73,12 @@
     <div class="page-width">
         <!-- AI Job Assistant Title -->
         <div class="text-center mb-8">
-            <h1 class="headline-primary mb-2">Optimize your resume and generate cover letters with AI</h1>
+            <h1 class="headline-dashboard mb-2">Optimize your resume and generate cover letters with AI</h1>
         </div>
 
         <!-- Resume Selection -->
         <!-- Using resume selection partial from resume_builder app for consistency -->
-        {% include 'resume_builder/partials/resume_selection.html' %}
+        {% include 'resume_builder/partials/resume_selection.html' with heading_class='headline-dashboard' %}
 
         <!-- Action Checkboxes -->
         <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
