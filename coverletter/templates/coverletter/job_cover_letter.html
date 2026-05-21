@@ -22,7 +22,7 @@
 <section class="bg-gradient-to-r from-blue-50 to-white">
     <div class="page-width py-12 sm:py-16">
         <div class="text-center">
-            <h1 class="headline-primary mb-4">AI Cover Letter Generator</h1>
+            <h1 class="headline-dashboard mb-4">AI Cover Letter Generator</h1>
             <p class="subheadline max-w-2xl mx-auto mb-8">
                 Create a personalized cover letter in seconds
             </p>
@@ -64,14 +64,14 @@
                 <div class="p-6">
                     <!-- Saved Resume Tab -->
                     <div id="saved-resume-tab" class="resume-tab-content">
-                        <h2 class="headline-secondary mb-4">Select from Saved Resumes</h2>
+                        <h2 class="headline-dashboard mb-4">Select from Saved Resumes</h2>
                         <!-- Using resume selection partial from resume_builder app for consistency -->
-                        {% include 'resume_builder/partials/resume_selection.html' %}
+                        {% include 'resume_builder/partials/resume_selection.html' with heading_class='headline-dashboard' %}
                     </div>
                         
                         <!-- Upload Resume Tab -->
                         <div id="upload-resume-tab" class="resume-tab-content hidden">
-                            <h2 class="headline-secondary mb-4">Upload Resume File</h2>
+                            <h2 class="headline-dashboard mb-4">Upload Resume File</h2>
                             <p class="text-gray-600 mb-4">
                                 Upload a resume file to use for cover letter generation.
                             </p>
@@ -130,7 +130,7 @@
 
                 <!-- Job Details Section -->
                 <div class="bg-white rounded-lg shadow-lg p-6">
-                    <h2 class="headline-secondary mb-6">Job Details</h2>
+                    <h2 class="headline-dashboard mb-6">Job Details</h2>
                     
                     <!-- Job Description -->
                     <div class="space-y-6">
@@ -157,7 +157,7 @@
             <!-- Results Section -->
             <div id="results" class="mt-8 hidden">
                 <div class="bg-white rounded-lg shadow-lg p-6">
-                    <h2 class="headline-secondary mb-4">Your Cover Letter</h2>
+                    <h2 class="headline-dashboard mb-4">Your Cover Letter</h2>
                     <div id="coverLetterContent" class="prose whitespace-pre-line" style="min-height: 200px;">
                         <!-- Content will be inserted here -->
                     </div>
