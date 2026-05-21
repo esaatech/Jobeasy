@@ -1615,13 +1615,13 @@ console.log('isAuthenticated:', window.isAuthenticated);
         const template = document.getElementById('experienceTemplate');
         const container = document.getElementById('experienceContainer');
         const clone = template.content.cloneNode(true);
-        container.appendChild(clone);
+        container.prepend(clone);
         
         // Initialize Flatpickr for the new date fields
         initializeDatePickersInEntry(clone);
         
         // Add event listeners for Present checkboxes in the new entry
-        const presentCheckbox = clone.querySelector('input[name*="_present"]');
+        const presentCheckbox = container.firstElementChild.querySelector('input[name*="_present"]');
         if (presentCheckbox) {
             presentCheckbox.addEventListener('change', function() {
                 handlePresentEndDate(this);
@@ -1633,13 +1633,13 @@ console.log('isAuthenticated:', window.isAuthenticated);
         const template = document.getElementById('educationTemplate');
         const container = document.getElementById('educationContainer');
         const clone = template.content.cloneNode(true);
-        container.appendChild(clone);
+        container.prepend(clone);
         
         // Initialize Flatpickr for the new date fields
         initializeDatePickersInEntry(clone);
         
         // Add event listeners for Present checkboxes in the new entry
-        const presentCheckbox = clone.querySelector('input[name*="_present"]');
+        const presentCheckbox = container.firstElementChild.querySelector('input[name*="_present"]');
         if (presentCheckbox) {
             presentCheckbox.addEventListener('change', function() {
                 handlePresentEndDate(this);
@@ -1953,11 +1953,11 @@ console.log('isAuthenticated:', window.isAuthenticated);
         // Assign a unique id to the new textarea
         const newId = 'exp-desc-' + Date.now();
         clone.querySelector('textarea').id = newId;
-        container.appendChild(clone);
+        container.prepend(clone);
         // Initialize CKEditor 5 for the new textarea
         initializeCKEditor5(newId);
         // ... existing code for Flatpickr and Present checkbox ...
-        const presentCheckbox = container.lastElementChild.querySelector('input[name*="_present"]');
+        const presentCheckbox = container.firstElementChild.querySelector('input[name*="_present"]');
         if (presentCheckbox) {
             presentCheckbox.addEventListener('change', function() {
                 handlePresentEndDate(this);
@@ -1971,11 +1971,11 @@ console.log('isAuthenticated:', window.isAuthenticated);
         // Assign a unique id to the new textarea
         const newId = 'edu-desc-' + Date.now();
         clone.querySelector('textarea').id = newId;
-        container.appendChild(clone);
+        container.prepend(clone);
         // Initialize CKEditor 5 for the new textarea
         initializeCKEditor5(newId);
         // ... existing code for Flatpickr and Present checkbox ...
-        const presentCheckbox = container.lastElementChild.querySelector('input[name*="_present"]');
+        const presentCheckbox = container.firstElementChild.querySelector('input[name*="_present"]');
         if (presentCheckbox) {
             presentCheckbox.addEventListener('change', function() {
                 handlePresentEndDate(this);
