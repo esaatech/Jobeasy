@@ -201,6 +201,8 @@ class FunctionHandlers:
         phone: str = None,
         location: str = None,
         linkedin: str = None,
+        github: str = None,
+        portfolio: str = None,
         title: str = None
     ) -> Dict[str, Any]:
         """Save personal information for resume with comprehensive validation (summary will be generated later)"""
@@ -213,6 +215,8 @@ class FunctionHandlers:
             print(f"Phone: {phone}")
             print(f"Location: {location}")
             print(f"LinkedIn: {linkedin}")
+            print(f"GitHub: {github}")
+            print(f"Portfolio: {portfolio}")
             print(f"Title: {title}")
             
             # Validation: Check required fields
@@ -268,15 +272,19 @@ class FunctionHandlers:
                 return {"success": False, "error": f"Resume with ID {resume_id} not found for user {user_id}"}
             
             # Update personal info (summary will be added later)
-            resume.personal_info = {
+            existing = dict(resume.personal_info or {})
+            existing.update({
                 'full_name': full_name.strip(),
                 'email': email.strip(),
                 'phone': phone.strip() if phone else '',
                 'location': location.strip() if location else '',
-                'linkedin': linkedin.strip() if linkedin else '',
+                'linkedin': linkedin.strip() if linkedin else existing.get('linkedin', ''),
+                'github': github.strip() if github else existing.get('github', ''),
+                'portfolio': portfolio.strip() if portfolio else existing.get('portfolio', ''),
                 'title': title.strip() if title else '',
-                'summary': ''  # Will be populated later by save_summary function
-            }
+                'summary': existing.get('summary', ''),
+            })
+            resume.personal_info = existing
             
             # Update resume name if it's generic
             if resume.name in ["My Resume", "New Resume"]:

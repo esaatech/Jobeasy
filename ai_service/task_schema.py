@@ -28,6 +28,9 @@ TASK_SCHEMAS = {
                     'email': {'type': 'string', 'description': 'Email address'},
                     'phone': {'type': 'string', 'description': 'Phone number'},
                     'location': {'type': 'string', 'description': 'City, State/Country'},
+                    'linkedin': {'type': 'string', 'description': 'LinkedIn profile URL (optional)'},
+                    'github': {'type': 'string', 'description': 'GitHub profile URL (optional)'},
+                    'portfolio': {'type': 'string', 'description': 'Portfolio or personal website URL (optional)'},
                     'title': {'type': 'string', 'description': 'Professional title/position'}
                 },
                 'required': ['user_id', 'resume_id', 'full_name', 'email', 'phone', 'location', 'title'],

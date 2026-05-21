@@ -16,6 +16,7 @@
             <span class="hidden sm:inline" aria-hidden="true">|</span>
             <span>{{ resume_data.personal_info.phone }}</span>
         </div>
+        {% include 'resume_templates/includes/resume_contact_links.html' with layout='stacked' extra_class='text-slate-300' %}
     </header>
     <div class="px-4 sm:px-8 py-6 border border-t-0 border-slate-200 rounded-b-lg bg-white">
         {% if resume_data.personal_info.summary %}

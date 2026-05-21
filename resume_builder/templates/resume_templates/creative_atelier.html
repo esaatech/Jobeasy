@@ -9,6 +9,18 @@
     }
     .creative_atelier-template li { margin-bottom: 4px; }
     .creative_atelier-template p { margin-bottom: 8px; }
+
+    .creative_atelier-template .creative-atelier-contact-list {
+        list-style-type: disc;
+        list-style-position: outside;
+        margin-left: 0.75rem;
+        padding-left: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .creative_atelier-template .creative-atelier-contact-list li {
+        margin-bottom: 0.35rem;
+    }
     .creative_atelier-template {
         width: 100%;
         max-width: 100%;
@@ -129,7 +141,7 @@
         .creative_atelier-template .atelier-grid-md2 {
             grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
         }
-        .creative_atelier-template .atelier-contact-linkedin {
+        .creative_atelier-template .resume-contact-links {
             overflow: visible !important;
             text-overflow: clip !important;
             white-space: normal !important;
@@ -232,9 +244,9 @@
             <p class="text-center text-rose-800 font-semibold text-sm mb-4">{{ resume_data.personal_info.title|default_if_none:"" }}</p>
 
             <h3 class="text-xs uppercase tracking-wider text-rose-600 font-bold mb-3">Contact</h3>
-            <ul class="text-sm space-y-2 text-gray-700 mb-6">
+            <ul class="creative-atelier-contact-list text-sm text-gray-700 break-words">
                 {% if resume_data.personal_info.email %}
-                <li class="break-words">{{ resume_data.personal_info.email }}</li>
+                <li>{{ resume_data.personal_info.email }}</li>
                 {% endif %}
                 {% if resume_data.personal_info.phone %}
                 <li>{{ resume_data.personal_info.phone }}</li>
@@ -245,9 +257,7 @@
                 {% if resume_data.personal_info.street_address %}
                 <li class="text-gray-600 text-xs">{{ resume_data.personal_info.street_address }}</li>
                 {% endif %}
-                {% if resume_data.personal_info.linkedin %}
-                <li class="atelier-contact-linkedin truncate text-rose-800">{{ resume_data.personal_info.linkedin }}</li>
-                {% endif %}
+                {% include 'resume_templates/includes/resume_contact_links.html' with layout='list' extra_class='text-rose-800' %}
             </ul>
 
             <h3 class="text-xs uppercase tracking-wider text-slate-600 font-bold mb-3">Skills</h3>

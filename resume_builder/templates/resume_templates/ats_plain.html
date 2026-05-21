@@ -13,6 +13,7 @@
         <h1 class="text-2xl sm:text-3xl font-bold uppercase tracking-tight">{{ resume_data.personal_info.full_name }}</h1>
         {% if resume_data.personal_info.title %}<p class="text-base sm:text-lg mt-1">{{ resume_data.personal_info.title }}</p>{% endif %}
         <p class="text-sm mt-3">{{ resume_data.personal_info.email }} | {{ resume_data.personal_info.phone }}</p>
+        {% include 'resume_templates/includes/resume_contact_links.html' with extra_class='text-sm' %}
     </header>
 
     {% if resume_data.personal_info.summary %}

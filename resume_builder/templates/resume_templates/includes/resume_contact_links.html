@@ -1,0 +1,40 @@
+{% comment %}
+Optional profile links — render only when filled.
+Line 2: LinkedIn | GitHub (same row)
+Line 3: Portfolio (own row)
+
+layout: centered (default) | list | stacked
+list: one bullet per link (LinkedIn, GitHub, portfolio)
+extra_class: optional Tailwind classes for text styling
+{% endcomment %}
+{% with pi=resume_data.personal_info %}
+{% if pi.linkedin or pi.github or pi.portfolio %}
+{% if layout == 'list' %}
+{% if pi.linkedin %}
+<li class="resume-contact-links break-words {{ extra_class }}">{{ pi.linkedin }}</li>
+{% endif %}
+{% if pi.github %}
+<li class="resume-contact-links break-words {{ extra_class }}">{{ pi.github }}</li>
+{% endif %}
+{% if pi.portfolio %}
+<li class="resume-contact-links break-words {{ extra_class }}">{{ pi.portfolio }}</li>
+{% endif %}
+{% elif layout == 'stacked' %}
+{% if pi.linkedin or pi.github %}
+<p class="resume-contact-links mt-2 text-xs break-words {{ extra_class }}">{% if pi.linkedin %}{{ pi.linkedin }}{% endif %}{% if pi.linkedin and pi.github %} | {% endif %}{% if pi.github %}{{ pi.github }}{% endif %}</p>
+{% endif %}
+{% if pi.portfolio %}
+<p class="resume-contact-links mt-1 text-xs break-words {{ extra_class }}">{{ pi.portfolio }}</p>
+{% endif %}
+{% else %}
+<div class="resume-contact-links text-center mt-2 text-sm break-words {{ extra_class }}">
+{% if pi.linkedin or pi.github %}
+<p>{% if pi.linkedin %}{{ pi.linkedin }}{% endif %}{% if pi.linkedin and pi.github %} | {% endif %}{% if pi.github %}{{ pi.github }}{% endif %}</p>
+{% endif %}
+{% if pi.portfolio %}
+<p class="mt-1">{{ pi.portfolio }}</p>
+{% endif %}
+</div>
+{% endif %}
+{% endif %}
+{% endwith %}

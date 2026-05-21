@@ -10,6 +10,84 @@ from resume_builder.template_registry import (
 )
 
 
+class ContactLinksRenderTests(SimpleTestCase):
+    """Profile links: line 2 = LinkedIn | GitHub, line 3 = portfolio."""
+
+    TEMPLATE_IDS_INLINE = (
+        "professional",
+        "creative",
+        "executive",
+        "executive_portrait",
+        "ats_plain",
+        "portfolio",
+        "studio_folio",
+        "new_grad_ats",
+        "new_grad_profile",
+        "new_grad_projects",
+    )
+    TEMPLATE_IDS_LIST = (
+        "modern",
+        "creative_studio",
+        "creative_atelier",
+    )
+
+    def _base_resume_data(self, **link_overrides):
+        personal_info = {
+            "full_name": "Alex Chen",
+            "title": "Software Engineer",
+            "email": "alex@example.com",
+            "phone": "555-0100",
+            "summary": "<p>Summary</p>",
+        }
+        personal_info.update(link_overrides)
+        return augment_resume_dict_for_rendering(
+            {
+                "personal_info": personal_info,
+                "experience": [],
+                "education": [],
+                "skills": {"technical": [], "soft": [], "languages": []},
+                "additional": {"projects": "", "certifications": ""},
+            },
+            request=None,
+        )
+
+    def test_no_links_omits_contact_link_block(self):
+        resume_data = self._base_resume_data()
+        html = render_to_string(
+            "resume_templates/professional.html",
+            {"resume_data": resume_data},
+        )
+        self.assertNotIn("resume-contact-links", html)
+
+    def test_github_only_renders_on_line_two(self):
+        resume_data = self._base_resume_data(github="github.com/alex")
+        html = render_to_string(
+            "resume_templates/professional.html",
+            {"resume_data": resume_data},
+        )
+        self.assertIn("<p>github.com/alex</p>", html)
+
+    def test_all_links_render_linkedin_github_together_and_portfolio_separate(self):
+        resume_data = self._base_resume_data(
+            linkedin="linkedin.com/in/alex",
+            github="github.com/alex",
+            portfolio="alex.dev",
+        )
+        for tid in self.TEMPLATE_IDS_INLINE + self.TEMPLATE_IDS_LIST:
+            with self.subTest(template_id=tid):
+                html = render_to_string(
+                    f"resume_templates/{tid}.html",
+                    {"resume_data": resume_data},
+                )
+                self.assertIn("linkedin.com/in/alex", html)
+                self.assertIn("github.com/alex", html)
+                self.assertIn("alex.dev", html)
+                if tid in self.TEMPLATE_IDS_LIST:
+                    self.assertNotIn("linkedin.com/in/alex | github.com/alex", html)
+                else:
+                    self.assertIn("linkedin.com/in/alex | github.com/alex", html)
+
+
 class NewGradResumeTemplatesRenderTests(SimpleTestCase):
     """Smoke-test HTML for student/new-grad templates (no Playwright required)."""
 

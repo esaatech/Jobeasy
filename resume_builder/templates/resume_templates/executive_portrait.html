@@ -18,9 +18,7 @@
                     {% if resume_data.personal_info.email and resume_data.personal_info.phone %}<span class="hidden sm:inline" aria-hidden="true">|</span>{% endif %}
                     {% if resume_data.personal_info.phone %}<span>{{ resume_data.personal_info.phone }}</span>{% endif %}
                 </div>
-                {% if resume_data.personal_info.linkedin %}
-                <p class="mt-2 text-xs text-slate-400 break-words">{{ resume_data.personal_info.linkedin }}</p>
-                {% endif %}
+                {% include 'resume_templates/includes/resume_contact_links.html' with layout='stacked' extra_class='text-slate-400' %}
                 {% if resume_data.personal_info.location %}
                 <p class="mt-1 text-xs text-slate-400">{{ resume_data.personal_info.location }}</p>
                 {% endif %}

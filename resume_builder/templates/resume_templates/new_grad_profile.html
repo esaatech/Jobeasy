@@ -20,6 +20,7 @@
             <span>{{ resume_data.personal_info.location }}</span>
             {% endif %}
         </div>
+        {% include 'resume_templates/includes/resume_contact_links.html' with extra_class='text-sm text-gray-600' %}
     </header>
 
     {% if resume_data.personal_info.summary %}

@@ -21,7 +21,7 @@ def optimize_resume_for_job(job_description: str, resume_text: str):
         "no markdown, using the exact schema shown:\n\n"
         "{\n"
         '  "optimized_content": str,\n'
-        '  "personal_info": { "full_name": "...", "email": "...", "phone": "...", "location": "...", "linkedin": "..." },\n'
+        '  "personal_info": { "full_name": "...", "email": "...", "phone": "...", "location": "...", "linkedin": "...", "github": "...", "portfolio": "..." },\n'
         '  "experience": [ { "title": "...", "company": "...", "duration": "...", "description": "...", "achievements": ["..."] } ],\n'
         '  "education": [ { "degree": "...", "institution": "...", "year": "...", "gpa": "..." } ],\n'
         '  "skills": { "Category 1": ["Skill A", "Skill B"] },\n'
@@ -311,7 +311,7 @@ def parse_resume_from_text(resume_text: str):
         "You are an expert resume parser. Extract structured information from raw resume text. "
         "Return ONLY valid JSON (no markdown) with exactly these keys and nothing else:\n\n"
         "{\n"
-        '  "personal_info": { "full_name": "...", "email": "...", "phone": "...", "location": "...", "linkedin": "...", "summary": "..." },\n'
+        '  "personal_info": { "full_name": "...", "email": "...", "phone": "...", "location": "...", "linkedin": "...", "github": "...", "portfolio": "...", "summary": "..." },\n'
         '  "experience": [ { "title": "...", "company": "...", "start_date": "YYYY-MM", "end_date": "YYYY-MM or Present", "description": "...", "achievements": ["..."] } ],\n'
         '  "education": [ { "degree": "...", "institution": "...", "start_date": "YYYY-MM", "end_date": "YYYY-MM or Present", "gpa": "...", "description": "..." } ],\n'
         '  "skills": { "technical": ["Skill1", "Skill2"], "soft": ["Skill3", "Skill4"], "languages": ["English", "Spanish"] },\n'

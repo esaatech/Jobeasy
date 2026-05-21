@@ -104,6 +104,8 @@ def resume_data_and_template_from_wizard_payload(
         'location': raw_personal_info.get('location', ''),
         'street_address': raw_personal_info.get('street_address', ''),
         'linkedin': raw_personal_info.get('linkedin', ''),
+        'github': raw_personal_info.get('github', ''),
+        'portfolio': raw_personal_info.get('portfolio', ''),
     }
     if display_url:
         personal_info['profile_photo_display_url'] = display_url
@@ -1077,6 +1079,8 @@ def get_localized_sample_data(locale='en-US'):
                 'location': 'Austin, TX',
                 'street_address': '',
                 'linkedin': 'https://www.linkedin.com/in/sarahjohnson',
+                'github': 'https://github.com/sarahjohnson',
+                'portfolio': 'https://sarahjohnson.dev',
                 'profile_photo_display_url': 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=320&q=72',
                 'summary': 'Experienced software engineer with 5+ years developing scalable web applications. Passionate about clean code, user experience, and emerging technologies.'
             },
@@ -1676,6 +1680,10 @@ def save_personal_info(request):
                 )
             if 'linkedin' in data:
                 personal_info['linkedin'] = data.get('linkedin', personal_info.get('linkedin', ''))
+            if 'github' in data:
+                personal_info['github'] = data.get('github', personal_info.get('github', ''))
+            if 'portfolio' in data:
+                personal_info['portfolio'] = data.get('portfolio', personal_info.get('portfolio', ''))
             if 'summary' in data:
                 personal_info['summary'] = data.get('summary', personal_info.get('summary', ''))
             resume.name = data.get('resume_name', resume.name)
@@ -2126,6 +2134,8 @@ def create_resume_from_data(request):
                 'location': raw_personal_info.get('location', ''),
                 'street_address': raw_personal_info.get('street_address', ''),
                 'linkedin': raw_personal_info.get('linkedin', ''),
+                'github': raw_personal_info.get('github', ''),
+                'portfolio': raw_personal_info.get('portfolio', ''),
             }
             if display_url:
                 personal_info['profile_photo_display_url'] = display_url

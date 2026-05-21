@@ -129,6 +129,10 @@ def _format_resume_content(resume):
             content_parts.append(f"Location: {personal['location']}")
         if personal.get('linkedin'):
             content_parts.append(f"LinkedIn: {personal['linkedin']}")
+        if personal.get('github'):
+            content_parts.append(f"GitHub: {personal['github']}")
+        if personal.get('portfolio'):
+            content_parts.append(f"Portfolio: {personal['portfolio']}")
         content_parts.append("")
     
     # Professional Summary

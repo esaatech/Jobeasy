@@ -12,7 +12,9 @@ class PersonalInfo(BaseModel):
     email: str = Field(description="Email address")
     phone: str = Field(description="Phone number")
     location: str = Field(description="City, State/Country")
-    linkedin: str = Field(description="LinkedIn profile URL")
+    linkedin: str = Field(default="", description="LinkedIn profile URL")
+    github: str = Field(default="", description="GitHub profile URL")
+    portfolio: str = Field(default="", description="Personal portfolio or website URL")
     summary: str = Field(description="Professional summary or objective")
     title: str = Field(description="Professional title/position (e.g., 'Senior Software Engineer', 'Marketing Manager')")
 
@@ -77,7 +79,7 @@ def format_resume_basic(resume_text: str) -> ResumeDataBasic:
         "Extract structured information from raw resume text with the following guidelines:\n\n"
         
         "PERSONAL INFORMATION:\n"
-        "- Extract full name, email, phone, location, LinkedIn URL\n"
+        "- Extract full name, email, phone, location, LinkedIn URL, GitHub URL, and portfolio URL when present\n"
         "- For professional title: If explicitly provided, use it. If not provided, deduce the most appropriate title "
         "based on the candidate's most recent or most prominent job experience, skills, and overall career level\n"
         "- The title should be specific and professional (e.g., 'Senior Software Engineer', 'Marketing Manager', 'Project Coordinator')\n"
@@ -286,7 +288,7 @@ def format_resume_single_call(resume_text: str) -> ResumeData:
         "INSTRUCTION: Follow this structured step-by-step process to extract ALL resume information:\n\n"
         
         "STEP 1 - PERSONAL INFORMATION EXTRACTION:\n"
-        "- Extract: full name, email, phone, location, LinkedIn URL\n"
+        "- Extract: full name, email, phone, location, LinkedIn URL, GitHub URL, portfolio URL\n"
         "- For professional title: If explicitly provided, use it. If not, deduce based on:\n"
         "  * Most recent job experience and seniority level\n"
         "  * Skills and technologies mentioned\n"

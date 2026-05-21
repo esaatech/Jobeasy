@@ -55,7 +55,7 @@
         .studio_folio-template {
             overflow: visible !important;
         }
-        .studio_folio-template .folio-contact-linkedin {
+        .studio_folio-template .resume-contact-links {
             overflow: visible !important;
             text-overflow: clip !important;
             white-space: normal !important;
@@ -75,9 +75,7 @@
             {% if resume_data.personal_info.phone %}<span>{{ resume_data.personal_info.phone }}</span>{% endif %}
             {% if resume_data.personal_info.location %}<span>{{ resume_data.personal_info.location }}</span>{% endif %}
         </div>
-        {% if resume_data.personal_info.linkedin %}
-        <p class="folio-contact-linkedin mt-2 text-sm text-orange-800 truncate max-w-xl mx-auto">{{ resume_data.personal_info.linkedin }}</p>
-        {% endif %}
+        {% include 'resume_templates/includes/resume_contact_links.html' with extra_class='text-sm text-orange-800 max-w-xl mx-auto' %}
     </header>
 
     {% if resume_data.additional.projects %}

@@ -24,6 +24,26 @@
             <input type="tel" name="phone" value="{{ resume_instance.personal_info.phone|default:'' }}"
                 class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
         </div>
+        <div id="profile-link-fields" class="md:col-span-2 space-y-6">
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">LinkedIn URL <span class="text-gray-400 font-normal">(optional)</span></label>
+                <input type="text" name="linkedin" value="{{ resume_instance.personal_info.linkedin|default:'' }}"
+                    placeholder="https://linkedin.com/in/..."
+                    class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">GitHub URL <span class="text-gray-400 font-normal">(optional)</span></label>
+                <input type="text" name="github" value="{{ resume_instance.personal_info.github|default:'' }}"
+                    placeholder="https://github.com/..."
+                    class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-gray-700 mb-2">Portfolio URL <span class="text-gray-400 font-normal">(optional)</span></label>
+                <input type="text" name="portfolio" value="{{ resume_instance.personal_info.portfolio|default:'' }}"
+                    placeholder="https://..."
+                    class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
+            </div>
+        </div>
         <div id="extended-contact-fields"
              class="md:col-span-2 space-y-6 {% if not caps.supports_extended_contact %}hidden{% endif %}">
             <div>
@@ -35,12 +55,6 @@
             <div>
                 <label class="block text-sm font-bold text-gray-700 mb-2">Street address <span class="text-gray-400 font-normal">(optional)</span></label>
                 <input type="text" name="street_address" value="{{ resume_instance.personal_info.street_address|default:'' }}"
-                    class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
-            </div>
-            <div>
-                <label class="block text-sm font-bold text-gray-700 mb-2">LinkedIn or portfolio URL</label>
-                <input type="text" name="linkedin" value="{{ resume_instance.personal_info.linkedin|default:'' }}"
-                    placeholder="https://"
                     class="w-full p-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500 focus:ring-opacity-10">
             </div>
         </div>

@@ -59,6 +59,8 @@ class ResumeBuilder {
             location: document.querySelector('[name="location"]')?.value || '',
             street_address: document.querySelector('[name="street_address"]')?.value || '',
             linkedin: document.querySelector('[name="linkedin"]')?.value || '',
+            github: document.querySelector('[name="github"]')?.value || '',
+            portfolio: document.querySelector('[name="portfolio"]')?.value || '',
             template_id: document.querySelector('input[name="template_id"]:checked')?.value || 'professional'
         };
         if (prevAnonPhoto) {
