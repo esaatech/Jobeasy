@@ -4,7 +4,7 @@ from django.contrib import admin
 from django.core.management.base import BaseCommand, CommandError
 from django.db import connection
 
-from ai_service.models import AIModel, JobFitGateSettings, ResumeJobEvaluation
+from ai_service.models import AIModel, JobFitGateSettings, ResumeJobEvaluation, WhyShouldIApplyPlayground
 from ai_service.platform_version import AI_PLATFORM_BUILD
 
 
@@ -28,6 +28,7 @@ class Command(BaseCommand):
             "0003_aimodel_and_generation_fields",
             "0004_resumejobevaluation_label_fields",
             "0005_job_fit_gate_and_evaluation_user",
+            "0006_why_should_i_apply_playground",
         }
         with connection.cursor() as cursor:
             cursor.execute(
@@ -47,7 +48,7 @@ class Command(BaseCommand):
         self.stdout.write(f"  migrations: {len(applied)} applied (required OK)")
 
     def _check_admin_registration(self) -> None:
-        expected = {AIModel, JobFitGateSettings, ResumeJobEvaluation}
+        expected = {AIModel, JobFitGateSettings, ResumeJobEvaluation, WhyShouldIApplyPlayground}
         missing = [m.__name__ for m in expected if m not in admin.site._registry]
         if missing:
             raise CommandError(

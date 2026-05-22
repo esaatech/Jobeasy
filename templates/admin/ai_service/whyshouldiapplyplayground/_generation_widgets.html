@@ -1,0 +1,264 @@
+{% load i18n static %}
+<div id="why-apply-widget" class="module" style="margin-bottom:20px;">
+  <h2>{% translate "Generation" %}</h2>
+  <div class="form-row" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <button type="button" id="why-apply-submit" class="button default">
+      {% translate "Get answer" %}
+    </button>
+    {% if persist_url %}
+    <button type="button" id="why-apply-persist" class="button" disabled
+            title="{% translate 'Stores the last Gemini result into this saved record.' %}">
+      {% translate "Save last answer to record" %}
+    </button>
+    {% endif %}
+    <span id="why-apply-spinner" style="display:none;color:#417690;font-weight:600;">
+      {% translate "Running…" %}
+    </span>
+  </div>
+  {% if pending_field %}{{ pending_field }}{% endif %}
+  <p class="help" style="margin-top:10px;margin-bottom:0;">
+    {% blocktranslate trimmed %}
+      Model and temperature come from the selected prompt configuration.
+      Output is a plain application answer — no greeting or sign-off.
+      Django &quot;Save&quot; stores inputs and the last successful preview.
+    {% endblocktranslate %}
+  </p>
+  <div id="why-apply-message" style="margin-top:12px;"></div>
+</div>
+
+<script>
+(function () {
+  var generateUrl = "{{ generate_url|escapejs }}";
+  var persistUrl = "{{ persist_url|default:''|escapejs }}";
+  var iconYes = "{% static 'admin/img/icon-yes.svg' %}";
+  var iconNo = "{% static 'admin/img/icon-no.svg' %}";
+
+  function getCookie(name) {
+    var v = null;
+    if (document.cookie) {
+      var parts = document.cookie.split(";");
+      for (var i = 0; i < parts.length; i++) {
+        var cookie = parts[i].trim();
+        if (cookie.indexOf(name + "=") === 0) {
+          v = decodeURIComponent(cookie.slice(name.length + 1));
+          break;
+        }
+      }
+    }
+    return v;
+  }
+  var csrftoken = getCookie("csrftoken");
+
+  function setBusy(on) {
+    var btn = document.getElementById("why-apply-submit");
+    var sp = document.getElementById("why-apply-spinner");
+    if (btn) { btn.disabled = !!on; }
+    if (sp) { sp.style.display = on ? "inline" : "none"; }
+  }
+
+  function esc(s) {
+    var d = document.createElement("div");
+    d.textContent = s == null ? "" : String(s);
+    return d.innerHTML;
+  }
+
+  function setRo(id, html) {
+    var el = document.getElementById(id);
+    if (el) { el.innerHTML = html; }
+  }
+
+  function dash() {
+    return '<span class="why-apply-empty">—</span>';
+  }
+
+  function succeededIcon(ok) {
+    if (ok === true) {
+      return '<img src="' + iconYes + '" alt="True">';
+    }
+    if (ok === false) {
+      return '<img src="' + iconNo + '" alt="False">';
+    }
+    return dash();
+  }
+
+  function answerPre(bodyStr) {
+    return (
+      '<pre style="white-space:pre-wrap;font-size:13px;max-height:520px;' +
+      'overflow:auto;background:#f8f9fa;padding:14px;border-radius:6px;margin:0;">' +
+      esc(bodyStr) +
+      "</pre>"
+    );
+  }
+
+  function updateReadonlyFields(payload) {
+    var ok = !!(payload && payload.success);
+
+    setRo("why-apply-ro-succeeded", succeededIcon(ok));
+
+    if (ok && payload.answer_text) {
+      setRo("why-apply-ro-answer-text", answerPre(String(payload.answer_text)));
+    } else if (!ok) {
+      var rawFail = payload && payload.raw_text ? String(payload.raw_text).substring(0, 14000) : "";
+      if (rawFail) {
+        setRo(
+          "why-apply-ro-answer-text",
+          '<pre style="white-space:pre-wrap;font-size:11px;max-height:280px;overflow:auto;' +
+          'background:#fff8f8;padding:12px;border-radius:6px;border:1px solid #ebb;margin:0;">' +
+          esc(rawFail) +
+          "</pre>"
+        );
+      } else {
+        setRo("why-apply-ro-answer-text", "<em>No answer yet.</em>");
+      }
+    }
+
+    var err = "";
+    if (!ok) {
+      err = payload && payload.error ? String(payload.error).trim() : "";
+    }
+    if (err) {
+      setRo(
+        "why-apply-ro-error-message",
+        '<span style="color:#ba2121;white-space:pre-wrap;">' + esc(err) + "</span>"
+      );
+    } else if (ok) {
+      setRo("why-apply-ro-error-message", dash());
+    }
+
+    var model = payload && payload.gemini_model ? String(payload.gemini_model).trim() : "";
+    setRo("why-apply-ro-gemini-model", model ? esc(model) : dash());
+
+    var slug = payload && payload.instruction_slug ? String(payload.instruction_slug).trim() : "";
+    setRo("why-apply-ro-instruction-slug", slug ? esc(slug) : dash());
+
+    var temp = payload && payload.temperature != null && payload.temperature !== ""
+      ? String(payload.temperature)
+      : "";
+    setRo("why-apply-ro-temperature", temp ? esc(temp) : dash());
+  }
+
+  var lastResult = null;
+
+  function updatePersist(enabled) {
+    var pb = document.getElementById("why-apply-persist");
+    if (!pb || !persistUrl) { return; }
+    pb.disabled = !enabled;
+  }
+
+  function flashMsg(ok, txt) {
+    var m = document.getElementById("why-apply-message");
+    if (!m) { return; }
+    var cls = ok ? "success" : "error";
+    m.innerHTML = '<ul class="messagelist"><li class="' + cls + '">' + esc(txt) + "</li></ul>";
+  }
+
+  function showResults(payload) {
+    lastResult = payload;
+    updatePersist(!!persistUrl && payload && payload.success);
+    updateReadonlyFields(payload);
+
+    if (payload && payload.success && payload.answer_text) {
+      flashMsg(true, "{% translate "Answer generated. See Last run results below." %}");
+      return;
+    }
+
+    var errText = payload && payload.error ? payload.error : "{% translate "Generation failed." %}";
+    flashMsg(false, errText);
+  }
+
+  var runBtn = document.getElementById("why-apply-submit");
+  if (runBtn) {
+    runBtn.addEventListener("click", function () {
+      var jdEl = document.getElementById("id_job_description");
+      var rtEl = document.getElementById("id_resume_text");
+      if (!jdEl || !rtEl) { flashMsg(false, "{% translate "Form fields not found." %}"); return; }
+      var jd = (jdEl.value || "").trim();
+      var rt = (rtEl.value || "").trim();
+      if (!jd || !rt) {
+        flashMsg(false, "{% translate "Enter both job description and resume text first." %}");
+        return;
+      }
+
+      var fd = new URLSearchParams();
+      fd.append("job_description", jdEl.value);
+      fd.append("resume_text", rtEl.value);
+      var pc = document.getElementById("id_prompt_config");
+      if (pc && pc.value) { fd.append("prompt_config", pc.value); }
+
+      setBusy(true);
+      document.getElementById("why-apply-message").innerHTML = "";
+      updatePersist(false);
+
+      fetch(generateUrl, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+          "X-CSRFToken": csrftoken || "",
+          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+          "Accept": "application/json"
+        },
+        body: fd.toString()
+      }).then(function (r) {
+        return r.json().then(function (j) {
+          if (!r.ok) {
+            showResults(j && j.error ? j : { success: false, error: r.statusText, raw_text: "" });
+          } else {
+            showResults(j);
+          }
+        });
+      }).catch(function (e) {
+        showResults({ success: false, error: e && e.message ? e.message : String(e), raw_text: "" });
+      }).finally(function () {
+        setBusy(false);
+      });
+    });
+  }
+
+  var adminForm = document.getElementById("whyshouldiapplyplayground_form");
+  if (adminForm) {
+    adminForm.addEventListener("submit", function () {
+      var pendingEl = document.getElementById("id_pending_generation_result");
+      if (!pendingEl) { return; }
+      if (lastResult && lastResult.success) {
+        try {
+          pendingEl.value = JSON.stringify(lastResult);
+        } catch (e) {
+          pendingEl.value = "";
+        }
+      }
+    });
+  }
+
+  var persistBtn = document.getElementById("why-apply-persist");
+  if (persistBtn && persistUrl) {
+    persistBtn.addEventListener("click", function () {
+      if (!lastResult || !lastResult.success) { return; }
+      persistBtn.disabled = true;
+      fetch(persistUrl, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+          "X-CSRFToken": csrftoken || "",
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({ result: lastResult })
+      }).then(function (r) {
+        return r.json().then(function (j) {
+          if (!r.ok || !j.ok) {
+            flashMsg(false, (j && j.error) ? j.error : "{% translate "Could not persist answer." %}");
+            updatePersist(true);
+          } else {
+            window.location.reload();
+          }
+        });
+      }).catch(function (e) {
+        flashMsg(false, String(e));
+        updatePersist(true);
+      });
+    });
+  }
+})();
+</script>

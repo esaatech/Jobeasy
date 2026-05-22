@@ -12,7 +12,7 @@ Use this module for app/domain code; keep transport details in ``gemini_service`
 3. **Tool calling** — :func:`gemini_generate_with_tools_sync`; pass declarations shaped like
    ``task_schema`` tool ``parameters`` blocks (``name``, ``description``, ``parameters`` dict).
 
-Domain services (e.g. ``resume_job_evaluation``) compose these; schemas live in ``gemini_schema``.
+Domain services (e.g. ``resume_job_evaluation``, ``why_should_i_apply``) compose these; structured schemas live in ``gemini_schema``.
 """
 
 from __future__ import annotations

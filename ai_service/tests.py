@@ -6,8 +6,8 @@ from django.contrib.messages.storage.fallback import FallbackStorage
 from django.test import RequestFactory, SimpleTestCase, TestCase
 from pydantic import ValidationError
 
-from ai_service.admin import ResumeJobEvaluationAdmin
-from ai_service.forms import ResumeJobEvaluationAdminForm
+from ai_service.admin import ResumeJobEvaluationAdmin, WhyShouldIApplyPlaygroundAdmin
+from ai_service.forms import ResumeJobEvaluationAdminForm, WhyShouldIApplyPlaygroundAdminForm
 from ai_service.generation_config import resolve_generation_config
 from ai_service.gemini_schema import ResumeJobEvaluationPayload
 from ai_service.fit_gate import classify_fit_tier, evaluation_summary, tier_allows_auto_proceed
@@ -17,6 +17,7 @@ from ai_service.models import (
     AIService,
     JobFitGateSettings,
     ResumeJobEvaluation,
+    WhyShouldIApplyPlayground,
 )
 from ai_service.resume_job_evaluation import (
     RESUME_JOB_EVALUATION_SERVICE_SLUG,
@@ -24,6 +25,15 @@ from ai_service.resume_job_evaluation import (
     parse_pending_evaluation_result,
     persist_resume_job_evaluation_result,
 )
+from ai_service.why_should_i_apply import (
+    WHY_SHOULD_I_APPLY_SERVICE_SLUG,
+    build_user_prompt,
+    generate_why_should_i_apply,
+    get_default_prompt_config as get_why_apply_default_prompt_config,
+    parse_pending_generation_result,
+    persist_why_should_i_apply_result,
+)
+from ai_service.why_should_i_apply_prompts import WHY_SHOULD_I_APPLY_INSTRUCTION_V1_0
 from ai_service.gemini_client import (
     gemini_generate_structured_sync,
     gemini_generate_text_sync,
@@ -506,3 +516,161 @@ class GenerationConfigResolverTests(TestCase):
         gen = resolve_generation_config(self.prompt)
         self.assertEqual(gen.model_id, "gemini-2.5-flash")
         self.assertEqual(gen.temperature, 0.4)
+
+
+class WhyShouldIApplyPromptTests(SimpleTestCase):
+    def test_instruction_forbids_letter_framing(self):
+        text = WHY_SHOULD_I_APPLY_INSTRUCTION_V1_0.lower()
+        self.assertIn("not cover letters", text)
+        self.assertIn("no greeting", text)
+        self.assertIn("no sign-off", text)
+
+    def test_build_user_prompt_includes_inputs(self):
+        block = build_user_prompt("Senior Dev at Acme", "Jane Doe\nPython expert")
+        self.assertIn("Senior Dev at Acme", block)
+        self.assertIn("Jane Doe", block)
+
+
+class WhyShouldIApplyGenerationTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.flash = AIModel.objects.create(
+            provider=AIModel.Provider.GEMINI,
+            model_id="gemini-2.5-flash",
+            display_name="Flash",
+            is_active=True,
+        )
+        cls.service = AIService.objects.create(
+            slug=WHY_SHOULD_I_APPLY_SERVICE_SLUG,
+            name="Why Should I Apply",
+            is_active=True,
+        )
+        cls.prompt = AIPromptConfiguration.objects.create(
+            service=cls.service,
+            name="v1",
+            slug="v1-0",
+            system_prompt=WHY_SHOULD_I_APPLY_INSTRUCTION_V1_0,
+            ai_model=cls.flash,
+            temperature=0.55,
+            is_default=True,
+            is_active=True,
+        )
+
+    def test_get_default_prompt_config(self):
+        pc = get_why_apply_default_prompt_config()
+        self.assertIsNotNone(pc)
+        self.assertEqual(pc.slug, "v1-0")
+
+    def test_generate_fails_without_prompt(self):
+        AIPromptConfiguration.objects.all().delete()
+        result = generate_why_should_i_apply("jd", "resume")
+        self.assertFalse(result["success"])
+        self.assertIn("setup_why_should_i_apply", result["error"])
+
+    def test_parse_pending_generation_result(self):
+        payload = json.dumps(
+            {
+                "success": True,
+                "answer_text": "I bring six years of experience.",
+                "error": None,
+                "raw_text": "I bring six years of experience.",
+                "gemini_model": "gemini-2.5-flash",
+                "instruction_slug": "v1-0",
+            }
+        )
+        parsed = parse_pending_generation_result(payload)
+        self.assertIsNotNone(parsed)
+        self.assertEqual(parsed["answer_text"], "I bring six years of experience.")
+        self.assertIsNone(parse_pending_generation_result('{"success": false}'))
+
+
+class WhyShouldIApplyPlaygroundPersistTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = get_user_model().objects.create_superuser(
+            username="why_apply_admin",
+            email="why@example.com",
+            password="testpass123",
+        )
+        cls.service, _ = AIService.objects.get_or_create(
+            slug=WHY_SHOULD_I_APPLY_SERVICE_SLUG,
+            defaults={"name": "Why Should I Apply", "is_active": True},
+        )
+        cls.prompt, _ = AIPromptConfiguration.objects.get_or_create(
+            service=cls.service,
+            slug="v1-0",
+            defaults={
+                "name": "v1",
+                "system_prompt": "test",
+                "is_default": True,
+                "is_active": True,
+            },
+        )
+
+    def _request_with_messages(self):
+        request = RequestFactory().post("/")
+        request.user = self.user
+        request.session = "session"
+        request._messages = FallbackStorage(request)
+        return request
+
+    def _generation_result(self) -> dict:
+        return {
+            "success": True,
+            "answer_text": "I bring proven full-stack experience aligned with this role.",
+            "error": None,
+            "raw_text": "I bring proven full-stack experience aligned with this role.",
+            "gemini_model": "gemini-2.5-flash",
+            "ai_model_id": None,
+            "temperature": 0.55,
+            "instruction_slug": "v1-0",
+            "prompt_config_id": None,
+        }
+
+    def test_persist_result(self):
+        obj = WhyShouldIApplyPlayground.objects.create(
+            job_description="jd",
+            resume_text="rt",
+        )
+        persist_why_should_i_apply_result(
+            pk=obj.pk,
+            result=self._generation_result(),
+            prompt_config=None,
+            fallback_gemini_model_id="gemini-2.5-flash",
+        )
+        obj.refresh_from_db()
+        self.assertTrue(obj.succeeded)
+        self.assertIn("full-stack", obj.answer_text)
+        self.assertEqual(obj.instruction_slug, "v1-0")
+        self.assertEqual(obj.temperature_used, 0.55)
+
+    def test_save_model_persists_pending_generation(self):
+        obj = WhyShouldIApplyPlayground.objects.create(
+            job_description="jd",
+            resume_text="rt",
+            succeeded=False,
+            error_message="old",
+        )
+        pending = json.dumps(self._generation_result())
+        form = WhyShouldIApplyPlaygroundAdminForm(
+            data={
+                "name": "PM role test",
+                "description": "Acme application",
+                "job_description": "jd",
+                "resume_text": "rt",
+                "prompt_config": self.prompt.pk,
+                "pending_generation_result": pending,
+            },
+            instance=obj,
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+
+        request = self._request_with_messages()
+        admin = WhyShouldIApplyPlaygroundAdmin(WhyShouldIApplyPlayground, site)
+        admin.save_model(request, obj, form, change=True)
+
+        obj.refresh_from_db()
+        self.assertEqual(obj.name, "PM role test")
+        self.assertTrue(obj.succeeded)
+        self.assertIn("full-stack", obj.answer_text)
+        self.assertEqual(obj.error_message, "")

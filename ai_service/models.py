@@ -284,3 +284,111 @@ class ResumeJobEvaluation(models.Model):
             return f"Evaluation {self.pk} [draft] {self.recommendation or ''}".strip()
         status = "ok" if self.succeeded else "fail"
         return f"Evaluation {self.pk} [{status}] {self.recommendation or ''}".strip()
+
+
+class WhyShouldIApplyPlayground(models.Model):
+    """
+    Admin playground for "Why should we hire you?" application answers.
+
+    Mirrors ResumeJobEvaluation: test prompt variants with JD + resume inputs
+    before wiring dashboard generation.
+    """
+
+    name = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Short label for this run (e.g. “Acme PM role test”).",
+    )
+    description = models.TextField(
+        blank=True,
+        help_text="What you are testing—prompt version, resume variant, job source, etc.",
+    )
+
+    user = models.ForeignKey(
+        "auth.User",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="why_should_i_apply_playgrounds",
+    )
+    resume = models.ForeignKey(
+        "resume_builder.Resume",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="why_should_i_apply_playgrounds",
+    )
+    job_application = models.ForeignKey(
+        "dashboard.JobApplication",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="why_should_i_apply_playgrounds",
+    )
+
+    job_description = models.TextField()
+    resume_text = models.TextField()
+    prompt_config = models.ForeignKey(
+        AIPromptConfiguration,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="why_should_i_apply_playgrounds",
+    )
+    ai_model = models.ForeignKey(
+        AIModel,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="why_should_i_apply_playgrounds",
+        help_text="Model catalog row used for this run.",
+    )
+    gemini_model = models.CharField(
+        max_length=128,
+        blank=True,
+        help_text="Gemini model id used for this run (snapshot).",
+    )
+    temperature_used = models.FloatField(
+        null=True,
+        blank=True,
+        help_text="Temperature used for this run.",
+    )
+
+    succeeded = models.BooleanField(default=False)
+    error_message = models.TextField(blank=True)
+    answer_text = models.TextField(
+        blank=True,
+        help_text="Generated application answer (plain text, no letter framing).",
+    )
+    instruction_slug = models.SlugField(
+        max_length=80,
+        blank=True,
+        help_text="Snapshot of prompt_configuration.slug used for versioning.",
+    )
+
+    raw_response_text = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Why should I apply playground"
+        verbose_name_plural = "Why should I apply playground"
+
+    def __str__(self) -> str:
+        label = (self.name or "").strip()
+        if self.pk is None:
+            return label or "Playground (new)"
+        if label:
+            status = "ok" if self.succeeded else "fail" if self.error_message else "draft"
+            return f"{label} [{status}]"
+        no_run_yet = (
+            not (self.answer_text or "").strip()
+            and not (self.raw_response_text or "").strip()
+            and not (self.error_message or "").strip()
+        )
+        if no_run_yet:
+            return f"Playground {self.pk} [draft]"
+        status = "ok" if self.succeeded else "fail"
+        return f"Playground {self.pk} [{status}]"
