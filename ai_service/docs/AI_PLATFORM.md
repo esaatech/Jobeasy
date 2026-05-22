@@ -33,7 +33,7 @@ For legacy OpenAI parsing/assistant notes, see [`../README.md`](../README.md). T
 | **AIPromptConfiguration** | Versioned system prompts + default model/temperature per variant | Used for cover letter, optimization, evaluation | A/B prompts, strict vs pragmatic evaluators |
 | **AIModel** | Catalog of provider + `model_id` (e.g. `gemini-2.5-pro`, `gpt-4o`) | Gemini + OpenAI enum; runtime is Gemini-first for eval | Claude and others; provider-specific clients |
 | **Structured output** | Pydantic schemas validated before persist | `ResumeJobEvaluationPayload` (Gemini) | One schema module per structured task |
-| **Run records** | Audit trail + user-facing history | `ResumeJobEvaluation` (admin playground) | User-scoped runs linked to applications |
+| **Run records** | Audit trail + user-facing history | `ResumeJobEvaluation`, `WhyShouldIApplyPlayground` (admin); `WhyShouldIApplyAnswer` (dashboard) | User-scoped runs linked to applications |
 
 **Principle:** Code wires *how* to call AI (client, schema, persistence). Admins and seeds define *what* to say (prompt) and *which* model to use (catalog + prompt FK).
 
@@ -405,7 +405,7 @@ Stricter of score-based and recommendation-based tiers wins.
 | State | `JobApplication.status` | List card | Detail page |
 |-------|-------------------------|-----------|-------------|
 | **Fit review** | `fit_review` | Amber border; score · recommendation · opt. potential; **Review fit** | [`job_application_fit_review.html`](../dashboard/templates/dashboard/job_application_fit_review.html) — full summary, gaps/strengths, **Generate resume & cover letter** |
-| **Completed** | `completed` | Green check; **score chip only** (if eval linked) | [`job_application_detail.html`](../dashboard/templates/dashboard/job_application_detail.html) — 3-metric hero at top, then company/email/JD |
+| **Completed** | `completed` | Green check; **score chip only** (if eval linked) | [`job_application_detail.html`](../dashboard/templates/dashboard/job_application_detail.html) — 3-metric hero, company/email/JD, **Documents** (resume, cover letter, **Why should we hire you?**) |
 | **Completed** (no eval) | `completed` | Unchanged | Unchanged |
 
 Display helpers: `evaluation_summary()` in `fit_gate.py`; orchestration in `dashboard_job_fit.py`; views in `dashboard/views.py`.
@@ -431,6 +431,57 @@ Display helpers: `evaluation_summary()` in `fit_gate.py`; orchestration in `dash
 
 See also [`docs/architecture/dashboard-job-application-pipeline.md`](../../docs/architecture/dashboard-job-application-pipeline.md).
 
+### Why should I apply (implemented)
+
+Generates a **plain application-field answer** to “Why should we hire you?” — not a cover letter (no greeting, no sign-off). Uses **Gemini plain text** via `gemini_generate_text_sync`, not structured JSON.
+
+#### Flow (job application detail page)
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Detail as job_application_detail
+    participant API as POST generate-why-apply
+    participant Svc as dashboard_why_should_i_apply
+    participant Gen as why_should_i_apply.generate
+
+    User->>Detail: Documents → Generate
+    Detail->>API: POST (CSRF)
+    API->>Svc: run_why_should_i_apply_for_application
+    Svc->>Gen: JD + resume text + default prompt v1-0
+    Gen-->>Svc: answer_text + metadata
+    Svc->>Svc: WhyShouldIApplyAnswer + JobApplication FK
+    API-->>Detail: JSON content
+    User->>Detail: Copy or Download .txt
+```
+
+| Endpoint | Purpose |
+|----------|---------|
+| `POST /dashboard/job-applications/<id>/generate-why-apply/` | Generate or regenerate answer (requires linked resume + job description) |
+| `GET /dashboard/job-applications/<id>/download-why-apply/` | Download completed answer as `.txt` |
+
+Copy uses the browser clipboard API on the detail page (no separate endpoint).
+
+#### Models and seeds
+
+| Artifact | Notes |
+|----------|--------|
+| `AIService.slug = why_should_i_apply` | Product capability |
+| `AIPromptConfiguration.slug = v1-0` | Default prompt (`is_default=True`); version via slug |
+| `WhyShouldIApplyPlayground` | Admin-only prompt testing (mirrors resume-job evaluations) |
+| `WhyShouldIApplyAnswer` | User-facing persisted answer (`content`, `status`, prompt/model snapshots) |
+| `JobApplication.why_should_i_apply_answer` | FK from dashboard application to answer row |
+| `setup_why_should_i_apply` | Seeds service + v1-0 prompt (run after `setup_ai_models`) |
+
+#### Code entry points
+
+| Function | Module |
+|----------|--------|
+| `generate_why_should_i_apply()` | `why_should_i_apply.py` |
+| `run_why_should_i_apply_for_application()` | `dashboard_why_should_i_apply.py` |
+| `generate_why_should_i_apply` / `download_why_should_i_apply` | `dashboard/views.py` |
+| Instruction source | `why_should_i_apply_prompts.py` |
+
 ### Future dashboard ideas (not built)
 
 | UI section | JSON source |
@@ -444,6 +495,7 @@ See also [`docs/architecture/dashboard-job-application-pipeline.md`](../../docs/
 | Service slug (examples) | Output style | Schema home |
 |-------------------------|--------------|-------------|
 | `resume_job_evaluation` | Structured JSON | `gemini_schema.py` |
+| `why_should_i_apply` | Plain text (application answer) | — |
 | `cover_letter` | Text | — |
 | `resume_optimization` | Text / JSON (legacy) | — |
 | Future: `interview_prep` | Structured Q&A | TBD |
@@ -461,10 +513,12 @@ Each new structured task: add Pydantic model → document in prompt → seed `AI
 | Edit evaluator instructions | **AI Prompt Configurations** → service “Resume-to-Job Evaluation” |
 | Change default model/temperature | Same row → `ai_model`, `temperature` |
 | Add Gemini/OpenAI catalog entries | **AI models** |
-| Run manual tests | **Resume-job evaluations** (playground) |
+| Run manual eval tests | **Resume-job evaluations** (playground) |
+| Run manual why-apply tests | **Why should I apply playground** |
 | Tune dashboard gate thresholds / production prompt | **Job fit gate settings** (singleton) |
+| Edit why-apply instructions | **AI Prompt Configurations** → service “Why Should I Apply” |
 
-**Deploy verification:** `entrypoint.sh` runs `setup_ai_models`, `setup_resume_job_evaluation`, `setup_job_fit_gate`, then `check_ai_platform`. Admin header shows `AI platform <build>`. Under **AI SERVICE**: **AI models**, **AI Prompt Configurations**, **Job fit gate settings**, **Resume-job evaluations**.
+**Deploy verification:** `entrypoint.sh` runs `setup_ai_models`, `setup_resume_job_evaluation`, `setup_job_fit_gate`, `setup_why_should_i_apply`, then `check_ai_platform`. Admin header shows `AI platform <build>`. Under **AI SERVICE**: **AI models**, **AI Prompt Configurations**, **Job fit gate settings**, **Resume-job evaluations**, **Why should I apply playground**.
 
 ### Playground workflow
 
@@ -497,7 +551,7 @@ Checklist for a **new structured Gemini task** (adjust for OpenAI-only tasks):
 7. **Admin** — Playground or inline if internal-only.
 8. **Tests** — Schema validation + persist path (see `ai_service/tests.py`).
 
-For **text-only** tasks, existing pattern applies: `get_ai_prompt(service_slug)` from `prompt_utils.py` + `open_ai.py` (migrate to `resolve_generation_config` over time).
+For **text-only Gemini tasks**, use `gemini_generate_text_sync` + `resolve_generation_config` (see `why_should_i_apply.py`). For legacy OpenAI text tasks: `get_ai_prompt(service_slug)` from `prompt_utils.py` + `open_ai.py` (migrate to `resolve_generation_config` over time).
 
 ---
 
@@ -522,7 +576,7 @@ See `.env.example`.
 
 | Module | Responsibility |
 |--------|----------------|
-| `models.py` | `AIService`, `AIPromptConfiguration`, `AIModel`, `JobFitGateSettings`, `ResumeJobEvaluation` |
+| `models.py` | `AIService`, `AIPromptConfiguration`, `AIModel`, `JobFitGateSettings`, `ResumeJobEvaluation`, `WhyShouldIApplyPlayground`, `WhyShouldIApplyAnswer` |
 | `fit_gate.py` | Tier classification + `evaluation_summary()` for UI |
 | `job_fit_settings.py` | Singleton gate settings loader |
 | `dashboard_job_fit.py` | Dashboard adapter around shared evaluator |
@@ -533,7 +587,10 @@ See `.env.example`.
 | `gemini_client.py` | Low-level sync Gemini calls |
 | `gemini_service.py` | Higher-level Gemini helpers |
 | `resume_job_evaluation.py` | Evaluation orchestration + persist |
-| `admin.py` | Admin UX for models, prompts, playground |
+| `why_should_i_apply.py` | Why-apply plain-text generation + persist helpers |
+| `why_should_i_apply_prompts.py` | Versioned why-apply instructions (source for seeds) |
+| `dashboard_why_should_i_apply.py` | Dashboard adapter for job application detail |
+| `admin.py` | Admin UX for models, prompts, playgrounds |
 
 ---
 
@@ -545,6 +602,10 @@ python manage.py test ai_service.tests.ResumeJobEvaluationPersistOnSaveTests
 python manage.py test ai_service.tests.GenerationConfigResolverTests
 python manage.py test ai_service.tests.ConclusionFromEvaluationTests
 python manage.py test ai_service.tests.FitGateTests
+python manage.py test ai_service.tests.WhyShouldIApplyPromptTests
+python manage.py test ai_service.tests.WhyShouldIApplyGenerationTests
+python manage.py test ai_service.tests.WhyShouldIApplyPlaygroundPersistTests
+python manage.py test dashboard.tests.WhyShouldIApplyDocumentTests
 python manage.py test dashboard.tests
 ```
 
@@ -570,4 +631,4 @@ python manage.py test dashboard.tests
 
 ---
 
-*Last updated: 2026-05-20 — dashboard fit gate, `fit_review` job applications, completed score/metrics UI, `JobFitGateSettings`, migrations `ai_service/0005`, `dashboard/0006`–`0007`.*
+*Last updated: 2026-05-22 — why-should-I-apply service (`why_should_i_apply`), admin playground, dashboard Documents generate/copy/download, `WhyShouldIApplyAnswer`, migrations `ai_service/0006`–`0007`, `dashboard/0008`.*

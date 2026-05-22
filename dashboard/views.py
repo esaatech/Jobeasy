@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 import json
@@ -28,6 +28,7 @@ from ai_service.dashboard_job_fit import (
 )
 from ai_service.fit_gate import evaluation_summary
 from ai_service.job_fit_settings import get_job_fit_gate_settings
+from ai_service.dashboard_why_should_i_apply import run_why_should_i_apply_for_application
 from .models import JobApplication
 from subscriptions.models import UserSubscription, SubscriptionPlan
 from email_utility.models import EmailHistory
@@ -249,7 +250,11 @@ def job_application_detail(request, job_id):
     """Hub page for a dashboard job application: context, artifacts, outbound email log."""
     job_application = get_object_or_404(
         JobApplication.objects.select_related(
-            'resume', 'cover_letter', 'fit_evaluation', 'fit_evaluation__resume'
+            'resume',
+            'cover_letter',
+            'fit_evaluation',
+            'fit_evaluation__resume',
+            'why_should_i_apply_answer',
         ),
         id=job_id,
         user=request.user,
@@ -694,6 +699,8 @@ def delete_job_application(request, job_id):
         # If a cover letter is associated, delete it first
         if job_application.cover_letter:
             job_application.cover_letter.delete()
+        if job_application.why_should_i_apply_answer:
+            job_application.why_should_i_apply_answer.delete()
         # If a resume is associated, delete it as well
         if job_application.resume:
             job_application.resume.delete()
@@ -720,3 +727,77 @@ def delete_job_application(request, job_id):
             'status': 'error',
             'error': str(e)
         }, status=500)
+
+
+@login_required
+@csrf_exempt
+@require_http_methods(["POST"])
+def generate_why_should_i_apply(request, job_id):
+    """Generate a why-should-we-hire-you answer for an existing job application."""
+    job_application = get_object_or_404(
+        JobApplication.objects.select_related("resume", "why_should_i_apply_answer"),
+        id=job_id,
+        user=request.user,
+    )
+
+    if job_application.status == "fit_review":
+        return JsonResponse(
+            {"success": False, "error": "Complete fit review before generating documents."},
+            status=400,
+        )
+
+    if not job_application.resume:
+        return JsonResponse(
+            {"success": False, "error": "Link a resume to this application first."},
+            status=400,
+        )
+
+    try:
+        resume_text = _format_resume_content(job_application.resume)
+        answer, err = run_why_should_i_apply_for_application(
+            job_application,
+            resume_text=resume_text,
+        )
+        if err:
+            return JsonResponse({"success": False, "error": err}, status=500)
+
+        return JsonResponse(
+            {
+                "success": True,
+                "answer_id": answer.pk,
+                "content": answer.content,
+                "instruction_slug": answer.instruction_slug,
+                "download_url": reverse(
+                    "dashboard:download_why_should_i_apply",
+                    args=[job_application.id],
+                ),
+            }
+        )
+    except Exception as exc:
+        logger.exception("dashboard.generate_why_should_i_apply")
+        return JsonResponse({"success": False, "error": str(exc)}, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def download_why_should_i_apply(request, job_id):
+    """Download the application answer as a plain-text file."""
+    job_application = get_object_or_404(
+        JobApplication.objects.select_related("why_should_i_apply_answer"),
+        id=job_id,
+        user=request.user,
+    )
+    answer = job_application.why_should_i_apply_answer
+    if not answer or answer.status != "completed" or not (answer.content or "").strip():
+        return JsonResponse(
+            {"success": False, "error": "No completed answer to download."},
+            status=404,
+        )
+
+    safe_name = re.sub(r"[^\w\s-]", "", job_application.job_name or "application")[:50]
+    safe_name = re.sub(r"[-\s]+", "-", safe_name).strip("-") or "application"
+    filename = f"why-should-we-hire-you-{safe_name}.txt"
+
+    response = HttpResponse(answer.content, content_type="text/plain; charset=utf-8")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response

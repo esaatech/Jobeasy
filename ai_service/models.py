@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
@@ -392,3 +393,52 @@ class WhyShouldIApplyPlayground(models.Model):
             return f"Playground {self.pk} [draft]"
         status = "ok" if self.succeeded else "fail"
         return f"Playground {self.pk} [{status}]"
+
+
+class WhyShouldIApplyAnswer(models.Model):
+    """User-facing persisted answer for a dashboard job application."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="why_should_i_apply_answers",
+    )
+    content = models.TextField(
+        blank=True,
+        help_text="Plain application answer (no greeting or sign-off).",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ("pending", "Pending"),
+            ("processing", "Processing"),
+            ("completed", "Completed"),
+            ("failed", "Failed"),
+        ],
+        default="pending",
+    )
+    error_message = models.TextField(blank=True)
+    prompt_config = models.ForeignKey(
+        AIPromptConfiguration,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="why_should_i_apply_answers",
+    )
+    instruction_slug = models.SlugField(max_length=80, blank=True)
+    gemini_model = models.CharField(max_length=128, blank=True)
+    temperature_used = models.FloatField(null=True, blank=True)
+    processing_time = models.FloatField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Why should I apply answer"
+        verbose_name_plural = "Why should I apply answers"
+
+    def __str__(self) -> str:
+        label = (self.content or "").strip()[:60]
+        if label:
+            return f"Answer ({self.get_status_display()}): {label}…"
+        return f"Answer ({self.get_status_display()})"

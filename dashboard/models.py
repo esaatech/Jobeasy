@@ -48,6 +48,13 @@ class JobApplication(models.Model):
         on_delete=models.SET_NULL,
         related_name="job_applications",
     )
+    why_should_i_apply_answer = models.ForeignKey(
+        "ai_service.WhyShouldIApplyAnswer",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="job_applications",
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     status = models.CharField(
         max_length=20,

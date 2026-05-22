@@ -29,6 +29,7 @@ class Command(BaseCommand):
             "0004_resumejobevaluation_label_fields",
             "0005_job_fit_gate_and_evaluation_user",
             "0006_why_should_i_apply_playground",
+            "0007_why_should_i_apply_answer",
         }
         with connection.cursor() as cursor:
             cursor.execute(

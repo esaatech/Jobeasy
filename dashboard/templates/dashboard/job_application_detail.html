@@ -107,6 +107,49 @@
                     </div>
                     {% endif %}
                 </div>
+                <div class="flex flex-wrap items-center justify-between gap-2 border border-gray-100 rounded-lg p-4">
+                    <div class="min-w-0 flex-1">
+                        <p class="font-medium text-gray-900">Why should we hire you?</p>
+                        {% with answer=job_application.why_should_i_apply_answer %}
+                        {% if answer and answer.status == 'completed' and answer.content %}
+                        <p class="text-sm text-gray-600 mt-1 line-clamp-2" id="why-apply-preview">{{ answer.content|truncatechars:160 }}</p>
+                        {% elif answer and answer.status == 'failed' %}
+                        <p class="text-sm text-red-600 mt-1">Generation failed. Try again.</p>
+                        {% else %}
+                        <p class="text-sm text-gray-500">Application-field answer — not a cover letter.</p>
+                        {% endif %}
+                        {% endwith %}
+                    </div>
+                    <div class="flex flex-wrap gap-2 shrink-0" id="why-apply-actions"
+                         data-generate-url="{% url 'dashboard:generate_why_should_i_apply' job_application.id %}"
+                         data-download-url="{% url 'dashboard:download_why_should_i_apply' job_application.id %}"
+                         data-has-resume="{% if job_application.resume %}true{% else %}false{% endif %}">
+                        {% with answer=job_application.why_should_i_apply_answer %}
+                        {% if answer and answer.status == 'completed' and answer.content %}
+                        <button type="button" id="why-apply-copy-btn"
+                                class="text-sm px-3 py-1.5 rounded-lg border border-gray-300 text-gray-800 hover:bg-gray-50">
+                            Copy
+                        </button>
+                        <a href="{% url 'dashboard:download_why_should_i_apply' job_application.id %}" id="why-apply-download-link"
+                           class="text-sm px-3 py-1.5 rounded-lg border border-gray-300 text-gray-800 hover:bg-gray-50">
+                            Download
+                        </a>
+                        <button type="button" id="why-apply-regenerate-btn"
+                                class="text-sm px-3 py-1.5 rounded-lg bg-teal-600 text-white hover:bg-teal-700">
+                            Regenerate
+                        </button>
+                        {% else %}
+                        <button type="button" id="why-apply-generate-btn"
+                                class="text-sm px-3 py-1.5 rounded-lg bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                {% if not job_application.resume %}disabled title="Link a resume first"{% endif %}>
+                            Generate
+                        </button>
+                        {% endif %}
+                        {% endwith %}
+                    </div>
+                </div>
+                <p id="why-apply-status" class="text-sm text-gray-500 hidden"></p>
+                <textarea id="why-apply-content-store" class="sr-only" aria-hidden="true">{% if job_application.why_should_i_apply_answer and job_application.why_should_i_apply_answer.content %}{{ job_application.why_should_i_apply_answer.content }}{% endif %}</textarea>
             </div>
         </div>
 
@@ -140,4 +183,125 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+  function getCookie(name) {
+    var v = null;
+    if (document.cookie) {
+      document.cookie.split(";").forEach(function (part) {
+        part = part.trim();
+        if (part.indexOf(name + "=") === 0) {
+          v = decodeURIComponent(part.slice(name.length + 1));
+        }
+      });
+    }
+    return v;
+  }
+
+  var actions = document.getElementById("why-apply-actions");
+  if (!actions) return;
+
+  var generateUrl = actions.getAttribute("data-generate-url");
+  var statusEl = document.getElementById("why-apply-status");
+  var storeEl = document.getElementById("why-apply-content-store");
+  var previewEl = document.getElementById("why-apply-preview");
+  var csrftoken = getCookie("csrftoken");
+
+  function setStatus(msg, isError) {
+    if (!statusEl) return;
+    statusEl.textContent = msg;
+    statusEl.classList.remove("hidden", "text-red-600", "text-gray-500");
+    statusEl.classList.add(isError ? "text-red-600" : "text-gray-500");
+  }
+
+  function truncatePreview(text) {
+    text = (text || "").trim();
+    if (text.length <= 160) return text;
+    return text.slice(0, 157) + "…";
+  }
+
+  function showCompletedActions() {
+    actions.innerHTML =
+      '<button type="button" id="why-apply-copy-btn" class="text-sm px-3 py-1.5 rounded-lg border border-gray-300 text-gray-800 hover:bg-gray-50">Copy</button>' +
+      '<a href="' + actions.getAttribute("data-download-url") + '" id="why-apply-download-link" class="text-sm px-3 py-1.5 rounded-lg border border-gray-300 text-gray-800 hover:bg-gray-50">Download</a>' +
+      '<button type="button" id="why-apply-regenerate-btn" class="text-sm px-3 py-1.5 rounded-lg bg-teal-600 text-white hover:bg-teal-700">Regenerate</button>';
+    bindButtons();
+  }
+
+  function copyAnswer() {
+    var text = storeEl ? storeEl.value : "";
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        setStatus("Copied to clipboard.", false);
+      }).catch(function () {
+        setStatus("Could not copy — select and copy manually.", true);
+      });
+    } else {
+      setStatus("Copy not supported in this browser.", true);
+    }
+  }
+
+  function runGenerate(btn) {
+    if (actions.getAttribute("data-has-resume") !== "true") {
+      setStatus("Link a resume to this application first.", true);
+      return;
+    }
+    if (btn) btn.disabled = true;
+    setStatus("Generating answer…", false);
+
+    var fd = new FormData();
+    fetch(generateUrl, {
+      method: "POST",
+      credentials: "same-origin",
+      headers: {
+        "X-CSRFToken": csrftoken || "",
+        "X-Requested-With": "XMLHttpRequest",
+      },
+      body: fd,
+    })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (_ref) {
+        var ok = _ref.ok;
+        var j = _ref.j;
+        if (!ok || !j.success) {
+          throw new Error((j && j.error) || "Generation failed.");
+        }
+        if (storeEl) storeEl.value = j.content || "";
+        if (previewEl) {
+          previewEl.textContent = truncatePreview(j.content);
+          previewEl.classList.remove("text-gray-500");
+          previewEl.classList.add("text-gray-600");
+        } else {
+          var desc = actions.closest(".border") && actions.closest(".border").querySelector("p.text-sm");
+          if (desc) {
+            desc.id = "why-apply-preview";
+            desc.textContent = truncatePreview(j.content);
+            desc.className = "text-sm text-gray-600 mt-1 line-clamp-2";
+          }
+        }
+        showCompletedActions();
+        setStatus("Answer generated.", false);
+      })
+      .catch(function (e) {
+        setStatus(e.message || String(e), true);
+        if (btn) btn.disabled = false;
+      });
+  }
+
+  function bindButtons() {
+    var gen = document.getElementById("why-apply-generate-btn");
+    var regen = document.getElementById("why-apply-regenerate-btn");
+    var copy = document.getElementById("why-apply-copy-btn");
+    if (gen) gen.addEventListener("click", function () { runGenerate(gen); });
+    if (regen) regen.addEventListener("click", function () { runGenerate(regen); });
+    if (copy) copy.addEventListener("click", copyAnswer);
+  }
+
+  bindButtons();
+})();
+</script>
 {% endblock %}

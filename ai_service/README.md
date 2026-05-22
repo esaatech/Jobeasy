@@ -4,7 +4,7 @@
 
 | Document | Contents |
 |----------|----------|
-| **[`docs/AI_PLATFORM.md`](docs/AI_PLATFORM.md)** | **Primary reference:** configurable prompts (`AIService` / `AIPromptConfiguration`), model catalog (`AIModel`), multi-provider roadmap, resume–job evaluation, **dashboard fit gate**, admin playground, setup commands |
+| **[`docs/AI_PLATFORM.md`](docs/AI_PLATFORM.md)** | **Primary reference:** configurable prompts (`AIService` / `AIPromptConfiguration`), model catalog (`AIModel`), multi-provider roadmap, resume–job evaluation, **dashboard fit gate**, **why-should-I-apply**, admin playgrounds, setup commands |
 | This README | Legacy detail: OpenAI resume parsing (RISEN), cover letter/optimization, AI assistant task schema |
 
 For new work on prompts, Gemini evaluation, or model configuration, start with **`docs/AI_PLATFORM.md`**.
@@ -13,7 +13,7 @@ For new work on prompts, Gemini evaluation, or model configuration, start with *
 
 ## Overview
 
-The `ai_service` module provides AI-powered functionality for the Jobeas resume builder platform. It handles resume parsing, content generation, and optimization using OpenAI's GPT models with structured output formatting. **Resume–job fit evaluation** uses Google Gemini with database-driven prompts and a structured JSON schema (see platform doc above).
+The `ai_service` module provides AI-powered functionality for the Jobeas resume builder platform. It handles resume parsing, content generation, and optimization using OpenAI's GPT models with structured output formatting. **Resume–job fit evaluation** and **why-should-I-apply** answers use Google Gemini with database-driven prompts (see platform doc above).
 
 ## Architecture
 
