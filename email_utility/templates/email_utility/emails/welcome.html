@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to Jobeas</title>
+    <title>Welcome to {{ company_name }}</title>
     <style>
         body { 
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; 
@@ -148,40 +148,40 @@
 <body>
     <div class="container">
         <div class="header">
-            <img src="https://jobeas.com/static/img/logo.png" alt="Jobeas Logo" class="logo" />
-            <h1>Welcome to Jobeas!</h1>
+            <img src="{{ logo_url }}" alt="{{ company_name }} Logo" class="logo" />
+            <h1>Welcome to {{ company_name }}!</h1>
         </div>
         
         <div class="content">
             <p class="welcome-text">Hello {{ user.get_full_name|default:user.username }},</p>
             
-            <p>Thank you for joining Jobeas! We're excited to help you create professional resumes, cover letters, and manage your job applications with our comprehensive career platform.</p>
+            <p>Thank you for joining {{ company_name }}! We're excited to help you build resumes, prepare applications, and stay organized throughout your job search.</p>
             
             <div class="features">
-                <h3>What you can do with Jobeas:</h3>
+                <h3>What you can do with {{ company_name }}:</h3>
                 <div class="feature-item">Create ATS-friendly resumes with professional templates</div>
-                <div class="feature-item">Generate personalized cover letters tailored to job descriptions</div>
-                <div class="feature-item">Access our comprehensive job application service</div>
-                <div class="feature-item">Track your job applications and manage your career</div>
-                <div class="feature-item">Prepare for interviews with our Q&A system</div>
-                <div class="feature-item">Optimize your resume for Applicant Tracking Systems</div>
+                <div class="feature-item">Upload and parse an existing resume to get started quickly</div>
+                <div class="feature-item">Check job fit and generate tailored application materials from your dashboard</div>
+                <div class="feature-item">Build personalized cover letters for specific job descriptions</div>
+                <div class="feature-item">Practice for interviews with our AI coach and Q&amp;A prep tools</div>
+                <div class="feature-item">Track applications, resumes, cover letters, and outbound emails in one place</div>
             </div>
             
-            <p>To get started, click the button below to access your dashboard:</p>
+            <p>Your account is ready. Click below to open your dashboard and get started:</p>
             
             <div style="text-align: center;">
-                <a href="{{ login_url }}" class="button">Get Started</a>
+                <a href="{{ dashboard_url }}" class="button">Go to Dashboard</a>
             </div>
             
             <div class="support-info">
                 <h4>Need Help?</h4>
-                <p>If you have any questions or need assistance, don't hesitate to contact our support team at support@jobeas.com</p>
+                <p>If you have any questions or need assistance, don't hesitate to contact our support team at {{ support_email }}</p>
             </div>
             
             <div class="footer">
-                <p><strong>Best regards,</strong><br>The Jobeas Team</p>
+                <p><strong>Best regards,</strong><br>The {{ company_name }} Team</p>
                 <p><small>This email was sent to {{ user.email }}</small></p>
-                <p><small>© 2024 Jobeas. All rights reserved.</small></p>
+                <p><small>&copy; {% now "Y" %} {{ company_name }}. All rights reserved.</small></p>
             </div>
         </div>
     </div>

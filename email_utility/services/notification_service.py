@@ -89,9 +89,13 @@ class NotificationService:
     @classmethod
     def send_welcome_email(cls, user) -> bool:
         """Send welcome email to new users"""
+        site_url = getattr(settings, 'SITE_URL', '').rstrip('/')
         context = {
             'user': user,
-            'login_url': f"{settings.SITE_URL}/auth/login/" if hasattr(settings, 'SITE_URL') else '/auth/login/',
+            'company_name': cls.COMPANY_NAME,
+            'support_email': cls.SUPPORT_EMAIL,
+            'dashboard_url': f"{site_url}/dashboard/" if site_url else '/dashboard/',
+            'logo_url': f"{site_url}/static/img/logo.png" if site_url else '/static/img/logo.png',
         }
         
         return cls.send_email(
