@@ -5,7 +5,7 @@
     <!-- Header Section -->
     <div class="text-center mb-12">
         <h1 class="headline-primary mb-4">Privacy Policy</h1>
-        <p class="subheadline text-gray-600">Last updated: August 7, 2024</p>
+        <p class="subheadline text-gray-600">Last updated: May 25, 2026</p>
     </div>
 
     <!-- Main Content -->
@@ -137,6 +137,45 @@
                     <p class="text-sm text-gray-600">SendGrid for transactional emails</p>
                 </div>
             </div>
+        </div>
+
+        <!-- Google User Data & Limited Use -->
+        <div id="google-limited-use" class="bg-white rounded-xl shadow-lg p-8 mb-8">
+            <h2 class="headline-tertiary mb-6">Google User Data &amp; Limited Use</h2>
+
+            <p class="body-text text-gray-700 mb-6 leading-relaxed">
+                Jobeas's use of information received from Google APIs will adhere to the
+                <a href="https://developers.google.com/terms/api-services-user-data-policy" class="text-blue-600 underline hover:text-blue-800" target="_blank" rel="noopener noreferrer">Google API Services User Data Policy</a>,
+                including the
+                <a href="https://developers.google.com/terms/api-services-user-data-policy#additional_requirements_for_specific_api_scopes" class="text-blue-600 underline hover:text-blue-800" target="_blank" rel="noopener noreferrer">Limited Use requirements</a>.
+            </p>
+
+            <h3 class="text-lg font-semibold text-gray-800 mb-3">How Jobeas Uses Google Data</h3>
+            <p class="body-text text-gray-700 mb-4">
+                When you choose to sign in with Google or connect your Gmail account, Jobeas requests access to the following Google OAuth scopes:
+            </p>
+            <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-6">
+                <li><strong>Sign-in</strong> (<code class="text-sm bg-gray-100 px-1 rounded">openid</code>, <code class="text-sm bg-gray-100 px-1 rounded">userinfo.email</code>, <code class="text-sm bg-gray-100 px-1 rounded">userinfo.profile</code>) — to authenticate you and create or link your Jobeas account using your Google profile name and email address.</li>
+                <li><strong>Email sending</strong> (<code class="text-sm bg-gray-100 px-1 rounded">gmail.send</code>) — to send job application emails (such as resumes and cover letters) from your own Gmail address when you explicitly choose to send them through Jobeas.</li>
+            </ul>
+
+            <h3 class="text-lg font-semibold text-gray-800 mb-3">What We Access, Store, and Share</h3>
+            <ul class="list-disc list-inside space-y-2 text-gray-700 ml-4 mb-6">
+                <li>We store OAuth access and refresh tokens, token expiry, and your Gmail address to maintain your Gmail connection and send emails you initiate.</li>
+                <li>We do <strong>not</strong> read, store, or analyze the contents of your Gmail inbox or mailbox.</li>
+                <li>We do <strong>not</strong> use Google user data for advertising, retargeting, or creditworthiness purposes.</li>
+                <li>We do <strong>not</strong> sell or transfer Google user data to third parties such as advertising platforms or data brokers.</li>
+                <li>We do <strong>not</strong> use Google user data to train or improve machine learning or artificial intelligence models.</li>
+                <li>Google user data is shared only with infrastructure providers necessary to operate Jobeas (for example, secure hosting), or when required by law.</li>
+            </ul>
+
+            <h3 class="text-lg font-semibold text-gray-800 mb-3">Your Choices</h3>
+            <p class="body-text text-gray-700 mb-4">
+                You can disconnect your Gmail account at any time from your
+                <a href="{% url 'email_utility:gmail_settings' %}" class="text-blue-600 underline hover:text-blue-800">Email Settings</a>
+                page. You may also revoke Jobeas's access through your
+                <a href="https://myaccount.google.com/permissions" class="text-blue-600 underline hover:text-blue-800" target="_blank" rel="noopener noreferrer">Google Account permissions</a>.
+            </p>
         </div>
 
         <!-- Contact Section -->
