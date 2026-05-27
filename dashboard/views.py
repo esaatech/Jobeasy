@@ -13,11 +13,7 @@ from coverletter.models import CoverLetter
 from job_service.models import JobApplicationRequest
 from ai_service.cover_letter import generate_cover_letter_from_raw_text
 from ai_service.resume_optimization import optimize_resume_for_job
-from ai_service.prompt_formatting import (
-    coerce_skill_list,
-    format_bullet_item,
-    format_items_for_prompt,
-)
+from ai_service.prompt_formatting import coerce_skill_list
 from resume_builder.resume_extra import (
     bullets_to_projects_html,
     extract_project_bullets_from_html,
@@ -32,6 +28,7 @@ from ai_service.dashboard_why_should_i_apply import run_why_should_i_apply_for_a
 from .models import JobApplication
 from subscriptions.models import UserSubscription, SubscriptionPlan
 from email_utility.models import EmailHistory
+from utils.resume_text import build_resume_text_for_evaluation, format_structured_resume_content
 
 logger = logging.getLogger(__name__)
 
@@ -116,83 +113,11 @@ def get_unified_job_applications(user):
     return unified
 
 def _format_resume_content(resume):
-    """Format resume's structured data into readable text for generating cover letter"""
-    content_parts = []
-    
-    # Personal Information
-    if resume.personal_info:
-        personal = resume.personal_info
-        content_parts.append(f"PERSONAL INFORMATION")
-        content_parts.append(f"Name: {personal.get('full_name', 'N/A')}")
-        content_parts.append(f"Email: {personal.get('email', 'N/A')}")
-        content_parts.append(f"Phone: {personal.get('phone', 'N/A')}")
-        if personal.get('location'):
-            content_parts.append(f"Location: {personal['location']}")
-        if personal.get('linkedin'):
-            content_parts.append(f"LinkedIn: {personal['linkedin']}")
-        if personal.get('github'):
-            content_parts.append(f"GitHub: {personal['github']}")
-        if personal.get('portfolio'):
-            content_parts.append(f"Portfolio: {personal['portfolio']}")
-        content_parts.append("")
-    
-    # Professional Summary
-    if resume.personal_info and resume.personal_info.get('summary'):
-        content_parts.append("PROFESSIONAL SUMMARY")
-        content_parts.append(resume.personal_info['summary'])
-        content_parts.append("")
-    
-    # Experience
-    if resume.experience:
-        content_parts.append("PROFESSIONAL EXPERIENCE")
-        for exp in resume.experience:
-            content_parts.append(f"{exp.get('title', 'N/A')} at {exp.get('company', 'N/A')}")
-            if exp.get('duration'):
-                content_parts.append(f"Duration: {exp['duration']}")
-            if exp.get('description'):
-                content_parts.append(f"Description: {exp['description']}")
-            if exp.get('achievements'):
-                content_parts.append("Key Achievements:")
-                for achievement in exp['achievements']:
-                    content_parts.append(f"• {format_bullet_item(achievement)}")
-            content_parts.append("")
-    
-    # Education
-    if resume.education:
-        content_parts.append("EDUCATION")
-        for edu in resume.education:
-            content_parts.append(f"{edu.get('degree', 'N/A')} - {edu.get('institution', 'N/A')}")
-            if edu.get('year'):
-                content_parts.append(f"Year: {edu['year']}")
-            if edu.get('gpa'):
-                content_parts.append(f"GPA: {edu['gpa']}")
-            content_parts.append("")
-    
-    # Skills
-    if resume.skills:
-        content_parts.append("SKILLS")
-        for category, skill_list in resume.skills.items():
-            if isinstance(skill_list, list):
-                content_parts.append(f"{category}: {format_items_for_prompt(skill_list)}")
-            else:
-                content_parts.append(f"{category}: {skill_list}")
-        content_parts.append("")
-    
-    # Additional Information
-    if resume.additional:
-        content_parts.append("ADDITIONAL INFORMATION")
-        for key, value in resume.additional.items():
-            if isinstance(value, list):
-                content_parts.append(f"{key}: {format_items_for_prompt(value)}")
-            else:
-                content_parts.append(f"{key}: {value}")
-        content_parts.append("")
-    
-    # If no structured content, fall back to original content
-    if not content_parts:
-        return resume.original_content or "No resume content available."
-    
-    return "\n".join(content_parts)
+    """Structured resume text for cover letters; evaluation uses full source text."""
+    structured = format_structured_resume_content(resume).strip()
+    if structured:
+        return structured
+    return resume.original_content or "No resume content available."
 
 @login_required
 def dashboard(request):
@@ -437,7 +362,7 @@ def evaluate_job_fit(request):
             )
 
         resume = get_object_or_404(Resume, id=resume_id, user=request.user)
-        resume_text = _format_resume_content(resume)
+        resume_text = build_resume_text_for_evaluation(resume)
         result = run_dashboard_job_fit_evaluation(
             user=request.user,
             resume=resume,
@@ -753,7 +678,7 @@ def generate_why_should_i_apply(request, job_id):
         )
 
     try:
-        resume_text = _format_resume_content(job_application.resume)
+        resume_text = build_resume_text_for_evaluation(job_application.resume)
         answer, err = run_why_should_i_apply_for_application(
             job_application,
             resume_text=resume_text,

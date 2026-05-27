@@ -743,17 +743,9 @@ def upload_resume(request):
                     # Process different file types
                     if file_extension == '.pdf':
                         logger.info("Processing PDF file")
-                        try:
-                            import pdfplumber
-                            with pdfplumber.open(temp_file.name) as pdf:
-                                for page in pdf.pages:
-                                    resume_text += page.extract_text() or ""
-                        except ImportError:
-                            # Fallback to PyPDF2 if pdfplumber is not available
-                            with open(temp_file.name, 'rb') as file:
-                                pdf_reader = PyPDF2.PdfReader(file)
-                                for page in pdf_reader.pages:
-                                    resume_text += page.extract_text()
+                        from utils.pdf_text import PdfTextExtractionError, extract_text_from_pdf
+
+                        resume_text = extract_text_from_pdf(temp_file.name)
                     elif file_extension in ['.doc', '.docx']:
                         logger.info("Processing Word document")
                         doc = Document(temp_file.name)
