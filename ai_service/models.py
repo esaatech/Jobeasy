@@ -11,6 +11,7 @@ class AIModel(models.Model):
     class Provider(models.TextChoices):
         GEMINI = "gemini", "Google Gemini"
         OPENAI = "openai", "OpenAI"
+        DEEPSEEK = "deepseek", "DeepSeek"
 
     provider = models.CharField(
         max_length=32,

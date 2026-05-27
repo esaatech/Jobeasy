@@ -17,7 +17,9 @@ A comprehensive resume builder and job application platform with AI-powered feat
 
 | Topic | Location |
 |-------|----------|
-| **AI platform** (prompts, models, resume–job evaluation, multi-provider roadmap, future user dashboard) | [`ai_service/docs/AI_PLATFORM.md`](ai_service/docs/AI_PLATFORM.md) |
+| **AI platform** (prompts, models, resume–job evaluation, PDF extract, multi-provider catalog) | [`ai_service/docs/AI_PLATFORM.md`](ai_service/docs/AI_PLATFORM.md) |
+| **User FAQ** (plans, upload, job fit, dashboard flow) | [`docs/JOBEAS_FAQ.md`](docs/JOBEAS_FAQ.md) |
+| Dashboard job application pipeline (fit gate → generate) | [`docs/architecture/dashboard-job-application-pipeline.md`](docs/architecture/dashboard-job-application-pipeline.md) |
 | AI module overview (parsing, OpenAI assistant, legacy flows) | [`ai_service/README.md`](ai_service/README.md) |
 
 **Quick setup (evaluation + model catalog):**
@@ -293,8 +295,9 @@ poetry run python manage.py showmigrations | rg '\[ \]'
 
 Copy `.env.example` to `.env` and fill in real values.
 
-- `OPENAI_API_KEY`: OpenAI API key (resume parsing, cover letter, optimization, assistant)
+- `OPENAI_API_KEY`: OpenAI API key (resume parsing, cover letter, optimization, assistant, AI summary)
 - `GEMINI_API_KEY` or `GOOGLE_API_KEY`: **required in production** for resume–job evaluation (set one; see `.env.example`)
+- `DEEPSEEK_API_KEY`: optional; DeepSeek models are seeded in admin catalog for future use (not wired in app code yet)
 - Model id and temperature for evaluation: configure in admin (**AI models**, **AI Prompt Configurations**), not env. Optional `GEMINI_RESUME_JOB_EVAL_MODEL` / `GEMINI_RESUME_JOB_EVAL_TEMPERATURE` are code fallbacks only if a prompt has no model linked (defaults: `gemini-2.5-flash`, `0.35`)
 - `DATABASE_URL_LOCAL`: local PostgreSQL connection string for development
 - `DATABASE_URL_PROD`: production PostgreSQL connection string

@@ -109,7 +109,9 @@ This section ties **HLD components** to **modules and entry points** (file paths
 | Artifact | Module | Key symbols |
 |----------|--------|-------------|
 | HTTP API | [`dashboard/views.py`](../../dashboard/views.py) | `generate_job_application`, `get_unified_job_applications` |
-| Resume → text for cover letter | [`dashboard/views.py`](../../dashboard/views.py) | `_format_resume_content` |
+| Resume → text for **job-fit eval** | [`utils/resume_text.py`](../../utils/resume_text.py) | `build_resume_text_for_evaluation` (PDF → `original_content` → structured + dates); used by [`dashboard_job_fit.py`](../../dashboard/dashboard_job_fit.py) |
+| Resume → text for cover letter / optimize | [`dashboard/views.py`](../../dashboard/views.py) | `_format_resume_content` |
+| PDF text extraction (upload + admin) | [`utils/pdf_text.py`](../../utils/pdf_text.py) | `extract_text_from_pdf` |
 | Build optimized `Resume` row | [`dashboard/views.py`](../../dashboard/views.py) | `_optimize_resume_for_job_application` |
 
 ### 3.2 AI services
