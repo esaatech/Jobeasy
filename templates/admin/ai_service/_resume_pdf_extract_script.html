@@ -1,0 +1,99 @@
+{% load i18n %}
+<script>
+(function () {
+  var extractUrl = "{{ extract_pdf_url|default:''|escapejs }}";
+  if (!extractUrl) { return; }
+
+  function getCookie(name) {
+    var v = null;
+    if (document.cookie) {
+      var parts = document.cookie.split(";");
+      for (var i = 0; i < parts.length; i++) {
+        var cookie = parts[i].trim();
+        if (cookie.indexOf(name + "=") === 0) {
+          v = decodeURIComponent(cookie.slice(name.length + 1));
+          break;
+        }
+      }
+    }
+    return v;
+  }
+  var csrftoken = getCookie("csrftoken");
+
+  function pdfInput() {
+    return document.getElementById("id_resume_pdf");
+  }
+
+  function resumeTextarea() {
+    return document.getElementById("id_resume_text");
+  }
+
+  function flashPdfMessage(ok, txt) {
+    var el = document.getElementById("resume-pdf-extract-message");
+    if (!el) { return; }
+    var cls = ok ? "success" : "error";
+    el.innerHTML = '<ul class="messagelist"><li class="' + cls + '">' + txt + "</li></ul>";
+  }
+
+  function appendResumePdf(fd) {
+    var input = pdfInput();
+    if (input && input.files && input.files[0]) {
+      fd.append("resume_pdf", input.files[0]);
+    }
+    return fd;
+  }
+
+  window.resumeAdminBuildPromptFormData = function () {
+    var fd = new FormData();
+    var jd = document.getElementById("id_job_description");
+    var rt = resumeTextarea();
+    var pc = document.getElementById("id_prompt_config");
+    if (jd) { fd.append("job_description", jd.value); }
+    if (rt) { fd.append("resume_text", rt.value); }
+    if (pc && pc.value) { fd.append("prompt_config", pc.value); }
+    appendResumePdf(fd);
+    return fd;
+  };
+
+  var loadBtn = document.getElementById("resume-pdf-load-btn");
+  if (loadBtn) {
+    loadBtn.addEventListener("click", function () {
+      var input = pdfInput();
+      var rt = resumeTextarea();
+      if (!input || !input.files || !input.files[0]) {
+        flashPdfMessage(false, "{% translate 'Choose a PDF file first.' %}");
+        return;
+      }
+      var fd = new FormData();
+      fd.append("resume_pdf", input.files[0]);
+      loadBtn.disabled = true;
+      flashPdfMessage(true, "{% translate 'Extracting text from PDF…' %}");
+      fetch(extractUrl, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+          "X-CSRFToken": csrftoken || ""
+        },
+        body: fd
+      }).then(function (r) {
+        return r.json().then(function (j) {
+          if (!r.ok || !j.success) {
+            flashPdfMessage(false, (j && j.error) ? j.error : r.statusText);
+            return;
+          }
+          if (rt) { rt.value = j.text || ""; }
+          flashPdfMessage(
+            true,
+            "{% translate 'Loaded' %} " + (j.length || 0) + " {% translate 'characters into resume text.' %}"
+          );
+        });
+      }).catch(function (e) {
+        flashPdfMessage(false, String(e));
+      }).finally(function () {
+        loadBtn.disabled = false;
+      });
+    });
+  }
+})();
+</script>

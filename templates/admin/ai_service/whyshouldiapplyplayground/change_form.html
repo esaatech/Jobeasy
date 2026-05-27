@@ -10,7 +10,8 @@
 
 {% url 'admin:ai_service_whyshouldiapplyplayground_generate_preview' as generate_url %}
 {% url 'admin:ai_service_whyshouldiapplyplayground_persist_generation' original.pk as persist_pk_url %}
-{% include "admin/ai_service/whyshouldiapplyplayground/_generation_widgets.html" with generate_url=generate_url persist_url=persist_pk_url pending_field=adminform.form.pending_generation_result %}
+{% include "admin/ai_service/whyshouldiapplyplayground/_generation_widgets.html" with generate_url=generate_url persist_url=persist_pk_url pending_field=adminform.form.pending_generation_result extract_pdf_url=extract_pdf_url %}
+{% include "admin/ai_service/_resume_pdf_extract_script.html" with extract_pdf_url=extract_pdf_url %}
 
 {% for fieldset in adminform %}
   {% if fieldset.name == "Last run results" %}

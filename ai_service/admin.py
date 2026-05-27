@@ -14,6 +14,7 @@ from django.urls import path, reverse
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
+from .admin_resume_pdf import AdminResumePdfExtractMixin, resolve_resume_text_from_admin_request
 from .forms import ResumeJobEvaluationAdminForm, WhyShouldIApplyPlaygroundAdminForm
 from .models import (
     AIModel,
@@ -234,7 +235,7 @@ AIServiceAdmin.inlines = [AIPromptConfigurationInline]
 
 
 @admin.register(ResumeJobEvaluation)
-class ResumeJobEvaluationAdmin(admin.ModelAdmin):
+class ResumeJobEvaluationAdmin(AdminResumePdfExtractMixin, admin.ModelAdmin):
     """Playground: save = draft inputs; separate button runs Gemini (prompt test cycle)."""
 
     form = ResumeJobEvaluationAdminForm
@@ -297,7 +298,7 @@ class ResumeJobEvaluationAdmin(admin.ModelAdmin):
                     '<p>Use <strong>Get evaluation</strong>—inputs do not need to be saved first.</p>'
                     '<p><strong>Save</strong> persists inputs and the last successful preview.</p>'
                 ),
-                'fields': ('job_description', 'resume_text', 'prompt_config'),
+                'fields': ('job_description', 'resume_pdf', 'resume_text', 'prompt_config'),
             },
         ),
         (
@@ -497,9 +498,17 @@ class ResumeJobEvaluationAdmin(admin.ModelAdmin):
             )
 
         jd = (request.POST.get('job_description') or '').strip()
-        rt = (request.POST.get('resume_text') or '').strip()
+        rt, rt_err = resolve_resume_text_from_admin_request(request)
+        if rt_err:
+            payload = {'success': False, 'error': rt_err, 'evaluation': None, 'raw_text': None}
+            return HttpResponse(json.dumps(payload, cls=DjangoJSONEncoder), status=400, content_type='application/json')
         if not jd or not rt:
-            payload = {'success': False, 'error': 'Job description and resume text are required.'}
+            payload = {
+                'success': False,
+                'error': 'Job description and resume text (or resume PDF) are required.',
+                'evaluation': None,
+                'raw_text': None,
+            }
             return HttpResponse(json.dumps(payload, cls=DjangoJSONEncoder), status=400, content_type='application/json')
 
         pc = None
@@ -667,7 +676,7 @@ class ResumeJobEvaluationAdmin(admin.ModelAdmin):
 
 
 @admin.register(WhyShouldIApplyPlayground)
-class WhyShouldIApplyPlaygroundAdmin(admin.ModelAdmin):
+class WhyShouldIApplyPlaygroundAdmin(AdminResumePdfExtractMixin, admin.ModelAdmin):
     """Playground: save = draft inputs; separate button runs Gemini (prompt test cycle)."""
 
     form = WhyShouldIApplyPlaygroundAdminForm
@@ -721,7 +730,7 @@ class WhyShouldIApplyPlaygroundAdmin(admin.ModelAdmin):
                     "Model and temperature come from the selected <strong>Prompt config</strong>.</p>"
                     "<p>Use <strong>Get answer</strong> — inputs do not need to be saved first.</p>"
                 ),
-                "fields": ("job_description", "resume_text", "prompt_config"),
+                "fields": ("job_description", "resume_pdf", "resume_text", "prompt_config"),
             },
         ),
         (
@@ -886,11 +895,20 @@ class WhyShouldIApplyPlaygroundAdmin(admin.ModelAdmin):
             )
 
         jd = (request.POST.get("job_description") or "").strip()
-        rt = (request.POST.get("resume_text") or "").strip()
+        rt, rt_err = resolve_resume_text_from_admin_request(request)
+        if rt_err:
+            payload = {"success": False, "error": rt_err, "answer_text": "", "raw_text": None}
+            return HttpResponse(
+                json.dumps(payload, cls=DjangoJSONEncoder),
+                status=400,
+                content_type="application/json",
+            )
         if not jd or not rt:
             payload = {
                 "success": False,
-                "error": "Job description and resume text are required.",
+                "error": "Job description and resume text (or resume PDF) are required.",
+                "answer_text": "",
+                "raw_text": None,
             }
             return HttpResponse(
                 json.dumps(payload, cls=DjangoJSONEncoder),

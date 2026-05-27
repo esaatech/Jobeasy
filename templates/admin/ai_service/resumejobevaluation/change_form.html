@@ -10,7 +10,8 @@
 
 {% url 'admin:ai_service_resumejobevaluation_evaluate_preview' as eval_url %}
 {% url 'admin:ai_service_resumejobevaluation_persist_evaluation' original.pk as persist_pk_url %}
-{% include "admin/ai_service/resumejobevaluation/_evaluation_widgets.html" with evaluate_url=eval_url persist_url=persist_pk_url pending_field=adminform.form.pending_evaluation_result %}
+{% include "admin/ai_service/resumejobevaluation/_evaluation_widgets.html" with evaluate_url=eval_url persist_url=persist_pk_url pending_field=adminform.form.pending_evaluation_result extract_pdf_url=extract_pdf_url %}
+{% include "admin/ai_service/_resume_pdf_extract_script.html" with extract_pdf_url=extract_pdf_url %}
 
 {% for fieldset in adminform %}
   {% if fieldset.name == "Last run results" %}

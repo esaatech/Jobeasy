@@ -1,10 +1,16 @@
 import json
+import tempfile
+from pathlib import Path
 
 from django.contrib.admin.sites import site
 from django.contrib.auth import get_user_model
 from django.contrib.messages.storage.fallback import FallbackStorage
-from django.test import RequestFactory, SimpleTestCase, TestCase
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import Client, RequestFactory, SimpleTestCase, TestCase
+from django.urls import reverse
 from pydantic import ValidationError
+from reportlab.lib.pagesizes import letter
+from reportlab.pdfgen import canvas
 
 from ai_service.admin import ResumeJobEvaluationAdmin, WhyShouldIApplyPlaygroundAdmin
 from ai_service.forms import ResumeJobEvaluationAdminForm, WhyShouldIApplyPlaygroundAdminForm
@@ -674,3 +680,52 @@ class WhyShouldIApplyPlaygroundPersistTests(TestCase):
         self.assertTrue(obj.succeeded)
         self.assertIn("full-stack", obj.answer_text)
         self.assertEqual(obj.error_message, "")
+
+
+def _minimal_pdf_bytes(line: str = "Admin PDF extract marker") -> bytes:
+    with tempfile.TemporaryDirectory() as tmp:
+        pdf_path = Path(tmp) / "sample.pdf"
+        c = canvas.Canvas(str(pdf_path), pagesize=letter)
+        c.drawString(72, 700, line)
+        c.save()
+        return pdf_path.read_bytes()
+
+
+class AdminResumePdfExtractTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = get_user_model().objects.create_superuser(
+            username="pdf_admin",
+            email="pdf@example.com",
+            password="testpass123",
+        )
+
+    def setUp(self):
+        self.client = Client()
+        self.client.force_login(self.user)
+
+    def test_extract_resume_pdf_endpoint_for_job_evaluation(self):
+        upload = SimpleUploadedFile(
+            "resume.pdf",
+            _minimal_pdf_bytes("Job eval admin PDF line"),
+            content_type="application/pdf",
+        )
+        url = reverse("admin:ai_service_resumejobevaluation_extract_resume_pdf")
+        response = self.client.post(url, {"resume_pdf": upload}, format="multipart")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["success"])
+        self.assertIn("Job eval admin PDF line", data["text"])
+
+    def test_extract_resume_pdf_endpoint_for_why_apply_playground(self):
+        upload = SimpleUploadedFile(
+            "resume.pdf",
+            _minimal_pdf_bytes("Why apply admin PDF line"),
+            content_type="application/pdf",
+        )
+        url = reverse("admin:ai_service_whyshouldiapplyplayground_extract_resume_pdf")
+        response = self.client.post(url, {"resume_pdf": upload}, format="multipart")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["success"])
+        self.assertIn("Why apply admin PDF line", data["text"])

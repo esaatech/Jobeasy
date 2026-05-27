@@ -16,6 +16,13 @@
     </span>
   </div>
   {% if pending_field %}{{ pending_field }}{% endif %}
+  <div class="form-row" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:8px;">
+    <button type="button" id="resume-pdf-load-btn" class="button">
+      {% translate "Load PDF into resume text" %}
+    </button>
+    <span class="help">{% translate "Upload a PDF in Resume PDF above, or attach one when running Get answer." %}</span>
+  </div>
+  <div id="resume-pdf-extract-message" style="margin-top:8px;"></div>
   <p class="help" style="margin-top:10px;margin-bottom:0;">
     {% blocktranslate trimmed %}
       Model and temperature come from the selected prompt configuration.
@@ -171,34 +178,46 @@
     runBtn.addEventListener("click", function () {
       var jdEl = document.getElementById("id_job_description");
       var rtEl = document.getElementById("id_resume_text");
+      var pdfEl = document.getElementById("id_resume_pdf");
       if (!jdEl || !rtEl) { flashMsg(false, "{% translate "Form fields not found." %}"); return; }
       var jd = (jdEl.value || "").trim();
       var rt = (rtEl.value || "").trim();
-      if (!jd || !rt) {
-        flashMsg(false, "{% translate "Enter both job description and resume text first." %}");
+      var hasPdf = pdfEl && pdfEl.files && pdfEl.files[0];
+      if (!jd || (!rt && !hasPdf)) {
+        flashMsg(false, "{% translate "Enter job description and resume text or choose a PDF." %}");
         return;
       }
 
-      var fd = new URLSearchParams();
-      fd.append("job_description", jdEl.value);
-      fd.append("resume_text", rtEl.value);
-      var pc = document.getElementById("id_prompt_config");
-      if (pc && pc.value) { fd.append("prompt_config", pc.value); }
+      var fd = window.resumeAdminBuildPromptFormData
+        ? window.resumeAdminBuildPromptFormData()
+        : (function () {
+            var params = new URLSearchParams();
+            params.append("job_description", jdEl.value);
+            params.append("resume_text", rtEl.value);
+            var pc = document.getElementById("id_prompt_config");
+            if (pc && pc.value) { params.append("prompt_config", pc.value); }
+            return params;
+          })();
+      var useMultipart = fd instanceof FormData;
 
       setBusy(true);
       document.getElementById("why-apply-message").innerHTML = "";
       updatePersist(false);
 
+      var headers = {
+        "X-Requested-With": "XMLHttpRequest",
+        "X-CSRFToken": csrftoken || "",
+        "Accept": "application/json"
+      };
+      if (!useMultipart) {
+        headers["Content-Type"] = "application/x-www-form-urlencoded;charset=UTF-8";
+      }
+
       fetch(generateUrl, {
         method: "POST",
         credentials: "same-origin",
-        headers: {
-          "X-Requested-With": "XMLHttpRequest",
-          "X-CSRFToken": csrftoken || "",
-          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-          "Accept": "application/json"
-        },
-        body: fd.toString()
+        headers: headers,
+        body: useMultipart ? fd : fd.toString()
       }).then(function (r) {
         return r.json().then(function (j) {
           if (!r.ok) {
