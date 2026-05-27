@@ -120,8 +120,8 @@ This section ties **HLD components** to **modules and entry points** (file paths
 |---------|--------|-------------|
 | Cover letter generation | [`ai_service/cover_letter.py`](../../ai_service/cover_letter.py) | `generate_cover_letter_from_raw_text`, `parse_ai_response`, `clean_cover_letter_content` |
 | Resume optimization | [`ai_service/resume_optimization.py`](../../ai_service/resume_optimization.py) | `optimize_resume_for_job`, `parse_ai_response`, `parse_optimization_data` |
-| Job fit evaluation | [`ai_service/resume_job_evaluation.py`](../../ai_service/resume_job_evaluation.py) | `evaluate_resume_against_job` |
-| Why-should-I-apply | [`ai_service/why_should_i_apply.py`](../../ai_service/why_should_i_apply.py) | `generate_why_should_i_apply` (Gemini plain text) |
+| Job fit evaluation | [`ai_service/resume_job_evaluation.py`](../../ai_service/resume_job_evaluation.py) | `evaluate_resume_against_job` (provider from gate / prompt AIModel: Gemini / OpenAI / DeepSeek) |
+| Why-should-I-apply | [`ai_service/why_should_i_apply.py`](../../ai_service/why_should_i_apply.py) | `generate_why_should_i_apply` (provider from prompt's AIModel: Gemini / OpenAI / DeepSeek) |
 | Dashboard why-apply adapter | [`ai_service/dashboard_why_should_i_apply.py`](../../ai_service/dashboard_why_should_i_apply.py) | `run_why_should_i_apply_for_application` |
 | Shared / related helpers | [`ai_service/open_ai.py`](../../ai_service/open_ai.py), [`ai_service/structured_resume.py`](../../ai_service/structured_resume.py) | Client, structured extraction (used elsewhere in product) |
 

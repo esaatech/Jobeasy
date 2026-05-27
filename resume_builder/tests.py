@@ -1,5 +1,12 @@
+import json
+from unittest.mock import patch
+
+from django.contrib.auth import get_user_model
 from django.template.loader import render_to_string
-from django.test import SimpleTestCase, TestCase
+from django.test import Client, SimpleTestCase, TestCase
+from django.urls import reverse
+
+from resume_builder.models import Resume
 
 from resume_builder.resume_display import augment_resume_dict_for_rendering
 from resume_builder.template_registry import (
@@ -183,3 +190,42 @@ class GallerySectionsTests(TestCase):
                         gallery_section_index_for_template_id(sections, tid),
                         idx,
                     )
+
+
+User = get_user_model()
+
+
+class GenerateAiSummaryViewTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="wizarduser", password="pass")
+        self.client = Client()
+        self.client.login(username="wizarduser", password="pass")
+        self.resume = Resume.objects.create(
+            user=self.user,
+            template_id="executive",
+            personal_info={"full_name": "Jane Doe"},
+            experience=[
+                {
+                    "title": "Engineer",
+                    "company": "Acme",
+                    "start_date": "2023-09",
+                    "end_date": "Present",
+                }
+            ],
+        )
+
+    @patch("resume_builder.views.run_professional_summary_generation")
+    def test_passes_plain_resume_text_not_resume_data(self, mock_run):
+        mock_run.return_value = {"success": True, "summary": "Generated summary."}
+        url = reverse("resume_builder:generate_ai_summary")
+        response = self.client.post(
+            url,
+            data=json.dumps({"resume_id": self.resume.id}),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, 200)
+        mock_run.assert_called_once()
+        _, kwargs = mock_run.call_args
+        self.assertIn("resume_text", kwargs)
+        self.assertNotIn("resume_data", kwargs)
+        self.assertIn("Engineer at Acme", kwargs["resume_text"])

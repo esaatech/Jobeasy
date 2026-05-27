@@ -124,6 +124,8 @@ if [ "${SKIP_BOOTSTRAP_DATA:-0}" != "1" ]; then
   python manage.py setup_job_fit_gate || die "setup_job_fit_gate failed"
   log "bootstrap: setup_why_should_i_apply"
   python manage.py setup_why_should_i_apply || die "setup_why_should_i_apply failed"
+  log "bootstrap: setup_professional_summary"
+  python manage.py setup_professional_summary || die "setup_professional_summary failed"
   log "check_ai_platform (migrations + admin + AIModel catalog)"
   python manage.py check_ai_platform || die "check_ai_platform failed — see output above"
   log "bootstrap: setup_subscription_plans"

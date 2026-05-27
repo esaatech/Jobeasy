@@ -1,4 +1,4 @@
-"""Build full resume plain text for AI services (job-fit evaluation, etc.)."""
+"""Build full resume plain text for AI services (job-fit evaluation, summary, etc.)."""
 
 from __future__ import annotations
 
@@ -21,14 +21,25 @@ def build_resume_text_for_evaluation(resume: "Resume") -> str:
     """
     Full resume text for Gemini job-fit evaluation (parity with admin playground).
 
-    Uses the same full source an admin would paste: PDF extraction or upload text,
-    not the lossy structured snapshot used for cover letters.
-
-    Priority:
-    1. Text from ``resume.pdf_file`` (via :func:`utils.pdf_text.extract_text_from_pdf`)
-    2. ``resume.original_content`` (full text saved at upload)
-    3. Structured fields formatted as plain text (wizard-built resumes)
+    Priority: PDF extract → original_content → structured fields (includes summary).
     """
+    return _build_resume_plain_text(resume, exclude_summary_in_structured=False)
+
+
+def build_resume_text_for_summary(resume: "Resume") -> str:
+    """
+    Full resume text for AI professional summary (wizard + same sources as job-fit).
+
+    Priority: PDF extract → original_content → structured fields (omits existing summary).
+    """
+    return _build_resume_plain_text(resume, exclude_summary_in_structured=True)
+
+
+def _build_resume_plain_text(
+    resume: "Resume",
+    *,
+    exclude_summary_in_structured: bool,
+) -> str:
     pdf_text = _extract_text_from_resume_pdf(resume)
     if pdf_text.strip():
         return pdf_text
@@ -37,7 +48,10 @@ def build_resume_text_for_evaluation(resume: "Resume") -> str:
     if original:
         return original
 
-    structured = format_structured_resume_content(resume).strip()
+    structured = format_structured_resume_content(
+        resume,
+        exclude_summary=exclude_summary_in_structured,
+    ).strip()
     if structured:
         return structured
 
@@ -64,7 +78,11 @@ def _extract_text_from_resume_pdf(resume: "Resume") -> str:
         return ""
 
 
-def format_structured_resume_content(resume: "Resume") -> str:
+def format_structured_resume_content(
+    resume: "Resume",
+    *,
+    exclude_summary: bool = False,
+) -> str:
     """Format structured resume JSON into readable plain text."""
     content_parts: list[str] = []
 
@@ -84,7 +102,11 @@ def format_structured_resume_content(resume: "Resume") -> str:
             content_parts.append(f"Portfolio: {personal['portfolio']}")
         content_parts.append("")
 
-    if resume.personal_info and resume.personal_info.get("summary"):
+    if (
+        not exclude_summary
+        and resume.personal_info
+        and resume.personal_info.get("summary")
+    ):
         content_parts.append("PROFESSIONAL SUMMARY")
         content_parts.append(resume.personal_info["summary"])
         content_parts.append("")

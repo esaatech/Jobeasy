@@ -46,6 +46,7 @@ __all__ = [
     "DimensionSummaries",
     "HardRequirementRow",
     "MatchStatus",
+    "ProfessionalSummaryPayload",
     "RecommendationLabel",
     "ResumeJobEvaluationPayload",
     "RiskLevelLabel",
@@ -80,6 +81,14 @@ class DimensionSummaries(BaseModel):
     operational_experience_match: str = ""
     optimization_surface_vs_foundational_notes: str = ""
     proceed_reasoning: str = ""
+
+
+class ProfessionalSummaryPayload(BaseModel):
+    """Validated shape returned by Gemini/OpenAI for resume professional summary."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    summary: str = Field(description="Professional summary text for the resume header")
 
 
 class ResumeJobEvaluationPayload(BaseModel):

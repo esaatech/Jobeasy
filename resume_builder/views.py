@@ -30,7 +30,8 @@ from docx import Document
 
 # Import AI service for resume parsing
 from ai_service.structured_resume import format_resume_single_call as format_resume
-from ai_service.open_ai import generate_professional_summary
+from ai_service.professional_summary import run_professional_summary_generation
+from utils.resume_text import build_resume_text_for_summary
 
 # Import utils for date options
 from utils.date_utils import get_month_year_options
@@ -2241,14 +2242,8 @@ def generate_ai_summary(request):
             if not resume_id:
                 return JsonResponse({'success': False, 'error': 'Resume ID is required'}, status=400)
             resume = get_object_or_404(Resume, id=resume_id, user=request.user)
-            resume_data = {
-                'personal_info': resume.personal_info or {},
-                'experience': resume.experience or [],
-                'education': resume.education or [],
-                'skills': resume.skills or {},
-                'additional': resume.additional or {}
-            }
-            ai_result = generate_professional_summary(resume_data)
+            resume_text = build_resume_text_for_summary(resume)
+            ai_result = run_professional_summary_generation(resume_text=resume_text)
             if ai_result.get('success'):
                 return JsonResponse({'success': True, 'summary': ai_result['summary']})
             else:

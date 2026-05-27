@@ -15,14 +15,27 @@ from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
 from .admin_resume_pdf import AdminResumePdfExtractMixin, resolve_resume_text_from_admin_request
-from .forms import ResumeJobEvaluationAdminForm, WhyShouldIApplyPlaygroundAdminForm
+from .forms import (
+    ProfessionalSummaryPlaygroundAdminForm,
+    ResumeJobEvaluationAdminForm,
+    WhyShouldIApplyPlaygroundAdminForm,
+)
 from .models import (
     AIModel,
     AIService,
     AIPromptConfiguration,
     JobFitGateSettings,
+    ProfessionalSummaryPlayground,
     ResumeJobEvaluation,
     WhyShouldIApplyPlayground,
+)
+from .professional_summary import (
+    PROFESSIONAL_SUMMARY_SERVICE_SLUG,
+    get_default_prompt_config as get_summary_default_prompt_config,
+    parse_pending_generation_result as parse_summary_pending_generation_result,
+    persist_professional_summary_result,
+    resolve_prompt_config as resolve_summary_prompt_config,
+    run_professional_summary_generation,
 )
 from .resume_job_evaluation import RESUME_JOB_EVALUATION_SERVICE_SLUG
 from .platform_version import AI_PLATFORM_BUILD
@@ -236,7 +249,7 @@ AIServiceAdmin.inlines = [AIPromptConfigurationInline]
 
 @admin.register(ResumeJobEvaluation)
 class ResumeJobEvaluationAdmin(AdminResumePdfExtractMixin, admin.ModelAdmin):
-    """Playground: save = draft inputs; separate button runs Gemini (prompt test cycle)."""
+    """Playground: save = draft inputs; separate button runs evaluation (prompt test cycle)."""
 
     form = ResumeJobEvaluationAdminForm
     change_form_template = "admin/ai_service/resumejobevaluation/change_form.html"
@@ -292,9 +305,10 @@ class ResumeJobEvaluationAdmin(AdminResumePdfExtractMixin, admin.ModelAdmin):
             'Inputs',
             {
                 'description': mark_safe(
-                    '<p>Set <strong>GEMINI_API_KEY</strong> / <strong>GOOGLE_API_KEY</strong>. '
-                    'Model and temperature are taken from the selected <strong>Prompt config</strong> '
-                    '(edit under AI Prompt Configurations).</p>'
+                    '<p>Set <strong>OPENAI_API_KEY</strong>, <strong>DEEPSEEK_API_KEY</strong>, and/or '
+                    '<strong>GEMINI_API_KEY</strong> / <strong>GOOGLE_API_KEY</strong>. Choose a '
+                    '<strong>Prompt config</strong> to test '
+                    '(model and temperature come from that row). Leave empty to use the service default.</p>'
                     '<p>Use <strong>Get evaluation</strong>—inputs do not need to be saved first.</p>'
                     '<p><strong>Save</strong> persists inputs and the last successful preview.</p>'
                 ),
@@ -400,7 +414,7 @@ class ResumeJobEvaluationAdmin(AdminResumePdfExtractMixin, admin.ModelAdmin):
             inner = str(obj.optimization_potential)
         return self._ro_span('resume-eval-ro-optimization-potential', inner)
 
-    @admin.display(description="Gemini model")
+    @admin.display(description="Model")
     def ro_gemini_model(self, obj: ResumeJobEvaluation) -> str:
         text = (obj.gemini_model or '').strip()
         inner = text if text else self._empty_dash()
@@ -563,8 +577,11 @@ class ResumeJobEvaluationAdmin(AdminResumePdfExtractMixin, admin.ModelAdmin):
                 content_type='application/json',
             )
 
-        gemini_mid = str(
-            result.get('gemini_model')
+        model_mid = str(
+            result.get('model_id')
+            or result.get('gemini_model')
+            or result.get('openai_model')
+            or result.get('deepseek_model')
             or getattr(settings, 'GEMINI_RESUME_JOB_EVAL_MODEL', 'gemini-2.5-flash')
         ).strip()
         rpc = resolve_prompt_config(result.get('prompt_config_id'))
@@ -575,7 +592,7 @@ class ResumeJobEvaluationAdmin(AdminResumePdfExtractMixin, admin.ModelAdmin):
                 pk=obj.pk,
                 result=result,
                 prompt_config=pc,
-                fallback_gemini_model_id=gemini_mid,
+                fallback_gemini_model_id=model_mid,
             )
         except Exception as exc:  # noqa: BLE001
             return HttpResponse(
@@ -587,7 +604,7 @@ class ResumeJobEvaluationAdmin(AdminResumePdfExtractMixin, admin.ModelAdmin):
         return HttpResponse(json.dumps({'ok': True}), content_type='application/json')
 
     def run_evaluation_submit(self, request, object_id):
-        """POST only: invoke Gemini against the saved row (prompt-testing loop)."""
+        """POST only: invoke evaluation against the saved row (prompt-testing loop)."""
         if request.method != 'POST':
             return HttpResponseNotAllowed(['POST', 'OPTIONS'])
         obj = get_object_or_404(ResumeJobEvaluation, pk=object_id)
@@ -606,22 +623,28 @@ class ResumeJobEvaluationAdmin(AdminResumePdfExtractMixin, admin.ModelAdmin):
                 obj.resume_text,
                 prompt_config=pc,
             )
-            gemini_mid = str(result.get('gemini_model') or 'gemini-2.5-flash').strip()
+            model_mid = str(
+                result.get('model_id')
+                or result.get('gemini_model')
+                or result.get('openai_model')
+                or result.get('deepseek_model')
+                or 'gemini-2.5-flash'
+            ).strip()
             persist_resume_job_evaluation_result(
                 pk=obj.pk,
                 result=result,
                 prompt_config=pc,
-                fallback_gemini_model_id=gemini_mid,
+                fallback_gemini_model_id=model_mid,
             )
             if result['success']:
                 messages.success(
                     request,
-                    'Gemini evaluation finished — reload the page if you ran from legacy button.',
+                    'Evaluation finished — reload the page if you ran from legacy button.',
                 )
             else:
                 messages.error(
                     request,
-                    f'Gemini evaluation failed: {result.get("error")}',
+                    f'Evaluation failed: {result.get("error")}',
                 )
         ch = 'admin:%s_%s_change' % (self.opts.app_label, self.opts.model_name)
         return redirect(reverse(ch, args=(object_id,)))
@@ -634,8 +657,11 @@ class ResumeJobEvaluationAdmin(AdminResumePdfExtractMixin, admin.ModelAdmin):
         if result is None:
             return False
 
-        gemini_mid = str(
-            result.get('gemini_model')
+        model_mid = str(
+            result.get('model_id')
+            or result.get('gemini_model')
+            or result.get('openai_model')
+            or result.get('deepseek_model')
             or getattr(settings, 'GEMINI_RESUME_JOB_EVAL_MODEL', 'gemini-2.5-flash')
         ).strip()
         rpc = resolve_prompt_config(result.get('prompt_config_id'))
@@ -649,7 +675,7 @@ class ResumeJobEvaluationAdmin(AdminResumePdfExtractMixin, admin.ModelAdmin):
             pk=obj.pk,
             result=result,
             prompt_config=pc,
-            fallback_gemini_model_id=gemini_mid,
+            fallback_gemini_model_id=model_mid,
         )
         return True
 
@@ -677,7 +703,7 @@ class ResumeJobEvaluationAdmin(AdminResumePdfExtractMixin, admin.ModelAdmin):
 
 @admin.register(WhyShouldIApplyPlayground)
 class WhyShouldIApplyPlaygroundAdmin(AdminResumePdfExtractMixin, admin.ModelAdmin):
-    """Playground: save = draft inputs; separate button runs Gemini (prompt test cycle)."""
+    """Playground: save = draft inputs; separate button runs generation (prompt test cycle)."""
 
     form = WhyShouldIApplyPlaygroundAdminForm
     change_form_template = "admin/ai_service/whyshouldiapplyplayground/change_form.html"
@@ -726,8 +752,10 @@ class WhyShouldIApplyPlaygroundAdmin(AdminResumePdfExtractMixin, admin.ModelAdmi
             "Inputs",
             {
                 "description": mark_safe(
-                    "<p>Set <strong>GEMINI_API_KEY</strong> / <strong>GOOGLE_API_KEY</strong>. "
-                    "Model and temperature come from the selected <strong>Prompt config</strong>.</p>"
+                    "<p>Set <strong>OPENAI_API_KEY</strong>, <strong>DEEPSEEK_API_KEY</strong>, and/or "
+                    "<strong>GEMINI_API_KEY</strong> / <strong>GOOGLE_API_KEY</strong>. Choose a "
+                    "<strong>Prompt config</strong> to test "
+                    "(model and temperature come from that row). Leave empty to use the service default.</p>"
                     "<p>Use <strong>Get answer</strong> — inputs do not need to be saved first.</p>"
                 ),
                 "fields": ("job_description", "resume_pdf", "resume_text", "prompt_config"),
@@ -803,7 +831,7 @@ class WhyShouldIApplyPlaygroundAdmin(AdminResumePdfExtractMixin, admin.ModelAdmi
             inner = self._succeeded_icon(obj.succeeded)
         return self._ro_span("why-apply-ro-succeeded", inner)
 
-    @admin.display(description="Gemini model")
+    @admin.display(description="Model")
     def ro_gemini_model(self, obj: WhyShouldIApplyPlayground) -> str:
         text = (obj.gemini_model or "").strip()
         inner = text if text else self._empty_dash()
@@ -979,8 +1007,11 @@ class WhyShouldIApplyPlaygroundAdmin(AdminResumePdfExtractMixin, admin.ModelAdmi
                 content_type="application/json",
             )
 
-        gemini_mid = str(
-            result.get("gemini_model")
+        model_mid = str(
+            result.get("model_id")
+            or result.get("gemini_model")
+            or result.get("openai_model")
+            or result.get("deepseek_model")
             or getattr(settings, "GEMINI_RESUME_JOB_EVAL_MODEL", "gemini-2.5-flash")
         ).strip()
         rpc = resolve_why_apply_prompt_config(result.get("prompt_config_id"))
@@ -991,7 +1022,7 @@ class WhyShouldIApplyPlaygroundAdmin(AdminResumePdfExtractMixin, admin.ModelAdmi
                 pk=obj.pk,
                 result=result,
                 prompt_config=pc,
-                fallback_gemini_model_id=gemini_mid,
+                fallback_gemini_model_id=model_mid,
             )
         except Exception as exc:  # noqa: BLE001
             return HttpResponse(
@@ -1021,19 +1052,25 @@ class WhyShouldIApplyPlaygroundAdmin(AdminResumePdfExtractMixin, admin.ModelAdmi
                 obj.resume_text,
                 prompt_config=pc,
             )
-            gemini_mid = str(result.get("gemini_model") or "gemini-2.5-flash").strip()
+            model_mid = str(
+                result.get("model_id")
+                or result.get("gemini_model")
+                or result.get("openai_model")
+                or result.get("deepseek_model")
+                or "gemini-2.5-flash"
+            ).strip()
             persist_why_should_i_apply_result(
                 pk=obj.pk,
                 result=result,
                 prompt_config=pc,
-                fallback_gemini_model_id=gemini_mid,
+                fallback_gemini_model_id=model_mid,
             )
             if result["success"]:
-                messages.success(request, "Gemini generation finished.")
+                messages.success(request, "Generation finished.")
             else:
                 messages.error(
                     request,
-                    f'Gemini generation failed: {result.get("error")}',
+                    f'Generation failed: {result.get("error")}',
                 )
         ch = "admin:%s_%s_change" % (self.opts.app_label, self.opts.model_name)
         return redirect(reverse(ch, args=(object_id,)))
@@ -1046,8 +1083,11 @@ class WhyShouldIApplyPlaygroundAdmin(AdminResumePdfExtractMixin, admin.ModelAdmi
         if result is None:
             return False
 
-        gemini_mid = str(
-            result.get("gemini_model")
+        model_mid = str(
+            result.get("model_id")
+            or result.get("gemini_model")
+            or result.get("openai_model")
+            or result.get("deepseek_model")
             or getattr(settings, "GEMINI_RESUME_JOB_EVAL_MODEL", "gemini-2.5-flash")
         ).strip()
         rpc = resolve_why_apply_prompt_config(result.get("prompt_config_id"))
@@ -1061,7 +1101,7 @@ class WhyShouldIApplyPlaygroundAdmin(AdminResumePdfExtractMixin, admin.ModelAdmi
             pk=obj.pk,
             result=result,
             prompt_config=pc,
-            fallback_gemini_model_id=gemini_mid,
+            fallback_gemini_model_id=model_mid,
         )
         return True
 
@@ -1081,3 +1121,445 @@ class WhyShouldIApplyPlaygroundAdmin(AdminResumePdfExtractMixin, admin.ModelAdmi
             )
         else:
             self.message_user(request, "Saved inputs.", level=messages.INFO)
+
+
+@admin.register(ProfessionalSummaryPlayground)
+class ProfessionalSummaryPlaygroundAdmin(AdminResumePdfExtractMixin, admin.ModelAdmin):
+    """Playground: save = draft inputs; separate button runs OpenAI (prompt test cycle)."""
+
+    form = ProfessionalSummaryPlaygroundAdminForm
+    change_form_template = (
+        "admin/ai_service/professionalsummaryplayground/change_form.html"
+    )
+    add_form_template = "admin/ai_service/professionalsummaryplayground/add_form.html"
+    list_display = [
+        "display_name",
+        "short_description",
+        "openai_model",
+        "instruction_slug",
+        "succeeded",
+        "created_at",
+    ]
+    list_filter = ["succeeded", "instruction_slug", "openai_model", "created_at"]
+    search_fields = [
+        "name",
+        "description",
+        "resume_text",
+        "summary_text",
+    ]
+    autocomplete_fields = ["prompt_config"]
+
+    readonly_fields = [
+        "ro_default_prompt",
+        "_results_header",
+        "ro_succeeded",
+        "ro_openai_model",
+        "ro_temperature",
+        "ro_instruction_slug",
+        "ro_error_message",
+        "ro_summary_text",
+        "created_at",
+        "updated_at",
+    ]
+
+    fieldsets = (
+        (
+            "Label",
+            {
+                "description": mark_safe(
+                    "<p>Use <strong>Name</strong> and <strong>Description</strong> to tell test runs apart. "
+                    "Generates a professional summary for the resume wizard.</p>"
+                ),
+                "fields": ("name", "description"),
+            },
+        ),
+        (
+            "Inputs",
+            {
+                "description": mark_safe(
+                    "<p>Set <strong>OPENAI_API_KEY</strong>, <strong>DEEPSEEK_API_KEY</strong>, and/or "
+                    "<strong>GEMINI_API_KEY</strong> / <strong>GOOGLE_API_KEY</strong>. Choose a "
+                    "<strong>Prompt config</strong> to test "
+                    "(model and temperature come from that row). Leave empty to use the service default.</p>"
+                    "<p><strong>Default prompt (production)</strong> below is what the resume wizard uses.</p>"
+                    "<p>Use <strong>Get summary</strong> — inputs do not need to be saved first.</p>"
+                ),
+                "fields": ("ro_default_prompt", "prompt_config", "resume_pdf", "resume_text"),
+            },
+        ),
+        (
+            "Last run results",
+            {
+                "fields": (
+                    "_results_header",
+                    "ro_succeeded",
+                    "ro_openai_model",
+                    "ro_temperature",
+                    "ro_instruction_slug",
+                    "ro_error_message",
+                    "ro_summary_text",
+                    "created_at",
+                    "updated_at",
+                ),
+            },
+        ),
+    )
+
+    @staticmethod
+    def _ro_span(element_id: str, inner) -> str:
+        return format_html('<span id="{}">{}</span>', element_id, inner)
+
+    @staticmethod
+    def _empty_dash() -> str:
+        return format_html('<span class="summary-playground-empty">—</span>')
+
+    @staticmethod
+    def _truncate(text: str, limit: int = 72) -> str:
+        text = (text or "").strip().replace("\n", " ")
+        if not text:
+            return ""
+        if len(text) <= limit:
+            return text
+        return text[: limit - 1] + "…"
+
+    @admin.display(description="Default prompt (production)")
+    def ro_default_prompt(self, obj: ProfessionalSummaryPlayground) -> str:
+        pc = get_summary_default_prompt_config()
+        if pc is None:
+            return mark_safe(
+                '<span style="color:#ba2121;">No default prompt. Run '
+                "<code>setup_professional_summary</code>.</span>"
+            )
+        model_label = "—"
+        if pc.ai_model_id:
+            am = pc.ai_model
+            if am is None:
+                am = AIModel.objects.filter(pk=pc.ai_model_id).first()
+            if am:
+                model_label = f"{am.display_name} ({am.model_id})"
+        temp = pc.temperature if pc.temperature is not None else "—"
+        return format_html(
+            "<strong>{}</strong> · slug <code>{}</code> · model {} · temp {}",
+            pc.name,
+            pc.slug,
+            model_label,
+            temp,
+        )
+
+    @admin.display(description="Name", ordering="name")
+    def display_name(self, obj: ProfessionalSummaryPlayground) -> str:
+        label = (obj.name or "").strip()
+        return label if label else f"#{obj.pk}"
+
+    @admin.display(description="Description", ordering="description")
+    def short_description(self, obj: ProfessionalSummaryPlayground) -> str:
+        snippet = self._truncate(obj.description, 60)
+        return snippet or "—"
+
+    @staticmethod
+    def _succeeded_icon(value: bool) -> str:
+        if value:
+            return format_html(
+                '<img src="{}" alt="True">',
+                static("admin/img/icon-yes.svg"),
+            )
+        return format_html(
+            '<img src="{}" alt="False">',
+            static("admin/img/icon-no.svg"),
+        )
+
+    @admin.display(description="Succeeded")
+    def ro_succeeded(self, obj: ProfessionalSummaryPlayground) -> str:
+        has_run = bool(
+            (obj.summary_text or "").strip()
+            or (obj.error_message or "").strip()
+            or (obj.raw_response_text or "").strip()
+        )
+        if not has_run:
+            inner = self._empty_dash()
+        else:
+            inner = self._succeeded_icon(obj.succeeded)
+        return self._ro_span("summary-ro-succeeded", inner)
+
+    @admin.display(description="Model")
+    def ro_openai_model(self, obj: ProfessionalSummaryPlayground) -> str:
+        text = (obj.openai_model or "").strip()
+        inner = text if text else self._empty_dash()
+        return self._ro_span("summary-ro-openai-model", inner)
+
+    @admin.display(description="Temperature")
+    def ro_temperature(self, obj: ProfessionalSummaryPlayground) -> str:
+        if obj.temperature_used is None:
+            inner = self._empty_dash()
+        else:
+            inner = str(obj.temperature_used)
+        return self._ro_span("summary-ro-temperature", inner)
+
+    @admin.display(description="Instruction slug")
+    def ro_instruction_slug(self, obj: ProfessionalSummaryPlayground) -> str:
+        text = (obj.instruction_slug or "").strip()
+        inner = text if text else self._empty_dash()
+        return self._ro_span("summary-ro-instruction-slug", inner)
+
+    @admin.display(description="Error message")
+    def ro_error_message(self, obj: ProfessionalSummaryPlayground) -> str:
+        text = (obj.error_message or "").strip()
+        if text:
+            inner = format_html(
+                '<span style="color:#ba2121;white-space:pre-wrap;">{}</span>',
+                text[:8000],
+            )
+        else:
+            inner = self._empty_dash()
+        return self._ro_span("summary-ro-error-message", inner)
+
+    @admin.display(description="")
+    def _results_header(self, obj: ProfessionalSummaryPlayground) -> str:
+        if obj.pk and (obj.summary_text or "").strip() and obj.succeeded:
+            return "Summary below reflects the last saved run."
+        return mark_safe(
+            'Run <strong>Get summary</strong> above to fill these fields. '
+            "Optionally save results onto this row when done."
+        )
+
+    @admin.display(description="Summary")
+    def ro_summary_text(self, obj: ProfessionalSummaryPlayground) -> str:
+        text = (obj.summary_text or "").strip()
+        if not text:
+            inner = format_html("<em>No summary yet.</em>")
+        else:
+            inner = format_html(
+                '<pre style="white-space:pre-wrap;font-size:13px;max-height:520px;'
+                'overflow:auto;background:#f8f9fa;padding:14px;border-radius:6px;margin:0;">{}</pre>',
+                text[:65535],
+            )
+        return self._ro_span("summary-ro-summary-text", inner)
+
+    def get_urls(self):
+        urls = super().get_urls()
+        opts = self.model._meta
+        basename = "%s_%s" % (opts.app_label, opts.model_name)
+        extra = [
+            path(
+                "generate-preview/",
+                self.admin_site.admin_view(self.generate_preview),
+                name="%s_generate_preview" % basename,
+            ),
+            path(
+                "<path:object_id>/persist-generation/",
+                self.admin_site.admin_view(self.persist_generation_submit),
+                name="%s_persist_generation" % basename,
+            ),
+            path(
+                "<path:object_id>/run-generation/",
+                self.admin_site.admin_view(self.run_generation_submit),
+                name="%s_run_generation" % basename,
+            ),
+        ]
+        return extra + urls
+
+    def generate_preview(self, request):
+        if request.method != "POST":
+            return HttpResponseNotAllowed(["POST", "OPTIONS"])
+        opts = self.model._meta
+        if not (
+            request.user.has_perm(f"{opts.app_label}.add_{opts.model_name}")
+            or request.user.has_perm(f"{opts.app_label}.change_{opts.model_name}")
+        ):
+            return HttpResponse(
+                json.dumps({"success": False, "error": "Permission denied"}),
+                status=403,
+                content_type="application/json",
+            )
+
+        rt, rt_err = resolve_resume_text_from_admin_request(request)
+        if rt_err:
+            payload = {"success": False, "error": rt_err, "summary": "", "raw_text": None}
+            return HttpResponse(
+                json.dumps(payload, cls=DjangoJSONEncoder),
+                status=400,
+                content_type="application/json",
+            )
+        if not rt:
+            payload = {
+                "success": False,
+                "error": "Resume text (or resume PDF) is required.",
+                "summary": "",
+                "raw_text": None,
+            }
+            return HttpResponse(
+                json.dumps(payload, cls=DjangoJSONEncoder),
+                status=400,
+                content_type="application/json",
+            )
+
+        pc = None
+        raw_pc = request.POST.get("prompt_config") or ""
+        if str(raw_pc).strip().isdigit():
+            pc = resolve_summary_prompt_config(int(raw_pc))
+        if pc is None:
+            pc = get_summary_default_prompt_config()
+        if pc is None:
+            payload = {
+                "success": False,
+                "error": (
+                    f"No active prompt for slug {PROFESSIONAL_SUMMARY_SERVICE_SLUG}. Run "
+                    "python manage.py setup_professional_summary"
+                ),
+                "summary": "",
+                "raw_text": None,
+            }
+            return HttpResponse(
+                json.dumps(payload, cls=DjangoJSONEncoder),
+                status=400,
+                content_type="application/json",
+            )
+
+        try:
+            result = run_professional_summary_generation(
+                resume_text=rt, prompt_config=pc
+            )
+            return HttpResponse(
+                json.dumps(result, cls=DjangoJSONEncoder),
+                content_type="application/json",
+            )
+        except Exception as exc:  # noqa: BLE001
+            payload = {
+                "success": False,
+                "summary": "",
+                "error": str(exc),
+                "raw_text": None,
+            }
+            return HttpResponse(
+                json.dumps(payload, cls=DjangoJSONEncoder),
+                status=500,
+                content_type="application/json",
+            )
+
+    def persist_generation_submit(self, request, object_id):
+        if request.method != "POST":
+            return HttpResponseNotAllowed(["POST", "OPTIONS"])
+        obj = get_object_or_404(ProfessionalSummaryPlayground, pk=object_id)
+        if not self.has_change_permission(request, obj):
+            return HttpResponseForbidden("Change permission denied.")
+        try:
+            body = json.loads(request.body.decode() or "{}")
+        except json.JSONDecodeError:
+            return HttpResponse(
+                json.dumps({"ok": False, "error": "Invalid JSON body"}),
+                status=400,
+                content_type="application/json",
+            )
+        result = body.get("result")
+        if not isinstance(result, dict) or result.get("success") is not True:
+            return HttpResponse(
+                json.dumps(
+                    {"ok": False, "error": "Provide result.success=true from Get summary"}
+                ),
+                status=400,
+                content_type="application/json",
+            )
+
+        model_mid = str(
+            result.get("model_id") or result.get("openai_model") or "gpt-4o"
+        ).strip()
+
+        rpc = resolve_summary_prompt_config(result.get("prompt_config_id"))
+        pc = rpc or obj.prompt_config or get_summary_default_prompt_config()
+
+        try:
+            persist_professional_summary_result(
+                pk=obj.pk,
+                result=result,
+                prompt_config=pc,
+                fallback_model_id=model_mid,
+            )
+        except Exception as exc:  # noqa: BLE001
+            return HttpResponse(
+                json.dumps({"ok": False, "error": str(exc)}),
+                status=400,
+                content_type="application/json",
+            )
+
+        return HttpResponse(json.dumps({"ok": True}), content_type="application/json")
+
+    def run_generation_submit(self, request, object_id):
+        if request.method != "POST":
+            return HttpResponseNotAllowed(["POST", "OPTIONS"])
+        obj = get_object_or_404(ProfessionalSummaryPlayground, pk=object_id)
+        if not self.has_change_permission(request, obj):
+            return HttpResponseForbidden("Change permission denied.")
+        pc = obj.prompt_config or get_summary_default_prompt_config()
+        if pc is None:
+            messages.error(
+                request,
+                f"No prompt selected and no default for slug {PROFESSIONAL_SUMMARY_SERVICE_SLUG}. "
+                "Run python manage.py setup_professional_summary",
+            )
+        else:
+            result = run_professional_summary_generation(
+                resume_text=obj.resume_text,
+                prompt_config=pc,
+            )
+            model_mid = str(
+                result.get("model_id") or result.get("openai_model") or "gpt-4o"
+            ).strip()
+            persist_professional_summary_result(
+                pk=obj.pk,
+                result=result,
+                prompt_config=pc,
+                fallback_model_id=model_mid,
+            )
+            if result["success"]:
+                messages.success(request, "OpenAI generation finished.")
+            else:
+                messages.error(
+                    request,
+                    f'OpenAI generation failed: {result.get("error")}',
+                )
+        ch = "admin:%s_%s_change" % (self.opts.app_label, self.opts.model_name)
+        return redirect(reverse(ch, args=(object_id,)))
+
+    def _persist_pending_from_form(self, request, obj, form) -> bool:
+        raw = form.cleaned_data.get("pending_generation_result")
+        if raw is None:
+            raw = request.POST.get("pending_generation_result")
+        result = parse_summary_pending_generation_result(raw)
+        if result is None:
+            return False
+
+        model_mid = str(
+            result.get("model_id") or result.get("openai_model") or "gpt-4o"
+        ).strip()
+        rpc = resolve_summary_prompt_config(result.get("prompt_config_id"))
+        pc = (
+            rpc
+            or form.cleaned_data.get("prompt_config")
+            or obj.prompt_config
+            or get_summary_default_prompt_config()
+        )
+        persist_professional_summary_result(
+            pk=obj.pk,
+            result=result,
+            prompt_config=pc,
+            fallback_model_id=model_mid,
+        )
+        return True
+
+    def save_model(self, request, obj, form, change):
+        pc = form.cleaned_data.get("prompt_config")
+        if pc is None:
+            pc = get_summary_default_prompt_config()
+        obj.prompt_config = pc
+        super().save_model(request, obj, form, change)
+
+        persisted = self._persist_pending_from_form(request, obj, form)
+        if persisted:
+            self.message_user(
+                request,
+                "Saved inputs and last generation results.",
+                level=messages.SUCCESS,
+            )
+        else:
+            self.message_user(request, "Saved inputs.", level=messages.INFO)
+

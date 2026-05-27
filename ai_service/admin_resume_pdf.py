@@ -19,11 +19,16 @@ def admin_extract_resume_pdf_url(model_admin) -> str:
 
 def resolve_resume_text_from_admin_request(request) -> tuple[str, str | None]:
     """
-    Resume text for admin Gemini previews.
+    Resume text for admin AI playgrounds.
 
-    If ``resume_pdf`` is uploaded, extract with :func:`utils.pdf_text.extract_text_from_pdf`
-    (same as dashboard upload). Otherwise use the ``resume_text`` textarea.
+    **Precedence:** non-empty ``resume_text`` textarea wins (what you see in the form,
+    including after "Load PDF into resume text"). Only if the textarea is empty do we
+    extract an attached ``resume_pdf``. This avoids a stale file input overriding loaded text.
     """
+    text_from_field = (request.POST.get("resume_text") or "").strip()
+    if text_from_field:
+        return text_from_field, None
+
     uploaded = request.FILES.get("resume_pdf")
     if uploaded:
         name = (getattr(uploaded, "name", None) or "").lower()
@@ -36,7 +41,7 @@ def resolve_resume_text_from_admin_request(request) -> tuple[str, str | None]:
         except PdfTextExtractionError as exc:
             return "", str(exc)
 
-    return (request.POST.get("resume_text") or "").strip(), None
+    return "", None
 
 
 def admin_extract_resume_pdf_response(request, *, permission_check) -> HttpResponse:

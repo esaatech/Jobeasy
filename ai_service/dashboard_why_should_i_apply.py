@@ -60,7 +60,9 @@ def run_why_should_i_apply_for_application(
         answer.prompt_config = rpc
 
     answer.processing_time = elapsed
-    answer.gemini_model = str(result.get("gemini_model") or "")[:128]
+    answer.gemini_model = str(
+        result.get("model_id") or result.get("gemini_model") or ""
+    )[:128]
     answer.instruction_slug = str(result.get("instruction_slug") or "")[:80]
     temp = result.get("temperature")
     if temp is not None:

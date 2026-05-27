@@ -396,6 +396,108 @@ class WhyShouldIApplyPlayground(models.Model):
         return f"Playground {self.pk} [{status}]"
 
 
+class ProfessionalSummaryPlayground(models.Model):
+    """
+    Admin playground for AI professional summary generation.
+
+    Mirrors WhyShouldIApplyPlayground: test prompt variants with resume text
+    before or alongside dashboard wizard usage.
+    """
+
+    name = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Short label for this run (e.g. “Upload v2 summary test”).",
+    )
+    description = models.TextField(
+        blank=True,
+        help_text="What you are testing—prompt version, resume variant, model comparison, etc.",
+    )
+
+    user = models.ForeignKey(
+        "auth.User",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="professional_summary_playgrounds",
+    )
+    resume = models.ForeignKey(
+        "resume_builder.Resume",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="professional_summary_playgrounds",
+    )
+
+    resume_text = models.TextField(
+        help_text="Resume content as plain text or structured JSON paste for testing.",
+    )
+    prompt_config = models.ForeignKey(
+        AIPromptConfiguration,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="professional_summary_playgrounds",
+    )
+    ai_model = models.ForeignKey(
+        AIModel,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="professional_summary_playgrounds",
+        help_text="Model catalog row used for this run.",
+    )
+    openai_model = models.CharField(
+        max_length=128,
+        blank=True,
+        help_text="OpenAI model id used for this run (snapshot).",
+    )
+    temperature_used = models.FloatField(
+        null=True,
+        blank=True,
+        help_text="Temperature used for this run.",
+    )
+
+    succeeded = models.BooleanField(default=False)
+    error_message = models.TextField(blank=True)
+    summary_text = models.TextField(
+        blank=True,
+        help_text="Generated professional summary.",
+    )
+    instruction_slug = models.SlugField(
+        max_length=80,
+        blank=True,
+        help_text="Snapshot of prompt_configuration.slug used for versioning.",
+    )
+
+    raw_response_text = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Professional summary playground"
+        verbose_name_plural = "Professional summary playground"
+
+    def __str__(self) -> str:
+        label = (self.name or "").strip()
+        if self.pk is None:
+            return label or "Summary playground (new)"
+        if label:
+            status = "ok" if self.succeeded else "fail" if self.error_message else "draft"
+            return f"{label} [{status}]"
+        no_run_yet = (
+            not (self.summary_text or "").strip()
+            and not (self.raw_response_text or "").strip()
+            and not (self.error_message or "").strip()
+        )
+        if no_run_yet:
+            return f"Summary playground {self.pk} [draft]"
+        status = "ok" if self.succeeded else "fail"
+        return f"Summary playground {self.pk} [{status}]"
+
+
 class WhyShouldIApplyAnswer(models.Model):
     """User-facing persisted answer for a dashboard job application."""
 

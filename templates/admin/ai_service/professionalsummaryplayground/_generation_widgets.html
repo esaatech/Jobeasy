@@ -1,17 +1,17 @@
 {% load i18n static %}
-<div id="why-apply-widget" class="module" style="margin-bottom:20px;">
+<div id="summary-playground-widget" class="module" style="margin-bottom:20px;">
   <h2>{% translate "Generation" %}</h2>
   <div class="form-row" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-    <button type="button" id="why-apply-submit" class="button default">
-      {% translate "Get answer" %}
+    <button type="button" id="summary-playground-submit" class="button default">
+      {% translate "Get summary" %}
     </button>
     {% if persist_url %}
-    <button type="button" id="why-apply-persist" class="button" disabled
-            title="{% translate 'Stores the last Gemini result into this saved record.' %}">
-      {% translate "Save last answer to record" %}
+    <button type="button" id="summary-playground-persist" class="button" disabled
+            title="{% translate 'Stores the last OpenAI result into this saved record.' %}">
+      {% translate "Save last summary to record" %}
     </button>
     {% endif %}
-    <span id="why-apply-spinner" style="display:none;color:#417690;font-weight:600;">
+    <span id="summary-playground-spinner" style="display:none;color:#417690;font-weight:600;">
       {% translate "Running…" %}
     </span>
   </div>
@@ -20,17 +20,16 @@
     <button type="button" id="resume-pdf-load-btn" class="button">
       {% translate "Load PDF into resume text" %}
     </button>
-    <span class="help">{% translate "Upload a PDF in Resume PDF above, or attach one when running Get answer." %}</span>
+    <span class="help">{% translate "Upload a PDF in Resume PDF above, or attach one when running Get summary." %}</span>
   </div>
   <div id="resume-pdf-extract-message" style="margin-top:8px;"></div>
   <p class="help" style="margin-top:10px;margin-bottom:0;">
     {% blocktranslate trimmed %}
-      Model and temperature come from the selected prompt configuration.
-      Output is a plain application answer — no greeting or sign-off.
+      Model and temperature come from the selected prompt configuration (or the service default if none selected).
       Django &quot;Save&quot; stores inputs and the last successful preview.
     {% endblocktranslate %}
   </p>
-  <div id="why-apply-message" style="margin-top:12px;"></div>
+  <div id="summary-playground-message" style="margin-top:12px;"></div>
 </div>
 
 <script>
@@ -57,8 +56,8 @@
   var csrftoken = getCookie("csrftoken");
 
   function setBusy(on) {
-    var btn = document.getElementById("why-apply-submit");
-    var sp = document.getElementById("why-apply-spinner");
+    var btn = document.getElementById("summary-playground-submit");
+    var sp = document.getElementById("summary-playground-spinner");
     if (btn) { btn.disabled = !!on; }
     if (sp) { sp.style.display = on ? "inline" : "none"; }
   }
@@ -75,7 +74,7 @@
   }
 
   function dash() {
-    return '<span class="why-apply-empty">—</span>';
+    return '<span class="summary-playground-empty">—</span>';
   }
 
   function succeededIcon(ok) {
@@ -88,7 +87,7 @@
     return dash();
   }
 
-  function answerPre(bodyStr) {
+  function summaryPre(bodyStr) {
     return (
       '<pre style="white-space:pre-wrap;font-size:13px;max-height:520px;' +
       'overflow:auto;background:#f8f9fa;padding:14px;border-radius:6px;margin:0;">' +
@@ -100,22 +99,22 @@
   function updateReadonlyFields(payload) {
     var ok = !!(payload && payload.success);
 
-    setRo("why-apply-ro-succeeded", succeededIcon(ok));
+    setRo("summary-ro-succeeded", succeededIcon(ok));
 
-    if (ok && payload.answer_text) {
-      setRo("why-apply-ro-answer-text", answerPre(String(payload.answer_text)));
+    if (ok && payload.summary) {
+      setRo("summary-ro-summary-text", summaryPre(String(payload.summary)));
     } else if (!ok) {
       var rawFail = payload && payload.raw_text ? String(payload.raw_text).substring(0, 14000) : "";
       if (rawFail) {
         setRo(
-          "why-apply-ro-answer-text",
+          "summary-ro-summary-text",
           '<pre style="white-space:pre-wrap;font-size:11px;max-height:280px;overflow:auto;' +
           'background:#fff8f8;padding:12px;border-radius:6px;border:1px solid #ebb;margin:0;">' +
           esc(rawFail) +
           "</pre>"
         );
       } else {
-        setRo("why-apply-ro-answer-text", "<em>No answer yet.</em>");
+        setRo("summary-ro-summary-text", "<em>No summary yet.</em>");
       }
     }
 
@@ -125,41 +124,41 @@
     }
     if (err) {
       setRo(
-        "why-apply-ro-error-message",
+        "summary-ro-error-message",
         '<span style="color:#ba2121;white-space:pre-wrap;">' + esc(err) + "</span>"
       );
     } else if (ok) {
-      setRo("why-apply-ro-error-message", dash());
+      setRo("summary-ro-error-message", dash());
     }
 
     var model = payload && (
-      payload.model_id || payload.gemini_model || payload.openai_model || payload.deepseek_model
+      payload.model_id || payload.openai_model || payload.gemini_model || payload.deepseek_model
     )
       ? String(
-          payload.model_id || payload.gemini_model || payload.openai_model || payload.deepseek_model
+          payload.model_id || payload.openai_model || payload.gemini_model || payload.deepseek_model
         ).trim()
       : "";
-    setRo("why-apply-ro-gemini-model", model ? esc(model) : dash());
+    setRo("summary-ro-openai-model", model ? esc(model) : dash());
 
     var slug = payload && payload.instruction_slug ? String(payload.instruction_slug).trim() : "";
-    setRo("why-apply-ro-instruction-slug", slug ? esc(slug) : dash());
+    setRo("summary-ro-instruction-slug", slug ? esc(slug) : dash());
 
     var temp = payload && payload.temperature != null && payload.temperature !== ""
       ? String(payload.temperature)
       : "";
-    setRo("why-apply-ro-temperature", temp ? esc(temp) : dash());
+    setRo("summary-ro-temperature", temp ? esc(temp) : dash());
   }
 
   var lastResult = null;
 
   function updatePersist(enabled) {
-    var pb = document.getElementById("why-apply-persist");
+    var pb = document.getElementById("summary-playground-persist");
     if (!pb || !persistUrl) { return; }
     pb.disabled = !enabled;
   }
 
   function flashMsg(ok, txt) {
-    var m = document.getElementById("why-apply-message");
+    var m = document.getElementById("summary-playground-message");
     if (!m) { return; }
     var cls = ok ? "success" : "error";
     m.innerHTML = '<ul class="messagelist"><li class="' + cls + '">' + esc(txt) + "</li></ul>";
@@ -170,8 +169,8 @@
     updatePersist(!!persistUrl && payload && payload.success);
     updateReadonlyFields(payload);
 
-    if (payload && payload.success && payload.answer_text) {
-      flashMsg(true, "{% translate "Answer generated. See Last run results below." %}");
+    if (payload && payload.success && payload.summary) {
+      flashMsg(true, "{% translate "Summary generated. See Last run results below." %}");
       return;
     }
 
@@ -179,51 +178,46 @@
     flashMsg(false, errText);
   }
 
-  var runBtn = document.getElementById("why-apply-submit");
+  function buildFormData() {
+    var fd = new FormData();
+    var rt = document.getElementById("id_resume_text");
+    var pc = document.getElementById("id_prompt_config");
+    var pdf = document.getElementById("id_resume_pdf");
+    if (rt) { fd.append("resume_text", rt.value); }
+    if (pc && pc.value) { fd.append("prompt_config", pc.value); }
+    if (pdf && pdf.files && pdf.files[0]) {
+      fd.append("resume_pdf", pdf.files[0]);
+    }
+    return fd;
+  }
+
+  var runBtn = document.getElementById("summary-playground-submit");
   if (runBtn) {
     runBtn.addEventListener("click", function () {
-      var jdEl = document.getElementById("id_job_description");
       var rtEl = document.getElementById("id_resume_text");
       var pdfEl = document.getElementById("id_resume_pdf");
-      if (!jdEl || !rtEl) { flashMsg(false, "{% translate "Form fields not found." %}"); return; }
-      var jd = (jdEl.value || "").trim();
+      if (!rtEl) { flashMsg(false, "{% translate "Form fields not found." %}"); return; }
       var rt = (rtEl.value || "").trim();
       var hasPdf = pdfEl && pdfEl.files && pdfEl.files[0];
-      if (!jd || (!rt && !hasPdf)) {
-        flashMsg(false, "{% translate "Enter job description and resume text or choose a PDF." %}");
+      if (!rt && !hasPdf) {
+        flashMsg(false, "{% translate "Enter resume text or choose a PDF." %}");
         return;
       }
 
-      var fd = window.resumeAdminBuildPromptFormData
-        ? window.resumeAdminBuildPromptFormData()
-        : (function () {
-            var params = new URLSearchParams();
-            params.append("job_description", jdEl.value);
-            params.append("resume_text", rtEl.value);
-            var pc = document.getElementById("id_prompt_config");
-            if (pc && pc.value) { params.append("prompt_config", pc.value); }
-            return params;
-          })();
-      var useMultipart = fd instanceof FormData;
-
+      var fd = buildFormData();
       setBusy(true);
-      document.getElementById("why-apply-message").innerHTML = "";
+      document.getElementById("summary-playground-message").innerHTML = "";
       updatePersist(false);
-
-      var headers = {
-        "X-Requested-With": "XMLHttpRequest",
-        "X-CSRFToken": csrftoken || "",
-        "Accept": "application/json"
-      };
-      if (!useMultipart) {
-        headers["Content-Type"] = "application/x-www-form-urlencoded;charset=UTF-8";
-      }
 
       fetch(generateUrl, {
         method: "POST",
         credentials: "same-origin",
-        headers: headers,
-        body: useMultipart ? fd : fd.toString()
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+          "X-CSRFToken": csrftoken || "",
+          "Accept": "application/json"
+        },
+        body: fd
       }).then(function (r) {
         return r.json().then(function (j) {
           if (!r.ok) {
@@ -240,7 +234,7 @@
     });
   }
 
-  var adminForm = document.getElementById("whyshouldiapplyplayground_form");
+  var adminForm = document.getElementById("professionalsummaryplayground_form");
   if (adminForm) {
     adminForm.addEventListener("submit", function () {
       var pendingEl = document.getElementById("id_pending_generation_result");
@@ -255,7 +249,7 @@
     });
   }
 
-  var persistBtn = document.getElementById("why-apply-persist");
+  var persistBtn = document.getElementById("summary-playground-persist");
   if (persistBtn && persistUrl) {
     persistBtn.addEventListener("click", function () {
       if (!lastResult || !lastResult.success) { return; }
@@ -273,7 +267,7 @@
       }).then(function (r) {
         return r.json().then(function (j) {
           if (!r.ok || !j.ok) {
-            flashMsg(false, (j && j.error) ? j.error : "{% translate "Could not persist answer." %}");
+            flashMsg(false, (j && j.error) ? j.error : "{% translate "Could not persist summary." %}");
             updatePersist(true);
           } else {
             window.location.reload();

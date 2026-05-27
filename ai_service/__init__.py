@@ -3,7 +3,7 @@ from .cover_letter import generate_cover_letter_from_raw_text
 from .open_ai import (
     optimize_resume_for_job,
     optimize_my_resume_for_job,
-    generate_professional_summary
+    generate_professional_summary,
 )
 
 from .structured_resume import (
@@ -24,6 +24,7 @@ __all__ = [
     'optimize_resume_for_job', 
     'optimize_my_resume_for_job',
     'generate_professional_summary',
+    'run_professional_summary_generation',
     
     # New structured functions
     'format_resume',

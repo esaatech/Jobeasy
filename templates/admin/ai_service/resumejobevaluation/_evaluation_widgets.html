@@ -162,7 +162,13 @@
       setRo("resume-eval-ro-error-message", dash());
     }
 
-    var model = payload && payload.gemini_model ? String(payload.gemini_model).trim() : "";
+    var model = payload && (
+      payload.model_id || payload.gemini_model || payload.openai_model || payload.deepseek_model
+    )
+      ? String(
+          payload.model_id || payload.gemini_model || payload.openai_model || payload.deepseek_model
+        ).trim()
+      : "";
     setRo("resume-eval-ro-gemini-model", model ? esc(model) : dash());
 
     var slug = payload && payload.instruction_slug ? String(payload.instruction_slug).trim() : "";

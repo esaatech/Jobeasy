@@ -31,7 +31,7 @@ For legacy OpenAI parsing/assistant notes, see [`../README.md`](../README.md). T
 |-------|---------|-------|-----------|
 | **AIService** | Named product capability (`cover_letter`, `resume_job_evaluation`, …) | Partially adopted | All new AI features register a service slug |
 | **AIPromptConfiguration** | Versioned system prompts + default model/temperature per variant | Used for cover letter, optimization, evaluation | A/B prompts, strict vs pragmatic evaluators |
-| **AIModel** | Catalog of provider + `model_id` (e.g. `gemini-2.5-pro`, `gpt-5.5`, `deepseek-v4-pro`) | Gemini, OpenAI, DeepSeek seeded; runtime is Gemini-first for eval | Provider router + DeepSeek client |
+| **AIModel** | Catalog of provider + `model_id` (e.g. `gemini-2.5-pro`, `gpt-5.5`, `deepseek-v4-pro`) | Gemini, OpenAI, DeepSeek seeded; eval / summary / why-apply route by prompt FK | `resolve_for_prompt_config` |
 | **Structured output** | Pydantic schemas validated before persist | `ResumeJobEvaluationPayload` (Gemini) | One schema module per structured task |
 | **Run records** | Audit trail + user-facing history | `ResumeJobEvaluation`, `WhyShouldIApplyPlayground` (admin); `WhyShouldIApplyAnswer` (dashboard) | User-scoped runs linked to applications |
 
@@ -207,9 +207,9 @@ gen = resolve_generation_config(prompt_config)
 
 | Provider | Catalog (`AIModel`) | Structured tasks | Prompt DB |
 |----------|---------------------|------------------|-----------|
-| **OpenAI** | Yes (catalog + hardcoded calls) | Resume parsing, cover letter, optimization, assistant, professional summary (`open_ai.py`, `structured_resume.py`) | `setup_ai_prompts` |
-| **Google Gemini** | Yes | Resume–job evaluation, why-should-I-apply | `setup_resume_job_evaluation`, `setup_why_should_i_apply` |
-| **DeepSeek** | Yes (catalog only) | — | `setup_ai_models`; client TBD |
+| **OpenAI** | Yes (catalog + DB prompts) | Resume parsing, cover letter, optimization, assistant; **professional summary**; **why-should-I-apply** (when prompt links OpenAI) | `setup_ai_prompts`, `setup_professional_summary`, `setup_why_should_i_apply` |
+| **Google Gemini** | Yes | Resume–job evaluation, why-should-I-apply, professional summary (when prompt links Gemini) | `setup_resume_job_evaluation`, `setup_why_should_i_apply`, `setup_professional_summary` |
+| **DeepSeek** | Yes (catalog + client) | **professional summary**; **why-should-I-apply** (when prompt links DeepSeek) | `setup_ai_models`; `DEEPSEEK_API_KEY` |
 
 ### Target shape
 
@@ -254,7 +254,7 @@ No change to `AIService` / prompt versioning model—only the execution layer br
 
 | Function | Module | Use |
 |----------|--------|-----|
-| `evaluate_resume_against_job(job_description, resume_text, prompt_config=…)` | `resume_job_evaluation.py` | Run Gemini + validate |
+| `evaluate_resume_against_job(job_description, resume_text, prompt_config=…)` | `resume_job_evaluation.py` | Run provider from prompt AIModel + Pydantic validate |
 | `persist_resume_job_evaluation_result(pk, result, …)` | `resume_job_evaluation.py` | Write DB after success |
 | `parse_pending_evaluation_result(raw)` | `resume_job_evaluation.py` | Admin Save with hidden JSON |
 | `conclusion_from_evaluation(eval_data)` | `resume_job_evaluation.py` | Extract `proceed_reasoning` for `conclusion` field |
@@ -450,7 +450,7 @@ See also [`docs/architecture/dashboard-job-application-pipeline.md`](../../docs/
 
 ### Why should I apply (implemented)
 
-Generates a **plain application-field answer** to “Why should we hire you?” — not a cover letter (no greeting, no sign-off). Uses **Gemini plain text** via `gemini_generate_text_sync`, not structured JSON.
+Generates a **plain application-field answer** to “Why should we hire you?” — not a cover letter (no greeting, no sign-off). Provider follows the prompt's linked **AIModel** (Gemini, OpenAI, or DeepSeek) via `resolve_for_prompt_config` in `why_should_i_apply.py`.
 
 #### Flow (job application detail page)
 
@@ -465,7 +465,7 @@ sequenceDiagram
     User->>Detail: Documents → Generate
     Detail->>API: POST (CSRF)
     API->>Svc: run_why_should_i_apply_for_application
-    Svc->>Gen: JD + resume text + default prompt v1-0
+    Svc->>Gen: JD + resume text + prompt (default or saved on answer)
     Gen-->>Svc: answer_text + metadata
     Svc->>Svc: WhyShouldIApplyAnswer + JobApplication FK
     API-->>Detail: JSON content
@@ -489,6 +489,7 @@ Copy uses the browser clipboard API on the detail page (no separate endpoint).
 | `WhyShouldIApplyAnswer` | User-facing persisted answer (`content`, `status`, prompt/model snapshots) |
 | `JobApplication.why_should_i_apply_answer` | FK from dashboard application to answer row |
 | `setup_why_should_i_apply` | Seeds service + v1-0 prompt (run after `setup_ai_models`) |
+| `setup_professional_summary` | Seeds service + v1-0 OpenAI prompt for resume wizard summary |
 
 #### Code entry points
 
@@ -530,12 +531,14 @@ Each new structured task: add Pydantic model → document in prompt → seed `AI
 | Edit evaluator instructions | **AI Prompt Configurations** → service “Resume-to-Job Evaluation” |
 | Change default model/temperature | Same row → `ai_model`, `temperature` |
 | Add Gemini/OpenAI/DeepSeek catalog entries | **AI models** |
-| Run manual eval tests | **Resume-job evaluations** (playground) — paste resume text **or upload PDF** |
-| Run manual why-apply tests | **Why should I apply playground** — paste resume text **or upload PDF** |
+| Run manual eval tests | **Resume-job evaluations** (playground) — paste resume text **or upload PDF**; provider follows prompt's linked **AI model** |
+| Run manual why-apply tests | **Why should I apply playground** — paste resume text **or upload PDF**; provider follows prompt's linked **AI model** (Gemini / OpenAI / DeepSeek) |
+| Run manual summary tests | **Professional summary playground** — paste resume text **or upload PDF** |
+| Resume wizard **Generate AI Summary** | `build_resume_text_for_summary` (same PDF → `original_content` → structured sources as job-fit; structured fallback omits existing summary); always default prompt |
 | Tune dashboard gate thresholds / production prompt | **Job fit gate settings** (singleton) |
 | Edit why-apply instructions | **AI Prompt Configurations** → service “Why Should I Apply” |
 
-**Deploy verification:** `entrypoint.sh` runs `setup_ai_models`, `setup_resume_job_evaluation`, `setup_job_fit_gate`, `setup_why_should_i_apply`, then `check_ai_platform`. Admin header shows `AI platform <build>`. Under **AI SERVICE**: **AI models**, **AI Prompt Configurations**, **Job fit gate settings**, **Resume-job evaluations**, **Why should I apply playground**.
+**Deploy verification:** `entrypoint.sh` runs `setup_ai_models`, `setup_resume_job_evaluation`, `setup_job_fit_gate`, `setup_why_should_i_apply`, `setup_professional_summary`, then `check_ai_platform`. Admin header shows `AI platform <build>`. Under **AI SERVICE**: **AI models**, **AI Prompt Configurations**, **Job fit gate settings**, **Resume-job evaluations**, **Why should I apply playground**, **Professional summary playground**.
 
 ### Playground workflow
 
@@ -569,7 +572,7 @@ Checklist for a **new structured Gemini task** (adjust for OpenAI-only tasks):
 7. **Admin** — Playground or inline if internal-only.
 8. **Tests** — Schema validation + persist path (see `ai_service/tests.py`).
 
-For **text-only Gemini tasks**, use `gemini_generate_text_sync` + `resolve_generation_config` (see `why_should_i_apply.py`). For legacy OpenAI text tasks: `get_ai_prompt(service_slug)` from `prompt_utils.py` + `open_ai.py` (migrate to `resolve_generation_config` over time).
+For **multi-provider tasks** (eval, why-apply, professional summary), use `resolve_for_prompt_config()` and branch on `AIModel.provider` (see `resume_job_evaluation.py`, `why_should_i_apply.py`, `professional_summary.py`). Legacy OpenAI text tasks may still use `prompt_utils.py` + `open_ai.py`.
 
 ---
 
@@ -577,7 +580,7 @@ For **text-only Gemini tasks**, use `gemini_generate_text_sync` + `resolve_gener
 
 ### Environment variables
 
-**Production (minimum for Gemini evaluation):** set **one** of `GEMINI_API_KEY` or `GOOGLE_API_KEY`. Model and temperature are **not** env-driven in normal operation—they come from admin after `setup_ai_models` and `setup_resume_job_evaluation`.
+**Production:** set API keys for whichever providers your default prompts use (`GEMINI_API_KEY` / `GOOGLE_API_KEY`, `OPENAI_API_KEY`, `DEEPSEEK_API_KEY`). Model and temperature come from admin **AI Prompt Configurations** and **Job fit gate settings** (production eval prompt), not from env overrides.
 
 | Variable | Required? | Purpose |
 |----------|-----------|---------|
@@ -605,11 +608,13 @@ See `.env.example`.
 | `gemini_schema.py` | Pydantic schemas for Gemini structured output |
 | `gemini_client.py` | Low-level sync Gemini calls |
 | `gemini_service.py` | Higher-level Gemini helpers |
-| `resume_job_evaluation.py` | Evaluation orchestration + persist |
+| `resume_job_evaluation.py` | Job-fit evaluation (Gemini structured / OpenAI & DeepSeek JSON) + persist |
 | `admin_resume_pdf.py` | Admin PDF upload → `extract_text_from_pdf` for playgrounds |
 | `utils/pdf_text.py` | Shared PDF text extraction (pdfplumber, PyPDF2 fallback) |
-| `utils/resume_text.py` | `build_resume_text_for_evaluation()` — full resume for dashboard eval |
-| `why_should_i_apply.py` | Why-apply plain-text generation + persist helpers |
+| `utils/resume_text.py` | `build_resume_text_for_evaluation()` (dashboard eval); `build_resume_text_for_summary()` (wizard summary) |
+| `professional_summary.py` | OpenAI summary generation + admin playground persist |
+| `professional_summary_prompts.py` | Versioned summary instructions (seed source) |
+| `why_should_i_apply.py` | Why-apply plain-text generation (Gemini / OpenAI / DeepSeek via `resolve_for_prompt_config`) |
 | `why_should_i_apply_prompts.py` | Versioned why-apply instructions (source for seeds) |
 | `dashboard_why_should_i_apply.py` | Dashboard adapter for job application detail |
 | `admin.py` | Admin UX for models, prompts, playgrounds |

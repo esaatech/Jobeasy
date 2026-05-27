@@ -8,7 +8,10 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 
 from resume_builder.models import Resume
-from utils.resume_text import build_resume_text_for_evaluation
+from utils.resume_text import (
+    build_resume_text_for_evaluation,
+    build_resume_text_for_summary,
+)
 
 User = get_user_model()
 
@@ -82,3 +85,70 @@ class BuildResumeTextForEvaluationTests(TestCase):
         text = build_resume_text_for_evaluation(resume)
         self.assertIn("Engineer at Acme", text)
         self.assertIn("Dates: 2023-09 — Present", text)
+
+
+class BuildResumeTextForSummaryTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username="summaryuser", password="pass")
+
+    def test_omits_professional_summary_in_structured_fallback(self):
+        resume = Resume.objects.create(
+            user=self.user,
+            template_id="executive",
+            original_content="",
+            personal_info={
+                "full_name": "Jane Doe",
+                "summary": "Old summary to exclude",
+            },
+            experience=[
+                {
+                    "title": "Engineer",
+                    "company": "Acme",
+                    "start_date": "2023-09",
+                    "end_date": "Present",
+                }
+            ],
+        )
+        text = build_resume_text_for_summary(resume)
+        self.assertIn("Engineer at Acme", text)
+        self.assertNotIn("PROFESSIONAL SUMMARY", text)
+        self.assertNotIn("Old summary to exclude", text)
+
+    def test_evaluation_includes_summary_structured_fallback(self):
+        resume = Resume.objects.create(
+            user=self.user,
+            template_id="executive",
+            original_content="",
+            personal_info={
+                "full_name": "Jane Doe",
+                "summary": "Existing summary",
+            },
+        )
+        eval_text = build_resume_text_for_evaluation(resume)
+        summary_text = build_resume_text_for_summary(resume)
+        self.assertIn("PROFESSIONAL SUMMARY", eval_text)
+        self.assertIn("Existing summary", eval_text)
+        self.assertNotIn("PROFESSIONAL SUMMARY", summary_text)
+
+    def test_pdf_priority_unchanged_for_summary(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            pdf_path = Path(tmp) / "resume.pdf"
+            _make_pdf(pdf_path, "Summary PDF marker XYZ789")
+            with pdf_path.open("rb") as fh:
+                upload = SimpleUploadedFile(
+                    "resume.pdf",
+                    fh.read(),
+                    content_type="application/pdf",
+                )
+
+            resume = Resume.objects.create(
+                user=self.user,
+                template_id="executive",
+                original_content="Ignored when PDF extracts",
+                personal_info={"summary": "Should not appear from structured"},
+                pdf_file=upload,
+            )
+
+        text = build_resume_text_for_summary(resume)
+        self.assertIn("Summary PDF marker XYZ789", text)
+        self.assertNotIn("Ignored when PDF extracts", text)

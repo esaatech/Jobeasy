@@ -12,8 +12,18 @@ from pydantic import ValidationError
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 
-from ai_service.admin import ResumeJobEvaluationAdmin, WhyShouldIApplyPlaygroundAdmin
-from ai_service.forms import ResumeJobEvaluationAdminForm, WhyShouldIApplyPlaygroundAdminForm
+from unittest.mock import MagicMock, patch
+
+from ai_service.admin import (
+    ProfessionalSummaryPlaygroundAdmin,
+    ResumeJobEvaluationAdmin,
+    WhyShouldIApplyPlaygroundAdmin,
+)
+from ai_service.forms import (
+    ProfessionalSummaryPlaygroundAdminForm,
+    ResumeJobEvaluationAdminForm,
+    WhyShouldIApplyPlaygroundAdminForm,
+)
 from ai_service.generation_config import resolve_generation_config
 from ai_service.gemini_schema import ResumeJobEvaluationPayload
 from ai_service.fit_gate import classify_fit_tier, evaluation_summary, tier_allows_auto_proceed
@@ -23,11 +33,27 @@ from ai_service.models import (
     AIService,
     JobFitGateSettings,
     ResumeJobEvaluation,
+    ProfessionalSummaryPlayground,
     WhyShouldIApplyPlayground,
 )
+from ai_service.professional_summary import (
+    PROFESSIONAL_SUMMARY_SERVICE_SLUG,
+    build_user_prompt_from_resume_data,
+    generate_professional_summary,
+    get_default_prompt_config as get_summary_default_prompt_config,
+    parse_pending_generation_result as parse_summary_pending_generation_result,
+    persist_professional_summary_result,
+    resolve_prompt_config as resolve_summary_prompt_config,
+    run_professional_summary_generation,
+)
+from ai_service.gemini_schema import ProfessionalSummaryPayload
+from ai_service.professional_summary_prompts import PROFESSIONAL_SUMMARY_INSTRUCTION_V1_0
+from ai_service.eval_prompts import EVALUATOR_INSTRUCTION_V1_0
 from ai_service.resume_job_evaluation import (
     RESUME_JOB_EVALUATION_SERVICE_SLUG,
     conclusion_from_evaluation,
+    evaluate_resume_against_job,
+    get_default_prompt_config as get_eval_default_prompt_config,
     parse_pending_evaluation_result,
     persist_resume_job_evaluation_result,
 )
@@ -280,6 +306,116 @@ class GeminiServiceLiveIntegrationTests(SimpleTestCase):
         self.assertGreaterEqual(len(calls), 1)
         names = [c["name"] for c in calls]
         self.assertIn("note_status", names)
+
+
+class ResumeJobEvaluationMultiProviderTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.valid_eval = ResumeJobEvaluationSchemaTests()._valid_dict()
+        cls.service = AIService.objects.create(
+            slug=RESUME_JOB_EVALUATION_SERVICE_SLUG,
+            name="Resume Job Evaluation",
+            is_active=True,
+        )
+        cls.gemini = AIModel.objects.create(
+            provider=AIModel.Provider.GEMINI,
+            model_id="gemini-2.5-flash",
+            display_name="Flash",
+            is_active=True,
+        )
+        cls.openai = AIModel.objects.create(
+            provider=AIModel.Provider.OPENAI,
+            model_id="gpt-4o",
+            display_name="GPT-4o",
+            is_active=True,
+        )
+        cls.deepseek = AIModel.objects.create(
+            provider=AIModel.Provider.DEEPSEEK,
+            model_id="deepseek-v4-flash",
+            display_name="DeepSeek Flash",
+            is_active=True,
+        )
+        cls.base_prompt_kwargs = {
+            "service": cls.service,
+            "system_prompt": EVALUATOR_INSTRUCTION_V1_0,
+            "temperature": 0.35,
+            "is_active": True,
+        }
+
+    @patch("ai_service.resume_job_evaluation.gemini_generate_structured_sync")
+    def test_gemini_prompt_uses_gemini_structured_api(self, mock_gemini):
+        mock_gemini.return_value = {
+            "raw": json.dumps(self.valid_eval),
+            "parsed": self.valid_eval,
+            "model": "gemini-2.5-flash",
+        }
+        prompt = AIPromptConfiguration.objects.create(
+            name="Gemini v1",
+            slug="eval-gemini",
+            ai_model=self.gemini,
+            **self.base_prompt_kwargs,
+        )
+        result = evaluate_resume_against_job("Senior Dev", "Jane resume", prompt_config=prompt)
+        self.assertTrue(result["success"])
+        self.assertEqual(result["evaluation"]["overall_score"], 72)
+        self.assertEqual(result["provider"], AIModel.Provider.GEMINI)
+        mock_gemini.assert_called_once()
+
+    @patch("ai_service.resume_job_evaluation.client.chat.completions.create")
+    def test_openai_prompt_uses_openai_json_api(self, mock_create):
+        mock_create.return_value = MagicMock(
+            choices=[
+                MagicMock(
+                    message=MagicMock(content=json.dumps(self.valid_eval))
+                )
+            ]
+        )
+        prompt = AIPromptConfiguration.objects.create(
+            name="OpenAI v1",
+            slug="eval-openai",
+            ai_model=self.openai,
+            **self.base_prompt_kwargs,
+        )
+        result = evaluate_resume_against_job("Senior Dev", "Jane resume", prompt_config=prompt)
+        self.assertTrue(result["success"])
+        self.assertEqual(result["provider"], AIModel.Provider.OPENAI)
+        self.assertEqual(result["model_id"], "gpt-4o")
+        mock_create.assert_called_once()
+
+    @patch("ai_service.resume_job_evaluation.get_deepseek_client")
+    def test_deepseek_prompt_uses_deepseek_json_api(self, mock_get_client):
+        mock_client = MagicMock()
+        mock_get_client.return_value = mock_client
+        mock_client.chat.completions.create.return_value = MagicMock(
+            choices=[
+                MagicMock(
+                    message=MagicMock(content=json.dumps(self.valid_eval))
+                )
+            ]
+        )
+        prompt = AIPromptConfiguration.objects.create(
+            name="DeepSeek v1",
+            slug="eval-deepseek",
+            ai_model=self.deepseek,
+            **self.base_prompt_kwargs,
+        )
+        result = evaluate_resume_against_job("Senior Dev", "Jane resume", prompt_config=prompt)
+        self.assertTrue(result["success"])
+        self.assertEqual(result["provider"], AIModel.Provider.DEEPSEEK)
+        self.assertEqual(result["model_id"], "deepseek-v4-flash")
+        mock_client.chat.completions.create.assert_called_once()
+
+    def test_get_default_prompt_config(self):
+        AIPromptConfiguration.objects.create(
+            name="Default",
+            slug="v1-0",
+            ai_model=self.gemini,
+            is_default=True,
+            **self.base_prompt_kwargs,
+        )
+        pc = get_eval_default_prompt_config()
+        self.assertIsNotNone(pc)
+        self.assertEqual(pc.slug, "v1-0")
 
 
 class ConclusionFromEvaluationTests(SimpleTestCase):
@@ -590,6 +726,94 @@ class WhyShouldIApplyGenerationTests(TestCase):
         self.assertIsNone(parse_pending_generation_result('{"success": false}'))
 
 
+class WhyShouldIApplyMultiProviderTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.service = AIService.objects.create(
+            slug=WHY_SHOULD_I_APPLY_SERVICE_SLUG,
+            name="Why Should I Apply",
+            is_active=True,
+        )
+        cls.gemini = AIModel.objects.create(
+            provider=AIModel.Provider.GEMINI,
+            model_id="gemini-2.5-flash",
+            display_name="Flash",
+            is_active=True,
+        )
+        cls.openai = AIModel.objects.create(
+            provider=AIModel.Provider.OPENAI,
+            model_id="gpt-4o",
+            display_name="GPT-4o",
+            is_active=True,
+        )
+        cls.deepseek = AIModel.objects.create(
+            provider=AIModel.Provider.DEEPSEEK,
+            model_id="deepseek-v4-flash",
+            display_name="DeepSeek Flash",
+            is_active=True,
+        )
+        cls.base_prompt_kwargs = {
+            "service": cls.service,
+            "system_prompt": WHY_SHOULD_I_APPLY_INSTRUCTION_V1_0,
+            "temperature": 0.55,
+            "is_active": True,
+        }
+
+    @patch("ai_service.why_should_i_apply.gemini_generate_text_sync")
+    def test_gemini_prompt_uses_gemini_api(self, mock_gemini):
+        mock_gemini.return_value = "Gemini why-apply answer."
+        prompt = AIPromptConfiguration.objects.create(
+            name="Gemini v1",
+            slug="why-gemini",
+            ai_model=self.gemini,
+            **self.base_prompt_kwargs,
+        )
+        result = generate_why_should_i_apply("Senior Dev", "Jane Doe resume", prompt_config=prompt)
+        self.assertTrue(result["success"])
+        self.assertEqual(result["answer_text"], "Gemini why-apply answer.")
+        self.assertEqual(result["provider"], AIModel.Provider.GEMINI)
+        self.assertEqual(result["model_id"], "gemini-2.5-flash")
+        mock_gemini.assert_called_once()
+
+    @patch("ai_service.why_should_i_apply.client.chat.completions.create")
+    def test_openai_prompt_uses_openai_api(self, mock_create):
+        mock_create.return_value = MagicMock(
+            choices=[MagicMock(message=MagicMock(content="OpenAI why-apply answer."))]
+        )
+        prompt = AIPromptConfiguration.objects.create(
+            name="OpenAI v1",
+            slug="why-openai",
+            ai_model=self.openai,
+            **self.base_prompt_kwargs,
+        )
+        result = generate_why_should_i_apply("Senior Dev", "Jane Doe resume", prompt_config=prompt)
+        self.assertTrue(result["success"])
+        self.assertEqual(result["answer_text"], "OpenAI why-apply answer.")
+        self.assertEqual(result["provider"], AIModel.Provider.OPENAI)
+        self.assertEqual(result["model_id"], "gpt-4o")
+        mock_create.assert_called_once()
+
+    @patch("ai_service.why_should_i_apply.get_deepseek_client")
+    def test_deepseek_prompt_uses_deepseek_api(self, mock_get_client):
+        mock_client = MagicMock()
+        mock_get_client.return_value = mock_client
+        mock_client.chat.completions.create.return_value = MagicMock(
+            choices=[MagicMock(message=MagicMock(content="DeepSeek why-apply answer."))]
+        )
+        prompt = AIPromptConfiguration.objects.create(
+            name="DeepSeek v1",
+            slug="why-deepseek",
+            ai_model=self.deepseek,
+            **self.base_prompt_kwargs,
+        )
+        result = generate_why_should_i_apply("Senior Dev", "Jane Doe resume", prompt_config=prompt)
+        self.assertTrue(result["success"])
+        self.assertEqual(result["answer_text"], "DeepSeek why-apply answer.")
+        self.assertEqual(result["provider"], AIModel.Provider.DEEPSEEK)
+        self.assertEqual(result["model_id"], "deepseek-v4-flash")
+        mock_client.chat.completions.create.assert_called_once()
+
+
 class WhyShouldIApplyPlaygroundPersistTests(TestCase):
     @classmethod
     def setUpTestData(cls):
@@ -729,3 +953,319 @@ class AdminResumePdfExtractTests(TestCase):
         data = response.json()
         self.assertTrue(data["success"])
         self.assertIn("Why apply admin PDF line", data["text"])
+
+    def test_resolve_resume_text_prefers_textarea_over_attached_pdf(self):
+        """Stale PDF file input must not override resume text already in the textarea."""
+        from ai_service.admin_resume_pdf import resolve_resume_text_from_admin_request
+
+        upload = SimpleUploadedFile(
+            "tiny.pdf",
+            _minimal_pdf_bytes("PDF only line"),
+            content_type="application/pdf",
+        )
+        request = RequestFactory().post(
+            "/",
+            {"resume_text": "Joel Ivongbe\nFull Stack Engineer\nPython Django AWS"},
+            format="multipart",
+        )
+        request.FILES["resume_pdf"] = upload
+        text, err = resolve_resume_text_from_admin_request(request)
+        self.assertIsNone(err)
+        self.assertIn("Joel Ivongbe", text)
+        self.assertNotIn("PDF only line", text)
+
+    def test_extract_resume_pdf_endpoint_for_summary_playground(self):
+        upload = SimpleUploadedFile(
+            "resume.pdf",
+            _minimal_pdf_bytes("Summary admin PDF line"),
+            content_type="application/pdf",
+        )
+        url = reverse("admin:ai_service_professionalsummaryplayground_extract_resume_pdf")
+        response = self.client.post(url, {"resume_pdf": upload}, format="multipart")
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertTrue(data["success"])
+        self.assertIn("Summary admin PDF line", data["text"])
+
+
+class ProfessionalSummaryGenerationTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.gpt4o = AIModel.objects.create(
+            provider=AIModel.Provider.OPENAI,
+            model_id="gpt-4o",
+            display_name="GPT-4o",
+            is_active=True,
+        )
+        cls.service = AIService.objects.create(
+            slug=PROFESSIONAL_SUMMARY_SERVICE_SLUG,
+            name="Professional Summary",
+            is_active=True,
+        )
+        cls.prompt = AIPromptConfiguration.objects.create(
+            service=cls.service,
+            name="v1",
+            slug="v1-0",
+            system_prompt=PROFESSIONAL_SUMMARY_INSTRUCTION_V1_0,
+            ai_model=cls.gpt4o,
+            temperature=0.30,
+            is_default=True,
+            is_active=True,
+        )
+
+    def test_get_default_prompt_config(self):
+        pc = get_summary_default_prompt_config()
+        self.assertIsNotNone(pc)
+        self.assertEqual(pc.slug, "v1-0")
+
+    def test_build_user_prompt_from_resume_data(self):
+        block = build_user_prompt_from_resume_data(
+            {"personal_info": {"title": "Engineer"}, "experience": []}
+        )
+        self.assertIn("Engineer", block)
+        self.assertIn("summary", block.lower())
+
+    def test_generate_fails_without_prompt(self):
+        AIPromptConfiguration.objects.all().delete()
+        result = run_professional_summary_generation(
+            resume_data={"personal_info": {}, "experience": []}
+        )
+        self.assertFalse(result["success"])
+        self.assertIn("setup_professional_summary", result["error"])
+
+    @patch("ai_service.professional_summary.client.chat.completions.create")
+    def test_generate_success_mock_openai(self, mock_create):
+        mock_create.return_value = MagicMock(
+            choices=[
+                MagicMock(
+                    message=MagicMock(
+                        content='{"summary": "Seasoned engineer with cloud expertise."}'
+                    )
+                )
+            ]
+        )
+        resume = (
+            "Jane Doe — Senior Python engineer with 8 years building Django APIs, "
+            "AWS deployments, and React frontends for SaaS products."
+        )
+        result = run_professional_summary_generation(resume_text=resume)
+        self.assertTrue(result["success"])
+        self.assertIn("Seasoned engineer", result["summary"])
+        self.assertEqual(result["model_id"], "gpt-4o")
+        self.assertEqual(result["provider"], AIModel.Provider.OPENAI)
+        mock_create.assert_called_once()
+        call_kwargs = mock_create.call_args.kwargs
+        self.assertEqual(call_kwargs["model"], "gpt-4o")
+        self.assertEqual(call_kwargs["response_format"], {"type": "json_object"})
+
+    @patch("ai_service.professional_summary.run_professional_summary_generation")
+    def test_wizard_alias_uses_default_prompt_only(self, mock_run):
+        mock_run.return_value = {"success": True, "summary": "ok"}
+        out = generate_professional_summary({"personal_info": {}})
+        mock_run.assert_called_once_with(resume_data={"personal_info": {}})
+        self.assertNotIn("prompt_config", mock_run.call_args.kwargs)
+        self.assertTrue(out["success"])
+
+    @patch("ai_service.professional_summary.get_deepseek_client")
+    def test_deepseek_prompt_uses_deepseek_api(self, mock_get_client):
+        mock_client = MagicMock()
+        mock_get_client.return_value = mock_client
+        mock_client.chat.completions.create.return_value = MagicMock(
+            choices=[
+                MagicMock(
+                    message=MagicMock(
+                        content='{"summary": "DeepSeek-generated summary."}'
+                    )
+                )
+            ]
+        )
+        deepseek = AIModel.objects.create(
+            provider=AIModel.Provider.DEEPSEEK,
+            model_id="deepseek-v4-flash",
+            display_name="DeepSeek Flash",
+            is_active=True,
+        )
+        prompt = AIPromptConfiguration.objects.create(
+            service=self.service,
+            name="DeepSeek variant",
+            slug="profession_summary_deepseek",
+            system_prompt=PROFESSIONAL_SUMMARY_INSTRUCTION_V1_0,
+            ai_model=deepseek,
+            temperature=0.03,
+            is_default=False,
+            is_active=True,
+        )
+        resume = (
+            "Joel Ivongbe — Full Stack Engineer with Django, Flask, PostgreSQL, "
+            "and cloud experience across multiple product teams."
+        )
+        result = run_professional_summary_generation(
+            resume_text=resume,
+            prompt_config=prompt,
+        )
+        self.assertTrue(result["success"])
+        self.assertIn("DeepSeek-generated", result["summary"])
+        self.assertEqual(result["model_id"], "deepseek-v4-flash")
+        self.assertEqual(result["provider"], AIModel.Provider.DEEPSEEK)
+        mock_client.chat.completions.create.assert_called_once()
+        self.assertEqual(
+            mock_client.chat.completions.create.call_args.kwargs["model"],
+            "deepseek-v4-flash",
+        )
+
+    @patch("ai_service.professional_summary.client.chat.completions.create")
+    def test_playground_passes_selected_prompt_config(self, mock_create):
+        other = AIPromptConfiguration.objects.create(
+            service=self.service,
+            name="GPT-4o test",
+            slug="gpt4o-test",
+            system_prompt=PROFESSIONAL_SUMMARY_INSTRUCTION_V1_0,
+            ai_model=self.gpt4o,
+            temperature=0.25,
+            is_default=False,
+            is_active=True,
+        )
+        mock_create.return_value = MagicMock(
+            choices=[
+                MagicMock(
+                    message=MagicMock(content='{"summary": "Variant summary text."}')
+                )
+            ]
+        )
+        resume = (
+            "Jane Doe — Senior Python engineer with 8 years building Django APIs, "
+            "AWS deployments, and React frontends for SaaS products."
+        )
+        result = run_professional_summary_generation(
+            resume_text=resume,
+            prompt_config=other,
+        )
+        self.assertTrue(result["success"])
+        self.assertEqual(result["instruction_slug"], "gpt4o-test")
+        self.assertEqual(result["prompt_config_id"], other.pk)
+
+    @patch("ai_service.professional_summary.gemini_generate_structured_sync")
+    def test_generate_uses_gemini_when_prompt_model_is_gemini(self, mock_gemini):
+        flash = AIModel.objects.create(
+            provider=AIModel.Provider.GEMINI,
+            model_id="gemini-2.5-flash",
+            display_name="Flash",
+            is_active=True,
+        )
+        self.prompt.ai_model = flash
+        self.prompt.save(update_fields=["ai_model"])
+        mock_gemini.return_value = {
+            "raw": '{"summary": "Cloud-native engineer with delivery focus."}',
+            "parsed": ProfessionalSummaryPayload(
+                summary="Cloud-native engineer with delivery focus."
+            ),
+            "model": "gemini-2.5-flash",
+        }
+        resume = (
+            "Jane Doe — Senior Python engineer with 8 years building Django APIs, "
+            "AWS deployments, and React frontends for SaaS products."
+        )
+        result = run_professional_summary_generation(resume_text=resume)
+        self.assertTrue(result["success"])
+        self.assertEqual(result["model_id"], "gemini-2.5-flash")
+        self.assertEqual(result["provider"], AIModel.Provider.GEMINI)
+        mock_gemini.assert_called_once()
+
+    def test_parse_pending_generation_result(self):
+        payload = json.dumps(
+            {
+                "success": True,
+                "summary": "Impact-driven leader.",
+                "openai_model": "gpt-4o",
+                "instruction_slug": "v1-0",
+            }
+        )
+        parsed = parse_summary_pending_generation_result(payload)
+        self.assertIsNotNone(parsed)
+        self.assertEqual(parsed["summary"], "Impact-driven leader.")
+
+
+class ProfessionalSummaryPlaygroundPersistTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.user = get_user_model().objects.create_superuser(
+            username="summary_admin",
+            email="summary@example.com",
+            password="testpass123",
+        )
+        cls.service, _ = AIService.objects.get_or_create(
+            slug=PROFESSIONAL_SUMMARY_SERVICE_SLUG,
+            defaults={"name": "Professional Summary", "is_active": True},
+        )
+        cls.prompt, _ = AIPromptConfiguration.objects.get_or_create(
+            service=cls.service,
+            slug="v1-0",
+            defaults={
+                "name": "v1",
+                "system_prompt": "test",
+                "is_default": True,
+                "is_active": True,
+            },
+        )
+
+    def _request_with_messages(self):
+        request = RequestFactory().post("/")
+        request.user = self.user
+        request.session = "session"
+        request._messages = FallbackStorage(request)
+        return request
+
+    def _generation_result(self) -> dict:
+        return {
+            "success": True,
+            "summary": "Results-driven engineer with full-stack delivery experience.",
+            "error": None,
+            "raw_text": '{"summary": "Results-driven engineer with full-stack delivery experience."}',
+            "openai_model": "gpt-4o",
+            "ai_model_id": None,
+            "temperature": 0.3,
+            "instruction_slug": "v1-0",
+            "prompt_config_id": None,
+        }
+
+    def test_persist_result(self):
+        obj = ProfessionalSummaryPlayground.objects.create(resume_text="rt")
+        persist_professional_summary_result(
+            pk=obj.pk,
+            result=self._generation_result(),
+            prompt_config=self.prompt,
+            fallback_model_id="gpt-4o",
+        )
+        obj.refresh_from_db()
+        self.assertTrue(obj.succeeded)
+        self.assertIn("full-stack", obj.summary_text)
+        self.assertEqual(obj.instruction_slug, "v1-0")
+
+    def test_save_model_persists_pending_generation(self):
+        obj = ProfessionalSummaryPlayground.objects.create(
+            resume_text="rt",
+            succeeded=False,
+            error_message="old",
+        )
+        pending = json.dumps(self._generation_result())
+        form = ProfessionalSummaryPlaygroundAdminForm(
+            data={
+                "name": "Upload v2",
+                "description": "Summary test",
+                "resume_text": "rt",
+                "prompt_config": self.prompt.pk,
+                "pending_generation_result": pending,
+            },
+            instance=obj,
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+
+        request = self._request_with_messages()
+        admin = ProfessionalSummaryPlaygroundAdmin(ProfessionalSummaryPlayground, site)
+        admin.save_model(request, obj, form, change=True)
+
+        obj.refresh_from_db()
+        self.assertEqual(obj.name, "Upload v2")
+        self.assertTrue(obj.succeeded)
+        self.assertIn("full-stack", obj.summary_text)
+        self.assertEqual(obj.error_message, "")

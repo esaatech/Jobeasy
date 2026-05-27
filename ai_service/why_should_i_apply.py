@@ -1,10 +1,9 @@
 """
 Why-should-I-apply generation — application-field answer (not a cover letter).
 
-Uses **Google Gemini** plain text via ``gemini_client.gemini_generate_text_sync``.
-
-Prompt text is loaded from DB: ``AIService`` slug ``why_should_i_apply`` and its
-``AIPromptConfiguration`` rows. Seed defaults with::
+Uses the **provider on the prompt's linked AIModel** (Gemini, OpenAI, or DeepSeek
+plain-text completion). Prompt text is loaded from DB: ``AIService`` slug
+``why_should_i_apply`` and its ``AIPromptConfiguration`` rows. Seed defaults with::
 
     python manage.py setup_ai_models
     python manage.py setup_why_should_i_apply
@@ -16,9 +15,13 @@ import json
 import logging
 from typing import Any
 
-from .generation_config import resolve_generation_config
+from openai import OpenAIError
+
+from .deepseek_client import get_deepseek_client
 from .gemini_client import gemini_generate_text_sync
-from .models import AIService, AIPromptConfiguration, WhyShouldIApplyPlayground
+from .generation_config import resolve_for_prompt_config
+from .models import AIModel, AIService, AIPromptConfiguration, WhyShouldIApplyPlayground
+from .open_ai import client
 
 logger = logging.getLogger(__name__)
 
@@ -87,14 +90,78 @@ def build_user_prompt(job_description: str, resume_text: str) -> str:
     )
 
 
-def _meta_from_config(cfg: AIPromptConfiguration, gen) -> dict[str, Any]:
+def _meta_from_config(
+    cfg: AIPromptConfiguration, gen, *, provider: str
+) -> dict[str, Any]:
     return {
         "prompt_config_id": cfg.pk,
         "instruction_slug": cfg.slug,
-        "gemini_model": gen.model_id,
+        "provider": provider,
+        "model_id": gen.model_id,
+        "gemini_model": gen.model_id if provider == AIModel.Provider.GEMINI else "",
+        "openai_model": gen.model_id if provider == AIModel.Provider.OPENAI else "",
+        "deepseek_model": gen.model_id if provider == AIModel.Provider.DEEPSEEK else "",
         "ai_model_id": gen.ai_model_id,
         "temperature": gen.temperature,
     }
+
+
+def _generate_with_gemini(
+    *,
+    system_instruction: str,
+    user_block: str,
+    gen,
+) -> tuple[str, str | None]:
+    raw = gemini_generate_text_sync(
+        system_instruction=system_instruction,
+        prompt=user_block,
+        model_id=gen.model_id,
+        temperature=gen.temperature,
+    )
+    answer = (raw or "").strip()
+    if not answer:
+        raise ValueError("Model returned empty text.")
+    return answer, raw
+
+
+def _generate_with_openai(
+    *,
+    system_instruction: str,
+    user_block: str,
+    gen,
+) -> tuple[str, str | None]:
+    chat_resp = client.chat.completions.create(
+        model=gen.model_id,
+        temperature=gen.temperature,
+        messages=[
+            {"role": "system", "content": system_instruction},
+            {"role": "user", "content": user_block},
+        ],
+    )
+    raw = (chat_resp.choices[0].message.content or "").strip()
+    if not raw:
+        raise ValueError("Model returned empty text.")
+    return raw, raw
+
+
+def _generate_with_deepseek(
+    *,
+    system_instruction: str,
+    user_block: str,
+    gen,
+) -> tuple[str, str | None]:
+    chat_resp = get_deepseek_client().chat.completions.create(
+        model=gen.model_id,
+        temperature=gen.temperature,
+        messages=[
+            {"role": "system", "content": system_instruction},
+            {"role": "user", "content": user_block},
+        ],
+    )
+    raw = (chat_resp.choices[0].message.content or "").strip()
+    if not raw:
+        raise ValueError("Model returned empty text.")
+    return raw, raw
 
 
 def generate_why_should_i_apply(
@@ -105,6 +172,7 @@ def generate_why_should_i_apply(
     ai_model_id: int | None = None,
     temperature: float | None = None,
     gemini_model: str | None = None,
+    model_id_override: str | None = None,
 ) -> dict[str, Any]:
     """Run generation. Returns dict with keys: success, answer_text, error, raw_text, metadata."""
 
@@ -123,30 +191,40 @@ def generate_why_should_i_apply(
             "instruction_slug": None,
         }
 
-    gen = resolve_generation_config(
+    override = model_id_override or gemini_model
+    gen, provider = resolve_for_prompt_config(
         cfg,
         ai_model_id=ai_model_id,
         temperature=temperature,
-        model_id_override=gemini_model,
+        model_id_override=override,
     )
 
     system_instruction = cfg.system_prompt.strip()
     user_block = build_user_prompt(job_description, resume_text)
-    base_meta = _meta_from_config(cfg, gen)
+    base_meta = _meta_from_config(cfg, gen, provider=provider)
 
     raw: str | None = None
     try:
-        raw = gemini_generate_text_sync(
-            system_instruction=system_instruction,
-            prompt=user_block,
-            model_id=gen.model_id,
-            temperature=gen.temperature,
-        )
-        answer = (raw or "").strip()
-        if not answer:
-            raise ValueError("Model returned empty text.")
-    except Exception as exc:
-        logger.exception("why_should_i_apply: Gemini call failed")
+        if provider == AIModel.Provider.GEMINI:
+            answer, raw = _generate_with_gemini(
+                system_instruction=system_instruction,
+                user_block=user_block,
+                gen=gen,
+            )
+        elif provider == AIModel.Provider.DEEPSEEK:
+            answer, raw = _generate_with_deepseek(
+                system_instruction=system_instruction,
+                user_block=user_block,
+                gen=gen,
+            )
+        else:
+            answer, raw = _generate_with_openai(
+                system_instruction=system_instruction,
+                user_block=user_block,
+                gen=gen,
+            )
+    except (OpenAIError, Exception) as exc:
+        logger.exception("why_should_i_apply: %s call failed", provider)
         return {
             "success": False,
             "answer_text": "",
@@ -173,7 +251,13 @@ def persist_why_should_i_apply_result(
 ) -> None:
     """Persist fields on ``WhyShouldIApplyPlayground`` after generation returns."""
     pc = prompt_config
-    gemini_mid = str(result.get("gemini_model") or fallback_gemini_model_id)[:128]
+    model_mid = str(
+        result.get("model_id")
+        or result.get("gemini_model")
+        or result.get("openai_model")
+        or result.get("deepseek_model")
+        or fallback_gemini_model_id
+    )[:128]
     raw_text = result.get("raw_text") or ""
     if raw_text:
         raw_text = raw_text[:262144]
@@ -204,7 +288,7 @@ def persist_why_should_i_apply_result(
         answer_text=answer,
         raw_response_text=raw_text,
         instruction_slug=slug_snap,
-        gemini_model=gemini_mid,
+        gemini_model=model_mid,
         ai_model_id=ai_model_pk,
         temperature_used=temp_used,
         prompt_config_id=result.get("prompt_config_id") or (pc.pk if pc else None),

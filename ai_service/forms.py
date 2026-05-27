@@ -1,6 +1,13 @@
 from django import forms
 
-from .models import AIService, AIPromptConfiguration, ResumeJobEvaluation, WhyShouldIApplyPlayground
+from .models import (
+    AIService,
+    AIPromptConfiguration,
+    ProfessionalSummaryPlayground,
+    ResumeJobEvaluation,
+    WhyShouldIApplyPlayground,
+)
+from .professional_summary import PROFESSIONAL_SUMMARY_SERVICE_SLUG
 from .resume_job_evaluation import RESUME_JOB_EVALUATION_SERVICE_SLUG
 from .why_should_i_apply import WHY_SHOULD_I_APPLY_SERVICE_SLUG
 
@@ -106,4 +113,51 @@ class WhyShouldIApplyPlaygroundAdminForm(forms.ModelForm):
         self.fields["prompt_config"].help_text = (
             "Uses the service default if left empty when you run Gemini. Set model and temperature "
             "on each prompt under AI Prompt Configurations (slug why_should_i_apply)."
+        )
+
+
+class ProfessionalSummaryPlaygroundAdminForm(forms.ModelForm):
+    """Playground: pick a prompt variant to test; empty uses service default."""
+
+    pending_generation_result = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput(),
+    )
+    resume_pdf = forms.FileField(
+        required=False,
+        label="Resume PDF",
+        help_text=RESUME_PDF_FIELD_HELP,
+        widget=forms.ClearableFileInput(attrs={"accept": ".pdf"}),
+    )
+
+    class Meta:
+        model = ProfessionalSummaryPlayground
+        fields = (
+            "name",
+            "description",
+            "prompt_config",
+            "resume_pdf",
+            "resume_text",
+        )
+        widgets = {
+            "name": forms.TextInput(attrs={"size": 80}),
+            "description": forms.Textarea(attrs={"rows": 2}),
+            "resume_text": forms.Textarea(attrs={"rows": 14}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        svc = AIService.objects.filter(
+            slug=PROFESSIONAL_SUMMARY_SERVICE_SLUG, is_active=True
+        ).first()
+        qs = AIPromptConfiguration.objects.none()
+        if svc:
+            qs = svc.prompts.filter(is_active=True)
+        self.fields["prompt_config"].queryset = qs
+        self.fields["prompt_config"].required = False
+        self.fields["prompt_config"].help_text = (
+            "Prompt variant to run when you click Get summary. Leave empty to use the "
+            "service default (same as production resume wizard). "
+            "Edit prompts under AI Prompt Configurations (slug professional_summary)."
         )

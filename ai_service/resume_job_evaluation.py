@@ -1,10 +1,9 @@
 """
 Resume-to-Job Evaluation Service — pre-flight fit check before optimization / cover letters.
 
-Uses **Google Gemini** via ``google-genai`` (bundled with ``google-adk``).
-
-Instruction text is loaded from DB: ``AIService`` slug ``resume_job_evaluation`` and its
-``AIPromptConfiguration`` rows. Seed defaults with::
+Uses the **provider on the prompt's linked AIModel** (Gemini structured JSON, or
+OpenAI / DeepSeek JSON chat). Instruction text is loaded from DB: ``AIService`` slug
+``resume_job_evaluation`` and its ``AIPromptConfiguration`` rows. Seed defaults with::
 
     python manage.py setup_resume_job_evaluation
     python manage.py setup_ai_models
@@ -16,12 +15,15 @@ import json
 import logging
 from typing import Any
 
+from openai import OpenAIError
 from pydantic import ValidationError
 
-from .generation_config import GenerationConfig, resolve_generation_config
+from .deepseek_client import get_deepseek_client
+from .generation_config import resolve_for_prompt_config
 from .gemini_schema import ResumeJobEvaluationPayload
 from .gemini_client import gemini_generate_structured_sync
-from .models import AIService, AIPromptConfiguration, ResumeJobEvaluation
+from .models import AIModel, AIService, AIPromptConfiguration, ResumeJobEvaluation
+from .open_ai import client
 
 logger = logging.getLogger(__name__)
 
@@ -72,7 +74,13 @@ def persist_resume_job_evaluation_result(
 ) -> None:
     """Persist fields on ``ResumeJobEvaluation`` after ``evaluate_resume_against_job`` returns."""
     pc = prompt_config
-    gemini_mid = str(result.get("gemini_model") or fallback_gemini_model_id)[:128]
+    model_mid = str(
+        result.get("model_id")
+        or result.get("gemini_model")
+        or result.get("openai_model")
+        or result.get("deepseek_model")
+        or fallback_gemini_model_id
+    )[:128]
     eval_data = result.get("evaluation") if result.get("success") else None
     raw_text = result.get("raw_text") or ""
     if raw_text:
@@ -126,7 +134,7 @@ def persist_resume_job_evaluation_result(
         "overall_score": overall_int if result["success"] else None,
         "optimization_potential": opt_int if result["success"] else None,
         "instruction_slug": slug_snap,
-        "gemini_model": gemini_mid,
+        "gemini_model": model_mid,
         "ai_model_id": ai_model_pk,
         "temperature_used": temp_used,
         "prompt_config_id": result.get("prompt_config_id") or (pc.pk if pc else None),
@@ -205,14 +213,135 @@ def normalize_evaluation(payload: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
-def _meta_from_config(cfg: AIPromptConfiguration, gen: GenerationConfig) -> dict[str, Any]:
+def _meta_from_config(
+    cfg: AIPromptConfiguration, gen, *, provider: str
+) -> dict[str, Any]:
     return {
         "prompt_config_id": cfg.pk,
         "instruction_slug": cfg.slug,
-        "gemini_model": gen.model_id,
+        "provider": provider,
+        "model_id": gen.model_id,
+        "gemini_model": gen.model_id if provider == AIModel.Provider.GEMINI else "",
+        "openai_model": gen.model_id if provider == AIModel.Provider.OPENAI else "",
+        "deepseek_model": gen.model_id if provider == AIModel.Provider.DEEPSEEK else "",
         "ai_model_id": gen.ai_model_id,
         "temperature": gen.temperature,
     }
+
+
+def _coerce_evaluation_dict(data: Any, raw: str | None) -> dict[str, Any]:
+    if isinstance(data, ResumeJobEvaluationPayload):
+        return data.model_dump(mode="json")
+    if isinstance(data, dict):
+        return data
+    if raw:
+        parsed = json.loads(raw)
+        if isinstance(parsed, dict):
+            return parsed
+    raise ValueError("Model structured response missing a JSON object.")
+
+
+def _validate_evaluation_payload(
+    data: dict[str, Any],
+    *,
+    raw: str | None,
+    base_meta: dict[str, Any],
+) -> dict[str, Any]:
+    try:
+        data = normalize_evaluation(data)
+        payload = ResumeJobEvaluationPayload.model_validate(data)
+    except ValidationError as exc:
+        err = _summarize_validation_error(exc)
+        logger.warning("resume_job_evaluation: output failed schema validation: %s", err)
+        return {
+            "success": False,
+            "evaluation": None,
+            "error": f"Output failed schema validation: {err}",
+            "raw_text": raw,
+            **base_meta,
+        }
+    except (ValueError, TypeError, json.JSONDecodeError) as exc:
+        err = str(exc)
+        logger.warning("resume_job_evaluation: parse/validate error: %s", err)
+        return {
+            "success": False,
+            "evaluation": None,
+            "error": err,
+            "raw_text": raw,
+            **base_meta,
+        }
+
+    return {
+        "success": True,
+        "evaluation": payload.model_dump(mode="json"),
+        "error": None,
+        "raw_text": raw,
+        **base_meta,
+    }
+
+
+def _generate_with_gemini(
+    *,
+    system_instruction: str,
+    user_block: str,
+    gen,
+) -> tuple[dict[str, Any], str | None]:
+    out = gemini_generate_structured_sync(
+        system_instruction=system_instruction,
+        user_text=user_block,
+        model_id=gen.model_id,
+        temperature=gen.temperature,
+        response_schema=ResumeJobEvaluationPayload,
+    )
+    raw = out.get("raw")
+    if isinstance(raw, str):
+        raw_text: str | None = raw
+    elif raw is not None:
+        raw_text = json.dumps(raw)
+    else:
+        raw_text = None
+    data = _coerce_evaluation_dict(out.get("parsed"), raw_text)
+    return data, raw_text
+
+
+def _generate_with_openai_json(
+    *,
+    system_instruction: str,
+    user_block: str,
+    gen,
+) -> tuple[dict[str, Any], str | None]:
+    chat_resp = client.chat.completions.create(
+        model=gen.model_id,
+        temperature=gen.temperature,
+        messages=[
+            {"role": "system", "content": system_instruction},
+            {"role": "user", "content": user_block},
+        ],
+        response_format={"type": "json_object"},
+    )
+    raw = (chat_resp.choices[0].message.content or "").strip()
+    data = _coerce_evaluation_dict(json.loads(raw) if raw else None, raw or None)
+    return data, raw or None
+
+
+def _generate_with_deepseek_json(
+    *,
+    system_instruction: str,
+    user_block: str,
+    gen,
+) -> tuple[dict[str, Any], str | None]:
+    chat_resp = get_deepseek_client().chat.completions.create(
+        model=gen.model_id,
+        temperature=gen.temperature,
+        messages=[
+            {"role": "system", "content": system_instruction},
+            {"role": "user", "content": user_block},
+        ],
+        response_format={"type": "json_object"},
+    )
+    raw = (chat_resp.choices[0].message.content or "").strip()
+    data = _coerce_evaluation_dict(json.loads(raw) if raw else None, raw or None)
+    return data, raw or None
 
 
 def evaluate_resume_against_job(
@@ -223,6 +352,7 @@ def evaluate_resume_against_job(
     ai_model_id: int | None = None,
     temperature: float | None = None,
     gemini_model: str | None = None,
+    model_id_override: str | None = None,
 ) -> dict[str, Any]:
     """Run evaluation. Returns a dict with keys: success, evaluation, error, raw_text."""
 
@@ -241,56 +371,40 @@ def evaluate_resume_against_job(
             "instruction_slug": None,
         }
 
-    gen = resolve_generation_config(
+    override = model_id_override or gemini_model
+    gen, provider = resolve_for_prompt_config(
         cfg,
         ai_model_id=ai_model_id,
         temperature=temperature,
-        model_id_override=gemini_model,
+        model_id_override=override,
     )
 
     system_instruction = cfg.system_prompt.strip()
     user_block = build_user_prompt(job_description, resume_text)
+    base_meta = _meta_from_config(cfg, gen, provider=provider)
 
     raw: str | None = None
-    base_meta = _meta_from_config(cfg, gen)
-
     try:
-        out = gemini_generate_structured_sync(
-            system_instruction=system_instruction,
-            user_text=user_block,
-            model_id=gen.model_id,
-            temperature=gen.temperature,
-            response_schema=ResumeJobEvaluationPayload,
-        )
-        raw = out["raw"]
-        data = out.get("parsed")
-        if not isinstance(data, dict):
-            raise ValueError("Model structured response missing a JSON object.")
-
-        data = normalize_evaluation(data)
-        payload = ResumeJobEvaluationPayload.model_validate(data)
-    except ValidationError as exc:
-        err = _summarize_validation_error(exc)
-        logger.warning("resume_job_evaluation: output failed schema validation: %s", err)
-        return {
-            "success": False,
-            "evaluation": None,
-            "error": f"Output failed schema validation: {err}",
-            "raw_text": raw,
-            **base_meta,
-        }
-    except (ValueError, TypeError) as exc:
-        err = str(exc)
-        logger.warning("resume_job_evaluation: parse/validate error: %s", err)
-        return {
-            "success": False,
-            "evaluation": None,
-            "error": err,
-            "raw_text": raw,
-            **base_meta,
-        }
-    except Exception as exc:
-        logger.exception("resume_job_evaluation: Gemini call failed")
+        if provider == AIModel.Provider.GEMINI:
+            data, raw = _generate_with_gemini(
+                system_instruction=system_instruction,
+                user_block=user_block,
+                gen=gen,
+            )
+        elif provider == AIModel.Provider.DEEPSEEK:
+            data, raw = _generate_with_deepseek_json(
+                system_instruction=system_instruction,
+                user_block=user_block,
+                gen=gen,
+            )
+        else:
+            data, raw = _generate_with_openai_json(
+                system_instruction=system_instruction,
+                user_block=user_block,
+                gen=gen,
+            )
+    except (OpenAIError, json.JSONDecodeError, ValueError, TypeError, Exception) as exc:
+        logger.exception("resume_job_evaluation: %s call failed", provider)
         return {
             "success": False,
             "evaluation": None,
@@ -299,10 +413,4 @@ def evaluate_resume_against_job(
             **base_meta,
         }
 
-    return {
-        "success": True,
-        "evaluation": payload.model_dump(mode="json"),
-        "error": None,
-        "raw_text": raw,
-        **base_meta,
-    }
+    return _validate_evaluation_payload(data, raw=raw, base_meta=base_meta)

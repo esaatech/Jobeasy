@@ -61,7 +61,7 @@ def run_dashboard_job_fit_evaluation(
     resume_text: str,
 ) -> dict[str, Any]:
     """
-    Run Gemini evaluation for dashboard using gate settings prompt.
+    Run job-fit evaluation for dashboard using gate settings prompt (provider from AIModel).
 
     Returns a dict suitable for JsonResponse (not including HTTP status).
     """
@@ -113,7 +113,9 @@ def run_dashboard_job_fit_evaluation(
         pk=eval_row.pk,
         result=result,
         prompt_config=prompt_config,
-        fallback_gemini_model_id=str(result.get("gemini_model") or fallback_model),
+        fallback_gemini_model_id=str(
+            result.get("model_id") or result.get("gemini_model") or fallback_model
+        ),
     )
     eval_row.refresh_from_db()
 
