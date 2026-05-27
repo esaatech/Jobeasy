@@ -3,10 +3,12 @@ Centralized resume profile portrait storage.
 
 Storage policy
 --------------
-- Pointers live on ``Resume.personal_info`` JSON: ``profile_image_gcs_bucket`` +
-  ``profile_image_blob``, or ``profile_image_local_path`` under Django default storage.
-  Browser display URLs use an authenticated same-origin proxy or inline data for PDFs — not V4
-  signed URLs (Cloud Run ADC has no private signing key).
+- Persisted ``Resume.personal_info`` stores **pointers only** (never base64 blobs):
+  ``profile_image_gcs_bucket`` + ``profile_image_blob`` (production GCS), or
+  ``profile_image_local_path`` (local dev when GCS upload is disabled).
+- ``profile_photo_display_url`` is never written to the database; it may appear only on
+  in-memory wizard preview payloads.
+- Browser display uses the authenticated same-origin proxy (or inline bytes for PDF export).
 
 Replacement uploads
 -------------------
@@ -51,6 +53,55 @@ def _safe_env_segment() -> str:
 
 def gcs_object_path(user_id: int, resume_id: int, ext: str) -> str:
     return f"{_safe_env_segment()}/profile-photos/user-{user_id}/resume-{resume_id}{ext}"
+
+
+def _gcs_upload_enabled() -> bool:
+    return bool(
+        getattr(settings, "ENABLE_GCS_PROFILE_UPLOAD", False)
+        and getattr(settings, "GS_BUCKET_NAME", "").strip()
+    )
+
+
+def has_stored_profile_photo(personal_info: Optional[Dict[str, Any]]) -> bool:
+    """True when ``personal_info`` has GCS or local storage pointers."""
+    if not personal_info:
+        return False
+    if personal_info.get("profile_image_gcs_bucket") and personal_info.get("profile_image_blob"):
+        return True
+    return bool(personal_info.get("profile_image_local_path"))
+
+
+def sanitize_personal_info_for_db(personal_info: Optional[Dict[str, Any]]) -> Dict[str, Any]:
+    """
+    Strip ephemeral / redundant portrait fields before persisting ``personal_info``.
+
+    - Never store ``profile_photo_display_url`` (or camelCase variant) in Postgres.
+    - In GCS mode, drop legacy ``profile_image_local_path`` when GCS pointers are canonical.
+    """
+    info = dict(personal_info or {})
+    info.pop("profile_photo_display_url", None)
+    info.pop("profilePhotoDisplayUrl", None)
+    if _gcs_upload_enabled():
+        if info.get("profile_image_gcs_bucket") and info.get("profile_image_blob"):
+            info.pop("profile_image_local_path", None)
+    return info
+
+
+def _profile_photo_proxy_url(
+    request,
+    resume_id: int,
+    *,
+    cache_version: str = "",
+) -> str:
+    path = reverse(
+        "resume_builder:profile_photo_proxy",
+        kwargs={"resume_id": resume_id},
+    )
+    url = request.build_absolute_uri(path)
+    if cache_version:
+        sep = "&" if "?" in url else "?"
+        url = f"{url}{sep}v={cache_version}"
+    return url
 
 
 def validate_profile_upload(upload: UploadedFile) -> str:
@@ -123,14 +174,9 @@ def ingest_profile_photo(resume: Any, upload: UploadedFile) -> Dict[str, Any]:
     ext = validate_profile_upload(upload)
     delete_stored_profile_photo(resume.personal_info or {})
 
-    personal_info = dict(resume.personal_info or {})
-    for k in ("profile_photo_display_url",):
-        personal_info.pop(k, None)
+    personal_info = sanitize_personal_info_for_db(resume.personal_info or {})
 
-    use_gcs = bool(
-        getattr(settings, "ENABLE_GCS_PROFILE_UPLOAD", False)
-        and getattr(settings, "GS_BUCKET_NAME", "").strip()
-    )
+    use_gcs = _gcs_upload_enabled()
     upload.file.seek(0)
 
     gcs_enabled_flag = getattr(settings, "ENABLE_GCS_PROFILE_UPLOAD", False)
@@ -184,9 +230,9 @@ def ingest_profile_photo(resume: Any, upload: UploadedFile) -> Dict[str, Any]:
             reason,
         )
 
-    resume.personal_info = personal_info
+    resume.personal_info = sanitize_personal_info_for_db(personal_info)
     resume.save(update_fields=["personal_info", "updated_at"])
-    return personal_info
+    return resume.personal_info
 
 
 def gcs_profile_photo_data_uri(bucket_name: str, blob_name: str) -> str:
@@ -240,47 +286,43 @@ def resolve_profile_photo_display_url(
     request=None,
     resume_id: Optional[int] = None,
     force_inline_from_storage: bool = False,
+    cache_version: str = "",
 ) -> str:
     """
-    URL or data URI suitable for <img src>.
+    URL or data URI suitable for <img src> from storage pointers only.
 
-    Cloud Run credentials cannot sign V4 URLs without a private key; use the authenticated
-    proxy when resume_id + request are available, or embed bytes when rendering PDF/offline HTML.
+    Reads GCS whenever bucket/blob pointers exist (same rule as delete). Uses the authenticated
+    proxy for HTML whenever ``request`` and ``resume_id`` are available.
     """
     if not personal_info:
         return ""
-    bucket_name = personal_info.get("profile_image_gcs_bucket")
-    blob_name = personal_info.get("profile_image_blob")
+    pi = sanitize_personal_info_for_db(personal_info)
+    bucket_name = pi.get("profile_image_gcs_bucket")
+    blob_name = pi.get("profile_image_blob")
 
-    if (
-        bucket_name
-        and blob_name
-        and getattr(settings, "ENABLE_GCS_PROFILE_UPLOAD", False)
-    ):
+    if bucket_name and blob_name:
         if force_inline_from_storage:
             return gcs_profile_photo_data_uri(bucket_name, blob_name)
         if request is not None and resume_id is not None:
-            path = reverse(
-                "resume_builder:profile_photo_proxy",
-                kwargs={"resume_id": resume_id},
+            return _profile_photo_proxy_url(
+                request, resume_id, cache_version=cache_version
             )
-            return request.build_absolute_uri(path)
         return gcs_profile_photo_data_uri(bucket_name, blob_name)
 
-    local_path = personal_info.get("profile_image_local_path")
+    local_path = pi.get("profile_image_local_path")
     if not local_path:
         return ""
 
     if force_inline_from_storage:
         return local_storage_profile_photo_data_uri(local_path)
 
+    if request is not None and resume_id is not None:
+        return _profile_photo_proxy_url(request, resume_id, cache_version=cache_version)
+
     media_url = getattr(settings, "MEDIA_URL", "/media/")
     if not media_url.startswith("/"):
         media_url = "/" + media_url
     path = f"{media_url.rstrip('/')}/{str(local_path).lstrip('/')}"
-    if request is not None:
-        return request.build_absolute_uri(path)
-
     base = getattr(settings, "SITE_URL", "http://127.0.0.1:8000").rstrip("/")
     return base + path
 
@@ -316,9 +358,9 @@ PROFILE_PHOTO_POINTER_KEYS = (
 
 def clear_resume_profile_photo(resume: Any) -> None:
     """Delete stored bytes and strip portrait pointers from ``resume.personal_info``."""
-    personal_info = dict(getattr(resume, "personal_info", None) or {})
+    personal_info = sanitize_personal_info_for_db(getattr(resume, "personal_info", None) or {})
     delete_stored_profile_photo(personal_info)
     for key in PROFILE_PHOTO_POINTER_KEYS:
         personal_info.pop(key, None)
-    resume.personal_info = personal_info
+    resume.personal_info = sanitize_personal_info_for_db(personal_info)
     resume.save(update_fields=["personal_info", "updated_at"])

@@ -101,6 +101,10 @@ class Resume(models.Model):
                     old_instance.pdf_file.delete(save=False)
             except Resume.DoesNotExist:
                 pass
+        if self.personal_info:
+            from .profile_photo_media import sanitize_personal_info_for_db
+
+            self.personal_info = sanitize_personal_info_for_db(self.personal_info)
         super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):

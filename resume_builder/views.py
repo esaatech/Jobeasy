@@ -107,7 +107,11 @@ def resume_data_and_template_from_wizard_payload(
         'github': raw_personal_info.get('github', ''),
         'portfolio': raw_personal_info.get('portfolio', ''),
     }
-    if display_url:
+    # Portrait bytes are not persisted in personal_info; use upload API or storage pointers.
+    if display_url and not (
+        raw_personal_info.get('profile_image_gcs_bucket')
+        or raw_personal_info.get('profile_image_local_path')
+    ):
         personal_info['profile_photo_display_url'] = display_url
 
     resume_data = {
@@ -584,6 +588,7 @@ def create_resume(request, resume_id=None):
                 },
                 request=request,
                 resume_id=resume_instance.pk,
+                cache_version=str(int(resume_instance.updated_at.timestamp())),
             )['personal_info'].get('profile_photo_display_url', '')
         )
 
@@ -1523,11 +1528,16 @@ def download_resume_file(request, resume_id, format_type='html'):
                 }
                 template_id = normalize_template_id(resume.template_id)
 
+        cache_version = ""
+        if request.user.is_authenticated and str(resume_id) != "anonymous":
+            cache_version = str(int(resume.updated_at.timestamp()))
+
         augmented_resume_data = augment_resume_dict_for_rendering(
             resume_data,
             request=request,
             resume_id=resume.pk,
             force_inline_profile_photo=True,
+            cache_version=cache_version,
         )
 
         inline = (request.GET.get('inline') or '').strip().lower() in ('1', 'true', 'yes', 'on')
@@ -1666,8 +1676,9 @@ def save_personal_info(request):
                     template_id=normalize_template_id(data.get('template_id')),
                 )
             # Defensive update: only update summary if present in payload
-            personal_info = resume.personal_info or {}
-            personal_info.pop('profile_photo_display_url', None)
+            from .profile_photo_media import sanitize_personal_info_for_db
+
+            personal_info = sanitize_personal_info_for_db(resume.personal_info or {})
             personal_info['full_name'] = data.get('fullName', personal_info.get('full_name', ''))
             personal_info['title'] = data.get('title', personal_info.get('title', ''))
             personal_info['email'] = data.get('email', personal_info.get('email', ''))
@@ -1905,11 +1916,7 @@ def profile_photo_proxy(request, resume_id):
     bucket_name = pi.get("profile_image_gcs_bucket")
     blob_name = pi.get("profile_image_blob")
 
-    if (
-        bucket_name
-        and blob_name
-        and getattr(settings, "ENABLE_GCS_PROFILE_UPLOAD", False)
-    ):
+    if bucket_name and blob_name:
         try:
             from google.cloud import storage
 
@@ -1926,7 +1933,7 @@ def profile_photo_proxy(request, resume_id):
                 or "application/octet-stream"
             )
             resp = HttpResponse(data, content_type=ctype)
-            resp["Cache-Control"] = "private, max-age=3600"
+            resp["Cache-Control"] = "private, no-cache"
             return resp
         except Http404:
             raise
@@ -1944,7 +1951,7 @@ def profile_photo_proxy(request, resume_id):
                 data = fh.read()
             ctype = mimetypes.guess_type(rel)[0] or "application/octet-stream"
             resp = HttpResponse(data, content_type=ctype)
-            resp["Cache-Control"] = "private, max-age=3600"
+            resp["Cache-Control"] = "private, no-cache"
             return resp
 
     raise Http404("No portrait for this resume")
@@ -1984,7 +1991,10 @@ def upload_profile_photo(request):
 
     resume.refresh_from_db()
     display_url = resolve_profile_photo_display_url(
-        resume.personal_info or {}, request=request, resume_id=resume.pk
+        resume.personal_info or {},
+        request=request,
+        resume_id=resume.pk,
+        cache_version=str(int(resume.updated_at.timestamp())),
     )
     stored_as = profile_photo_storage_backend(resume.personal_info or {})
     payload = {'success': True, 'profile_photo_display_url': display_url, 'stored_as': stored_as}
@@ -2119,27 +2129,27 @@ def create_resume_from_data(request):
             data = json.loads(request.body)
             
             # Extract resume data from the request and map field names
+            from .profile_photo_media import sanitize_personal_info_for_db
+
             raw_personal_info = data.get('personalInfo', {})
-            display_url = (
-                raw_personal_info.get('profile_photo_display_url')
-                or raw_personal_info.get('profilePhotoDisplayUrl')
-                or ''
+            personal_info = sanitize_personal_info_for_db(
+                {
+                    'full_name': raw_personal_info.get('fullName', ''),
+                    'title': raw_personal_info.get('title', ''),
+                    'email': raw_personal_info.get('email', ''),
+                    'phone': raw_personal_info.get('phone', ''),
+                    'summary': raw_personal_info.get('summary', ''),
+                    'location': raw_personal_info.get('location', ''),
+                    'street_address': raw_personal_info.get('street_address', ''),
+                    'linkedin': raw_personal_info.get('linkedin', ''),
+                    'github': raw_personal_info.get('github', ''),
+                    'portfolio': raw_personal_info.get('portfolio', ''),
+                    'profile_image_gcs_bucket': raw_personal_info.get('profile_image_gcs_bucket'),
+                    'profile_image_blob': raw_personal_info.get('profile_image_blob'),
+                    'profile_image_local_path': raw_personal_info.get('profile_image_local_path'),
+                }
             )
-            personal_info = {
-                'full_name': raw_personal_info.get('fullName', ''),
-                'title': raw_personal_info.get('title', ''),
-                'email': raw_personal_info.get('email', ''),
-                'phone': raw_personal_info.get('phone', ''),
-                'summary': raw_personal_info.get('summary', ''),
-                'location': raw_personal_info.get('location', ''),
-                'street_address': raw_personal_info.get('street_address', ''),
-                'linkedin': raw_personal_info.get('linkedin', ''),
-                'github': raw_personal_info.get('github', ''),
-                'portfolio': raw_personal_info.get('portfolio', ''),
-            }
-            if display_url:
-                personal_info['profile_photo_display_url'] = display_url
-            
+
             experience = data.get('experience', [])
             education = data.get('education', [])
             skills = data.get('skills', {})
