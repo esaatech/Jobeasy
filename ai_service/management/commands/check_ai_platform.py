@@ -6,6 +6,7 @@ from django.db import connection
 
 from ai_service.models import (
     AIModel,
+    CoverLetterPlayground,
     JobFitGateSettings,
     ProfessionalSummaryPlayground,
     ResumeJobEvaluation,
@@ -38,6 +39,7 @@ class Command(BaseCommand):
             "0007_why_should_i_apply_answer",
             "0008_alter_aimodel_provider_deepseek",
             "0009_professional_summary_playground",
+            "0010_cover_letter_playground",
         }
         with connection.cursor() as cursor:
             cursor.execute(
@@ -61,6 +63,7 @@ class Command(BaseCommand):
             AIModel,
             JobFitGateSettings,
             ResumeJobEvaluation,
+            CoverLetterPlayground,
             WhyShouldIApplyPlayground,
             ProfessionalSummaryPlayground,
         }

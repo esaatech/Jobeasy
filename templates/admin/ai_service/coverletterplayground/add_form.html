@@ -1,0 +1,24 @@
+{% extends "admin/change_form.html" %}
+{% load i18n %}
+
+{% block field_sets %}
+{% for fieldset in adminform %}
+  {% if fieldset.name != "Last run results" %}
+    {% include "admin/includes/fieldset.html" with heading_level=2 prefix="fieldset" id_prefix=0 id_suffix=forloop.counter0 %}
+  {% endif %}
+{% endfor %}
+
+{% url 'admin:ai_service_coverletterplayground_generate_preview' as generate_url %}
+{% include "admin/ai_service/coverletterplayground/_generation_widgets.html" with generate_url=generate_url persist_url="" pending_field=adminform.form.pending_generation_result extract_pdf_url=extract_pdf_url %}
+{% include "admin/ai_service/_resume_pdf_extract_script.html" with extract_pdf_url=extract_pdf_url %}
+
+{% for fieldset in adminform %}
+  {% if fieldset.name == "Last run results" %}
+    {% include "admin/includes/fieldset.html" with heading_level=2 prefix="fieldset" id_prefix=0 id_suffix=forloop.counter0 %}
+  {% endif %}
+{% endfor %}
+{% endblock %}
+
+{% block submit_buttons_bottom %}
+{{ block.super }}
+{% endblock %}

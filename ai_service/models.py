@@ -545,3 +545,101 @@ class WhyShouldIApplyAnswer(models.Model):
         if label:
             return f"Answer ({self.get_status_display()}): {label}…"
         return f"Answer ({self.get_status_display()})"
+
+
+class CoverLetterPlayground(models.Model):
+    """Admin playground for cover letter generation (prompt + model testing)."""
+
+    name = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Short label for this run (e.g. “Acme SWE cover letter test”).",
+    )
+    description = models.TextField(
+        blank=True,
+        help_text="What you are testing—prompt variant, resume source, model comparison, etc.",
+    )
+
+    user = models.ForeignKey(
+        "auth.User",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="cover_letter_playgrounds",
+    )
+    resume = models.ForeignKey(
+        "resume_builder.Resume",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="cover_letter_playgrounds",
+    )
+
+    job_description = models.TextField()
+    resume_text = models.TextField()
+    prompt_config = models.ForeignKey(
+        AIPromptConfiguration,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="cover_letter_playgrounds",
+    )
+    ai_model = models.ForeignKey(
+        AIModel,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="cover_letter_playgrounds",
+        help_text="Model catalog row used for this run.",
+    )
+    model_used = models.CharField(
+        max_length=128,
+        blank=True,
+        help_text="Model id snapshot from the last run.",
+    )
+    temperature_used = models.FloatField(
+        null=True,
+        blank=True,
+        help_text="Temperature used for this run.",
+    )
+
+    succeeded = models.BooleanField(default=False)
+    error_message = models.TextField(blank=True)
+    title = models.CharField(max_length=512, blank=True)
+    email_subject = models.CharField(max_length=512, blank=True)
+    cover_letter_text = models.TextField(
+        blank=True,
+        help_text="Generated cover letter body.",
+    )
+    instruction_slug = models.SlugField(
+        max_length=80,
+        blank=True,
+        help_text="Snapshot of prompt_configuration.slug used for versioning.",
+    )
+
+    raw_response_text = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Cover letter playground"
+        verbose_name_plural = "Cover letter playground"
+
+    def __str__(self) -> str:
+        label = (self.name or "").strip()
+        if self.pk is None:
+            return label or "Cover letter playground (new)"
+        if label:
+            status = "ok" if self.succeeded else "fail" if self.error_message else "draft"
+            return f"{label} [{status}]"
+        no_run_yet = (
+            not (self.cover_letter_text or "").strip()
+            and not (self.raw_response_text or "").strip()
+            and not (self.error_message or "").strip()
+        )
+        if no_run_yet:
+            return f"Cover letter playground {self.pk} [draft]"
+        status = "ok" if self.succeeded else "fail"
+        return f"Cover letter playground {self.pk} [{status}]"

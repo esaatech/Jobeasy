@@ -57,6 +57,17 @@ from ai_service.resume_job_evaluation import (
     parse_pending_evaluation_result,
     persist_resume_job_evaluation_result,
 )
+from ai_service.cover_letter import (
+    COVER_LETTER_SERVICE_SLUG,
+    generate_cover_letter_from_raw_text,
+    get_default_prompt_config as get_cover_letter_default_prompt_config,
+    prompt_includes_email_subject,
+    run_cover_letter_generation,
+)
+from ai_service.cover_letter_prompts import (
+    COVER_LETTER_INSTRUCTION_LETTER_ONLY,
+    COVER_LETTER_INSTRUCTION_WITH_EMAIL_SUBJECT,
+)
 from ai_service.why_should_i_apply import (
     WHY_SHOULD_I_APPLY_SERVICE_SLUG,
     build_user_prompt,
@@ -724,6 +735,132 @@ class WhyShouldIApplyGenerationTests(TestCase):
         self.assertIsNotNone(parsed)
         self.assertEqual(parsed["answer_text"], "I bring six years of experience.")
         self.assertIsNone(parse_pending_generation_result('{"success": false}'))
+
+
+class CoverLetterMultiProviderTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.letter_service = AIService.objects.create(
+            slug=COVER_LETTER_SERVICE_SLUG,
+            name="Cover Letter (letter only)",
+            is_active=True,
+        )
+        cls.email_service = AIService.objects.create(
+            slug=COVER_LETTER_WITH_EMAIL_SUBJECT_SERVICE_SLUG,
+            name="Cover Letter (with email subject)",
+            is_active=True,
+        )
+        cls.gemini = AIModel.objects.create(
+            provider=AIModel.Provider.GEMINI,
+            model_id="gemini-2.5-flash",
+            display_name="Flash",
+            is_active=True,
+        )
+        cls.openai = AIModel.objects.create(
+            provider=AIModel.Provider.OPENAI,
+            model_id="gpt-4o",
+            display_name="GPT-4o",
+            is_active=True,
+        )
+        cls.letter_prompt = AIPromptConfiguration.objects.create(
+            service=cls.letter_service,
+            name="Cover letter (letter only) v1.0",
+            slug="v1-0",
+            system_prompt=COVER_LETTER_INSTRUCTION_LETTER_ONLY,
+            ai_model=cls.gemini,
+            temperature=0.7,
+            is_default=True,
+            is_active=True,
+        )
+        cls.email_prompt = AIPromptConfiguration.objects.create(
+            service=cls.email_service,
+            name="Cover letter (with email subject) v1.0",
+            slug="v1-0",
+            system_prompt=COVER_LETTER_INSTRUCTION_WITH_EMAIL_SUBJECT,
+            ai_model=cls.openai,
+            temperature=0.7,
+            is_default=True,
+            is_active=True,
+        )
+
+    def test_prompt_slug_detects_email_subject_variant(self):
+        self.assertFalse(prompt_includes_email_subject(self.letter_prompt))
+        self.assertTrue(prompt_includes_email_subject(self.email_prompt))
+
+    @patch("ai_service.cover_letter.gemini_generate_text_sync")
+    def test_gemini_letter_only(self, mock_gemini):
+        mock_gemini.return_value = (
+            "TITLE: Dev Application\nCOVER_LETTER: Dear Hiring Manager,\n\nBody.\n\nSincerely,\nJane"
+        )
+        result = run_cover_letter_generation(
+            "Senior Dev role",
+            "Jane Doe resume text",
+            prompt_config=self.letter_prompt,
+            applicant_name="Jane Doe",
+        )
+        self.assertTrue(result["success"])
+        self.assertIn("Dear Hiring Manager", result["cover_letter"])
+        self.assertEqual(result["provider"], AIModel.Provider.GEMINI)
+
+    @patch("ai_service.cover_letter.client.chat.completions.create")
+    def test_openai_with_email_subject(self, mock_create):
+        mock_create.return_value = MagicMock(
+            choices=[
+                MagicMock(
+                    message=MagicMock(
+                        content=(
+                            "TITLE: App\nEMAIL_SUBJECT: Apply for Dev\n"
+                            "COVER_LETTER: Dear Hiring Manager,\n\nHi.\n\nSincerely,\nJane"
+                        )
+                    )
+                )
+            ]
+        )
+        result = run_cover_letter_generation(
+            "Job",
+            "Resume",
+            prompt_config=self.email_prompt,
+            applicant_name="Jane",
+        )
+        self.assertTrue(result["success"])
+        self.assertEqual(result["email_subject"], "Apply for Dev")
+
+    def test_legacy_wrapper_uses_letter_only_service(self):
+        with patch(
+            "ai_service.cover_letter.run_cover_letter_generation",
+            return_value={"success": True, "cover_letter": "ok"},
+        ) as mock_run:
+            out = generate_cover_letter_from_raw_text("job", "resume")
+            self.assertTrue(out["success"])
+            mock_run.assert_called_once()
+            self.assertIsNone(mock_run.call_args.kwargs.get("prompt_config"))
+            self.assertEqual(
+                mock_run.call_args.kwargs.get("service_slug"), COVER_LETTER_SERVICE_SLUG
+            )
+
+    def test_legacy_wrapper_uses_email_subject_service(self):
+        with patch(
+            "ai_service.cover_letter.get_default_prompt_config",
+            return_value=self.email_prompt,
+        ) as mock_default:
+            with patch(
+                "ai_service.cover_letter.run_cover_letter_generation",
+                return_value={"success": True, "cover_letter": "ok"},
+            ) as mock_run:
+                generate_cover_letter_from_raw_text(
+                    "job", "resume", include_email_subject=True
+                )
+                mock_default.assert_called_once_with(
+                    COVER_LETTER_WITH_EMAIL_SUBJECT_SERVICE_SLUG
+                )
+                self.assertEqual(
+                    mock_run.call_args.kwargs.get("prompt_config"), self.email_prompt
+                )
+
+    def test_get_default_prompt_config(self):
+        pc = get_cover_letter_default_prompt_config()
+        self.assertEqual(pc.slug, "v1-0")
+        self.assertEqual(pc.service.slug, COVER_LETTER_SERVICE_SLUG)
 
 
 class WhyShouldIApplyMultiProviderTests(TestCase):

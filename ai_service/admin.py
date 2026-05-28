@@ -16,6 +16,7 @@ from django.utils.safestring import mark_safe
 
 from .admin_resume_pdf import AdminResumePdfExtractMixin, resolve_resume_text_from_admin_request
 from .forms import (
+    CoverLetterPlaygroundAdminForm,
     ProfessionalSummaryPlaygroundAdminForm,
     ResumeJobEvaluationAdminForm,
     WhyShouldIApplyPlaygroundAdminForm,
@@ -24,10 +25,19 @@ from .models import (
     AIModel,
     AIService,
     AIPromptConfiguration,
+    CoverLetterPlayground,
     JobFitGateSettings,
     ProfessionalSummaryPlayground,
     ResumeJobEvaluation,
     WhyShouldIApplyPlayground,
+)
+from .cover_letter import (
+    COVER_LETTER_SERVICE_SLUGS,
+    get_default_prompt_config as get_cover_letter_default_prompt_config,
+    parse_pending_generation_result as parse_cover_letter_pending_generation_result,
+    persist_cover_letter_playground_result,
+    resolve_prompt_config as resolve_cover_letter_prompt_config,
+    run_cover_letter_generation,
 )
 from .professional_summary import (
     PROFESSIONAL_SUMMARY_SERVICE_SLUG,
@@ -699,6 +709,421 @@ class ResumeJobEvaluationAdmin(AdminResumePdfExtractMixin, admin.ModelAdmin):
                 'Saved inputs.',
                 level=messages.INFO,
             )
+
+
+@admin.register(CoverLetterPlayground)
+class CoverLetterPlaygroundAdmin(AdminResumePdfExtractMixin, admin.ModelAdmin):
+    """Playground: test cover letter prompts and providers before production use."""
+
+    form = CoverLetterPlaygroundAdminForm
+    change_form_template = "admin/ai_service/coverletterplayground/change_form.html"
+    add_form_template = "admin/ai_service/coverletterplayground/add_form.html"
+    list_display = [
+        "display_name",
+        "short_description",
+        "instruction_slug",
+        "model_used",
+        "succeeded",
+        "created_at",
+    ]
+    list_filter = ["succeeded", "instruction_slug", "model_used", "created_at"]
+    search_fields = ["name", "description", "job_description", "cover_letter_text"]
+    autocomplete_fields = ["prompt_config"]
+
+    readonly_fields = [
+        "_results_header",
+        "ro_succeeded",
+        "ro_model_used",
+        "ro_temperature",
+        "ro_instruction_slug",
+        "ro_title",
+        "ro_email_subject",
+        "ro_error_message",
+        "ro_cover_letter_text",
+        "created_at",
+        "updated_at",
+    ]
+
+    fieldsets = (
+        (
+            "Label",
+            {
+                "description": mark_safe(
+                    "<p>Use <strong>Name</strong> and <strong>Description</strong> to tell test runs apart.</p>"
+                ),
+                "fields": ("name", "description"),
+            },
+        ),
+        (
+            "Inputs",
+            {
+                "description": mark_safe(
+                    "<p>Set <strong>OPENAI_API_KEY</strong>, <strong>DEEPSEEK_API_KEY</strong>, and/or "
+                    "<strong>GEMINI_API_KEY</strong> / <strong>GOOGLE_API_KEY</strong>. "
+                    "Pick a prompt from <strong>cover_letter</strong> (letter only) or "
+                    "<strong>cover_letter_with_email_subject</strong> (dashboard flow). "
+                    "Run <code>setup_cover_letter</code> if prompts are missing.</p>"
+                ),
+                "fields": ("job_description", "resume_pdf", "resume_text", "prompt_config"),
+            },
+        ),
+        (
+            "Last run results",
+            {
+                "fields": (
+                    "_results_header",
+                    "ro_succeeded",
+                    "ro_model_used",
+                    "ro_temperature",
+                    "ro_instruction_slug",
+                    "ro_title",
+                    "ro_email_subject",
+                    "ro_error_message",
+                    "ro_cover_letter_text",
+                    "created_at",
+                    "updated_at",
+                ),
+            },
+        ),
+    )
+
+    @staticmethod
+    def _ro_span(element_id: str, inner) -> str:
+        return format_html('<span id="{}">{}</span>', element_id, inner)
+
+    @staticmethod
+    def _empty_dash() -> str:
+        return format_html('<span class="cover-letter-empty">—</span>')
+
+    @staticmethod
+    def _succeeded_icon(succeeded: bool):
+        if succeeded:
+            return format_html(
+                '<img src="{}" alt="True">',
+                static("admin/img/icon-yes.svg"),
+            )
+        return format_html(
+            '<img src="{}" alt="False">',
+            static("admin/img/icon-no.svg"),
+        )
+
+    @admin.display(description="Name")
+    def display_name(self, obj: CoverLetterPlayground) -> str:
+        label = (obj.name or "").strip()
+        return label or f"Playground {obj.pk}"
+
+    @admin.display(description="Description")
+    def short_description(self, obj: CoverLetterPlayground) -> str:
+        text = (obj.description or "").strip()
+        return text[:80] + "…" if len(text) > 80 else text or "—"
+
+    @admin.display(description="Succeeded")
+    def ro_succeeded(self, obj: CoverLetterPlayground) -> str:
+        has_run = bool(
+            (obj.cover_letter_text or "").strip()
+            or (obj.error_message or "").strip()
+            or (obj.raw_response_text or "").strip()
+        )
+        inner = self._empty_dash() if not has_run else self._succeeded_icon(obj.succeeded)
+        return self._ro_span("cover-letter-ro-succeeded", inner)
+
+    @admin.display(description="Model")
+    def ro_model_used(self, obj: CoverLetterPlayground) -> str:
+        text = (obj.model_used or "").strip()
+        return self._ro_span("cover-letter-ro-model-used", text or self._empty_dash())
+
+    @admin.display(description="Temperature")
+    def ro_temperature(self, obj: CoverLetterPlayground) -> str:
+        inner = self._empty_dash() if obj.temperature_used is None else str(obj.temperature_used)
+        return self._ro_span("cover-letter-ro-temperature", inner)
+
+    @admin.display(description="Instruction slug")
+    def ro_instruction_slug(self, obj: CoverLetterPlayground) -> str:
+        text = (obj.instruction_slug or "").strip()
+        return self._ro_span("cover-letter-ro-instruction-slug", text or self._empty_dash())
+
+    @admin.display(description="Title")
+    def ro_title(self, obj: CoverLetterPlayground) -> str:
+        text = (obj.title or "").strip()
+        return self._ro_span("cover-letter-ro-title", text or self._empty_dash())
+
+    @admin.display(description="Email subject")
+    def ro_email_subject(self, obj: CoverLetterPlayground) -> str:
+        text = (obj.email_subject or "").strip()
+        return self._ro_span("cover-letter-ro-email-subject", text or self._empty_dash())
+
+    @admin.display(description="Error message")
+    def ro_error_message(self, obj: CoverLetterPlayground) -> str:
+        text = (obj.error_message or "").strip()
+        if text:
+            inner = format_html(
+                '<span style="color:#ba2121;white-space:pre-wrap;">{}</span>',
+                text[:8000],
+            )
+        else:
+            inner = self._empty_dash()
+        return self._ro_span("cover-letter-ro-error-message", inner)
+
+    def _results_header(self, obj: CoverLetterPlayground) -> str:
+        return mark_safe(
+            '<p class="help" style="margin:0;">Results from the last <strong>Get cover letter</strong> '
+            "run (or Save with a pending preview).</p>"
+        )
+
+    @admin.display(description="Cover letter")
+    def ro_cover_letter_text(self, obj: CoverLetterPlayground) -> str:
+        text = (obj.cover_letter_text or "").strip()
+        if text:
+            inner = format_html(
+                '<pre style="white-space:pre-wrap;font-size:13px;max-height:520px;'
+                'overflow:auto;background:#f8f9fa;padding:14px;border-radius:6px;margin:0;">{}</pre>',
+                text[:65535],
+            )
+        else:
+            inner = format_html("<em>No cover letter yet.</em>")
+        return self._ro_span("cover-letter-ro-cover-letter-text", inner)
+
+    def get_urls(self):
+        urls = super().get_urls()
+        opts = self.model._meta
+        basename = "%s_%s" % (opts.app_label, opts.model_name)
+        extra = [
+            path(
+                "generate-preview/",
+                self.admin_site.admin_view(self.generate_preview),
+                name="%s_generate_preview" % basename,
+            ),
+            path(
+                "<path:object_id>/persist-generation/",
+                self.admin_site.admin_view(self.persist_generation_submit),
+                name="%s_persist_generation" % basename,
+            ),
+            path(
+                "<path:object_id>/run-generation/",
+                self.admin_site.admin_view(self.run_generation_submit),
+                name="%s_run_generation" % basename,
+            ),
+        ]
+        return extra + urls
+
+    def generate_preview(self, request):
+        if request.method != "POST":
+            return HttpResponseNotAllowed(["POST", "OPTIONS"])
+        opts = self.model._meta
+        if not (
+            request.user.has_perm(f"{opts.app_label}.add_{opts.model_name}")
+            or request.user.has_perm(f"{opts.app_label}.change_{opts.model_name}")
+        ):
+            return HttpResponse(
+                json.dumps({"success": False, "error": "Permission denied"}),
+                status=403,
+                content_type="application/json",
+            )
+
+        jd = (request.POST.get("job_description") or "").strip()
+        rt, rt_err = resolve_resume_text_from_admin_request(request)
+        if rt_err:
+            payload = {
+                "success": False,
+                "error": rt_err,
+                "cover_letter": "",
+                "raw_text": None,
+            }
+            return HttpResponse(
+                json.dumps(payload, cls=DjangoJSONEncoder),
+                status=400,
+                content_type="application/json",
+            )
+        if not jd or not rt:
+            payload = {
+                "success": False,
+                "error": "Job description and resume text (or resume PDF) are required.",
+                "cover_letter": "",
+                "raw_text": None,
+            }
+            return HttpResponse(
+                json.dumps(payload, cls=DjangoJSONEncoder),
+                status=400,
+                content_type="application/json",
+            )
+
+        pc = None
+        raw_pc = request.POST.get("prompt_config") or ""
+        if str(raw_pc).strip().isdigit():
+            pc = resolve_cover_letter_prompt_config(int(raw_pc))
+        if pc is None:
+            pc = get_cover_letter_default_prompt_config()
+        if pc is None:
+            payload = {
+                "success": False,
+                "error": (
+                    f"No active prompt for services {', '.join(sorted(COVER_LETTER_SERVICE_SLUGS))}. Run "
+                    "python manage.py setup_cover_letter"
+                ),
+                "cover_letter": "",
+                "raw_text": None,
+            }
+            return HttpResponse(
+                json.dumps(payload, cls=DjangoJSONEncoder),
+                status=400,
+                content_type="application/json",
+            )
+
+        try:
+            result = run_cover_letter_generation(jd, rt, prompt_config=pc)
+            return HttpResponse(
+                json.dumps(result, cls=DjangoJSONEncoder),
+                content_type="application/json",
+            )
+        except Exception as exc:  # noqa: BLE001
+            payload = {
+                "success": False,
+                "cover_letter": "",
+                "error": str(exc),
+                "raw_text": None,
+            }
+            return HttpResponse(
+                json.dumps(payload, cls=DjangoJSONEncoder),
+                status=500,
+                content_type="application/json",
+            )
+
+    def persist_generation_submit(self, request, object_id):
+        if request.method != "POST":
+            return HttpResponseNotAllowed(["POST", "OPTIONS"])
+        obj = get_object_or_404(CoverLetterPlayground, pk=object_id)
+        if not self.has_change_permission(request, obj):
+            return HttpResponseForbidden("Change permission denied.")
+        try:
+            body = json.loads(request.body.decode() or "{}")
+        except json.JSONDecodeError:
+            return HttpResponse(
+                json.dumps({"ok": False, "error": "Invalid JSON body"}),
+                status=400,
+                content_type="application/json",
+            )
+        result = body.get("result")
+        if not isinstance(result, dict) or result.get("success") is not True:
+            return HttpResponse(
+                json.dumps({"ok": False, "error": "Provide result.success=true from Get cover letter"}),
+                status=400,
+                content_type="application/json",
+            )
+
+        model_mid = str(
+            result.get("model_id")
+            or result.get("gemini_model")
+            or result.get("openai_model")
+            or result.get("deepseek_model")
+            or "gpt-4o"
+        ).strip()
+        rpc = resolve_cover_letter_prompt_config(result.get("prompt_config_id"))
+        pc = rpc or obj.prompt_config or get_cover_letter_default_prompt_config()
+
+        try:
+            persist_cover_letter_playground_result(
+                pk=obj.pk,
+                result=result,
+                prompt_config=pc,
+                fallback_model_id=model_mid,
+            )
+        except Exception as exc:  # noqa: BLE001
+            return HttpResponse(
+                json.dumps({"ok": False, "error": str(exc)}),
+                status=400,
+                content_type="application/json",
+            )
+
+        return HttpResponse(json.dumps({"ok": True}), content_type="application/json")
+
+    def run_generation_submit(self, request, object_id):
+        if request.method != "POST":
+            return HttpResponseNotAllowed(["POST", "OPTIONS"])
+        obj = get_object_or_404(CoverLetterPlayground, pk=object_id)
+        if not self.has_change_permission(request, obj):
+            return HttpResponseForbidden("Change permission denied.")
+        pc = obj.prompt_config or get_cover_letter_default_prompt_config()
+        if pc is None:
+            messages.error(
+                request,
+                f"No active prompt for services {', '.join(sorted(COVER_LETTER_SERVICE_SLUGS))}. Run "
+                "python manage.py setup_cover_letter",
+            )
+        else:
+            result = run_cover_letter_generation(
+                obj.job_description,
+                obj.resume_text,
+                prompt_config=pc,
+            )
+            model_mid = str(
+                result.get("model_id")
+                or result.get("gemini_model")
+                or result.get("openai_model")
+                or result.get("deepseek_model")
+                or "gpt-4o"
+            ).strip()
+            persist_cover_letter_playground_result(
+                pk=obj.pk,
+                result=result,
+                prompt_config=pc,
+                fallback_model_id=model_mid,
+            )
+            if result["success"]:
+                messages.success(request, "Cover letter generation finished.")
+            else:
+                messages.error(
+                    request,
+                    f'Generation failed: {result.get("error")}',
+                )
+        ch = "admin:%s_%s_change" % (self.opts.app_label, self.opts.model_name)
+        return redirect(reverse(ch, args=(object_id,)))
+
+    def _persist_pending_from_form(self, request, obj, form) -> bool:
+        raw = form.cleaned_data.get("pending_generation_result")
+        if raw is None:
+            raw = request.POST.get("pending_generation_result")
+        result = parse_cover_letter_pending_generation_result(raw)
+        if result is None:
+            return False
+
+        model_mid = str(
+            result.get("model_id")
+            or result.get("gemini_model")
+            or result.get("openai_model")
+            or result.get("deepseek_model")
+            or "gpt-4o"
+        ).strip()
+        rpc = resolve_cover_letter_prompt_config(result.get("prompt_config_id"))
+        pc = (
+            rpc
+            or form.cleaned_data.get("prompt_config")
+            or obj.prompt_config
+            or get_cover_letter_default_prompt_config()
+        )
+        persist_cover_letter_playground_result(
+            pk=obj.pk,
+            result=result,
+            prompt_config=pc,
+            fallback_model_id=model_mid,
+        )
+        return True
+
+    def save_model(self, request, obj, form, change):
+        pc = form.cleaned_data.get("prompt_config")
+        if pc is None:
+            pc = get_cover_letter_default_prompt_config()
+        obj.prompt_config = pc
+        super().save_model(request, obj, form, change)
+
+        persisted = self._persist_pending_from_form(request, obj, form)
+        if persisted:
+            self.message_user(
+                request,
+                "Saved inputs and last generation results.",
+                level=messages.SUCCESS,
+            )
+        else:
+            self.message_user(request, "Saved inputs.", level=messages.INFO)
 
 
 @admin.register(WhyShouldIApplyPlayground)

@@ -3,10 +3,12 @@ from django import forms
 from .models import (
     AIService,
     AIPromptConfiguration,
+    CoverLetterPlayground,
     ProfessionalSummaryPlayground,
     ResumeJobEvaluation,
     WhyShouldIApplyPlayground,
 )
+from .cover_letter import COVER_LETTER_SERVICE_SLUGS
 from .professional_summary import PROFESSIONAL_SUMMARY_SERVICE_SLUG
 from .resume_job_evaluation import RESUME_JOB_EVALUATION_SERVICE_SLUG
 from .why_should_i_apply import WHY_SHOULD_I_APPLY_SERVICE_SLUG
@@ -65,6 +67,54 @@ class ResumeJobEvaluationAdminForm(forms.ModelForm):
         self.fields["prompt_config"].help_text = (
             "Uses the service default if left empty when you run Gemini. Set model and temperature "
             "on each prompt under AI Prompt Configurations (slug resume_job_evaluation)."
+        )
+
+
+class CoverLetterPlaygroundAdminForm(forms.ModelForm):
+    """Saved rows keep job/resume/prompt; generation runs inline via Get cover letter."""
+
+    pending_generation_result = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput(),
+    )
+    resume_pdf = forms.FileField(
+        required=False,
+        label="Resume PDF",
+        help_text=RESUME_PDF_FIELD_HELP,
+        widget=forms.ClearableFileInput(attrs={"accept": ".pdf"}),
+    )
+
+    class Meta:
+        model = CoverLetterPlayground
+        fields = (
+            "name",
+            "description",
+            "job_description",
+            "resume_pdf",
+            "resume_text",
+            "prompt_config",
+        )
+        widgets = {
+            "name": forms.TextInput(attrs={"size": 80}),
+            "description": forms.Textarea(attrs={"rows": 2}),
+            "job_description": forms.Textarea(attrs={"rows": 8}),
+            "resume_text": forms.Textarea(attrs={"rows": 12}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        qs = AIPromptConfiguration.objects.filter(
+            is_active=True,
+            service__slug__in=COVER_LETTER_SERVICE_SLUGS,
+            service__is_active=True,
+        ).select_related("service")
+        self.fields["prompt_config"].queryset = qs
+        self.fields["prompt_config"].required = False
+        self.fields["prompt_config"].help_text = (
+            "Uses the cover_letter service default (letter only) if left empty. "
+            "Pick a prompt from cover_letter or cover_letter_with_email_subject to test "
+            "versions. Set model and temperature on each prompt under AI Prompt Configurations."
         )
 
 

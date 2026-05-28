@@ -1,0 +1,294 @@
+{% load i18n static %}
+<div id="cover-letter-widget" class="module" style="margin-bottom:20px;">
+  <h2>{% translate "Generation" %}</h2>
+  <div class="form-row" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <button type="button" id="cover-letter-submit" class="button default">
+      {% translate "Get cover letter" %}
+    </button>
+    {% if persist_url %}
+    <button type="button" id="cover-letter-persist" class="button" disabled
+            title="{% translate 'Stores the last result into this saved record.' %}">
+      {% translate "Save last result to record" %}
+    </button>
+    {% endif %}
+    <span id="cover-letter-spinner" style="display:none;color:#417690;font-weight:600;">
+      {% translate "Running…" %}
+    </span>
+  </div>
+  {% if pending_field %}{{ pending_field }}{% endif %}
+  <div class="form-row" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:8px;">
+    <button type="button" id="resume-pdf-load-btn" class="button">
+      {% translate "Load PDF into resume text" %}
+    </button>
+    <span class="help">{% translate "Upload a PDF in Resume PDF above, or attach one when running Get cover letter." %}</span>
+  </div>
+  <div id="resume-pdf-extract-message" style="margin-top:8px;"></div>
+  <p class="help" style="margin-top:10px;margin-bottom:0;">
+    {% blocktranslate trimmed %}
+      Model and temperature come from the selected prompt configuration
+      (cover_letter vs cover_letter_with_email_subject). Django Save stores inputs and the last successful preview.
+    {% endblocktranslate %}
+  </p>
+  <div id="cover-letter-message" style="margin-top:12px;"></div>
+</div>
+
+<script>
+(function () {
+  var generateUrl = "{{ generate_url|escapejs }}";
+  var persistUrl = "{{ persist_url|default:''|escapejs }}";
+  var iconYes = "{% static 'admin/img/icon-yes.svg' %}";
+  var iconNo = "{% static 'admin/img/icon-no.svg' %}";
+
+  function getCookie(name) {
+    var v = null;
+    if (document.cookie) {
+      var parts = document.cookie.split(";");
+      for (var i = 0; i < parts.length; i++) {
+        var cookie = parts[i].trim();
+        if (cookie.indexOf(name + "=") === 0) {
+          v = decodeURIComponent(cookie.slice(name.length + 1));
+          break;
+        }
+      }
+    }
+    return v;
+  }
+  var csrftoken = getCookie("csrftoken");
+
+  function setBusy(on) {
+    var btn = document.getElementById("cover-letter-submit");
+    var sp = document.getElementById("cover-letter-spinner");
+    if (btn) { btn.disabled = !!on; }
+    if (sp) { sp.style.display = on ? "inline" : "none"; }
+  }
+
+  function esc(s) {
+    var d = document.createElement("div");
+    d.textContent = s == null ? "" : String(s);
+    return d.innerHTML;
+  }
+
+  function setRo(id, html) {
+    var el = document.getElementById(id);
+    if (el) { el.innerHTML = html; }
+  }
+
+  function dash() {
+    return '<span class="cover-letter-empty">—</span>';
+  }
+
+  function succeededIcon(ok) {
+    if (ok === true) {
+      return '<img src="' + iconYes + '" alt="True">';
+    }
+    if (ok === false) {
+      return '<img src="' + iconNo + '" alt="False">';
+    }
+    return dash();
+  }
+
+  function letterPre(bodyStr) {
+    return (
+      '<pre style="white-space:pre-wrap;font-size:13px;max-height:520px;' +
+      'overflow:auto;background:#f8f9fa;padding:14px;border-radius:6px;margin:0;">' +
+      esc(bodyStr) +
+      "</pre>"
+    );
+  }
+
+  function updateReadonlyFields(payload) {
+    var ok = !!(payload && payload.success);
+
+    setRo("cover-letter-ro-succeeded", succeededIcon(ok));
+
+    if (ok && payload.cover_letter) {
+      setRo("cover-letter-ro-cover-letter-text", letterPre(String(payload.cover_letter)));
+    } else if (!ok) {
+      var rawFail = payload && payload.raw_text ? String(payload.raw_text).substring(0, 14000) : "";
+      if (rawFail) {
+        setRo(
+          "cover-letter-ro-cover-letter-text",
+          '<pre style="white-space:pre-wrap;font-size:11px;max-height:280px;overflow:auto;' +
+          'background:#fff8f8;padding:12px;border-radius:6px;border:1px solid #ebb;margin:0;">' +
+          esc(rawFail) +
+          "</pre>"
+        );
+      } else {
+        setRo("cover-letter-ro-cover-letter-text", "<em>No cover letter yet.</em>");
+      }
+    }
+
+    var title = ok && payload.title ? String(payload.title).trim() : "";
+    setRo("cover-letter-ro-title", title ? esc(title) : dash());
+
+    var subj = ok && payload.email_subject ? String(payload.email_subject).trim() : "";
+    setRo("cover-letter-ro-email-subject", subj ? esc(subj) : dash());
+
+    var err = "";
+    if (!ok) {
+      err = payload && payload.error ? String(payload.error).trim() : "";
+    }
+    if (err) {
+      setRo(
+        "cover-letter-ro-error-message",
+        '<span style="color:#ba2121;white-space:pre-wrap;">' + esc(err) + "</span>"
+      );
+    } else if (ok) {
+      setRo("cover-letter-ro-error-message", dash());
+    }
+
+    var model = payload && (
+      payload.model_id || payload.gemini_model || payload.openai_model || payload.deepseek_model
+    )
+      ? String(
+          payload.model_id || payload.gemini_model || payload.openai_model || payload.deepseek_model
+        ).trim()
+      : "";
+    setRo("cover-letter-ro-model-used", model ? esc(model) : dash());
+
+    var slug = payload && payload.instruction_slug ? String(payload.instruction_slug).trim() : "";
+    setRo("cover-letter-ro-instruction-slug", slug ? esc(slug) : dash());
+
+    var temp = payload && payload.temperature != null && payload.temperature !== ""
+      ? String(payload.temperature)
+      : "";
+    setRo("cover-letter-ro-temperature", temp ? esc(temp) : dash());
+  }
+
+  var lastResult = null;
+
+  function updatePersist(enabled) {
+    var pb = document.getElementById("cover-letter-persist");
+    if (!pb || !persistUrl) { return; }
+    pb.disabled = !enabled;
+  }
+
+  function flashMsg(ok, txt) {
+    var m = document.getElementById("cover-letter-message");
+    if (!m) { return; }
+    var cls = ok ? "success" : "error";
+    m.innerHTML = '<ul class="messagelist"><li class="' + cls + '">' + esc(txt) + "</li></ul>";
+  }
+
+  function showResults(payload) {
+    lastResult = payload;
+    updatePersist(!!persistUrl && payload && payload.success);
+    updateReadonlyFields(payload);
+
+    if (payload && payload.success && payload.cover_letter) {
+      flashMsg(true, "{% translate "Cover letter generated. See Last run results below." %}");
+      return;
+    }
+
+    var errText = payload && payload.error ? payload.error : "{% translate "Generation failed." %}";
+    flashMsg(false, errText);
+  }
+
+  var runBtn = document.getElementById("cover-letter-submit");
+  if (runBtn) {
+    runBtn.addEventListener("click", function () {
+      var jdEl = document.getElementById("id_job_description");
+      var rtEl = document.getElementById("id_resume_text");
+      var pdfEl = document.getElementById("id_resume_pdf");
+      if (!jdEl || !rtEl) { flashMsg(false, "{% translate "Form fields not found." %}"); return; }
+      var jd = (jdEl.value || "").trim();
+      var rt = (rtEl.value || "").trim();
+      var hasPdf = pdfEl && pdfEl.files && pdfEl.files[0];
+      if (!jd || (!rt && !hasPdf)) {
+        flashMsg(false, "{% translate "Enter job description and resume text or choose a PDF." %}");
+        return;
+      }
+
+      var fd = window.resumeAdminBuildPromptFormData
+        ? window.resumeAdminBuildPromptFormData()
+        : (function () {
+            var params = new URLSearchParams();
+            params.append("job_description", jdEl.value);
+            params.append("resume_text", rtEl.value);
+            var pc = document.getElementById("id_prompt_config");
+            if (pc && pc.value) { params.append("prompt_config", pc.value); }
+            return params;
+          })();
+      var useMultipart = fd instanceof FormData;
+
+      setBusy(true);
+      document.getElementById("cover-letter-message").innerHTML = "";
+      updatePersist(false);
+
+      var headers = {
+        "X-Requested-With": "XMLHttpRequest",
+        "X-CSRFToken": csrftoken || "",
+        "Accept": "application/json"
+      };
+      if (!useMultipart) {
+        headers["Content-Type"] = "application/x-www-form-urlencoded;charset=UTF-8";
+      }
+
+      fetch(generateUrl, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: headers,
+        body: useMultipart ? fd : fd.toString()
+      }).then(function (r) {
+        return r.json().then(function (j) {
+          if (!r.ok) {
+            showResults(j && j.error ? j : { success: false, error: r.statusText, raw_text: "" });
+          } else {
+            showResults(j);
+          }
+        });
+      }).catch(function (e) {
+        showResults({ success: false, error: e && e.message ? e.message : String(e), raw_text: "" });
+      }).finally(function () {
+        setBusy(false);
+      });
+    });
+  }
+
+  var adminForm = document.getElementById("coverletterplayground_form");
+  if (adminForm) {
+    adminForm.addEventListener("submit", function () {
+      var pendingEl = document.getElementById("id_pending_generation_result");
+      if (!pendingEl) { return; }
+      if (lastResult && lastResult.success) {
+        try {
+          pendingEl.value = JSON.stringify(lastResult);
+        } catch (e) {
+          pendingEl.value = "";
+        }
+      }
+    });
+  }
+
+  var persistBtn = document.getElementById("cover-letter-persist");
+  if (persistBtn && persistUrl) {
+    persistBtn.addEventListener("click", function () {
+      if (!lastResult || !lastResult.success) { return; }
+      persistBtn.disabled = true;
+      fetch(persistUrl, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "X-Requested-With": "XMLHttpRequest",
+          "X-CSRFToken": csrftoken || "",
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
+        body: JSON.stringify({ result: lastResult })
+      }).then(function (r) {
+        return r.json().then(function (j) {
+          if (!r.ok || !j.ok) {
+            flashMsg(false, (j && j.error) ? j.error : "{% translate "Could not persist result." %}");
+            updatePersist(true);
+          } else {
+            window.location.reload();
+          }
+        });
+      }).catch(function (e) {
+        flashMsg(false, String(e));
+        updatePersist(true);
+      });
+    });
+  }
+})();
+</script>

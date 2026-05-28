@@ -15,6 +15,8 @@ from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.decorators import login_required
 from ai_service.cover_letter import generate_cover_letter_from_raw_text
+from utils.pdf_text import PdfTextExtractionError, extract_text_from_pdf
+from utils.resume_text import build_resume_text_for_evaluation
 from .models import CoverLetter
 import logging
 import json
@@ -145,20 +147,7 @@ def job_cover_letter(request):
                 
                 print(f"Final applicant name: '{applicant_name}'")
                 
-                # Build resume text from structured data
-                resume_text = f"""
-                {personal_info.get('full_name', '')}
-                {personal_info.get('current_role', '')}
-
-                Experience:
-                {resume.experience}
-
-                Skills:
-                {resume.skills}
-
-                Education:
-                {resume.education}
-                """
+                resume_text = build_resume_text_for_evaluation(resume)
                 print(f"Resume text length: {len(resume_text)}")
             except Resume.DoesNotExist:
                 print(f"ERROR: Resume {selected_resume_id} not found")
@@ -175,15 +164,11 @@ def job_cover_letter(request):
             
             if file_extension == 'pdf':
                 try:
-                    import pdfplumber
-                    with pdfplumber.open(uploaded_file) as pdf:
-                        resume_text = ""
-                        for page in pdf.pages:
-                            resume_text += page.extract_text() or ""
-                except ImportError:
+                    resume_text = extract_text_from_pdf(uploaded_file)
+                except PdfTextExtractionError as e:
                     return JsonResponse({
                         'success': False,
-                        'error': 'PDF processing is not available. Please upload a TXT file.'
+                        'error': str(e),
                     }, status=400)
                 except Exception as e:
                     return JsonResponse({
