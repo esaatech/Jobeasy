@@ -237,27 +237,32 @@ def job_cover_letter(request):
 @login_required
 def cover_letter_response(request):
     """View to display the generated cover letter response."""
-    cover_letter = request.session.get('generated_cover_letter', '')
     cover_letter_id = request.session.get('cover_letter_id')
-    
-    if not cover_letter:
-        return redirect('coverletter:job_cover_letter')
-    
-    # Get the cover letter object if we have an ID
-    cover_letter_obj = None
+    session_text = (request.session.get('generated_cover_letter') or '').strip()
+
+    cover_letter = None
     if cover_letter_id:
-        try:
-            cover_letter_obj = CoverLetter.objects.get(id=cover_letter_id, user=request.user)
-        except CoverLetter.DoesNotExist:
-            pass
-    
+        cover_letter = CoverLetter.objects.filter(
+            id=cover_letter_id, user=request.user
+        ).first()
+
+    if cover_letter is None and session_text:
+        cover_letter = CoverLetter(
+            user=request.user,
+            title="Cover Letter",
+            content=session_text,
+            status='completed',
+        )
+
+    if cover_letter is None or not (cover_letter.content or '').strip():
+        return redirect('coverletter:job_cover_letter')
+
     context = {
         'cover_letter': cover_letter,
-        'cover_letter_obj': cover_letter_obj,
         'page_title': 'Cover Letter Generated',
-        'page_description': 'Your AI-generated cover letter is ready!'
+        'page_description': 'Your AI-generated cover letter is ready!',
     }
-    
+
     return render(request, 'coverletter/cover_letter_response.html', context)
 
 @login_required
