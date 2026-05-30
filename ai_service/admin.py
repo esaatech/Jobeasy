@@ -19,6 +19,7 @@ from .forms import (
     CoverLetterPlaygroundAdminForm,
     ProfessionalSummaryPlaygroundAdminForm,
     ResumeJobEvaluationAdminForm,
+    ResumeOptimizationPlaygroundAdminForm,
     WhyShouldIApplyPlaygroundAdminForm,
 )
 from .models import (
@@ -29,6 +30,7 @@ from .models import (
     JobFitGateSettings,
     ProfessionalSummaryPlayground,
     ResumeJobEvaluation,
+    ResumeOptimizationPlayground,
     WhyShouldIApplyPlayground,
 )
 from .cover_letter import (
@@ -38,6 +40,16 @@ from .cover_letter import (
     persist_cover_letter_playground_result,
     resolve_prompt_config as resolve_cover_letter_prompt_config,
     run_cover_letter_generation,
+)
+from .resume_optimization import (
+    RESUME_OPTIMIZATION_SERVICE_SLUG,
+    RESUME_OPTIMIZATION_SERVICE_SLUGS,
+    get_default_prompt_config as get_resume_optimization_default_prompt_config,
+    parse_pending_generation_result as parse_resume_optimization_pending_generation_result,
+    parse_resume_data_for_playground,
+    persist_resume_optimization_playground_result,
+    resolve_prompt_config as resolve_resume_optimization_prompt_config,
+    run_resume_optimization_generation,
 )
 from .professional_summary import (
     PROFESSIONAL_SUMMARY_SERVICE_SLUG,
@@ -1117,6 +1129,395 @@ class CoverLetterPlaygroundAdmin(AdminResumePdfExtractMixin, admin.ModelAdmin):
 
         persisted = self._persist_pending_from_form(request, obj, form)
         if persisted:
+            self.message_user(
+                request,
+                "Saved inputs and last generation results.",
+                level=messages.SUCCESS,
+            )
+        else:
+            self.message_user(request, "Saved inputs.", level=messages.INFO)
+
+
+@admin.register(ResumeOptimizationPlayground)
+class ResumeOptimizationPlaygroundAdmin(AdminResumePdfExtractMixin, admin.ModelAdmin):
+    """Playground: test resume optimization prompts and providers."""
+
+    form = ResumeOptimizationPlaygroundAdminForm
+    change_form_template = (
+        "admin/ai_service/resumeoptimizationplayground/change_form.html"
+    )
+    add_form_template = "admin/ai_service/resumeoptimizationplayground/add_form.html"
+    list_display = [
+        "display_name",
+        "short_description",
+        "instruction_slug",
+        "ats_score",
+        "model_used",
+        "succeeded",
+        "created_at",
+    ]
+    list_filter = ["succeeded", "instruction_slug", "model_used", "created_at"]
+    search_fields = [
+        "name",
+        "description",
+        "job_description",
+        "optimized_summary",
+        "title",
+    ]
+    autocomplete_fields = ["prompt_config"]
+
+    readonly_fields = [
+        "_results_header",
+        "ro_succeeded",
+        "ro_model_used",
+        "ro_temperature",
+        "ro_instruction_slug",
+        "ro_title",
+        "ro_email_subject",
+        "ro_ats_score",
+        "ro_optimized_summary",
+        "ro_result_json",
+        "ro_error_message",
+        "created_at",
+        "updated_at",
+    ]
+
+    fieldsets = (
+        (
+            "Label",
+            {
+                "fields": ("name", "description"),
+            },
+        ),
+        (
+            "Inputs",
+            {
+                "description": mark_safe(
+                    "<p>Paste <strong>SOURCE_RESUME JSON</strong> or upload a <strong>Resume PDF</strong> "
+                    "(Load PDF into resume text). Pick a prompt from <code>resume_optimization</code> or "
+                    "<code>resume_optimization_with_email_subject</code>. "
+                    "Run <code>setup_resume_optimization</code> if prompts are missing.</p>"
+                ),
+                "fields": ("job_description", "resume_pdf", "resume_text", "prompt_config"),
+            },
+        ),
+        (
+            "Last run results",
+            {
+                "fields": (
+                    "_results_header",
+                    "ro_succeeded",
+                    "ro_model_used",
+                    "ro_temperature",
+                    "ro_instruction_slug",
+                    "ro_title",
+                    "ro_email_subject",
+                    "ro_ats_score",
+                    "ro_optimized_summary",
+                    "ro_result_json",
+                    "ro_error_message",
+                    "created_at",
+                    "updated_at",
+                ),
+            },
+        ),
+    )
+
+    @staticmethod
+    def _ro_span(element_id: str, inner) -> str:
+        return format_html('<span id="{}">{}</span>', element_id, inner)
+
+    @staticmethod
+    def _empty_dash() -> str:
+        return format_html('<span class="resume-opt-empty">—</span>')
+
+    @staticmethod
+    def _succeeded_icon(succeeded: bool):
+        if succeeded:
+            return format_html('<img src="{}" alt="True">', static("admin/img/icon-yes.svg"))
+        return format_html('<img src="{}" alt="False">', static("admin/img/icon-no.svg"))
+
+    @admin.display(description="Name")
+    def display_name(self, obj: ResumeOptimizationPlayground) -> str:
+        return (obj.name or "").strip() or f"Playground {obj.pk}"
+
+    @admin.display(description="Description")
+    def short_description(self, obj: ResumeOptimizationPlayground) -> str:
+        text = (obj.description or "").strip()
+        return text[:80] + "…" if len(text) > 80 else text or "—"
+
+    @admin.display(description="Succeeded")
+    def ro_succeeded(self, obj: ResumeOptimizationPlayground) -> str:
+        has_run = bool(
+            (obj.result_json or "").strip()
+            or (obj.error_message or "").strip()
+            or (obj.raw_response_text or "").strip()
+        )
+        inner = self._empty_dash() if not has_run else self._succeeded_icon(obj.succeeded)
+        return self._ro_span("resume-opt-ro-succeeded", inner)
+
+    @admin.display(description="Model used")
+    def ro_model_used(self, obj: ResumeOptimizationPlayground) -> str:
+        text = (obj.model_used or "").strip()
+        return self._ro_span("resume-opt-ro-model-used", text or self._empty_dash())
+
+    @admin.display(description="Temperature")
+    def ro_temperature(self, obj: ResumeOptimizationPlayground) -> str:
+        inner = self._empty_dash() if obj.temperature_used is None else str(obj.temperature_used)
+        return self._ro_span("resume-opt-ro-temperature", inner)
+
+    @admin.display(description="Prompt slug")
+    def ro_instruction_slug(self, obj: ResumeOptimizationPlayground) -> str:
+        text = (obj.instruction_slug or "").strip()
+        return self._ro_span("resume-opt-ro-instruction-slug", text or self._empty_dash())
+
+    @admin.display(description="Resume title")
+    def ro_title(self, obj: ResumeOptimizationPlayground) -> str:
+        text = (obj.title or "").strip()
+        return self._ro_span("resume-opt-ro-title", text or self._empty_dash())
+
+    @admin.display(description="Email subject")
+    def ro_email_subject(self, obj: ResumeOptimizationPlayground) -> str:
+        text = (obj.email_subject or "").strip()
+        return self._ro_span("resume-opt-ro-email-subject", text or self._empty_dash())
+
+    @admin.display(description="ATS score")
+    def ro_ats_score(self, obj: ResumeOptimizationPlayground) -> str:
+        inner = self._empty_dash() if obj.ats_score is None else str(obj.ats_score)
+        return self._ro_span("resume-opt-ro-ats-score", inner)
+
+    @admin.display(description="Optimized summary")
+    def ro_optimized_summary(self, obj: ResumeOptimizationPlayground) -> str:
+        text = (obj.optimized_summary or "").strip()
+        if text:
+            inner = format_html(
+                '<pre style="white-space:pre-wrap;max-height:240px;overflow:auto;">{}</pre>',
+                text,
+            )
+        else:
+            inner = self._empty_dash()
+        return self._ro_span("resume-opt-ro-summary", inner)
+
+    @admin.display(description="Result JSON")
+    def ro_result_json(self, obj: ResumeOptimizationPlayground) -> str:
+        text = (obj.result_json or "").strip()
+        if text:
+            inner = format_html(
+                '<pre style="white-space:pre-wrap;max-height:360px;overflow:auto;font-size:12px;">{}</pre>',
+                text,
+            )
+        else:
+            inner = self._empty_dash()
+        return self._ro_span("resume-opt-ro-result-json", inner)
+
+    @admin.display(description="Error")
+    def ro_error_message(self, obj: ResumeOptimizationPlayground) -> str:
+        text = (obj.error_message or "").strip()
+        if text:
+            inner = format_html(
+                '<pre style="color:#ba2121;white-space:pre-wrap;">{}</pre>', text
+            )
+        else:
+            inner = self._empty_dash()
+        return self._ro_span("resume-opt-ro-error", inner)
+
+    def _results_header(self, obj: ResumeOptimizationPlayground) -> str:
+        return mark_safe(
+            '<p class="help" style="margin:0;">Results from the last <strong>Get optimization</strong> '
+            "run or Save with a pending preview.</p>"
+        )
+
+    def get_urls(self):
+        urls = super().get_urls()
+        opts = self.model._meta
+        basename = "%s_%s" % (opts.app_label, opts.model_name)
+        extra = [
+            path(
+                "generate-preview/",
+                self.admin_site.admin_view(self.generate_preview),
+                name="%s_generate_preview" % basename,
+            ),
+            path(
+                "<path:object_id>/persist-generation/",
+                self.admin_site.admin_view(self.persist_generation_submit),
+                name="%s_persist_generation" % basename,
+            ),
+            path(
+                "<path:object_id>/run-generation/",
+                self.admin_site.admin_view(self.run_generation_submit),
+                name="%s_run_generation" % basename,
+            ),
+        ]
+        return extra + urls
+
+    def generate_preview(self, request):
+        if request.method != "POST":
+            return HttpResponseNotAllowed(["POST", "OPTIONS"])
+        opts = self.model._meta
+        if not (
+            request.user.has_perm(f"{opts.app_label}.add_{opts.model_name}")
+            or request.user.has_perm(f"{opts.app_label}.change_{opts.model_name}")
+        ):
+            return HttpResponse(
+                json.dumps({"success": False, "error": "Permission denied"}),
+                status=403,
+                content_type="application/json",
+            )
+
+        jd = (request.POST.get("job_description") or "").strip()
+        rt, rt_err = resolve_resume_text_from_admin_request(request)
+        if rt_err:
+            return HttpResponse(
+                json.dumps({"success": False, "error": rt_err}),
+                status=400,
+                content_type="application/json",
+            )
+        if not jd or not rt:
+            return HttpResponse(
+                json.dumps(
+                    {
+                        "success": False,
+                        "error": (
+                            "Job description and resume text (or resume PDF) are required."
+                        ),
+                    }
+                ),
+                status=400,
+                content_type="application/json",
+            )
+
+        resume_data, rd_err = parse_resume_data_for_playground(rt)
+        if rd_err:
+            return HttpResponse(
+                json.dumps({"success": False, "error": rd_err}),
+                status=400,
+                content_type="application/json",
+            )
+
+        pc = None
+        raw_pc = request.POST.get("prompt_config") or ""
+        if str(raw_pc).strip().isdigit():
+            pc = resolve_resume_optimization_prompt_config(int(raw_pc))
+        if pc is None:
+            pc = get_resume_optimization_default_prompt_config()
+        if pc is None:
+            return HttpResponse(
+                json.dumps(
+                    {
+                        "success": False,
+                        "error": (
+                            f"No active prompt for services "
+                            f"{', '.join(sorted(RESUME_OPTIMIZATION_SERVICE_SLUGS))}. "
+                            "Run setup_resume_optimization."
+                        ),
+                    }
+                ),
+                status=400,
+                content_type="application/json",
+            )
+
+        service_slug = pc.service.slug or RESUME_OPTIMIZATION_SERVICE_SLUG
+        try:
+            result = run_resume_optimization_generation(
+                jd,
+                resume_data,
+                prompt_config=pc,
+                service_slug=service_slug,
+            )
+            return HttpResponse(
+                json.dumps(result, cls=DjangoJSONEncoder),
+                content_type="application/json",
+            )
+        except Exception as exc:  # noqa: BLE001
+            return HttpResponse(
+                json.dumps({"success": False, "error": str(exc)}),
+                status=500,
+                content_type="application/json",
+            )
+
+    def persist_generation_submit(self, request, object_id):
+        if request.method != "POST":
+            return HttpResponseNotAllowed(["POST", "OPTIONS"])
+        obj = get_object_or_404(ResumeOptimizationPlayground, pk=object_id)
+        if not self.has_change_permission(request, obj):
+            return HttpResponseForbidden("Change permission denied.")
+        try:
+            body = json.loads(request.body.decode() or "{}")
+        except json.JSONDecodeError:
+            return HttpResponse(
+                json.dumps({"ok": False, "error": "Invalid JSON body"}),
+                status=400,
+                content_type="application/json",
+            )
+        result = body.get("result")
+        if not isinstance(result, dict) or result.get("success") is not True:
+            return HttpResponse(
+                json.dumps({"ok": False, "error": "Provide result.success=true"}),
+                status=400,
+                content_type="application/json",
+            )
+        rpc = resolve_resume_optimization_prompt_config(result.get("prompt_config_id"))
+        pc = rpc or obj.prompt_config or get_resume_optimization_default_prompt_config()
+        persist_resume_optimization_playground_result(
+            pk=obj.pk,
+            result=result,
+            prompt_config=pc,
+        )
+        return HttpResponse(json.dumps({"ok": True}), content_type="application/json")
+
+    def run_generation_submit(self, request, object_id):
+        if request.method != "POST":
+            return HttpResponseNotAllowed(["POST", "OPTIONS"])
+        obj = get_object_or_404(ResumeOptimizationPlayground, pk=object_id)
+        if not self.has_change_permission(request, obj):
+            return HttpResponseForbidden("Change permission denied.")
+        resume_data, rd_err = parse_resume_data_for_playground(obj.resume_text)
+        pc = obj.prompt_config or get_resume_optimization_default_prompt_config()
+        if rd_err:
+            messages.error(request, rd_err)
+        elif pc is None:
+            messages.error(request, "No active prompt. Run setup_resume_optimization.")
+        else:
+            result = run_resume_optimization_generation(
+                obj.job_description,
+                resume_data,
+                prompt_config=pc,
+                service_slug=pc.service.slug,
+            )
+            persist_resume_optimization_playground_result(
+                pk=obj.pk, result=result, prompt_config=pc
+            )
+            if result.get("success"):
+                messages.success(request, "Resume optimization finished.")
+            else:
+                messages.error(request, f'Generation failed: {result.get("error")}')
+        ch = "admin:%s_%s_change" % (self.opts.app_label, self.opts.model_name)
+        return redirect(reverse(ch, args=(object_id,)))
+
+    def _persist_pending_from_form(self, request, obj, form) -> bool:
+        raw = form.cleaned_data.get("pending_generation_result")
+        if raw is None:
+            raw = request.POST.get("pending_generation_result")
+        result = parse_resume_optimization_pending_generation_result(raw)
+        if result is None:
+            return False
+        rpc = resolve_resume_optimization_prompt_config(result.get("prompt_config_id"))
+        pc = (
+            rpc
+            or form.cleaned_data.get("prompt_config")
+            or obj.prompt_config
+            or get_resume_optimization_default_prompt_config()
+        )
+        persist_resume_optimization_playground_result(pk=obj.pk, result=result, prompt_config=pc)
+        return True
+
+    def save_model(self, request, obj, form, change):
+        pc = form.cleaned_data.get("prompt_config")
+        if pc is None:
+            pc = get_resume_optimization_default_prompt_config()
+        obj.prompt_config = pc
+        super().save_model(request, obj, form, change)
+        if self._persist_pending_from_form(request, obj, form):
             self.message_user(
                 request,
                 "Saved inputs and last generation results.",

@@ -1,0 +1,286 @@
+{% load i18n static %}
+<div id="resume-opt-widget" class="module" style="margin-bottom:20px;">
+  <h2>{% translate "Generation" %}</h2>
+  <div class="form-row" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <button type="button" id="resume-opt-submit" class="button default">
+      {% translate "Get optimization" %}
+    </button>
+    {% if persist_url %}
+    <button type="button" id="resume-opt-persist" class="button" disabled
+            title="{% translate 'Stores the last result into this saved record.' %}">
+      {% translate "Save last result to record" %}
+    </button>
+    {% endif %}
+    <span id="resume-opt-spinner" style="display:none;color:#417690;font-weight:600;">
+      {% translate "Running…" %}
+    </span>
+  </div>
+  {% if pending_field %}{{ pending_field }}{% endif %}
+  <div class="form-row" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:8px;">
+    <button type="button" id="resume-pdf-load-btn" class="button">
+      {% translate "Load PDF into resume text" %}
+    </button>
+    <span class="help">{% translate "Upload a PDF in Resume PDF above, or attach one when running Get optimization." %}</span>
+  </div>
+  <div id="resume-pdf-extract-message" style="margin-top:8px;"></div>
+  <p class="help" style="margin-top:10px;margin-bottom:0;">
+    {% blocktranslate trimmed %}
+      Model and temperature come from the selected prompt configuration
+      (resume_optimization vs resume_optimization_with_email_subject). Paste JSON or use PDF text.
+    {% endblocktranslate %}
+  </p>
+  <div id="resume-opt-message" style="margin-top:12px;"></div>
+</div>
+
+<script>
+(function () {
+  var generateUrl = "{{ generate_url|escapejs }}";
+  var persistUrl = "{{ persist_url|default:''|escapejs }}";
+  if (!generateUrl) {
+    console.error("resume optimization playground: generate_url is missing");
+  }
+  var iconYes = "{% static 'admin/img/icon-yes.svg' %}";
+  var iconNo = "{% static 'admin/img/icon-no.svg' %}";
+
+  function getCookie(name) {
+    var v = null;
+    if (document.cookie) {
+      var parts = document.cookie.split(";");
+      for (var i = 0; i < parts.length; i++) {
+        var cookie = parts[i].trim();
+        if (cookie.indexOf(name + "=") === 0) {
+          v = decodeURIComponent(cookie.slice(name.length + 1));
+          break;
+        }
+      }
+    }
+    return v;
+  }
+  var csrftoken = getCookie("csrftoken");
+
+  function esc(s) {
+    var d = document.createElement("div");
+    d.textContent = s == null ? "" : String(s);
+    return d.innerHTML;
+  }
+
+  function dash() {
+    return '<span class="resume-opt-empty">—</span>';
+  }
+
+  function setRo(id, html) {
+    var el = document.getElementById(id);
+    if (el) { el.innerHTML = html; }
+  }
+
+  function succeededIcon(ok) {
+    if (ok === true) { return '<img src="' + iconYes + '" alt="True">'; }
+    if (ok === false) { return '<img src="' + iconNo + '" alt="False">'; }
+    return dash();
+  }
+
+  function pre(text, maxH) {
+    return (
+      '<pre style="white-space:pre-wrap;font-size:12px;max-height:' + maxH +
+      'px;overflow:auto;background:#f8f9fa;padding:12px;border-radius:6px;margin:0;">' +
+      esc(text) + "</pre>"
+    );
+  }
+
+  function updateReadonlyFields(payload) {
+    var ok = !!(payload && payload.success);
+    setRo("resume-opt-ro-succeeded", succeededIcon(ok));
+    setRo("resume-opt-ro-title", ok && payload.title ? esc(payload.title) : dash());
+    setRo("resume-opt-ro-email-subject", ok && payload.email_subject ? esc(payload.email_subject) : dash());
+    setRo("resume-opt-ro-ats-score",
+      ok && payload.ats_score != null ? esc(String(payload.ats_score)) : dash());
+
+    if (ok && payload.optimized_summary) {
+      setRo("resume-opt-ro-summary", pre(String(payload.optimized_summary), 240));
+    } else {
+      setRo("resume-opt-ro-summary", dash());
+    }
+
+    if (ok) {
+      try {
+        var subset = {
+          title: payload.title,
+          email_subject: payload.email_subject,
+          optimized_summary: payload.optimized_summary,
+          reordered_technical_skills: payload.reordered_technical_skills,
+          experience: payload.experience,
+          reordered_projects: payload.reordered_projects,
+          ats_score: payload.ats_score,
+          keyword_matches: payload.keyword_matches,
+          improvement_suggestions: payload.improvement_suggestions
+        };
+        setRo("resume-opt-ro-result-json", pre(JSON.stringify(subset, null, 2), 360));
+      } catch (e) {
+        setRo("resume-opt-ro-result-json", dash());
+      }
+    } else {
+      setRo("resume-opt-ro-result-json", dash());
+    }
+
+    var err = !ok && payload && payload.error ? String(payload.error).trim() : "";
+    setRo("resume-opt-ro-error", err
+      ? '<span style="color:#ba2121;white-space:pre-wrap;">' + esc(err) + "</span>"
+      : (ok ? dash() : ""));
+
+    var model = payload && (payload.model_id || payload.gemini_model || payload.openai_model || payload.deepseek_model);
+    setRo("resume-opt-ro-model-used", model ? esc(String(model)) : dash());
+    setRo("resume-opt-ro-instruction-slug",
+      payload && payload.instruction_slug ? esc(payload.instruction_slug) : dash());
+    setRo("resume-opt-ro-temperature",
+      payload && payload.temperature != null && payload.temperature !== ""
+        ? esc(String(payload.temperature)) : dash());
+  }
+
+  var lastResult = null;
+
+  function setBusy(on) {
+    var btn = document.getElementById("resume-opt-submit");
+    var sp = document.getElementById("resume-opt-spinner");
+    if (btn) { btn.disabled = !!on; }
+    if (sp) { sp.style.display = on ? "inline" : "none"; }
+  }
+
+  function flashMsg(ok, txt) {
+    var m = document.getElementById("resume-opt-message");
+    if (!m) { return; }
+    m.innerHTML = '<ul class="messagelist"><li class="' + (ok ? "success" : "error") + '">' + esc(txt) + "</li></ul>";
+  }
+
+  function updatePersist(enabled) {
+    var pb = document.getElementById("resume-opt-persist");
+    if (pb && persistUrl) { pb.disabled = !enabled; }
+  }
+
+  function showResults(payload) {
+    lastResult = payload;
+    updatePersist(!!persistUrl && payload && payload.success);
+    updateReadonlyFields(payload);
+    if (payload && payload.success) {
+      flashMsg(true, "{% translate 'Optimization complete. See Last run results below.' %}");
+      return;
+    }
+    var errText = payload && payload.error ? payload.error : "{% translate 'Generation failed.' %}";
+    flashMsg(false, errText);
+  }
+
+  var runBtn = document.getElementById("resume-opt-submit");
+  if (runBtn) {
+    runBtn.addEventListener("click", function () {
+      var jdEl = document.getElementById("id_job_description");
+      var rtEl = document.getElementById("id_resume_text");
+      var pdfEl = document.getElementById("id_resume_pdf");
+      if (!jdEl || !rtEl) {
+        flashMsg(false, "{% translate 'Form fields not found.' %}");
+        return;
+      }
+      var jd = (jdEl.value || "").trim();
+      var rt = (rtEl.value || "").trim();
+      var hasPdf = pdfEl && pdfEl.files && pdfEl.files[0];
+      if (!jd || (!rt && !hasPdf)) {
+        flashMsg(false, "{% translate 'Enter job description and resume text or choose a PDF.' %}");
+        return;
+      }
+
+      var fd = window.resumeAdminBuildPromptFormData
+        ? window.resumeAdminBuildPromptFormData()
+        : (function () {
+            var params = new FormData();
+            params.append("job_description", jdEl.value);
+            params.append("resume_text", rtEl.value);
+            var pc = document.getElementById("id_prompt_config");
+            if (pc && pc.value) { params.append("prompt_config", pc.value); }
+            return params;
+          })();
+      var useMultipart = fd instanceof FormData;
+
+      setBusy(true);
+      document.getElementById("resume-opt-message").innerHTML = "";
+      updatePersist(false);
+
+      var headers = {
+        "X-Requested-With": "XMLHttpRequest",
+        "X-CSRFToken": csrftoken || "",
+        "Accept": "application/json"
+      };
+      if (!useMultipart) {
+        headers["Content-Type"] = "application/x-www-form-urlencoded;charset=UTF-8";
+      }
+
+      if (!generateUrl) {
+        showResults({ success: false, error: "Generate URL is not configured (admin URL name mismatch)." });
+        setBusy(false);
+        return;
+      }
+
+      fetch(generateUrl, {
+        method: "POST",
+        credentials: "same-origin",
+        headers: headers,
+        body: useMultipart ? fd : fd.toString()
+      }).then(function (r) {
+        return r.text().then(function (text) {
+          var j = null;
+          try {
+            j = text ? JSON.parse(text) : null;
+          } catch (parseErr) {
+            var snippet = (text || "").trim().substring(0, 200);
+            showResults({
+              success: false,
+              error: "Server returned non-JSON (HTTP " + r.status + "). "
+                + (snippet.indexOf("<") === 0 ? "Got HTML — check URL or CSRF." : snippet)
+            });
+            return;
+          }
+          if (!r.ok) {
+            showResults(j && j.error ? j : { success: false, error: r.statusText || "Request failed" });
+          } else {
+            showResults(j);
+          }
+        });
+      }).catch(function (e) {
+        showResults({ success: false, error: e && e.message ? e.message : String(e) });
+      }).finally(function () {
+        setBusy(false);
+      });
+    });
+  }
+
+  var persistBtn = document.getElementById("resume-opt-persist");
+  if (persistBtn && persistUrl) {
+    persistBtn.addEventListener("click", function () {
+      if (!lastResult || !lastResult.success) { return; }
+      fetch(persistUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": csrftoken || ""
+        },
+        body: JSON.stringify({ result: lastResult }),
+        credentials: "same-origin"
+      }).then(function (r) { return r.json(); })
+        .then(function (d) {
+          flashMsg(!!d.ok, d.ok ? "{% translate 'Stored on record.' %}" : (d.error || "Persist failed."));
+        })
+        .catch(function (e) { flashMsg(false, String(e)); });
+    });
+  }
+
+  var adminForm = document.getElementById("resumeoptimizationplayground_form");
+  if (adminForm) {
+    adminForm.addEventListener("submit", function () {
+      var pendingEl = document.getElementById("id_pending_generation_result");
+      if (!pendingEl) { return; }
+      if (lastResult && lastResult.success) {
+        try {
+          pendingEl.value = JSON.stringify(lastResult);
+        } catch (e) { /* ignore */ }
+      }
+    });
+  }
+})();
+</script>

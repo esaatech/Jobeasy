@@ -31,6 +31,7 @@ poetry run python manage.py setup_job_fit_gate
 poetry run python manage.py setup_why_should_i_apply
 poetry run python manage.py setup_professional_summary
 poetry run python manage.py setup_cover_letter
+poetry run python manage.py setup_resume_optimization
 ```
 
 Admin: **Resume-job evaluations** (playground), **Job fit gate settings**, **AI Prompt Configurations**, **AI models**.

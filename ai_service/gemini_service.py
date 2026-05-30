@@ -370,7 +370,9 @@ class GeminiService:
         if response_schema is not None:
             cleaned = _strip_json_code_fence(raw)
             try:
-                parsed = json.loads(cleaned)
+                from .json_repair import loads_json_lenient
+
+                parsed = loads_json_lenient(cleaned)
             except json.JSONDecodeError as e:
                 logger.error("GeminiService: invalid JSON (schema mode): %s", e)
                 logger.error("GeminiService: raw (truncated): %s", raw[:800])

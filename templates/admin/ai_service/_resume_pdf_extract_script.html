@@ -48,9 +48,13 @@
     var jd = document.getElementById("id_job_description");
     var rt = resumeTextarea();
     var pc = document.getElementById("id_prompt_config");
+    var csrfInput = document.querySelector("[name=csrfmiddlewaretoken]");
     if (jd) { fd.append("job_description", jd.value); }
     if (rt) { fd.append("resume_text", rt.value); }
     if (pc && pc.value) { fd.append("prompt_config", pc.value); }
+    if (csrfInput && csrfInput.value) {
+      fd.append("csrfmiddlewaretoken", csrfInput.value);
+    }
     appendResumePdf(fd);
     return fd;
   };

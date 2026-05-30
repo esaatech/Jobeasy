@@ -516,7 +516,8 @@ Copy uses the browser clipboard API on the detail page (no separate endpoint).
 | `why_should_i_apply` | Plain text (application answer) | — |
 | `cover_letter` | Text (TITLE + COVER_LETTER) | `cover_letter.py`; standalone tool |
 | `cover_letter_with_email_subject` | Text (TITLE + EMAIL_SUBJECT + COVER_LETTER) | `cover_letter.py`; dashboard generate |
-| `resume_optimization` | Text / JSON (legacy) | — |
+| `resume_optimization` | Structured JSON (summary, skills, experience bullets, projects, ATS metadata) | `gemini_schema.ResumeOptimizationPayload` |
+| `resume_optimization_with_email_subject` | Same + `email_subject` | `resume_optimization.py`; dashboard when no cover letter |
 | Future: `interview_prep` | Structured Q&A | TBD |
 
 Each new structured task: add Pydantic model → document in prompt → seed `AIService` + `AIPromptConfiguration` → implement `*_service.py` runner → persist run row.
@@ -536,11 +537,12 @@ Each new structured task: add Pydantic model → document in prompt → seed `AI
 | Run manual why-apply tests | **Why should I apply playground** — paste resume text **or upload PDF**; provider follows prompt's linked **AI model** (Gemini / OpenAI / DeepSeek) |
 | Run manual summary tests | **Professional summary playground** — paste resume text **or upload PDF** |
 | Run manual cover letter tests | **Cover letter playground** — job + resume text/PDF; pick a prompt from `cover_letter` or `cover_letter_with_email_subject` |
+| Run manual resume optimization tests | **Resume optimization playground** — job + SOURCE_RESUME JSON; pick `resume_optimization` or `resume_optimization_with_email_subject` |
 | Resume wizard **Generate AI Summary** | `build_resume_text_for_summary` (same PDF → `original_content` → structured sources as job-fit; structured fallback omits existing summary); always default prompt |
 | Tune dashboard gate thresholds / production prompt | **Job fit gate settings** (singleton) |
 | Edit why-apply instructions | **AI Prompt Configurations** → service “Why Should I Apply” |
 
-**Deploy verification:** `entrypoint.sh` runs `setup_ai_models`, `setup_resume_job_evaluation`, `setup_job_fit_gate`, `setup_why_should_i_apply`, `setup_professional_summary`, `setup_cover_letter`, then `check_ai_platform`. Admin header shows `AI platform <build>`. Under **AI SERVICE**: **AI models**, **AI Prompt Configurations**, **Job fit gate settings**, **Resume-job evaluations**, **Cover letter playground**, **Why should I apply playground**, **Professional summary playground**.
+**Deploy verification:** `entrypoint.sh` runs `setup_ai_models`, `setup_resume_job_evaluation`, `setup_job_fit_gate`, `setup_why_should_i_apply`, `setup_professional_summary`, `setup_cover_letter`, `setup_resume_optimization`, then `check_ai_platform`. Admin header shows `AI platform <build>`. Under **AI SERVICE**: **AI models**, **AI Prompt Configurations**, **Job fit gate settings**, **Resume-job evaluations**, **Cover letter playground**, **Resume optimization playground**, **Why should I apply playground**, **Professional summary playground**.
 
 ### Playground workflow
 
@@ -617,6 +619,8 @@ See `.env.example`.
 | `professional_summary.py` | OpenAI summary generation + admin playground persist |
 | `professional_summary_prompts.py` | Versioned summary instructions (seed source) |
 | `cover_letter.py` | Cover letter generation (Gemini / OpenAI / DeepSeek); services `cover_letter` / `cover_letter_with_email_subject` |
+| `resume_optimization.py` | Resume tailoring (structured JSON); services `resume_optimization` / `resume_optimization_with_email_subject` |
+| `resume_optimization_validate.py` | Anti-hallucination merge (skills subset, experience metadata lock) |
 | `why_should_i_apply.py` | Why-apply plain-text generation (Gemini / OpenAI / DeepSeek via `resolve_for_prompt_config`) |
 | `why_should_i_apply_prompts.py` | Versioned why-apply instructions (source for seeds) |
 | `dashboard_why_should_i_apply.py` | Dashboard adapter for job application detail |

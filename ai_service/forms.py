@@ -6,11 +6,13 @@ from .models import (
     CoverLetterPlayground,
     ProfessionalSummaryPlayground,
     ResumeJobEvaluation,
+    ResumeOptimizationPlayground,
     WhyShouldIApplyPlayground,
 )
 from .cover_letter import COVER_LETTER_SERVICE_SLUGS
 from .professional_summary import PROFESSIONAL_SUMMARY_SERVICE_SLUG
 from .resume_job_evaluation import RESUME_JOB_EVALUATION_SERVICE_SLUG
+from .resume_optimization import RESUME_OPTIMIZATION_SERVICE_SLUGS
 from .why_should_i_apply import WHY_SHOULD_I_APPLY_SERVICE_SLUG
 
 RESUME_PDF_FIELD_HELP = (
@@ -210,4 +212,54 @@ class ProfessionalSummaryPlaygroundAdminForm(forms.ModelForm):
             "Prompt variant to run when you click Get summary. Leave empty to use the "
             "service default (same as production resume wizard). "
             "Edit prompts under AI Prompt Configurations (slug professional_summary)."
+        )
+
+
+class ResumeOptimizationPlaygroundAdminForm(forms.ModelForm):
+    """Playground: job + resume (JSON or PDF); run via Get optimization."""
+
+    pending_generation_result = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput(),
+    )
+    resume_pdf = forms.FileField(
+        required=False,
+        label="Resume PDF",
+        help_text=RESUME_PDF_FIELD_HELP,
+        widget=forms.ClearableFileInput(attrs={"accept": ".pdf"}),
+    )
+
+    class Meta:
+        model = ResumeOptimizationPlayground
+        fields = (
+            "name",
+            "description",
+            "job_description",
+            "resume_pdf",
+            "resume_text",
+            "prompt_config",
+        )
+        widgets = {
+            "name": forms.TextInput(attrs={"size": 80}),
+            "description": forms.Textarea(attrs={"rows": 2}),
+            "job_description": forms.Textarea(attrs={"rows": 8}),
+            "resume_text": forms.Textarea(attrs={"rows": 14}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        qs = AIPromptConfiguration.objects.filter(
+            is_active=True,
+            service__slug__in=RESUME_OPTIMIZATION_SERVICE_SLUGS,
+            service__is_active=True,
+        ).select_related("service")
+        self.fields["prompt_config"].queryset = qs
+        self.fields["prompt_config"].required = False
+        self.fields["prompt_config"].help_text = (
+            "Uses resume_optimization default if empty. Pick resume_optimization or "
+            "resume_optimization_with_email_subject to test versions."
+        )
+        self.fields["resume_text"].help_text = (
+            "Paste SOURCE_RESUME JSON (professional_summary, experience[], skills, projects[]) "
+            "or use Load PDF into resume text for plain-text extraction (same as other playgrounds)."
         )

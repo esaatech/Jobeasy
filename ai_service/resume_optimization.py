@@ -1,15 +1,482 @@
-import logging
+"""
+Resume optimization for dashboard job applications.
 
+Uses the **provider on the prompt's linked AIModel** (Gemini structured JSON,
+OpenAI / DeepSeek JSON chat). Two services:
+
+- ``resume_optimization`` — tailoring without email subject
+- ``resume_optimization_with_email_subject`` — includes ``email_subject`` in JSON
+
+Seed defaults with::
+
+    python manage.py setup_ai_models
+    python manage.py setup_resume_optimization
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+from typing import Any
+
+from openai import OpenAIError
+from pydantic import ValidationError
+
+from .deepseek_client import get_deepseek_client
+from .gemini_client import gemini_generate_structured_sync
+from .gemini_schema import ResumeOptimizationPayload
+from .generation_config import resolve_for_prompt_config
+from .models import AIModel, AIService, AIPromptConfiguration, ResumeOptimizationPlayground
 from .open_ai import client
-from .prompt_formatting import coerce_skill_list, format_items_for_prompt
+from .prompt_formatting import coerce_skill_list
+from .json_repair import loads_json_lenient
+from .resume_optimization_validate import validate_and_merge_payload
 
 logger = logging.getLogger(__name__)
+
+RESUME_OPT_MAX_OUTPUT_TOKENS = 16384
+RESUME_OPT_COMPACT_SUFFIX = (
+    "\n\nOUTPUT SIZE (strict): At most 5 bullets per experience entry; "
+    "max 200 characters per bullet. In description use plain text only — "
+    "one bullet per line, newline-separated, no HTML tags, no double-quote "
+    "characters inside bullets (use apostrophes instead)."
+)
+
+RESUME_OPTIMIZATION_SERVICE_SLUG = "resume_optimization"
+RESUME_OPTIMIZATION_WITH_EMAIL_SERVICE_SLUG = "resume_optimization_with_email_subject"
+RESUME_OPTIMIZATION_SERVICE_SLUGS = frozenset(
+    {RESUME_OPTIMIZATION_SERVICE_SLUG, RESUME_OPTIMIZATION_WITH_EMAIL_SERVICE_SLUG}
+)
+
+
+def parse_pending_generation_result(raw: str | None) -> dict[str, Any] | None:
+    """Parse ``pending_generation_result`` POST JSON from admin Save."""
+    text = (raw or "").strip()
+    if not text:
+        return None
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(data, dict) or data.get("success") is not True:
+        return None
+    if not data.get("optimized_summary") and not data.get("experience"):
+        return None
+    return data
+
+
+def resolve_prompt_config(prompt_config_pk: int | None) -> AIPromptConfiguration | None:
+    if not prompt_config_pk:
+        return None
+    return (
+        AIPromptConfiguration.objects.filter(
+            pk=prompt_config_pk,
+            is_active=True,
+            service__slug__in=RESUME_OPTIMIZATION_SERVICE_SLUGS,
+            service__is_active=True,
+        )
+        .select_related("service", "ai_model")
+        .first()
+    )
+
+
+def parse_resume_data_for_playground(resume_text: str) -> tuple[dict[str, Any] | None, str | None]:
+    """
+    Parse admin playground resume_text as SOURCE_RESUME JSON.
+    Returns (resume_data, error_message).
+    """
+    text = (resume_text or "").strip()
+    if not text:
+        return None, "Resume JSON is required."
+    if not text.startswith("{"):
+        if len(text) < 80:
+            return None, (
+                "Resume text is too short. Paste SOURCE_RESUME JSON or load a PDF "
+                "(at least 80 characters of extracted text)."
+            )
+        return {
+            "professional_summary": "",
+            "experience": [],
+            "education": [],
+            "technical_skills": [],
+            "soft_skills": [],
+            "languages": [],
+            "projects": [],
+            "resume_plain_text": text,
+        }, None
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError as exc:
+        return None, f"Invalid resume JSON: {exc}"
+    if not isinstance(data, dict):
+        return None, "Resume JSON must be an object."
+    resume_data = {
+        "professional_summary": data.get("professional_summary") or data.get("summary") or "",
+        "experience": data.get("experience") or [],
+        "education": data.get("education") or [],
+        "technical_skills": data.get("technical_skills") or [],
+        "soft_skills": data.get("soft_skills") or [],
+        "languages": data.get("languages") or [],
+        "projects": data.get("projects") or [],
+    }
+    if not resume_data["experience"] and not str(resume_data["professional_summary"]).strip():
+        return None, "Resume JSON needs at least professional_summary or experience."
+    return resume_data, None
+
+
+def persist_resume_optimization_playground_result(
+    pk: object,
+    *,
+    result: dict[str, Any],
+    prompt_config: AIPromptConfiguration | None,
+    fallback_model_id: str = "gemini-2.5-flash",
+) -> None:
+    pc = prompt_config
+    model_mid = str(
+        result.get("model_id")
+        or result.get("gemini_model")
+        or result.get("openai_model")
+        or result.get("deepseek_model")
+        or fallback_model_id
+    )[:128]
+    raw_text = result.get("raw_text") or ""
+    if raw_text:
+        raw_text = raw_text[:262144]
+
+    title = email = summary = result_json = ""
+    ats: int | None = None
+    if result.get("success"):
+        title = str(result.get("title") or "").strip()[:512]
+        email = str(result.get("email_subject") or "").strip()[:512]
+        summary = str(result.get("optimized_summary") or "").strip()[:65535]
+        try:
+            ats = int(result.get("ats_score")) if result.get("ats_score") is not None else None
+        except (TypeError, ValueError):
+            ats = None
+        try:
+            result_json = json.dumps(
+                {
+                    k: result.get(k)
+                    for k in (
+                        "title",
+                        "email_subject",
+                        "optimized_summary",
+                        "reordered_technical_skills",
+                        "reordered_soft_skills",
+                        "reordered_languages",
+                        "experience",
+                        "reordered_projects",
+                        "ats_score",
+                        "keyword_matches",
+                        "improvement_suggestions",
+                    )
+                },
+                indent=2,
+            )[:262144]
+        except (TypeError, ValueError):
+            result_json = ""
+
+    slug_snap = (result.get("instruction_slug") or (pc.slug if pc else "") or "")[:80]
+    temp_used = result.get("temperature")
+    if temp_used is not None:
+        try:
+            temp_used = float(temp_used)
+        except (TypeError, ValueError):
+            temp_used = None
+
+    ai_model_pk = result.get("ai_model_id")
+    if ai_model_pk is not None:
+        try:
+            ai_model_pk = int(ai_model_pk)
+        except (TypeError, ValueError):
+            ai_model_pk = None
+
+    ResumeOptimizationPlayground.objects.filter(pk=pk).update(
+        succeeded=result["success"],
+        error_message=str(result.get("error") or "")[:8000],
+        title=title,
+        email_subject=email,
+        optimized_summary=summary,
+        ats_score=ats,
+        result_json=result_json,
+        raw_response_text=raw_text,
+        instruction_slug=slug_snap,
+        model_used=model_mid,
+        ai_model_id=ai_model_pk,
+        temperature_used=temp_used,
+        prompt_config_id=result.get("prompt_config_id") or (pc.pk if pc else None),
+    )
+
+
+def get_default_prompt_config(
+    service_slug: str = RESUME_OPTIMIZATION_SERVICE_SLUG,
+) -> AIPromptConfiguration | None:
+    svc = AIService.objects.filter(slug=service_slug, is_active=True).first()
+    if not svc:
+        return None
+    pref = (
+        svc.prompts.filter(is_default=True, is_active=True)
+        .select_related("ai_model")
+        .first()
+    )
+    if pref:
+        return pref
+    return (
+        svc.prompts.filter(is_active=True)
+        .select_related("ai_model")
+        .order_by("id")
+        .first()
+    )
+
+
+def _slim_experience_for_prompt(experience: list) -> list[dict[str, Any]]:
+    """Strip HTML and cap bullets so Gemini JSON stays smaller and valid."""
+    from resume_builder.resume_extra import (
+        extract_project_bullets_from_html,
+        plain_text_to_bullet_lines,
+    )
+
+    slim: list[dict[str, Any]] = []
+    for exp in experience or []:
+        if not isinstance(exp, dict):
+            continue
+        bullets = extract_project_bullets_from_html(str(exp.get("description") or ""))
+        if not bullets:
+            bullets = plain_text_to_bullet_lines(str(exp.get("description") or ""))
+        bullets = [b.replace('"', "'")[:220] for b in bullets[:6] if b.strip()]
+        slim.append(
+            {
+                "company": exp.get("company") or "",
+                "title": exp.get("title") or exp.get("position") or "",
+                "start_date": exp.get("start_date") or "",
+                "end_date": exp.get("end_date") or "",
+                "description": "\n".join(bullets),
+            }
+        )
+    return slim
+
+
+def build_user_prompt(job_description: str, resume_data: dict[str, Any]) -> str:
+    jd = (job_description or "").strip() or "(empty job description)"
+    plain = (resume_data.get("resume_plain_text") or "").strip()
+    if plain:
+        if len(plain) > 12000:
+            plain = plain[:12000] + "\n…[truncated for length]"
+        return (
+            "Tailor this candidate's resume to the job below. Use ONLY facts present in SOURCE_RESUME.\n\n"
+            f"JOB DESCRIPTION:\n---\n{jd}\n---\n\n"
+            f"SOURCE_RESUME (plain text from PDF or paste):\n---\n{plain}\n---\n\n"
+            "Return JSON matching the schema in the system instructions. "
+            "Do not invent employers, titles, or skills not supported by this text."
+        )
+    projects = resume_data.get("projects") or []
+    if isinstance(projects, list):
+        projects = [str(p).replace('"', "'")[:220] for p in projects[:12] if str(p).strip()]
+    payload = {
+        "professional_summary": str(resume_data.get("professional_summary") or "")[:2000],
+        "experience": _slim_experience_for_prompt(resume_data.get("experience") or []),
+        "education": resume_data.get("education") or [],
+        "technical_skills": resume_data.get("technical_skills") or [],
+        "soft_skills": resume_data.get("soft_skills") or [],
+        "languages": resume_data.get("languages") or [],
+        "projects": projects,
+    }
+    return (
+        "Tailor this candidate's resume to the job below. Use ONLY facts present in SOURCE_RESUME.\n\n"
+        f"JOB DESCRIPTION:\n---\n{jd}\n---\n\n"
+        f"SOURCE_RESUME (JSON):\n{json.dumps(payload, ensure_ascii=False)}\n\n"
+        "Return JSON matching the schema in the system instructions."
+    )
+
+
+def _meta_from_config(
+    cfg: AIPromptConfiguration, gen, *, provider: str
+) -> dict[str, Any]:
+    return {
+        "prompt_config_id": cfg.pk,
+        "instruction_slug": cfg.slug,
+        "provider": provider,
+        "model_id": gen.model_id,
+        "gemini_model": gen.model_id if provider == AIModel.Provider.GEMINI else "",
+        "openai_model": gen.model_id if provider == AIModel.Provider.OPENAI else "",
+        "deepseek_model": gen.model_id if provider == AIModel.Provider.DEEPSEEK else "",
+        "ai_model_id": gen.ai_model_id,
+        "temperature": gen.temperature,
+    }
+
+
+def _parse_payload(raw: str, parsed: Any) -> ResumeOptimizationPayload:
+    if isinstance(parsed, ResumeOptimizationPayload):
+        return parsed
+    if isinstance(parsed, dict):
+        return ResumeOptimizationPayload.model_validate(parsed)
+    data = loads_json_lenient(raw) if raw else {}
+    return ResumeOptimizationPayload.model_validate(data)
+
+
+def _generate_with_gemini(
+    *,
+    system_instruction: str,
+    user_block: str,
+    gen,
+) -> tuple[ResumeOptimizationPayload, str | None]:
+    last_exc: Exception | None = None
+    for attempt, extra in enumerate(("", RESUME_OPT_COMPACT_SUFFIX)):
+        try:
+            out = gemini_generate_structured_sync(
+                system_instruction=system_instruction,
+                user_text=user_block + extra,
+                response_schema=ResumeOptimizationPayload,
+                model_id=gen.model_id,
+                temperature=gen.temperature,
+                max_output_tokens=RESUME_OPT_MAX_OUTPUT_TOKENS,
+            )
+            raw = out.get("raw") or ""
+            parsed = out.get("parsed")
+            payload = _parse_payload(raw, parsed)
+            return payload, raw if isinstance(raw, str) else json.dumps(parsed)
+        except (ValidationError, json.JSONDecodeError, ValueError) as exc:
+            last_exc = exc
+            if attempt == 0:
+                logger.warning(
+                    "resume_optimization: Gemini JSON failed (%s); retrying compact",
+                    exc,
+                )
+                continue
+            raise
+    if last_exc:
+        raise last_exc
+    raise ValueError("Gemini resume optimization failed.")
+
+
+def _generate_with_openai(
+    *,
+    system_instruction: str,
+    user_block: str,
+    gen,
+) -> tuple[ResumeOptimizationPayload, str | None]:
+    chat_resp = client.chat.completions.create(
+        model=gen.model_id,
+        temperature=gen.temperature,
+        messages=[
+            {"role": "system", "content": system_instruction},
+            {"role": "user", "content": user_block},
+        ],
+        response_format={"type": "json_object"},
+    )
+    raw = (chat_resp.choices[0].message.content or "").strip()
+    return _parse_payload(raw, None), raw
+
+
+def _generate_with_deepseek(
+    *,
+    system_instruction: str,
+    user_block: str,
+    gen,
+) -> tuple[ResumeOptimizationPayload, str | None]:
+    chat_resp = get_deepseek_client().chat.completions.create(
+        model=gen.model_id,
+        temperature=gen.temperature,
+        messages=[
+            {"role": "system", "content": system_instruction},
+            {"role": "user", "content": user_block},
+        ],
+        response_format={"type": "json_object"},
+    )
+    raw = (chat_resp.choices[0].message.content or "").strip()
+    return _parse_payload(raw, None), raw
+
+
+def run_resume_optimization_generation(
+    job_description: str,
+    resume_data: dict[str, Any],
+    *,
+    prompt_config: AIPromptConfiguration | None = None,
+    service_slug: str = RESUME_OPTIMIZATION_SERVICE_SLUG,
+) -> dict[str, Any]:
+    cfg = prompt_config or get_default_prompt_config(service_slug)
+    if cfg is None:
+        return {
+            "success": False,
+            "error": (
+                f"No prompt configuration found for service '{service_slug}'. "
+                "Run: python manage.py setup_resume_optimization"
+            ),
+        }
+
+    gen, provider = resolve_for_prompt_config(cfg)
+    system_instruction = cfg.system_prompt.strip()
+    user_block = build_user_prompt(job_description, resume_data)
+    base_meta = _meta_from_config(cfg, gen, provider=provider)
+
+    raw: str | None = None
+    try:
+        if provider == AIModel.Provider.GEMINI:
+            payload, raw = _generate_with_gemini(
+                system_instruction=system_instruction,
+                user_block=user_block,
+                gen=gen,
+            )
+        elif provider == AIModel.Provider.DEEPSEEK:
+            payload, raw = _generate_with_deepseek(
+                system_instruction=system_instruction,
+                user_block=user_block,
+                gen=gen,
+            )
+        else:
+            payload, raw = _generate_with_openai(
+                system_instruction=system_instruction,
+                user_block=user_block,
+                gen=gen,
+            )
+    except (OpenAIError, ValidationError, json.JSONDecodeError, ValueError, Exception) as exc:
+        logger.exception("resume_optimization: %s call failed", provider)
+        return {
+            "success": False,
+            "error": str(exc),
+            "raw_text": raw,
+            **base_meta,
+        }
+
+    merged = validate_and_merge_payload(payload, resume_data)
+    merged["success"] = True
+    merged["error"] = None
+    merged["raw_text"] = raw
+    merged.update(base_meta)
+    logger.info(
+        "resume_optimization: ok title=%r ats=%s exp_rows=%s",
+        merged.get("title"),
+        merged.get("ats_score"),
+        len(merged.get("experience") or []),
+    )
+    return merged
+
+
+def optimize_resume_for_job(
+    job_description: str,
+    resume_data: dict,
+    include_email_subject: bool = False,
+) -> dict[str, Any]:
+    """Backward-compatible entry point used by dashboard views."""
+    service_slug = (
+        RESUME_OPTIMIZATION_WITH_EMAIL_SERVICE_SLUG
+        if include_email_subject
+        else RESUME_OPTIMIZATION_SERVICE_SLUG
+    )
+    result = run_resume_optimization_generation(
+        job_description,
+        resume_data,
+        service_slug=service_slug,
+    )
+    if not result.get("success"):
+        return result
+    return normalize_optimization_result(result)
 
 
 def normalize_optimization_result(data: dict) -> dict:
     """
-    Map common AI / JSON key aliases onto fields _optimize_resume_for_job_application expects.
-    Models often return Title Case keys (e.g. 'Professional Summary', 'Skills').
+    Map common AI / JSON key aliases onto fields dashboard expects.
+    (Kept for compatibility with older parsed shapes.)
     """
     if not data:
         return data
@@ -28,9 +495,6 @@ def normalize_optimization_result(data: dict) -> dict:
             if isinstance(v, str) and v.strip():
                 d["optimized_summary"] = v.strip()
                 break
-            if v is not None and not isinstance(v, (dict, list, str)):
-                d["optimized_summary"] = str(v).strip()
-                break
 
     if d.get("reordered_technical_skills") is None:
         skills = (
@@ -43,11 +507,7 @@ def normalize_optimization_result(data: dict) -> dict:
             d["reordered_technical_skills"] = coerce_skill_list(skills)
 
     if d.get("reordered_soft_skills") is None:
-        ss = (
-            d.get("Soft Skills")
-            or d.get("soft_skills")
-            or d.get("Soft skills")
-        )
+        ss = d.get("Soft Skills") or d.get("soft_skills") or d.get("Soft skills")
         if isinstance(ss, list) and ss:
             d["reordered_soft_skills"] = coerce_skill_list(ss)
 
@@ -56,280 +516,16 @@ def normalize_optimization_result(data: dict) -> dict:
         if isinstance(lang, list) and lang:
             d["reordered_languages"] = coerce_skill_list(lang)
 
-    if not d.get("relevant_experience"):
-        ex = d.get("Experience") or d.get("experience")
-        if isinstance(ex, list):
-            d["relevant_experience"] = ex
-
-    if d.get("ats_score") is None:
-        ats = d.get("ATS Score") or d.get("ATS")
-        if ats is not None:
-            try:
-                d["ats_score"] = int(str(ats).strip().rstrip("%"))
-            except (ValueError, TypeError):
-                d["ats_score"] = 0
-
-    if not d.get("keyword_matches"):
-        km = d.get("Keyword Matches") or d.get("keyword_matches")
-        if isinstance(km, list):
-            d["keyword_matches"] = [str(x) for x in km]
-
-    if not d.get("improvement_suggestions"):
-        imp = d.get("Improvement Suggestions") or d.get("improvement_suggestions")
-        if isinstance(imp, list):
-            d["improvement_suggestions"] = imp
+    if not d.get("relevant_experience") and d.get("experience"):
+        d["relevant_experience"] = d["experience"]
 
     if d.get("reordered_projects") is None:
-        pr = (
-            d.get("Projects")
-            or d.get("projects")
-            or d.get("Selected Projects")
-            or d.get("selected_projects")
-        )
+        pr = d.get("Projects") or d.get("projects") or d.get("Selected Projects")
         if isinstance(pr, list):
             d["reordered_projects"] = pr
 
+    title = d.get("title") or d.get("resume_title")
+    if title:
+        d["title"] = title
+
     return d
-
-
-def optimize_resume_for_job(job_description, resume_data, include_email_subject=False):
-    """
-    Optimize a resume for a specific job using AI.
-    
-    Args:
-        job_description (str): The job posting/description text
-        resume_data (dict): Structured resume data containing skills, experience, etc.
-        include_email_subject (bool): Whether to also generate an email subject line
-    
-    Returns:
-        dict: Contains success status, optimization results, title, and optionally email subject
-    """
-    # Determine the system prompt based on whether email subject is requested
-    if include_email_subject:
-        system_prompt = """You are a professional resume optimization expert who creates compelling, tailored resumes and email subjects. 
-        Generate resume optimization AND a professional email subject line.
-        
-        Your response should be structured as follows:
-        TITLE: [A professional title for the optimized resume, 3-6 words, include company name like "Senior Developer Resume for Google"]
-        EMAIL_SUBJECT: [A compelling email subject line, 5-10 words]
-        OPTIMIZATION: [All optimization data in JSON format]
-        
-        Do not include any additional formatting, headers, extra text, or appendices beyond these three sections."""
-    else:
-        system_prompt = """You are a professional resume optimization expert who creates compelling, tailored resumes. 
-        Generate resume optimization AND a professional title.
-        
-        Your response should be structured as follows:
-        TITLE: [A professional title for the optimized resume, 3-6 words, include company name like "Senior Developer Resume for Google"]
-        OPTIMIZATION: [All optimization data in JSON format]
-        
-        Do not include any additional formatting, headers, extra text, or appendices beyond these two sections."""
-    
-    try:
-        _proj = resume_data.get("projects") or []
-        if isinstance(_proj, list) and _proj:
-            projects_lines = "\n".join(
-                f"- {str(p).strip()}" for p in _proj if str(p).strip()
-            )
-        else:
-            projects_lines = "(none provided)"
-
-        user_prompt = f"""
-        Please optimize this resume for the following job description:
-
-        JOB DESCRIPTION:
-        {job_description}
-
-        RESUME DATA:
-        Professional Summary: {resume_data.get('professional_summary', 'N/A')}
-        
-        Technical Skills: {format_items_for_prompt(resume_data.get('technical_skills') or [])}
-        Soft Skills: {format_items_for_prompt(resume_data.get('soft_skills') or [])}
-        Languages: {format_items_for_prompt(resume_data.get('languages') or [])}
-        
-        Experience: {resume_data.get('experience', [])}
-        Project highlights (reorder these bullets in OPTIMIZATION JSON — most relevant to the job first):
-        {projects_lines}
-
-        Please provide:
-        1. An optimized professional summary that highlights relevant experience
-        2. Reordered skills (most relevant first), using technical vs soft vs languages when applicable
-        3. Relevant experience sections
-        4. ATS score (0-100)
-        5. Keyword matches
-        6. Improvement suggestions
-        7. Reordered project bullets (same items as in Project highlights — new order only; do not invent projects)
-
-        In the OPTIMIZATION JSON object, use these exact keys so they can be applied automatically:
-        optimized_summary (string),
-        reordered_technical_skills (array of strings),
-        reordered_soft_skills (array of strings),
-        reordered_languages (array of strings),
-        reordered_projects (array of strings — the project bullets, reordered),
-        relevant_experience (array), ats_score (number), keyword_matches (array of strings),
-        improvement_suggestions (array of strings).
-
-        {f'The email subject should be compelling, professional, and specific to the role. Use formats like "Application for [Position] at [Company]" or "[Position] - Application for [Company]".' if include_email_subject else ''}
-        """
-
-        logger.info(
-            "resume_optimization: calling OpenAI (include_email_subject=%s)",
-            include_email_subject,
-        )
-        response = client.chat.completions.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.7
-        )
-
-        # Clean and parse the response
-        response_content = response.choices[0].message.content.strip()
-        logger.debug("resume_optimization: raw response length=%s", len(response_content))
-
-        # Parse the structured response
-        result = parse_ai_response(response_content, include_email_subject)
-        os = result.get("optimized_summary")
-        has_summary = isinstance(os, str) and bool(os.strip())
-        logger.info(
-            "resume_optimization: parsed ok title=%r has_optimized_summary=%s",
-            result.get("title"),
-            has_summary,
-        )
-
-        return {
-            'success': True,
-            **result
-        }
-
-    except Exception as e:
-        logger.exception("resume_optimization: failed")
-        return {
-            'success': False,
-            'error': str(e)
-        }
-
-def parse_ai_response(response_content, include_email_subject):
-    """
-    Parse the AI response to extract title, email subject (if requested), and optimization data.
-    
-    Args:
-        response_content (str): The raw AI response
-        include_email_subject (bool): Whether email subject was requested
-    
-    Returns:
-        dict: Parsed content with title, email_subject (if applicable), and optimization data
-    """
-    result = {}
-    
-    # Remove any markdown formatting
-    if response_content.startswith('```'):
-        response_content = response_content.split('```', 2)[1] if '```' in response_content else response_content
-    
-    lines = response_content.split('\n')
-    current_section = None
-    section_content = []
-    
-    for line in lines:
-        line = line.strip()
-        
-        # Skip empty lines and markdown formatting
-        if not line or line.startswith('#') or line.startswith('**') or line.startswith('*'):
-            continue
-        
-        # Check for section headers
-        if line.upper().startswith('TITLE:'):
-            if current_section and section_content:
-                result[current_section] = '\n'.join(section_content).strip()
-            current_section = 'title'
-            section_content = []
-            # Extract title content (remove "TITLE:" prefix)
-            title_content = line[6:].strip()
-            if title_content:
-                section_content.append(title_content)
-            continue
-            
-        elif line.upper().startswith('EMAIL_SUBJECT:'):
-            if current_section and section_content:
-                result[current_section] = '\n'.join(section_content).strip()
-            current_section = 'email_subject'
-            section_content = []
-            # Extract email subject content (remove "EMAIL_SUBJECT:" prefix)
-            subject_content = line[14:].strip()
-            if subject_content:
-                section_content.append(subject_content)
-            continue
-            
-        elif line.upper().startswith('OPTIMIZATION:'):
-            if current_section and section_content:
-                result[current_section] = '\n'.join(section_content).strip()
-            current_section = 'optimization'
-            section_content = []
-            # Extract optimization content (remove "OPTIMIZATION:" prefix)
-            optimization_content = line[13:].strip()
-            if optimization_content:
-                section_content.append(optimization_content)
-            continue
-        
-        # Add content to current section
-        if current_section:
-            section_content.append(line)
-    
-    # Add the last section
-    if current_section and section_content:
-        result[current_section] = '\n'.join(section_content).strip()
-    
-    # Parse optimization data if present
-    if result.get('optimization'):
-        optimization_data = parse_optimization_data(result['optimization'])
-        result.update(optimization_data)
-    
-    # If no structured response was found, treat the entire content as optimization
-    if not result:
-        result['title'] = 'Optimized Resume'
-        if include_email_subject:
-            result['email_subject'] = 'Job Application'
-        # Try to parse the content as optimization data
-        optimization_data = parse_optimization_data(response_content)
-        result.update(optimization_data)
-
-    return normalize_optimization_result(result)
-
-def parse_optimization_data(optimization_content):
-    """
-    Parse the optimization content to extract structured data.
-    
-    Args:
-        optimization_content (str): The optimization section content
-    
-    Returns:
-        dict: Parsed optimization data
-    """
-    try:
-        # Try to parse as JSON first
-        import json
-        return json.loads(optimization_content)
-    except json.JSONDecodeError:
-        # If not valid JSON, try to extract key-value pairs
-        result = {}
-        lines = optimization_content.split('\n')
-        
-        for line in lines:
-            line = line.strip()
-            if ':' in line:
-                key, value = line.split(':', 1)
-                key = key.strip().lower().replace(' ', '_')
-                value = value.strip()
-                
-                # Try to parse lists
-                if value.startswith('[') and value.endswith(']'):
-                    try:
-                        value = json.loads(value)
-                    except:
-                        pass
-                
-                result[key] = value
-        
-        return result 

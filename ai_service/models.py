@@ -643,3 +643,90 @@ class CoverLetterPlayground(models.Model):
             return f"Cover letter playground {self.pk} [draft]"
         status = "ok" if self.succeeded else "fail"
         return f"Cover letter playground {self.pk} [{status}]"
+
+
+class ResumeOptimizationPlayground(models.Model):
+    """Admin playground for resume optimization (prompt + model testing)."""
+
+    name = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Short label (e.g. “Acme backend role optimization test”).",
+    )
+    description = models.TextField(
+        blank=True,
+        help_text="What you are testing—prompt version, resume variant, provider comparison, etc.",
+    )
+
+    user = models.ForeignKey(
+        "auth.User",
+        null=True,
+        blank=True,
+        on_delete=models.CASCADE,
+        related_name="resume_optimization_playgrounds",
+    )
+    resume = models.ForeignKey(
+        "resume_builder.Resume",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="resume_optimization_playgrounds",
+    )
+
+    job_description = models.TextField()
+    resume_text = models.TextField(
+        help_text=(
+            "SOURCE_RESUME JSON: professional_summary, experience[], technical_skills, "
+            "soft_skills, languages, projects[]."
+        ),
+    )
+    prompt_config = models.ForeignKey(
+        AIPromptConfiguration,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="resume_optimization_playgrounds",
+    )
+    ai_model = models.ForeignKey(
+        AIModel,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="resume_optimization_playgrounds",
+    )
+    model_used = models.CharField(max_length=128, blank=True)
+    temperature_used = models.FloatField(null=True, blank=True)
+
+    succeeded = models.BooleanField(default=False)
+    error_message = models.TextField(blank=True)
+    title = models.CharField(max_length=512, blank=True)
+    email_subject = models.CharField(max_length=512, blank=True)
+    optimized_summary = models.TextField(blank=True)
+    ats_score = models.PositiveSmallIntegerField(null=True, blank=True)
+    result_json = models.TextField(
+        blank=True,
+        help_text="Full merged optimization JSON from the last successful run.",
+    )
+    instruction_slug = models.SlugField(max_length=80, blank=True)
+    raw_response_text = models.TextField(blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Resume optimization playground"
+        verbose_name_plural = "Resume optimization playground"
+
+    def __str__(self) -> str:
+        label = (self.name or "").strip()
+        if self.pk is None:
+            return label or "Resume optimization playground (new)"
+        if label:
+            status = "ok" if self.succeeded else "fail" if self.error_message else "draft"
+            return f"{label} [{status}]"
+        no_run = not (self.result_json or "").strip() and not (self.error_message or "").strip()
+        if no_run:
+            return f"Resume optimization playground {self.pk} [draft]"
+        status = "ok" if self.succeeded else "fail"
+        return f"Resume optimization playground {self.pk} [{status}]"

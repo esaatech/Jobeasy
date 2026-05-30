@@ -863,6 +863,116 @@ class CoverLetterMultiProviderTests(TestCase):
         self.assertEqual(pc.service.slug, COVER_LETTER_SERVICE_SLUG)
 
 
+class ExperienceDescriptionHtmlTests(TestCase):
+    def test_plain_text_becomes_ul_li(self):
+        from resume_builder.resume_extra import normalize_experience_description
+
+        html = normalize_experience_description(
+            "Led Python API development\nReduced latency by 40%"
+        )
+        self.assertIn("<ul>", html)
+        self.assertIn("<li>Led Python API development</li>", html)
+        self.assertIn("<li>Reduced latency by 40%</li>", html)
+
+    def test_merge_experience_normalizes_ai_plain_text(self):
+        from ai_service.resume_optimization_validate import merge_experience
+
+        source = [
+            {
+                "company": "Acme",
+                "title": "Engineer",
+                "description": "<ul><li>Built APIs</li></ul>",
+            }
+        ]
+        ai = [
+            {
+                "company": "Acme",
+                "title": "Engineer",
+                "description": "Architected Python services\nShipped CI/CD pipelines",
+            }
+        ]
+        merged = merge_experience(source, ai)
+        self.assertIn("<li>Architected Python services</li>", merged[0]["description"])
+
+
+class ResumeOptimizationValidateTests(TestCase):
+    def test_merge_experience_keeps_metadata_rewrites_description(self):
+        from ai_service.gemini_schema import OptimizedExperienceRow, ResumeOptimizationPayload
+        from ai_service.resume_optimization_validate import validate_and_merge_payload
+
+        source = {
+            "professional_summary": "Original summary.",
+            "experience": [
+                {
+                    "company": "Acme Corp",
+                    "title": "Engineer",
+                    "start_date": "2020-01",
+                    "end_date": "Present",
+                    "description": "<ul><li>Built APIs</li></ul>",
+                }
+            ],
+            "technical_skills": ["Python", "Django"],
+            "soft_skills": ["Communication"],
+            "languages": ["English"],
+            "projects": ["Side project A"],
+        }
+        payload = ResumeOptimizationPayload(
+            resume_title="Backend Engineer for Acme",
+            optimized_summary="Engineer with Python and Django experience at Acme Corp.",
+            reordered_technical_skills=["Django", "Python", "Kubernetes"],
+            reordered_soft_skills=["Communication"],
+            reordered_languages=["English"],
+            experience=[
+                OptimizedExperienceRow(
+                    company="Acme Corp",
+                    title="Engineer",
+                    start_date="2020-01",
+                    end_date="Present",
+                    description="<ul><li>Built Python APIs for production</li></ul>",
+                )
+            ],
+            reordered_projects=["Side project A"],
+            ats_score=82,
+            keyword_matches=["Python"],
+            improvement_suggestions=["Add Kubernetes experience if applicable"],
+        )
+        merged = validate_and_merge_payload(payload, source)
+        self.assertEqual(merged["reordered_technical_skills"], ["Django", "Python"])
+        self.assertNotIn("Kubernetes", merged["reordered_technical_skills"])
+        self.assertEqual(len(merged["experience"]), 1)
+        self.assertEqual(merged["experience"][0]["company"], "Acme Corp")
+        self.assertIn("Python APIs", merged["experience"][0]["description"])
+
+    def test_hallucinated_role_rejected_in_summary_merge_still_safe(self):
+        from ai_service.gemini_schema import ResumeOptimizationPayload
+        from ai_service.resume_optimization_validate import validate_and_merge_payload
+
+        source = {
+            "professional_summary": "Developer at Acme.",
+            "experience": [{"company": "Acme", "title": "Developer", "description": "Shipped features."}],
+            "technical_skills": ["Python"],
+            "soft_skills": [],
+            "languages": [],
+            "projects": [],
+        }
+        payload = ResumeOptimizationPayload(
+            resume_title="Title",
+            optimized_summary="VP of Engineering at MegaCorp with 20 years.",
+            reordered_technical_skills=["Python", "COBOL"],
+            experience=[
+                {
+                    "company": "Wrong Co",
+                    "title": "CEO",
+                    "description": "Led everything.",
+                }
+            ],
+        )
+        merged = validate_and_merge_payload(payload, source)
+        self.assertEqual(merged["reordered_technical_skills"], ["Python"])
+        self.assertEqual(merged["experience"][0]["company"], "Acme")
+        self.assertEqual(merged["experience"][0]["description"], "Shipped features.")
+
+
 class WhyShouldIApplyMultiProviderTests(TestCase):
     @classmethod
     def setUpTestData(cls):

@@ -116,6 +116,55 @@ def bullets_to_projects_html(bullets: List[str]) -> str:
     return "<ul>" + "".join(parts) + "</ul>"
 
 
+_BULLET_PREFIX_RE = re.compile(r"^[\s•●▪◦‣⁃\-–—*]+")
+_NUMBERED_PREFIX_RE = re.compile(r"^\s*\d+[\.\)]\s+")
+
+
+def plain_text_to_bullet_lines(text: str) -> List[str]:
+    """Split AI or plain-text experience copy into bullet lines."""
+    s = (text or "").strip()
+    if not s:
+        return []
+    if re.search(r"<li[\s>]", s, re.I):
+        return extract_project_bullets_from_html(s)
+    s = re.sub(r"<br\s*/?>", "\n", s, flags=re.I)
+    s = _strip_html_tags(unescape(s))
+    lines: List[str] = []
+    for raw in s.splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        line = _BULLET_PREFIX_RE.sub("", line)
+        line = _NUMBERED_PREFIX_RE.sub("", line).strip()
+        if line:
+            lines.append(line)
+    if lines:
+        return lines
+    # Single paragraph: treat as one bullet (templates need at least one <li>)
+    return [s] if s else []
+
+
+def normalize_experience_description(
+    description: str,
+    *,
+    fallback_html: str = "",
+) -> str:
+    """
+    Ensure experience ``description`` is ``<ul><li>…</li></ul>`` for resume templates.
+
+    Preserves list rendering when the model returns plain text or markdown-style bullets.
+    """
+    bullets = plain_text_to_bullet_lines(description)
+    if bullets:
+        return bullets_to_projects_html(bullets)
+    fallback = (fallback_html or "").strip()
+    if fallback and re.search(r"<li[\s>]", fallback, re.I):
+        return fallback
+    if fallback:
+        return normalize_experience_description(fallback)
+    return ""
+
+
 def merge_skills_payload(
     previous: Optional[Dict[str, Any]],
     *,

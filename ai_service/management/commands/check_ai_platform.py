@@ -10,6 +10,7 @@ from ai_service.models import (
     JobFitGateSettings,
     ProfessionalSummaryPlayground,
     ResumeJobEvaluation,
+    ResumeOptimizationPlayground,
     WhyShouldIApplyPlayground,
 )
 from ai_service.platform_version import AI_PLATFORM_BUILD
@@ -40,6 +41,7 @@ class Command(BaseCommand):
             "0008_alter_aimodel_provider_deepseek",
             "0009_professional_summary_playground",
             "0010_cover_letter_playground",
+            "0011_resume_optimization_playground",
         }
         with connection.cursor() as cursor:
             cursor.execute(
@@ -64,6 +66,7 @@ class Command(BaseCommand):
             JobFitGateSettings,
             ResumeJobEvaluation,
             CoverLetterPlayground,
+            ResumeOptimizationPlayground,
             WhyShouldIApplyPlayground,
             ProfessionalSummaryPlayground,
         }

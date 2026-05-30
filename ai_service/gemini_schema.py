@@ -46,9 +46,11 @@ __all__ = [
     "DimensionSummaries",
     "HardRequirementRow",
     "MatchStatus",
+    "OptimizedExperienceRow",
     "ProfessionalSummaryPayload",
     "RecommendationLabel",
     "ResumeJobEvaluationPayload",
+    "ResumeOptimizationPayload",
     "RiskLevelLabel",
     "TransferableSkillRow",
 ]
@@ -89,6 +91,42 @@ class ProfessionalSummaryPayload(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
     summary: str = Field(description="Professional summary text for the resume header")
+
+
+class OptimizedExperienceRow(BaseModel):
+    """One work-history row; metadata must match the source resume entry at the same index."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    company: str = ""
+    title: str = ""
+    start_date: str = ""
+    end_date: str = ""
+    description: str = Field(
+        default="",
+        description="Rewritten role bullets (HTML allowed if source used HTML). Same employer and title as source.",
+    )
+
+
+class ResumeOptimizationPayload(BaseModel):
+    """Structured optimization result for dashboard resume tailoring."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    resume_title: str = Field(description="Short label for the optimized resume copy")
+    email_subject: str | None = Field(
+        default=None,
+        description="Optional application email subject when the service requests it",
+    )
+    optimized_summary: str = ""
+    reordered_technical_skills: list[str] = Field(default_factory=list)
+    reordered_soft_skills: list[str] = Field(default_factory=list)
+    reordered_languages: list[str] = Field(default_factory=list)
+    experience: list[OptimizedExperienceRow] = Field(default_factory=list)
+    reordered_projects: list[str] = Field(default_factory=list)
+    ats_score: int = Field(ge=0, le=100, default=0)
+    keyword_matches: list[str] = Field(default_factory=list)
+    improvement_suggestions: list[str] = Field(default_factory=list)
 
 
 class ResumeJobEvaluationPayload(BaseModel):

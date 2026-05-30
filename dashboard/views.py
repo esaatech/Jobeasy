@@ -259,7 +259,8 @@ def _optimize_resume_for_job_application(user, job_description, resume, job_name
 
     resume_data = {
         "professional_summary": resume.personal_info.get("summary", ""),
-        "experience": resume.experience,
+        "experience": resume.experience or [],
+        "education": resume.education or [],
         "technical_skills": technical_skills,
         "soft_skills": soft_skills,
         "languages": languages,
@@ -317,18 +318,20 @@ def _optimize_resume_for_job_application(user, job_description, resume, job_name
         if not isinstance(opt_text, str):
             opt_text = str(opt_text)
 
+        optimized_experience = result.get("experience") or resume.experience or []
+
         # Create the optimized Resume object
         optimized_resume = Resume.objects.create(
             user=user,
             name=resume_title,  # Use AI-generated title
             original_content=resume.original_content,
             personal_info=new_personal_info,
-            experience=resume.experience,  # Source timeline unchanged; relevant_experience holds AI-ranked copy
+            experience=optimized_experience,
             education=resume.education,
             skills=combined_skills,
             additional=new_additional,
             is_optimized=True,
-            relevant_experience=result.get("relevant_experience", []),
+            relevant_experience=result.get("relevant_experience") or optimized_experience,
             ats_score=result.get("ats_score", 0),
             keyword_matches=result.get("keyword_matches", []),
             improvement_suggestions=result.get("improvement_suggestions", []),
