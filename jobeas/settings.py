@@ -238,6 +238,38 @@ GCP_PROJECT_ID = os.environ.get("GCP_PROJECT_ID", "").strip()
 GCS_PROFILE_SIGNED_URL_TTL_SECONDS = int(os.environ.get("GCS_PROFILE_SIGNED_URL_TTL_SECONDS", "3600"))
 PROFILE_PHOTO_MAX_BYTES = int(os.environ.get("PROFILE_PHOTO_MAX_BYTES", str(2621440)))
 
+# Blog featured images + CKEditor inline uploads (local MEDIA when disabled).
+_ENABLE_GCS_BLOG_MEDIA_RAW = os.environ.get("ENABLE_GCS_BLOG_MEDIA", "").strip().lower()
+ENABLE_GCS_BLOG_MEDIA = _ENABLE_GCS_BLOG_MEDIA_RAW in {"1", "true", "yes", "on"} or (
+    not _ENABLE_GCS_BLOG_MEDIA_RAW
+    and ENABLE_GCS_PROFILE_UPLOAD
+    and bool(GS_BUCKET_NAME)
+)
+# Optional public base for <img src> (e.g. https://cdn.example.com or custom domain).
+GCS_BLOG_MEDIA_BASE_URL = os.environ.get("GCS_BLOG_MEDIA_BASE_URL", "").strip()
+GCS_BLOG_MEDIA_MAKE_PUBLIC = os.environ.get(
+    "GCS_BLOG_MEDIA_MAKE_PUBLIC", "true"
+).strip().lower() in {"1", "true", "yes", "on"}
+
+if ENABLE_GCS_BLOG_MEDIA and GS_BUCKET_NAME:
+    _DEFAULT_FILE_STORAGE = {
+        "BACKEND": "blog.storage.BlogGoogleCloudStorage",
+        "OPTIONS": {"bucket_name": GS_BUCKET_NAME},
+    }
+    CKEDITOR_5_FILE_STORAGE = "blog.storage.BlogGoogleCloudStorage"
+else:
+    _DEFAULT_FILE_STORAGE = {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+        "OPTIONS": {"location": MEDIA_ROOT, "base_url": MEDIA_URL},
+    }
+
+STORAGES = {
+    "default": _DEFAULT_FILE_STORAGE,
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 

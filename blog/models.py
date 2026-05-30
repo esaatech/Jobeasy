@@ -5,6 +5,7 @@ from django.utils.text import slugify
 
 from django_ckeditor_5.fields import CKEditor5Field
 
+from .storage import get_blog_file_storage
 from .utils import normalize_blog_body
 
 
@@ -53,6 +54,7 @@ class BlogPost(models.Model):
     )
     featured_image = models.ImageField(
         upload_to="blog/featured/",
+        storage=get_blog_file_storage,
         blank=True,
         null=True,
     )
