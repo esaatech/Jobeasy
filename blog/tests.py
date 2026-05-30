@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.urls import reverse
 from rest_framework.test import APIClient
 
 from .models import BlogCategory, BlogPost
@@ -80,6 +81,10 @@ class BlogAPITestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Published Post")
         self.assertNotContains(response, "Draft Post")
+
+    def test_post_detail_url_reverses_to_html_page(self):
+        url = reverse("blog:post-detail", kwargs={"slug": self.published.slug})
+        self.assertEqual(url, f"/blog/{self.published.slug}/")
 
     def test_blog_detail_page(self):
         response = self.client.get("/blog/published-post/")

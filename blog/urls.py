@@ -41,6 +41,6 @@ urlpatterns = [
     path(
         "api/blog/posts/<slug:slug>/",
         views.BlogPostDetailAPIView.as_view(),
-        name="post-detail",
+        name="post-api-detail",
     ),
 ]

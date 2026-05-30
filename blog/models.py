@@ -111,6 +111,11 @@ class BlogPost(models.Model):
     def is_published(self):
         return self.status == self.Status.PUBLISHED
 
+    def get_absolute_url(self):
+        from django.urls import reverse
+
+        return reverse("blog:post-detail", kwargs={"slug": self.slug})
+
     def save(self, *args, **kwargs):
         if not self.slug:
             base = slugify(self.title)[:250] or "post"
