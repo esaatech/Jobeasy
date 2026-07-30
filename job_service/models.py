@@ -39,7 +39,7 @@ class Job(models.Model):
     description = models.TextField()
     requirements = models.TextField(blank=True)
     benefits = models.TextField(blank=True)
-    application_url = models.URLField()
+    application_url = models.URLField(max_length=500)
     source = models.ForeignKey(JobSource, on_delete=models.CASCADE, related_name='jobs')
     external_id = models.CharField(max_length=100, blank=True)  # ID from external source
     is_active = models.BooleanField(default=True)
