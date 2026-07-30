@@ -126,6 +126,8 @@ if [ "${SKIP_BOOTSTRAP_DATA:-0}" != "1" ]; then
   python manage.py setup_why_should_i_apply || die "setup_why_should_i_apply failed"
   log "bootstrap: setup_professional_summary"
   python manage.py setup_professional_summary || die "setup_professional_summary failed"
+  log "bootstrap: setup_title_family"
+  python manage.py setup_title_family || die "setup_title_family failed"
   log "bootstrap: setup_cover_letter"
   python manage.py setup_cover_letter || die "setup_cover_letter failed"
   log "bootstrap: setup_resume_optimization"

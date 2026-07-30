@@ -24,6 +24,7 @@ urlpatterns = [
     path('', include('home.urls')),
     path('resume/', include('resume_builder.urls')),
     path('job-service/', include('job_service.urls')),
+    path('automation/', include('automation.urls')),
     path('auth/', include('authentication.urls')),
     path('coverletter/', include('coverletter.urls')),
     path('dashboard/', include('dashboard.urls')),

@@ -1,0 +1,148 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
+  <div class="mb-8">
+    <p class="text-sm font-medium text-blue-600 mb-1">Ultimate setup</p>
+    <h1 class="text-3xl font-bold text-gray-900">Build your title family</h1>
+    <p class="mt-2 text-gray-600">
+      Stage 2 matching uses these titles only. Skills and job description fit are checked later by AI.
+      Generate suggestions from your resume, then edit and confirm.
+    </p>
+  </div>
+
+  {% if error %}
+  <div class="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700">{{ error }}</div>
+  {% endif %}
+
+  <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-6 mb-6">
+    <label class="block text-sm font-medium text-gray-700 mb-2">Resume for AI suggestions</label>
+    <div class="flex flex-col sm:flex-row gap-3">
+      <select id="resume-select" class="flex-1 rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500">
+        {% for resume in resumes %}
+        <option value="{{ resume.id }}" {% if profile.default_resume_id == resume.id %}selected{% endif %}>
+          {{ resume.name }}
+        </option>
+        {% empty %}
+        <option value="">No resumes yet</option>
+        {% endfor %}
+      </select>
+      <button type="button" id="suggest-titles-btn"
+              class="inline-flex items-center justify-center px-4 py-2 rounded-md text-white bg-[#1980e6] hover:bg-[#1980e6]/90 disabled:opacity-50"
+              {% if not resumes %}disabled{% endif %}>
+        Suggest from resume
+      </button>
+    </div>
+    <p id="suggest-status" class="mt-2 text-sm text-gray-500"></p>
+    {% if not resumes %}
+    <p class="mt-2 text-sm text-amber-700">
+      <a href="{% url 'resume_builder:create_resume' %}" class="underline">Create a resume</a>
+      first to unlock AI suggestions, or enter titles manually below.
+    </p>
+    {% endif %}
+  </div>
+
+  <form method="post" class="bg-white border border-gray-200 rounded-lg shadow-sm p-6 space-y-6">
+    {% csrf_token %}
+
+    <div>
+      <label class="block text-sm font-medium text-gray-900 mb-1">Primary titles <span class="text-red-500">*</span></label>
+      <p class="text-sm text-gray-500 mb-2">Core roles you want (comma or newline separated).</p>
+      <textarea name="primary_titles" id="primary_titles" rows="3"
+                class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Backend Engineer, Software Engineer">{{ profile.primary_titles|join:", " }}</textarea>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-900 mb-1">Related titles</label>
+      <p class="text-sm text-gray-500 mb-2">Synonyms and adjacent roles for broader Stage 2 matching.</p>
+      <textarea name="related_titles" id="related_titles" rows="3"
+                class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Platform Engineer, Full Stack Engineer, Python Developer">{{ profile.related_titles|join:", " }}</textarea>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-900 mb-1">Exclude titles</label>
+      <p class="text-sm text-gray-500 mb-2">Roles to never match (different career tracks).</p>
+      <textarea name="exclude_titles" id="exclude_titles" rows="3"
+                class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500"
+                placeholder="Data Scientist, ML Engineer, Engineering Manager">{{ profile.exclude_titles|join:", " }}</textarea>
+    </div>
+
+    {% if resumes %}
+    <div>
+      <label class="block text-sm font-medium text-gray-900 mb-1">Default resume for applications</label>
+      <select name="default_resume" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500">
+        {% for resume in resumes %}
+        <option value="{{ resume.id }}" {% if profile.default_resume_id == resume.id %}selected{% endif %}>
+          {{ resume.name }}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
+
+    <label class="flex items-start gap-3">
+      <input type="checkbox" name="auto_apply_enabled" class="mt-1 rounded border-gray-300 text-blue-600"
+             {% if profile.auto_apply_enabled %}checked{% endif %}>
+      <span class="text-sm text-gray-700">
+        Enable auto-apply matching for my title family (AI prepares packets; operators submit forms).
+      </span>
+    </label>
+
+    <div class="flex flex-col sm:flex-row gap-3 pt-2">
+      <button type="submit"
+              class="inline-flex justify-center px-6 py-3 rounded-md text-white bg-[#1980e6] hover:bg-[#1980e6]/90 font-medium">
+        Save title family
+      </button>
+      <a href="{% url 'dashboard:dashboard' %}"
+         class="inline-flex justify-center px-6 py-3 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 font-medium">
+        Skip for now
+      </a>
+    </div>
+  </form>
+</div>
+
+<script>
+(function () {
+  const btn = document.getElementById('suggest-titles-btn');
+  const status = document.getElementById('suggest-status');
+  const resumeSelect = document.getElementById('resume-select');
+  if (!btn) return;
+
+  function csrfToken() {
+    const match = document.cookie.match(/csrftoken=([^;]+)/);
+    return match ? match[1] : '';
+  }
+
+  btn.addEventListener('click', async function () {
+    btn.disabled = true;
+    status.textContent = 'Generating title family from resume…';
+    status.className = 'mt-2 text-sm text-gray-500';
+    try {
+      const res = await fetch('{% url "automation:suggest_title_family" %}', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': csrfToken(),
+        },
+        body: JSON.stringify({ resume_id: resumeSelect ? resumeSelect.value : null }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Suggestion failed');
+      document.getElementById('primary_titles').value = (data.primary_titles || []).join(', ');
+      document.getElementById('related_titles').value = (data.related_titles || []).join(', ');
+      document.getElementById('exclude_titles').value = (data.exclude_titles || []).join(', ');
+      status.textContent = 'Suggestions loaded. Review and save when ready.';
+      status.className = 'mt-2 text-sm text-green-700';
+    } catch (err) {
+      status.textContent = err.message || 'Could not generate titles.';
+      status.className = 'mt-2 text-sm text-red-600';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+})();
+</script>
+{% endblock %}

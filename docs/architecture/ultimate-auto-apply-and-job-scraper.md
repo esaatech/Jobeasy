@@ -194,17 +194,29 @@ Before automation runs, each Ultimate user must have:
 
 ### New fields to add (Phase 2)
 
-Add to `UserJobPreferences` or a new `UltimateAutomationProfile` model:
+**Canonical model:** `automation.UltimateAutomationProfile` (created on Ultimate setup).
 
 ```python
-target_job_titles = models.JSONField(default=list)
-# e.g. ["Software Engineer", "Python Developer", "Backend Engineer"]
+primary_titles = models.JSONField(default=list)
+# Core roles, e.g. ["Backend Engineer", "Software Engineer"]
+
+related_titles = models.JSONField(default=list)
+# Adjacent synonyms for Stage 2, e.g. ["Platform Engineer", "SWE"]
+
+exclude_titles = models.JSONField(default=list)
+# Never match, e.g. ["Data Scientist", "Engineering Manager"]
 
 auto_apply_enabled = models.BooleanField(default=False)
 default_resume = models.ForeignKey('resume_builder.Resume', ...)
+title_family_confirmed = models.BooleanField(default=False)
 max_applications_per_day = models.IntegerField(default=10)
-min_fit_tier = models.CharField(choices=['green', 'yellow'], default='green')
 ```
+
+**Stage 2 matching uses `title_family` = primary + related only.** Skills are not used to admit jobs (Stage 3 AI fit owns skills / JD). `exclude_titles` is a hard reject.
+
+**Ultimate onboarding:** after checkout success → `/automation/ultimate/setup/`  
+- Suggest titles from resume via AI (`suggest_title_family`)  
+- User edits and confirms before `auto_apply_enabled`
 
 ### ApplicationProfile (Phase 2 — for operator form fill)
 

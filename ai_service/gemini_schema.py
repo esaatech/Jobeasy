@@ -93,6 +93,25 @@ class ProfessionalSummaryPayload(BaseModel):
     summary: str = Field(description="Professional summary text for the resume header")
 
 
+class TitleFamilyPayload(BaseModel):
+    """Validated shape for Ultimate auto-apply title family suggestions."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    primary_titles: list[str] = Field(
+        default_factory=list,
+        description="2–5 core target roles matching the candidate's role identity",
+    )
+    related_titles: list[str] = Field(
+        default_factory=list,
+        description="Adjacent synonyms / close variants for Stage 2 soft match",
+    )
+    exclude_titles: list[str] = Field(
+        default_factory=list,
+        description="Roles that share tools but are a different career track",
+    )
+
+
 class OptimizedExperienceRow(BaseModel):
     """One work-history row; metadata must match the source resume entry at the same index."""
 

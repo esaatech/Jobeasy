@@ -20,6 +20,7 @@ from .forms import (
     ProfessionalSummaryPlaygroundAdminForm,
     ResumeJobEvaluationAdminForm,
     ResumeOptimizationPlaygroundAdminForm,
+    TitleFamilyPlaygroundAdminForm,
     WhyShouldIApplyPlaygroundAdminForm,
 )
 from .models import (
@@ -31,6 +32,7 @@ from .models import (
     ProfessionalSummaryPlayground,
     ResumeJobEvaluation,
     ResumeOptimizationPlayground,
+    TitleFamilyPlayground,
     WhyShouldIApplyPlayground,
 )
 from .cover_letter import (
@@ -58,6 +60,14 @@ from .professional_summary import (
     persist_professional_summary_result,
     resolve_prompt_config as resolve_summary_prompt_config,
     run_professional_summary_generation,
+)
+from .title_family import (
+    TITLE_FAMILY_SERVICE_SLUG,
+    get_default_prompt_config as get_title_family_default_prompt_config,
+    parse_pending_generation_result as parse_title_family_pending_generation_result,
+    persist_title_family_result,
+    resolve_prompt_config as resolve_title_family_prompt_config,
+    run_title_family_generation,
 )
 from .resume_job_evaluation import RESUME_JOB_EVALUATION_SERVICE_SLUG
 from .platform_version import AI_PLATFORM_BUILD
@@ -2389,3 +2399,427 @@ class ProfessionalSummaryPlaygroundAdmin(AdminResumePdfExtractMixin, admin.Model
         else:
             self.message_user(request, "Saved inputs.", level=messages.INFO)
 
+
+
+@admin.register(TitleFamilyPlayground)
+class TitleFamilyPlaygroundAdmin(AdminResumePdfExtractMixin, admin.ModelAdmin):
+    """Playground: save = draft inputs; Get title family runs the platform runner."""
+
+    form = TitleFamilyPlaygroundAdminForm
+    change_form_template = "admin/ai_service/titlefamilyplayground/change_form.html"
+    add_form_template = "admin/ai_service/titlefamilyplayground/add_form.html"
+    list_display = [
+        "display_name",
+        "short_description",
+        "model_id_snapshot",
+        "instruction_slug",
+        "succeeded",
+        "created_at",
+    ]
+    list_filter = ["succeeded", "instruction_slug", "model_id_snapshot", "created_at"]
+    search_fields = ["name", "description", "resume_text"]
+    autocomplete_fields = ["prompt_config"]
+
+    readonly_fields = [
+        "ro_default_prompt",
+        "_results_header",
+        "ro_succeeded",
+        "ro_model",
+        "ro_temperature",
+        "ro_instruction_slug",
+        "ro_error_message",
+        "ro_primary_titles",
+        "ro_related_titles",
+        "ro_exclude_titles",
+        "created_at",
+        "updated_at",
+    ]
+
+    fieldsets = (
+        (
+            "Label",
+            {
+                "description": mark_safe(
+                    "<p>Use <strong>Name</strong> and <strong>Description</strong> to tell test runs apart. "
+                    "Generates <code>primary_titles</code> / <code>related_titles</code> / "
+                    "<code>exclude_titles</code> for Ultimate Stage 2 matching.</p>"
+                ),
+                "fields": ("name", "description"),
+            },
+        ),
+        (
+            "Inputs",
+            {
+                "description": mark_safe(
+                    "<p>Set API keys for the provider on the prompt's <strong>AI model</strong>. "
+                    "Choose a <strong>Prompt config</strong> to test (model and temperature come "
+                    "from that row). Leave empty to use the service default.</p>"
+                    "<p>Use <strong>Get title family</strong> — inputs do not need to be saved first.</p>"
+                ),
+                "fields": ("ro_default_prompt", "prompt_config", "resume_pdf", "resume_text"),
+            },
+        ),
+        (
+            "Last run results",
+            {
+                "fields": (
+                    "_results_header",
+                    "ro_succeeded",
+                    "ro_model",
+                    "ro_temperature",
+                    "ro_instruction_slug",
+                    "ro_error_message",
+                    "ro_primary_titles",
+                    "ro_related_titles",
+                    "ro_exclude_titles",
+                    "created_at",
+                    "updated_at",
+                ),
+            },
+        ),
+    )
+
+    @staticmethod
+    def _ro_span(element_id: str, inner) -> str:
+        return format_html('<span id="{}">{}</span>', element_id, inner)
+
+    @staticmethod
+    def _empty_dash() -> str:
+        return format_html('<span class="title-family-playground-empty">—</span>')
+
+    @staticmethod
+    def _truncate(text: str, limit: int = 72) -> str:
+        text = (text or "").strip().replace("\n", " ")
+        if not text:
+            return ""
+        if len(text) <= limit:
+            return text
+        return text[: limit - 1] + "…"
+
+    @staticmethod
+    def _titles_pre(titles) -> str:
+        lines = [str(t).strip() for t in (titles or []) if str(t).strip()]
+        if not lines:
+            return format_html("<em>None</em>")
+        return format_html(
+            '<pre style="white-space:pre-wrap;font-size:13px;max-height:220px;'
+            'overflow:auto;background:#f8f9fa;color:#1f2937;padding:12px;'
+            'border-radius:6px;margin:0;border:1px solid #e5e7eb;">{}</pre>',
+            "\n".join(lines)[:20000],
+        )
+
+    @admin.display(description="Default prompt (production)")
+    def ro_default_prompt(self, obj: TitleFamilyPlayground) -> str:
+        pc = get_title_family_default_prompt_config()
+        if pc is None:
+            return mark_safe(
+                '<span style="color:#ba2121;">No default prompt. Run '
+                "<code>setup_title_family</code>.</span>"
+            )
+        model_label = "—"
+        if pc.ai_model_id:
+            am = pc.ai_model
+            if am is None:
+                am = AIModel.objects.filter(pk=pc.ai_model_id).first()
+            if am:
+                model_label = f"{am.display_name} ({am.model_id})"
+        temp = pc.temperature if pc.temperature is not None else "—"
+        return format_html(
+            "<strong>{}</strong> · slug <code>{}</code> · model {} · temp {}",
+            pc.name,
+            pc.slug,
+            model_label,
+            temp,
+        )
+
+    @admin.display(description="Name", ordering="name")
+    def display_name(self, obj: TitleFamilyPlayground) -> str:
+        return self._truncate(obj.name) or f"#{obj.pk}"
+
+    @admin.display(description="Description")
+    def short_description(self, obj: TitleFamilyPlayground) -> str:
+        return self._truncate(obj.description) or "—"
+
+    @admin.display(description="Succeeded", boolean=False)
+    def ro_succeeded(self, obj: TitleFamilyPlayground) -> str:
+        if obj.pk is None or (
+            not obj.succeeded
+            and not (obj.error_message or "").strip()
+            and not obj.primary_titles
+        ):
+            inner = self._empty_dash()
+        elif obj.succeeded:
+            inner = format_html('<img src="{}" alt="True">', static("admin/img/icon-yes.svg"))
+        else:
+            inner = format_html('<img src="{}" alt="False">', static("admin/img/icon-no.svg"))
+        return self._ro_span("tf-ro-succeeded", inner)
+
+    @admin.display(description="Model")
+    def ro_model(self, obj: TitleFamilyPlayground) -> str:
+        mid = (obj.model_id_snapshot or "").strip()
+        return self._ro_span("tf-ro-model", mid or self._empty_dash())
+
+    @admin.display(description="Temperature")
+    def ro_temperature(self, obj: TitleFamilyPlayground) -> str:
+        if obj.temperature_used is None:
+            inner = self._empty_dash()
+        else:
+            inner = str(obj.temperature_used)
+        return self._ro_span("tf-ro-temperature", inner)
+
+    @admin.display(description="Instruction slug")
+    def ro_instruction_slug(self, obj: TitleFamilyPlayground) -> str:
+        slug = (obj.instruction_slug or "").strip()
+        return self._ro_span("tf-ro-instruction-slug", slug or self._empty_dash())
+
+    @admin.display(description="Error")
+    def ro_error_message(self, obj: TitleFamilyPlayground) -> str:
+        err = (obj.error_message or "").strip()
+        if err:
+            inner = format_html(
+                '<span style="color:#ba2121;white-space:pre-wrap;">{}</span>',
+                err[:4000],
+            )
+        else:
+            inner = self._empty_dash()
+        return self._ro_span("tf-ro-error-message", inner)
+
+    @admin.display(description="")
+    def _results_header(self, obj: TitleFamilyPlayground) -> str:
+        if obj.pk and obj.primary_titles and obj.succeeded:
+            return "Titles below reflect the last saved run."
+        return mark_safe(
+            'Run <strong>Get title family</strong> above to fill these fields. '
+            "Optionally save results onto this row when done."
+        )
+
+    @admin.display(description="Primary titles")
+    def ro_primary_titles(self, obj: TitleFamilyPlayground) -> str:
+        return self._ro_span("tf-ro-primary", self._titles_pre(obj.primary_titles))
+
+    @admin.display(description="Related titles")
+    def ro_related_titles(self, obj: TitleFamilyPlayground) -> str:
+        return self._ro_span("tf-ro-related", self._titles_pre(obj.related_titles))
+
+    @admin.display(description="Exclude titles")
+    def ro_exclude_titles(self, obj: TitleFamilyPlayground) -> str:
+        return self._ro_span("tf-ro-exclude", self._titles_pre(obj.exclude_titles))
+
+    def get_urls(self):
+        urls = super().get_urls()
+        opts = self.model._meta
+        basename = "%s_%s" % (opts.app_label, opts.model_name)
+        extra = [
+            path(
+                "generate-preview/",
+                self.admin_site.admin_view(self.generate_preview),
+                name="%s_generate_preview" % basename,
+            ),
+            path(
+                "<path:object_id>/persist-generation/",
+                self.admin_site.admin_view(self.persist_generation_submit),
+                name="%s_persist_generation" % basename,
+            ),
+            path(
+                "<path:object_id>/run-generation/",
+                self.admin_site.admin_view(self.run_generation_submit),
+                name="%s_run_generation" % basename,
+            ),
+        ]
+        return extra + urls
+
+    def generate_preview(self, request):
+        if request.method != "POST":
+            return HttpResponseNotAllowed(["POST", "OPTIONS"])
+        opts = self.model._meta
+        if not (
+            request.user.has_perm(f"{opts.app_label}.add_{opts.model_name}")
+            or request.user.has_perm(f"{opts.app_label}.change_{opts.model_name}")
+        ):
+            return HttpResponse(
+                json.dumps({"success": False, "error": "Permission denied"}),
+                status=403,
+                content_type="application/json",
+            )
+
+        rt, rt_err = resolve_resume_text_from_admin_request(request)
+        if rt_err:
+            payload = {
+                "success": False,
+                "error": rt_err,
+                "primary_titles": [],
+                "related_titles": [],
+                "exclude_titles": [],
+                "raw_text": None,
+            }
+            return HttpResponse(
+                json.dumps(payload, cls=DjangoJSONEncoder),
+                status=400,
+                content_type="application/json",
+            )
+        if not rt:
+            payload = {
+                "success": False,
+                "error": "Resume text (or resume PDF) is required.",
+                "primary_titles": [],
+                "related_titles": [],
+                "exclude_titles": [],
+                "raw_text": None,
+            }
+            return HttpResponse(
+                json.dumps(payload, cls=DjangoJSONEncoder),
+                status=400,
+                content_type="application/json",
+            )
+
+        pc_id = request.POST.get("prompt_config") or None
+        pc = resolve_title_family_prompt_config(int(pc_id)) if pc_id and str(pc_id).isdigit() else None
+        if pc is None:
+            pc = get_title_family_default_prompt_config()
+
+        try:
+            result = run_title_family_generation(resume_text=rt, prompt_config=pc)
+            return HttpResponse(
+                json.dumps(result, cls=DjangoJSONEncoder),
+                content_type="application/json",
+            )
+        except Exception as exc:  # noqa: BLE001
+            payload = {
+                "success": False,
+                "error": str(exc),
+                "primary_titles": [],
+                "related_titles": [],
+                "exclude_titles": [],
+                "raw_text": None,
+            }
+            return HttpResponse(
+                json.dumps(payload, cls=DjangoJSONEncoder),
+                status=500,
+                content_type="application/json",
+            )
+
+    def persist_generation_submit(self, request, object_id):
+        if request.method != "POST":
+            return HttpResponseNotAllowed(["POST", "OPTIONS"])
+        obj = get_object_or_404(TitleFamilyPlayground, pk=object_id)
+        if not self.has_change_permission(request, obj):
+            return HttpResponseForbidden("Change permission denied.")
+        try:
+            body = json.loads(request.body.decode() or "{}")
+        except json.JSONDecodeError:
+            return HttpResponse(
+                json.dumps({"ok": False, "error": "Invalid JSON body"}),
+                status=400,
+                content_type="application/json",
+            )
+        result = body.get("result")
+        if not isinstance(result, dict) or result.get("success") is not True:
+            return HttpResponse(
+                json.dumps(
+                    {"ok": False, "error": "Provide result.success=true from Get title family"}
+                ),
+                status=400,
+                content_type="application/json",
+            )
+
+        model_mid = str(
+            result.get("model_id") or result.get("openai_model") or "gemini-2.5-flash"
+        ).strip()
+        rpc = resolve_title_family_prompt_config(result.get("prompt_config_id"))
+        pc = rpc or obj.prompt_config or get_title_family_default_prompt_config()
+
+        try:
+            persist_title_family_result(
+                pk=obj.pk,
+                result=result,
+                prompt_config=pc,
+                fallback_model_id=model_mid,
+            )
+        except Exception as exc:  # noqa: BLE001
+            return HttpResponse(
+                json.dumps({"ok": False, "error": str(exc)}),
+                status=400,
+                content_type="application/json",
+            )
+
+        return HttpResponse(json.dumps({"ok": True}), content_type="application/json")
+
+    def run_generation_submit(self, request, object_id):
+        if request.method != "POST":
+            return HttpResponseNotAllowed(["POST", "OPTIONS"])
+        obj = get_object_or_404(TitleFamilyPlayground, pk=object_id)
+        if not self.has_change_permission(request, obj):
+            return HttpResponseForbidden("Change permission denied.")
+        pc = obj.prompt_config or get_title_family_default_prompt_config()
+        if pc is None:
+            messages.error(
+                request,
+                f"No prompt selected and no default for slug {TITLE_FAMILY_SERVICE_SLUG}. "
+                "Run python manage.py setup_title_family",
+            )
+        else:
+            result = run_title_family_generation(
+                resume_text=obj.resume_text,
+                prompt_config=pc,
+            )
+            model_mid = str(
+                result.get("model_id") or result.get("openai_model") or "gemini-2.5-flash"
+            ).strip()
+            persist_title_family_result(
+                pk=obj.pk,
+                result=result,
+                prompt_config=pc,
+                fallback_model_id=model_mid,
+            )
+            if result["success"]:
+                messages.success(request, "Title family generation finished.")
+            else:
+                messages.error(
+                    request,
+                    f'Title family generation failed: {result.get("error")}',
+                )
+        ch = "admin:%s_%s_change" % (self.opts.app_label, self.opts.model_name)
+        return redirect(reverse(ch, args=(object_id,)))
+
+    def _persist_pending_from_form(self, request, obj, form) -> bool:
+        raw = form.cleaned_data.get("pending_generation_result")
+        if raw is None:
+            raw = request.POST.get("pending_generation_result")
+        result = parse_title_family_pending_generation_result(raw)
+        if result is None:
+            return False
+
+        model_mid = str(
+            result.get("model_id") or result.get("openai_model") or "gemini-2.5-flash"
+        ).strip()
+        rpc = resolve_title_family_prompt_config(result.get("prompt_config_id"))
+        pc = (
+            rpc
+            or form.cleaned_data.get("prompt_config")
+            or obj.prompt_config
+            or get_title_family_default_prompt_config()
+        )
+        persist_title_family_result(
+            pk=obj.pk,
+            result=result,
+            prompt_config=pc,
+            fallback_model_id=model_mid,
+        )
+        return True
+
+    def save_model(self, request, obj, form, change):
+        pc = form.cleaned_data.get("prompt_config")
+        if pc is None:
+            pc = get_title_family_default_prompt_config()
+        obj.prompt_config = pc
+        super().save_model(request, obj, form, change)
+
+        persisted = self._persist_pending_from_form(request, obj, form)
+        if persisted:
+            self.message_user(
+                request,
+                "Saved inputs and last generation results.",
+                level=messages.SUCCESS,
+            )
+        else:
+            self.message_user(request, "Saved inputs.", level=messages.INFO)

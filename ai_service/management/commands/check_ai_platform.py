@@ -11,6 +11,7 @@ from ai_service.models import (
     ProfessionalSummaryPlayground,
     ResumeJobEvaluation,
     ResumeOptimizationPlayground,
+    TitleFamilyPlayground,
     WhyShouldIApplyPlayground,
 )
 from ai_service.platform_version import AI_PLATFORM_BUILD
@@ -42,6 +43,7 @@ class Command(BaseCommand):
             "0009_professional_summary_playground",
             "0010_cover_letter_playground",
             "0011_resume_optimization_playground",
+            "0012_title_family_playground",
         }
         with connection.cursor() as cursor:
             cursor.execute(
@@ -69,6 +71,7 @@ class Command(BaseCommand):
             ResumeOptimizationPlayground,
             WhyShouldIApplyPlayground,
             ProfessionalSummaryPlayground,
+            TitleFamilyPlayground,
         }
         missing = [m.__name__ for m in expected if m not in admin.site._registry]
         if missing:

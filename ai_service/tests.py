@@ -34,6 +34,7 @@ from ai_service.models import (
     JobFitGateSettings,
     ResumeJobEvaluation,
     ProfessionalSummaryPlayground,
+    TitleFamilyPlayground,
     WhyShouldIApplyPlayground,
 )
 from ai_service.professional_summary import (
@@ -46,8 +47,16 @@ from ai_service.professional_summary import (
     resolve_prompt_config as resolve_summary_prompt_config,
     run_professional_summary_generation,
 )
-from ai_service.gemini_schema import ProfessionalSummaryPayload
+from ai_service.gemini_schema import ProfessionalSummaryPayload, TitleFamilyPayload
 from ai_service.professional_summary_prompts import PROFESSIONAL_SUMMARY_INSTRUCTION_V1_0
+from ai_service.title_family import (
+    TITLE_FAMILY_SERVICE_SLUG,
+    get_default_prompt_config as get_title_family_default_prompt_config,
+    normalize_title_family_payload,
+    persist_title_family_result,
+    run_title_family_generation,
+)
+from ai_service.title_family_prompts import TITLE_FAMILY_INSTRUCTION_V1_0
 from ai_service.eval_prompts import EVALUATOR_INSTRUCTION_V1_0
 from ai_service.resume_job_evaluation import (
     RESUME_JOB_EVALUATION_SERVICE_SLUG,
@@ -1516,3 +1525,124 @@ class ProfessionalSummaryPlaygroundPersistTests(TestCase):
         self.assertTrue(obj.succeeded)
         self.assertIn("full-stack", obj.summary_text)
         self.assertEqual(obj.error_message, "")
+
+
+class TitleFamilyGenerationTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.gemini = AIModel.objects.create(
+            provider=AIModel.Provider.GEMINI,
+            model_id="gemini-2.5-flash",
+            display_name="Gemini 2.5 Flash",
+            is_active=True,
+        )
+        cls.service = AIService.objects.create(
+            slug=TITLE_FAMILY_SERVICE_SLUG,
+            name="Title Family",
+            is_active=True,
+        )
+        cls.prompt = AIPromptConfiguration.objects.create(
+            service=cls.service,
+            name="v1",
+            slug="v1-0",
+            system_prompt=TITLE_FAMILY_INSTRUCTION_V1_0,
+            ai_model=cls.gemini,
+            temperature=0.35,
+            is_default=True,
+            is_active=True,
+        )
+
+    def test_normalize_title_family_payload_dedupes(self):
+        family = normalize_title_family_payload(
+            {
+                "primary_titles": ["Backend Engineer", " backend engineer "],
+                "related_titles": ["Software Engineer"],
+                "exclude_titles": ["Data Scientist"],
+            }
+        )
+        self.assertEqual(family["primary_titles"], ["Backend Engineer"])
+        self.assertEqual(family["related_titles"], ["Software Engineer"])
+
+    def test_get_default_prompt_config(self):
+        pc = get_title_family_default_prompt_config()
+        self.assertIsNotNone(pc)
+        self.assertEqual(pc.slug, "v1-0")
+
+    def test_generate_fails_without_prompt(self):
+        AIPromptConfiguration.objects.all().delete()
+        result = run_title_family_generation(
+            resume_text="x" * 100,
+        )
+        self.assertFalse(result["success"])
+        self.assertIn("setup_title_family", result["error"])
+
+    def test_generate_fails_short_resume(self):
+        result = run_title_family_generation(resume_text="too short")
+        self.assertFalse(result["success"])
+        self.assertIn("too short", result["error"].lower())
+
+    @patch("ai_service.title_family.gemini_generate_structured_sync")
+    def test_generate_success_mock_gemini(self, mock_gemini):
+        mock_gemini.return_value = {
+            "parsed": TitleFamilyPayload(
+                primary_titles=["Backend Engineer", "Software Engineer"],
+                related_titles=["Platform Engineer"],
+                exclude_titles=["Data Scientist"],
+            ),
+            "raw": '{"primary_titles":["Backend Engineer"]}',
+        }
+        resume = (
+            "Jane Doe — Senior Python engineer with 8 years building Django APIs, "
+            "AWS deployments, and React frontends for SaaS products."
+        )
+        result = run_title_family_generation(resume_text=resume)
+        self.assertTrue(result["success"])
+        self.assertEqual(result["primary_titles"][0], "Backend Engineer")
+        self.assertIn("Data Scientist", result["exclude_titles"])
+        self.assertEqual(result["provider"], AIModel.Provider.GEMINI)
+        mock_gemini.assert_called_once()
+
+
+class TitleFamilyPlaygroundPersistTests(TestCase):
+    @classmethod
+    def setUpTestData(cls):
+        cls.service, _ = AIService.objects.get_or_create(
+            slug=TITLE_FAMILY_SERVICE_SLUG,
+            defaults={"name": "Title Family", "is_active": True},
+        )
+        cls.prompt, _ = AIPromptConfiguration.objects.get_or_create(
+            service=cls.service,
+            slug="v1-0",
+            defaults={
+                "name": "v1",
+                "system_prompt": "test",
+                "is_default": True,
+                "is_active": True,
+            },
+        )
+
+    def test_persist_result(self):
+        obj = TitleFamilyPlayground.objects.create(resume_text="rt" * 50)
+        persist_title_family_result(
+            pk=obj.pk,
+            result={
+                "success": True,
+                "primary_titles": ["Backend Engineer"],
+                "related_titles": ["Software Engineer"],
+                "exclude_titles": ["Data Scientist"],
+                "error": None,
+                "raw_text": "{}",
+                "model_id": "gemini-2.5-flash",
+                "ai_model_id": None,
+                "temperature": 0.35,
+                "instruction_slug": "v1-0",
+                "prompt_config_id": self.prompt.pk,
+            },
+            prompt_config=self.prompt,
+            fallback_model_id="gemini-2.5-flash",
+        )
+        obj.refresh_from_db()
+        self.assertTrue(obj.succeeded)
+        self.assertEqual(obj.primary_titles, ["Backend Engineer"])
+        self.assertEqual(obj.model_id_snapshot, "gemini-2.5-flash")
+        self.assertEqual(obj.instruction_slug, "v1-0")

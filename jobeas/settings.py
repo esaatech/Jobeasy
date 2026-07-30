@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'home',
     'resume_builder',
     'job_service',
+    'automation.apps.AutomationConfig',
     'authentication',
     'email_utility',
     'pdf_generator',

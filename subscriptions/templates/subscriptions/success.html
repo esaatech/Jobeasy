@@ -61,11 +61,31 @@
             </ul>
         </div>
 
+        {% if is_ultimate %}
+        <div class="text-left bg-indigo-50 rounded-lg p-6 mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-2">Set up auto-apply</h3>
+            <p class="text-gray-600 mb-4">
+                Next, build your title family so we can match scraped jobs to roles you can do.
+                You can generate titles from your resume with AI, then confirm them.
+            </p>
+            <a href="{{ ultimate_setup_url }}"
+               class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-[#1980e6] hover:bg-[#1980e6]/90">
+                Continue to Ultimate setup
+            </a>
+        </div>
+        {% endif %}
+
         <!-- Action Buttons -->
         <div class="flex flex-col sm:flex-row justify-center gap-4">
+            {% if is_ultimate %}
+            <a href="{{ ultimate_setup_url }}" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-[#1980e6] hover:bg-[#1980e6]/90">
+                Set up title family
+            </a>
+            {% else %}
             <a href="{% url 'dashboard:dashboard' %}" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-[#1980e6] hover:bg-[#1980e6]/90">
                 Go to Dashboard
             </a>
+            {% endif %}
             {% if subscription.invoice_url %}
                 <a href="{{ subscription.invoice_url }}" target="_blank" class="inline-flex items-center px-6 py-3 border border-gray-300 shadow-sm text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
                     View Invoice

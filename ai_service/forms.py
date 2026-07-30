@@ -7,12 +7,14 @@ from .models import (
     ProfessionalSummaryPlayground,
     ResumeJobEvaluation,
     ResumeOptimizationPlayground,
+    TitleFamilyPlayground,
     WhyShouldIApplyPlayground,
 )
 from .cover_letter import COVER_LETTER_SERVICE_SLUGS
 from .professional_summary import PROFESSIONAL_SUMMARY_SERVICE_SLUG
 from .resume_job_evaluation import RESUME_JOB_EVALUATION_SERVICE_SLUG
 from .resume_optimization import RESUME_OPTIMIZATION_SERVICE_SLUGS
+from .title_family import TITLE_FAMILY_SERVICE_SLUG
 from .why_should_i_apply import WHY_SHOULD_I_APPLY_SERVICE_SLUG
 
 RESUME_PDF_FIELD_HELP = (
@@ -212,6 +214,53 @@ class ProfessionalSummaryPlaygroundAdminForm(forms.ModelForm):
             "Prompt variant to run when you click Get summary. Leave empty to use the "
             "service default (same as production resume wizard). "
             "Edit prompts under AI Prompt Configurations (slug professional_summary)."
+        )
+
+
+class TitleFamilyPlaygroundAdminForm(forms.ModelForm):
+    """Playground: pick a prompt variant; empty uses title_family service default."""
+
+    pending_generation_result = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput(),
+    )
+    resume_pdf = forms.FileField(
+        required=False,
+        label="Resume PDF",
+        help_text=RESUME_PDF_FIELD_HELP,
+        widget=forms.ClearableFileInput(attrs={"accept": ".pdf"}),
+    )
+
+    class Meta:
+        model = TitleFamilyPlayground
+        fields = (
+            "name",
+            "description",
+            "prompt_config",
+            "resume_pdf",
+            "resume_text",
+        )
+        widgets = {
+            "name": forms.TextInput(attrs={"size": 80}),
+            "description": forms.Textarea(attrs={"rows": 2}),
+            "resume_text": forms.Textarea(attrs={"rows": 14}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        svc = AIService.objects.filter(
+            slug=TITLE_FAMILY_SERVICE_SLUG, is_active=True
+        ).first()
+        qs = AIPromptConfiguration.objects.none()
+        if svc:
+            qs = svc.prompts.filter(is_active=True)
+        self.fields["prompt_config"].queryset = qs
+        self.fields["prompt_config"].required = False
+        self.fields["prompt_config"].help_text = (
+            "Prompt variant to run when you click Get title family. Leave empty to use "
+            "the service default (same as Ultimate setup). "
+            "Edit prompts under AI Prompt Configurations (slug title_family)."
         )
 
 

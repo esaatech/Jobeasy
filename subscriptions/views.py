@@ -508,10 +508,17 @@ def checkout_success(request, subscription_id):
         
         # Get return URL from subscription metadata or use default
         return_url = request.GET.get('return_url') or reverse('subscriptions:pricing')
+
+        # Ultimate subscribers continue to title-family setup after purchase.
+        is_ultimate = (subscription.plan.name or '').lower() == 'ultimate'
+        if is_ultimate and not request.GET.get('return_url'):
+            return_url = reverse('automation:ultimate_setup')
         
         context = {
             'subscription': subscription,
             'return_url': return_url,
+            'is_ultimate': is_ultimate,
+            'ultimate_setup_url': reverse('automation:ultimate_setup') if is_ultimate else None,
         }
         
         return render(request, 'subscriptions/success.html', context)

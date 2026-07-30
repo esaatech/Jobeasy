@@ -514,6 +514,7 @@ Copy uses the browser clipboard API on the detail page (no separate endpoint).
 |-------------------------|--------------|-------------|
 | `resume_job_evaluation` | Structured JSON | `gemini_schema.py` |
 | `why_should_i_apply` | Plain text (application answer) | — |
+| `title_family` | Structured JSON (primary / related / exclude titles) | `gemini_schema.TitleFamilyPayload` |
 | `cover_letter` | Text (TITLE + COVER_LETTER) | `cover_letter.py`; standalone tool |
 | `cover_letter_with_email_subject` | Text (TITLE + EMAIL_SUBJECT + COVER_LETTER) | `cover_letter.py`; dashboard generate |
 | `resume_optimization` | Structured JSON (summary, skills, experience bullets, projects, ATS metadata) | `gemini_schema.ResumeOptimizationPayload` |
@@ -536,13 +537,14 @@ Each new structured task: add Pydantic model → document in prompt → seed `AI
 | Run manual eval tests | **Resume-job evaluations** (playground) — paste resume text **or upload PDF**; provider follows prompt's linked **AI model** |
 | Run manual why-apply tests | **Why should I apply playground** — paste resume text **or upload PDF**; provider follows prompt's linked **AI model** (Gemini / OpenAI / DeepSeek) |
 | Run manual summary tests | **Professional summary playground** — paste resume text **or upload PDF** |
+| Run manual title family tests | **Title family playground** — paste resume text **or upload PDF**; calibrate Ultimate Stage 2 titles |
 | Run manual cover letter tests | **Cover letter playground** — job + resume text/PDF; pick a prompt from `cover_letter` or `cover_letter_with_email_subject` |
 | Run manual resume optimization tests | **Resume optimization playground** — job + SOURCE_RESUME JSON; pick `resume_optimization` or `resume_optimization_with_email_subject` |
 | Resume wizard **Generate AI Summary** | `build_resume_text_for_summary` (same PDF → `original_content` → structured sources as job-fit; structured fallback omits existing summary); always default prompt |
 | Tune dashboard gate thresholds / production prompt | **Job fit gate settings** (singleton) |
 | Edit why-apply instructions | **AI Prompt Configurations** → service “Why Should I Apply” |
 
-**Deploy verification:** `entrypoint.sh` runs `setup_ai_models`, `setup_resume_job_evaluation`, `setup_job_fit_gate`, `setup_why_should_i_apply`, `setup_professional_summary`, `setup_cover_letter`, `setup_resume_optimization`, then `check_ai_platform`. Admin header shows `AI platform <build>`. Under **AI SERVICE**: **AI models**, **AI Prompt Configurations**, **Job fit gate settings**, **Resume-job evaluations**, **Cover letter playground**, **Resume optimization playground**, **Why should I apply playground**, **Professional summary playground**.
+**Deploy verification:** `entrypoint.sh` runs `setup_ai_models`, `setup_resume_job_evaluation`, `setup_job_fit_gate`, `setup_why_should_i_apply`, `setup_professional_summary`, `setup_title_family`, `setup_cover_letter`, `setup_resume_optimization`, then `check_ai_platform`. Admin header shows `AI platform <build>`. Under **AI SERVICE**: **AI models**, **AI Prompt Configurations**, **Job fit gate settings**, **Resume-job evaluations**, **Cover letter playground**, **Resume optimization playground**, **Why should I apply playground**, **Professional summary playground**, **Title family playground**.
 
 ### Playground workflow
 
