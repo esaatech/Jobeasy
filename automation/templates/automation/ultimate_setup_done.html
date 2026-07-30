@@ -1,18 +1,27 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="max-w-xl mx-auto py-16 px-4 text-center">
+<div class="page-width-narrow py-16 text-center">
   <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
     <svg class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
     </svg>
   </div>
-  <h1 class="text-2xl font-bold text-gray-900 mb-2">Title family saved</h1>
+  <h1 class="text-2xl font-bold text-gray-900 mb-2">Job titles saved</h1>
+
+  {% if is_ultimate %}
   <p class="text-gray-600 mb-6">
     We’ll match scraped jobs against your confirmed titles
     {% if profile.auto_apply_enabled %}and queue apply packets for operators{% else %}
     (auto-apply is off until you enable it){% endif %}.
   </p>
+  {% else %}
+  <p class="text-gray-600 mb-6">
+    Your job titles are ready. Upgrade to Ultimate to turn on auto-apply matching —
+    we’ll find jobs that fit these titles and prepare applications for you.
+  </p>
+  {% endif %}
+
   <div class="text-left bg-gray-50 rounded-lg p-4 mb-8 text-sm text-gray-700">
     <p class="font-medium mb-2">Primary</p>
     <p class="mb-3">{{ profile.primary_titles|join:", "|default:"—" }}</p>
@@ -21,7 +30,9 @@
     <p class="font-medium mb-2">Exclude</p>
     <p>{{ profile.exclude_titles|join:", "|default:"—" }}</p>
   </div>
+
   <div class="flex flex-col sm:flex-row justify-center gap-3">
+    {% if is_ultimate %}
     <a href="{% url 'dashboard:dashboard' %}"
        class="inline-flex justify-center px-6 py-3 rounded-md text-white bg-[#1980e6] hover:bg-[#1980e6]/90">
       Go to dashboard
@@ -30,6 +41,16 @@
        class="inline-flex justify-center px-6 py-3 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50">
       Edit titles
     </a>
+    {% else %}
+    <a href="{{ ultimate_pricing_url }}"
+       class="inline-flex justify-center px-6 py-3 rounded-md text-white bg-[#1980e6] hover:bg-[#1980e6]/90">
+      Unlock with Ultimate
+    </a>
+    <a href="{% url 'automation:ultimate_setup' %}"
+       class="inline-flex justify-center px-6 py-3 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50">
+      Edit titles
+    </a>
+    {% endif %}
   </div>
 </div>
 {% endblock %}

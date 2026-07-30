@@ -65,12 +65,12 @@
         <div class="text-left bg-indigo-50 rounded-lg p-6 mb-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-2">Set up auto-apply</h3>
             <p class="text-gray-600 mb-4">
-                Next, build your title family so we can match scraped jobs to roles you can do.
+                Next, choose your job titles so we can match scraped jobs to roles you want.
                 You can generate titles from your resume with AI, then confirm them.
             </p>
             <a href="{{ ultimate_setup_url }}"
                class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-[#1980e6] hover:bg-[#1980e6]/90">
-                Continue to Ultimate setup
+                Continue to job titles
             </a>
         </div>
         {% endif %}
@@ -79,7 +79,7 @@
         <div class="flex flex-col sm:flex-row justify-center gap-4">
             {% if is_ultimate %}
             <a href="{{ ultimate_setup_url }}" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-[#1980e6] hover:bg-[#1980e6]/90">
-                Set up title family
+                Set up job titles
             </a>
             {% else %}
             <a href="{% url 'dashboard:dashboard' %}" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-[#1980e6] hover:bg-[#1980e6]/90">

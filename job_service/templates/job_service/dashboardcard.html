@@ -14,17 +14,15 @@ Shows different content based on user's subscription status.
     </a>
 </div>
 {% elif current_subscription.plan.name != 'Ultimate' and current_subscription.plan.name != 'Test' %}
-{% if show_ultimate_upgrade_promo %}
 <div class="bg-gradient-to-r from-blue-50 to-purple-100 rounded-xl shadow-lg p-6 flex flex-col items-center justify-center mb-8">
-    <h3 class="headline-dashboard mb-2">Upgrade to Ultimate</h3>
+    <h3 class="headline-dashboard mb-2">Set Up Auto-Apply</h3>
     <p class="body-text mb-4 text-center max-w-md">
-        Unlock our complete job application service. We'll handle your entire job search process from finding opportunities to submitting applications.
+        Choose your job titles from your resume, then unlock Ultimate to match jobs and prepare applications for you.
     </p>
-    <a href="{% url 'job_service:job_application_service' %}" class="btn btn-primary btn-lg">
-        Learn More
+    <a href="{% url 'automation:ultimate_setup' %}" class="btn btn-primary btn-lg">
+        Set Up Auto-Apply
     </a>
 </div>
-{% endif %}
 {% else %}
 {% if show_job_service_automation_ui %}
     {% comment %} Check for active applications (pending or processing) {% endcomment %}
@@ -51,5 +49,15 @@ Shows different content based on user's subscription status.
             </div>
         {% endif %}
     {% endwith %}
+{% else %}
+<div class="bg-gradient-to-r from-blue-50 to-emerald-100 rounded-xl shadow-lg p-6 flex flex-col items-center justify-center mb-8">
+    <h3 class="headline-dashboard mb-2">Set Up Auto-Apply</h3>
+    <p class="body-text mb-4 text-center max-w-md">
+        Confirm your job titles so we can match scraped jobs and prepare apply packets for you.
+    </p>
+    <a href="{% url 'automation:ultimate_setup' %}" class="btn btn-primary btn-lg">
+        Set Up Auto-Apply
+    </a>
+</div>
 {% endif %}
-{% endif %} 
+{% endif %}

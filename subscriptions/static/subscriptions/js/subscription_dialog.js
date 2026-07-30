@@ -18,11 +18,11 @@ async function loadSubscriptionDialogData() {
         const response = await fetch('/subscriptions/api/dialog-data/');
         if (response.ok) {
             const data = await response.json();
-            if (data.success) {
+            if (data.success && data.dialog_data && Object.keys(data.dialog_data).length) {
                 SUBSCRIPTION_DIALOGS = data.dialog_data;
                 console.log('Subscription dialog data loaded successfully');
             } else {
-                console.error('Failed to load subscription dialog data:', data.error);
+                console.error('Failed to load subscription dialog data:', data.error || 'empty dialog_data');
                 // Fallback to default data
                 setDefaultDialogData();
             }
@@ -55,6 +55,17 @@ function setDefaultDialogData() {
                 "Priority customer support"
             ],
             upgrade_url: "/subscriptions/pricing/?plan=plus"
+        },
+        ultimate: {
+            title: "Upgrade to Ultimate",
+            message: "Advanced features and AI-powered tools are available with our Ultimate plan. Get the best tools for your success.",
+            features: [
+                "Everything in Plus",
+                "Auto-apply job matching",
+                "AI resume and cover letter packets",
+                "Priority support"
+            ],
+            upgrade_url: "/subscriptions/pricing/?plan=ultimate"
         }
     };
 }
@@ -68,8 +79,19 @@ function showSubscriptionDialog(requiredPlan) {
     console.log('📋 Required plan:', requiredPlan);
     console.log('👤 User plan:', window.userSubscriptionPlan);
     console.log('📋 Stack trace:', new Error().stack);
-    
-    const dialog = SUBSCRIPTION_DIALOGS[requiredPlan.toLowerCase()] || SUBSCRIPTION_DIALOGS.plus;
+
+    if (!SUBSCRIPTION_DIALOGS || !Object.keys(SUBSCRIPTION_DIALOGS).length) {
+        setDefaultDialogData();
+    }
+
+    const planKey = (requiredPlan || 'Plus').toLowerCase();
+    const dialog = SUBSCRIPTION_DIALOGS[planKey] || SUBSCRIPTION_DIALOGS.plus || {
+        title: "Upgrade required",
+        message: "This feature requires a paid plan. Please upgrade to continue.",
+        features: [],
+        upgrade_url: "/subscriptions/pricing/"
+    };
+    const features = Array.isArray(dialog.features) ? dialog.features : [];
     
     // Create subscription dialog element
     const dialogElement = document.createElement("div");
@@ -90,26 +112,27 @@ function showSubscriptionDialog(requiredPlan) {
                         </div>
                         <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
                             <h3 class="text-lg leading-6 font-medium text-gray-900">
-                                ${dialog.title}
+                                ${dialog.title || 'Upgrade required'}
                             </h3>
                             <div class="mt-2">
                                 <p class="text-sm text-gray-500">
-                                    ${dialog.message}
+                                    ${dialog.message || 'Please upgrade to continue.'}
                                 </p>
+                                ${features.length ? `
                                 <div class="mt-4">
                                     <h4 class="text-sm font-medium text-gray-900 mb-2">Features included:</h4>
                                     <ul class="text-sm text-gray-600 space-y-1">
-                                        ${dialog.features.map(feature => `<li>• ${feature}</li>`).join('')}
+                                        ${features.map(feature => `<li>• ${feature}</li>`).join('')}
                                     </ul>
-                                </div>
+                                </div>` : ''}
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                    <a href="${dialog.upgrade_url}" 
+                    <a href="${dialog.upgrade_url || '/subscriptions/pricing/'}" 
                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm">
-                        ${dialog.title}
+                        ${dialog.title || 'Upgrade'}
                     </a>
                     <button type="button" 
                             onclick="closeSubscriptionDialog()"

@@ -2,10 +2,13 @@ from django.conf import settings
 from django.db import models
 from django.utils import timezone
 
+# Free (pre-Ultimate) AI title-family generates per user. Manual edits are unlimited.
+FREE_TITLE_FAMILY_AI_GENERATIONS = 2
+
 
 class UltimateAutomationProfile(models.Model):
     """
-    Ultimate-plan auto-apply settings for a user.
+    Auto-apply settings for a user (draft before Ultimate; active after).
 
     Stage 2 matching uses title family fields only (primary + related).
     exclude_titles is an optional hard reject list. Skills / JD quality
@@ -41,10 +44,14 @@ class UltimateAutomationProfile(models.Model):
     )
     auto_apply_enabled = models.BooleanField(
         default=False,
-        help_text='User must confirm title family before enabling',
+        help_text='Requires Ultimate + confirmed title family',
     )
     title_family_confirmed = models.BooleanField(default=False)
     title_family_confirmed_at = models.DateTimeField(null=True, blank=True)
+    title_family_ai_generations = models.PositiveIntegerField(
+        default=0,
+        help_text='Successful AI suggest-from-resume calls (free users capped)',
+    )
     max_applications_per_day = models.PositiveIntegerField(default=10)
     setup_completed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)

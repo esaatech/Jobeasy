@@ -1,14 +1,187 @@
 {% extends 'base.html' %}
 {% load static %}
 
+{% block extra_head %}
+<style>
+  .tf-panel {
+    background: #fff;
+    border: 1px solid var(--color-gray-200, #e5e7eb);
+    border-radius: 12px;
+    padding: 1.5rem;
+  }
+  .tf-bucket {
+    border: 1px solid var(--color-gray-200, #e5e7eb);
+    border-radius: 12px;
+    background: var(--color-gray-50, #f9fafb);
+    padding: 1rem;
+    min-height: 7.5rem;
+    transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  .tf-bucket.is-drag-over {
+    border-color: #1980e6;
+    background: #f0f7ff;
+    box-shadow: inset 0 0 0 1px rgba(25, 128, 230, 0.25);
+  }
+  .tf-bucket[data-bucket="exclude"].is-drag-over {
+    border-color: #dc2626;
+    background: #fef2f2;
+    box-shadow: inset 0 0 0 1px rgba(220, 38, 38, 0.2);
+  }
+  .tf-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    min-height: 2.5rem;
+  }
+  .tf-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    max-width: 100%;
+    padding: 0.4rem 0.35rem 0.4rem 0.7rem;
+    border-radius: 0.5rem;
+    border: 1px solid #c7d7ea;
+    background: #fff;
+    color: #1f2937;
+    font-size: 0.875rem;
+    line-height: 1.25;
+    cursor: grab;
+    user-select: none;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
+  .tf-chip:active { cursor: grabbing; }
+  .tf-chip.is-dragging { opacity: 0.45; }
+  .tf-chip[data-bucket="primary"] {
+    border-color: #93c5fd;
+    background: #eff6ff;
+  }
+  .tf-chip[data-bucket="related"] {
+    border-color: #d1d5db;
+    background: #fff;
+  }
+  .tf-chip[data-bucket="exclude"] {
+    border-color: #fecaca;
+    background: #fff1f2;
+  }
+  .tf-chip-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .tf-chip-remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.35rem;
+    height: 1.35rem;
+    border: none;
+    border-radius: 0.35rem;
+    background: transparent;
+    color: #6b7280;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .tf-chip-remove:hover {
+    background: rgba(15, 23, 42, 0.08);
+    color: #b91c1c;
+  }
+  .tf-add-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+  }
+  .tf-add-row input {
+    flex: 1;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    padding: 0.55rem 0.75rem;
+    font-size: 0.875rem;
+  }
+  .tf-add-row input:focus {
+    outline: none;
+    border-color: #1980e6;
+    box-shadow: 0 0 0 3px rgba(25, 128, 230, 0.15);
+  }
+  .tf-add-row button {
+    border: 1px solid #d1d5db;
+    background: #fff;
+    border-radius: 0.5rem;
+    padding: 0.55rem 0.9rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    cursor: pointer;
+  }
+  .tf-add-row button:hover { background: #f9fafb; }
+  .tf-hint {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: #6b7280;
+  }
+  .tf-empty {
+    font-size: 0.8125rem;
+    color: #9ca3af;
+    padding: 0.35rem 0.15rem;
+  }
+  .tf-select {
+    appearance: none;
+    background-color: #fff;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' viewBox='0 0 24 24' stroke='%236b7280' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    padding: 0.65rem 2.25rem 0.65rem 0.85rem;
+    font-size: 0.875rem;
+    color: #1f2937;
+    line-height: 1.25;
+  }
+  .tf-select:focus {
+    outline: none;
+    border-color: #1980e6;
+    box-shadow: 0 0 0 3px rgba(25, 128, 230, 0.15);
+  }
+  .tf-resume-default {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem 1.5rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid #e5e7eb;
+  }
+  .tf-resume-default-copy {
+    flex: 1 1 14rem;
+    min-width: 0;
+  }
+  .tf-resume-default .tf-select {
+    flex: 0 1 18rem;
+    width: 100%;
+    max-width: 18rem;
+  }
+  .tf-suggest-row .tf-select {
+    flex: 1 1 16rem;
+    min-width: 0;
+    max-width: 28rem;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="max-w-3xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
-  <div class="mb-8">
-    <p class="text-sm font-medium text-blue-600 mb-1">Ultimate setup</p>
-    <h1 class="text-3xl font-bold text-gray-900">Build your title family</h1>
+{{ profile.primary_titles|json_script:"tf-primary-data" }}
+{{ profile.related_titles|json_script:"tf-related-data" }}
+{{ profile.exclude_titles|json_script:"tf-exclude-data" }}
+
+<div class="page-width py-10 sm:py-12">
+  <div class="mb-8 max-w-3xl">
+    <p class="text-sm font-medium text-blue-600 mb-1">Auto-Apply setup</p>
+    <h1 class="headline-secondary text-gray-900">Choose your job titles</h1>
     <p class="mt-2 text-gray-600">
-      Stage 2 matching uses these titles only. Skills and job description fit are checked later by AI.
-      Generate suggestions from your resume, then edit and confirm.
+      We’ll match jobs to these titles. Generate suggestions from your resume, then drag titles between buckets to refine.
+      {% if not is_ultimate %}
+      After you save, unlock Ultimate to start auto-apply matching.
+      {% endif %}
     </p>
   </div>
 
@@ -16,10 +189,10 @@
   <div class="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700">{{ error }}</div>
   {% endif %}
 
-  <div class="bg-white border border-gray-200 rounded-lg shadow-sm p-6 mb-6">
+  <div class="tf-panel mb-6">
     <label class="block text-sm font-medium text-gray-700 mb-2">Resume for AI suggestions</label>
-    <div class="flex flex-col sm:flex-row gap-3">
-      <select id="resume-select" class="flex-1 rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500">
+    <div class="tf-suggest-row flex flex-col sm:flex-row sm:items-center gap-3">
+      <select id="resume-select" class="tf-select">
         {% for resume in resumes %}
         <option value="{{ resume.id }}" {% if profile.default_resume_id == resume.id %}selected{% endif %}>
           {{ resume.name }}
@@ -29,51 +202,89 @@
         {% endfor %}
       </select>
       <button type="button" id="suggest-titles-btn"
-              class="inline-flex items-center justify-center px-4 py-2 rounded-md text-white bg-[#1980e6] hover:bg-[#1980e6]/90 disabled:opacity-50"
-              {% if not resumes %}disabled{% endif %}>
+              class="inline-flex items-center justify-center px-4 py-2.5 rounded-md text-white bg-[#1980e6] hover:bg-[#1980e6]/90 disabled:opacity-50 shrink-0"
+              {% if not resumes or not can_generate_titles %}disabled{% endif %}>
         Suggest from resume
       </button>
     </div>
-    <p id="suggest-status" class="mt-2 text-sm text-gray-500"></p>
+    <p id="suggest-status" class="mt-2 text-sm text-gray-500">
+      {% if is_ultimate %}
+        Unlimited AI suggestions on Ultimate.
+      {% elif free_generations_remaining == 0 %}
+        Free AI suggestions used up. Edit titles manually or
+        <a href="{{ ultimate_pricing_url }}" class="underline text-blue-600">upgrade to Ultimate</a>.
+      {% else %}
+        {{ free_generations_remaining }} of {{ free_generation_limit }} free AI suggestion{{ free_generation_limit|pluralize }} remaining.
+      {% endif %}
+    </p>
     {% if not resumes %}
     <p class="mt-2 text-sm text-amber-700">
       <a href="{% url 'resume_builder:create_resume' %}" class="underline">Create a resume</a>
-      first to unlock AI suggestions, or enter titles manually below.
+      first to unlock AI suggestions, or add titles manually below.
     </p>
     {% endif %}
   </div>
 
-  <form method="post" class="bg-white border border-gray-200 rounded-lg shadow-sm p-6 space-y-6">
+  <form method="post" id="title-family-form" class="tf-panel space-y-6">
     {% csrf_token %}
+    <input type="hidden" name="primary_titles" id="primary_titles" value="">
+    <input type="hidden" name="related_titles" id="related_titles" value="">
+    <input type="hidden" name="exclude_titles" id="exclude_titles" value="">
 
-    <div>
-      <label class="block text-sm font-medium text-gray-900 mb-1">Primary titles <span class="text-red-500">*</span></label>
-      <p class="text-sm text-gray-500 mb-2">Core roles you want (comma or newline separated).</p>
-      <textarea name="primary_titles" id="primary_titles" rows="3"
-                class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Backend Engineer, Software Engineer">{{ profile.primary_titles|join:", " }}</textarea>
-    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <section>
+        <label class="block text-sm font-medium text-gray-900 mb-1">
+          Primary titles <span class="text-red-500">*</span>
+        </label>
+        <p class="text-sm text-gray-500 mb-3">Core roles you want matched first.</p>
+        <div class="tf-bucket" data-bucket="primary">
+          <div class="tf-chips" id="primary-chips" data-bucket="primary"></div>
+          <div class="tf-add-row">
+            <input type="text" data-add-for="primary" placeholder="Add a primary title…" maxlength="120">
+            <button type="button" data-add-btn="primary">Add</button>
+          </div>
+          <p class="tf-hint">Drag chips here from Related or Exclude.</p>
+        </div>
+      </section>
 
-    <div>
-      <label class="block text-sm font-medium text-gray-900 mb-1">Related titles</label>
-      <p class="text-sm text-gray-500 mb-2">Synonyms and adjacent roles for broader Stage 2 matching.</p>
-      <textarea name="related_titles" id="related_titles" rows="3"
-                class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Platform Engineer, Full Stack Engineer, Python Developer">{{ profile.related_titles|join:", " }}</textarea>
-    </div>
+      <section>
+        <label class="block text-sm font-medium text-gray-900 mb-1">Related titles</label>
+        <p class="text-sm text-gray-500 mb-3">Adjacent roles for broader Stage 2 matching.</p>
+        <div class="tf-bucket" data-bucket="related">
+          <div class="tf-chips" id="related-chips" data-bucket="related"></div>
+          <div class="tf-add-row">
+            <input type="text" data-add-for="related" placeholder="Add a related title…" maxlength="120">
+            <button type="button" data-add-btn="related">Add</button>
+          </div>
+          <p class="tf-hint">Drag chips here to broaden matching.</p>
+        </div>
+      </section>
 
-    <div>
-      <label class="block text-sm font-medium text-gray-900 mb-1">Exclude titles</label>
-      <p class="text-sm text-gray-500 mb-2">Roles to never match (different career tracks).</p>
-      <textarea name="exclude_titles" id="exclude_titles" rows="3"
-                class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Data Scientist, ML Engineer, Engineering Manager">{{ profile.exclude_titles|join:", " }}</textarea>
+      <section>
+        <label class="block text-sm font-medium text-gray-900 mb-1">Exclude titles</label>
+        <p class="text-sm text-gray-500 mb-3">Roles to never match.</p>
+        <div class="tf-bucket" data-bucket="exclude">
+          <div class="tf-chips" id="exclude-chips" data-bucket="exclude"></div>
+          <div class="tf-add-row">
+            <input type="text" data-add-for="exclude" placeholder="Add an exclude title…" maxlength="120">
+            <button type="button" data-add-btn="exclude">Add</button>
+          </div>
+          <p class="tf-hint">Drag chips here to block a career track.</p>
+        </div>
+      </section>
     </div>
 
     {% if resumes %}
-    <div>
-      <label class="block text-sm font-medium text-gray-900 mb-1">Default resume for applications</label>
-      <select name="default_resume" class="w-full rounded-lg border-gray-300 focus:ring-blue-500 focus:border-blue-500">
+    <div class="tf-resume-default">
+      <div class="tf-resume-default-copy">
+        <label for="default-resume-select" class="block text-sm font-medium text-gray-900">
+          Default resume for applications
+        </label>
+        <p class="mt-1 text-sm text-gray-500">
+          Used when we prepare apply packets for matched jobs.
+        </p>
+      </div>
+      <select id="default-resume-select" name="default_resume" class="tf-select">
         {% for resume in resumes %}
         <option value="{{ resume.id }}" {% if profile.default_resume_id == resume.id %}selected{% endif %}>
           {{ resume.name }}
@@ -83,18 +294,20 @@
     </div>
     {% endif %}
 
+    {% if is_ultimate %}
     <label class="flex items-start gap-3">
       <input type="checkbox" name="auto_apply_enabled" class="mt-1 rounded border-gray-300 text-blue-600"
              {% if profile.auto_apply_enabled %}checked{% endif %}>
       <span class="text-sm text-gray-700">
-        Enable auto-apply matching for my title family (AI prepares packets; operators submit forms).
+        Enable auto-apply matching for these job titles (AI prepares packets; operators submit forms).
       </span>
     </label>
+    {% endif %}
 
     <div class="flex flex-col sm:flex-row gap-3 pt-2">
       <button type="submit"
               class="inline-flex justify-center px-6 py-3 rounded-md text-white bg-[#1980e6] hover:bg-[#1980e6]/90 font-medium">
-        Save title family
+        {% if is_ultimate %}Save job titles{% else %}Save &amp; continue{% endif %}
       </button>
       <a href="{% url 'dashboard:dashboard' %}"
          class="inline-flex justify-center px-6 py-3 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 font-medium">
@@ -106,43 +319,273 @@
 
 <script>
 (function () {
+  const buckets = {
+    primary: document.getElementById('primary-chips'),
+    related: document.getElementById('related-chips'),
+    exclude: document.getElementById('exclude-chips'),
+  };
+  const hidden = {
+    primary: document.getElementById('primary_titles'),
+    related: document.getElementById('related_titles'),
+    exclude: document.getElementById('exclude_titles'),
+  };
+  const state = {
+    primary: readJson('tf-primary-data'),
+    related: readJson('tf-related-data'),
+    exclude: readJson('tf-exclude-data'),
+  };
+
+  let dragTitle = null;
+  let dragFrom = null;
+
+  function readJson(id) {
+    const el = document.getElementById(id);
+    if (!el) return [];
+    try {
+      const data = JSON.parse(el.textContent);
+      return Array.isArray(data) ? data.map(String).filter(Boolean) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function normalize(title) {
+    return String(title || '').trim().replace(/\s+/g, ' ').slice(0, 120);
+  }
+
+  function syncHidden() {
+    Object.keys(state).forEach(function (key) {
+      hidden[key].value = state[key].join(', ');
+    });
+  }
+
+  function removeFromAll(title) {
+    const key = title.toLowerCase();
+    Object.keys(state).forEach(function (bucket) {
+      state[bucket] = state[bucket].filter(function (t) {
+        return t.toLowerCase() !== key;
+      });
+    });
+  }
+
+  function addTitle(bucket, title, opts) {
+    const cleaned = normalize(title);
+    if (!cleaned) return false;
+    const existsElsewhere = Object.keys(state).some(function (b) {
+      return state[b].some(function (t) { return t.toLowerCase() === cleaned.toLowerCase(); });
+    });
+    if (existsElsewhere) {
+      if (opts && opts.move) {
+        removeFromAll(cleaned);
+      } else {
+        return false;
+      }
+    }
+    if (!state[bucket].some(function (t) { return t.toLowerCase() === cleaned.toLowerCase(); })) {
+      state[bucket].push(cleaned);
+    }
+    render();
+    return true;
+  }
+
+  function moveTitle(title, toBucket) {
+    const cleaned = normalize(title);
+    if (!cleaned || !state[toBucket]) return;
+    removeFromAll(cleaned);
+    state[toBucket].push(cleaned);
+    render();
+  }
+
+  function removeTitle(bucket, title) {
+    const key = title.toLowerCase();
+    state[bucket] = state[bucket].filter(function (t) { return t.toLowerCase() !== key; });
+    render();
+  }
+
+  function chipEl(bucket, title) {
+    const chip = document.createElement('div');
+    chip.className = 'tf-chip';
+    chip.draggable = true;
+    chip.dataset.bucket = bucket;
+    chip.dataset.title = title;
+
+    const label = document.createElement('span');
+    label.className = 'tf-chip-label';
+    label.textContent = title;
+
+    const remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'tf-chip-remove';
+    remove.setAttribute('aria-label', 'Remove ' + title);
+    remove.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path stroke-linecap="round" d="M5 12h14"/></svg>';
+    remove.addEventListener('click', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      removeTitle(bucket, title);
+    });
+
+    chip.appendChild(label);
+    chip.appendChild(remove);
+
+    chip.addEventListener('dragstart', function (e) {
+      dragTitle = title;
+      dragFrom = bucket;
+      chip.classList.add('is-dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', title);
+    });
+    chip.addEventListener('dragend', function () {
+      chip.classList.remove('is-dragging');
+      dragTitle = null;
+      dragFrom = null;
+      document.querySelectorAll('.tf-bucket.is-drag-over').forEach(function (el) {
+        el.classList.remove('is-drag-over');
+      });
+    });
+
+    return chip;
+  }
+
+  function render() {
+    Object.keys(buckets).forEach(function (bucket) {
+      const host = buckets[bucket];
+      host.innerHTML = '';
+      if (!state[bucket].length) {
+        const empty = document.createElement('div');
+        empty.className = 'tf-empty';
+        empty.textContent = bucket === 'primary'
+          ? 'No primary titles yet — suggest from resume or add one.'
+          : 'Drop titles here or add one.';
+        host.appendChild(empty);
+      } else {
+        state[bucket].forEach(function (title) {
+          host.appendChild(chipEl(bucket, title));
+        });
+      }
+    });
+    syncHidden();
+  }
+
+  function bindDropZones() {
+    document.querySelectorAll('.tf-bucket').forEach(function (zone) {
+      zone.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        zone.classList.add('is-drag-over');
+      });
+      zone.addEventListener('dragleave', function (e) {
+        if (!zone.contains(e.relatedTarget)) {
+          zone.classList.remove('is-drag-over');
+        }
+      });
+      zone.addEventListener('drop', function (e) {
+        e.preventDefault();
+        zone.classList.remove('is-drag-over');
+        const title = dragTitle || e.dataTransfer.getData('text/plain');
+        const toBucket = zone.dataset.bucket;
+        if (title && toBucket && toBucket !== dragFrom) {
+          moveTitle(title, toBucket);
+        }
+      });
+    });
+  }
+
+  document.querySelectorAll('[data-add-btn]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const bucket = btn.getAttribute('data-add-btn');
+      const input = document.querySelector('[data-add-for="' + bucket + '"]');
+      if (!input) return;
+      if (addTitle(bucket, input.value, { move: true })) {
+        input.value = '';
+        input.focus();
+      }
+    });
+  });
+
+  document.querySelectorAll('[data-add-for]').forEach(function (input) {
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const bucket = input.getAttribute('data-add-for');
+        const btn = document.querySelector('[data-add-btn="' + bucket + '"]');
+        if (btn) btn.click();
+      }
+    });
+  });
+
+  document.getElementById('title-family-form').addEventListener('submit', function () {
+    syncHidden();
+  });
+
+  // Suggest from resume
   const btn = document.getElementById('suggest-titles-btn');
   const status = document.getElementById('suggest-status');
   const resumeSelect = document.getElementById('resume-select');
-  if (!btn) return;
+  const isUltimate = {{ is_ultimate|yesno:"true,false" }};
+  const freeLimit = {{ free_generation_limit }};
 
   function csrfToken() {
     const match = document.cookie.match(/csrftoken=([^;]+)/);
     return match ? match[1] : '';
   }
 
-  btn.addEventListener('click', async function () {
-    btn.disabled = true;
-    status.textContent = 'Generating title family from resume…';
-    status.className = 'mt-2 text-sm text-gray-500';
-    try {
-      const res = await fetch('{% url "automation:suggest_title_family" %}', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-CSRFToken': csrfToken(),
-        },
-        body: JSON.stringify({ resume_id: resumeSelect ? resumeSelect.value : null }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Suggestion failed');
-      document.getElementById('primary_titles').value = (data.primary_titles || []).join(', ');
-      document.getElementById('related_titles').value = (data.related_titles || []).join(', ');
-      document.getElementById('exclude_titles').value = (data.exclude_titles || []).join(', ');
-      status.textContent = 'Suggestions loaded. Review and save when ready.';
-      status.className = 'mt-2 text-sm text-green-700';
-    } catch (err) {
-      status.textContent = err.message || 'Could not generate titles.';
-      status.className = 'mt-2 text-sm text-red-600';
-    } finally {
-      btn.disabled = false;
+  function setRemainingCopy(remaining) {
+    if (!status) return;
+    if (isUltimate) {
+      status.textContent = 'Unlimited AI suggestions on Ultimate.';
+      status.className = 'mt-2 text-sm text-gray-500';
+      return;
     }
-  });
+    if (remaining === 0) {
+      status.innerHTML = 'Free AI suggestions used up. Edit titles manually or <a href="{{ ultimate_pricing_url }}" class="underline text-blue-600">upgrade to Ultimate</a>.';
+      status.className = 'mt-2 text-sm text-amber-700';
+      if (btn) btn.disabled = true;
+      return;
+    }
+    const unit = freeLimit === 1 ? 'suggestion' : 'suggestions';
+    status.textContent = remaining + ' of ' + freeLimit + ' free AI ' + unit + ' remaining.';
+    status.className = 'mt-2 text-sm text-gray-500';
+  }
+
+  if (btn) {
+    btn.addEventListener('click', async function () {
+      btn.disabled = true;
+      status.textContent = 'Generating job titles from resume…';
+      status.className = 'mt-2 text-sm text-gray-500';
+      try {
+        const res = await fetch('{% url "automation:suggest_title_family" %}', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken(),
+          },
+          body: JSON.stringify({ resume_id: resumeSelect ? resumeSelect.value : null }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Suggestion failed');
+        state.primary = (data.primary_titles || []).map(normalize).filter(Boolean);
+        state.related = (data.related_titles || []).map(normalize).filter(Boolean);
+        state.exclude = (data.exclude_titles || []).map(normalize).filter(Boolean);
+        render();
+        status.textContent = 'Suggestions loaded. Drag chips between buckets, then save.';
+        status.className = 'mt-2 text-sm text-green-700';
+        const remaining = data.free_generations_remaining;
+        if (remaining === null || remaining === undefined) {
+          btn.disabled = false;
+        } else {
+          setTimeout(function () { setRemainingCopy(remaining); }, 1200);
+          if (remaining > 0) btn.disabled = false;
+        }
+      } catch (err) {
+        status.textContent = err.message || 'Could not generate titles.';
+        status.className = 'mt-2 text-sm text-red-600';
+        btn.disabled = {{ can_generate_titles|yesno:"false,true" }};
+      }
+    });
+  }
+
+  bindDropZones();
+  render();
 })();
 </script>
 {% endblock %}
