@@ -38,7 +38,8 @@ class Command(BaseCommand):
                 f'failed={result.sources_failed}, '
                 f'found={result.jobs_found}, '
                 f'added={result.jobs_added}, '
-                f'updated={result.jobs_updated}'
+                f'updated={result.jobs_updated}, '
+                f'deactivated={result.jobs_deactivated}'
             )
         )
 

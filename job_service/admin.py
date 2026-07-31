@@ -1,28 +1,174 @@
-from django.contrib import admin
+from django.contrib import admin, messages
+from django.shortcuts import get_object_or_404, redirect
+from django.urls import path, reverse
+from django.utils.html import format_html
+
 from .models import (
-    JobSource, Job, JobApplication, UserJobPreferences, 
+    JobSource, Job, JobApplication, UserJobPreferences,
     JobScrapingLog, ServicePackage, UserSubscription, JobApplicationRequest
 )
+from .services.ingestion import scrape_source
+
 
 @admin.register(JobSource)
 class JobSourceAdmin(admin.ModelAdmin):
-    list_display = ['name', 'source_type', 'is_active', 'last_scraped', 'created_at']
+    change_form_template = 'admin/job_service/jobsource/change_form.html'
+    list_display = [
+        'name',
+        'source_type',
+        'board_kind',
+        'is_active',
+        'last_scraped',
+        'job_count',
+        'created_at',
+    ]
     list_filter = ['source_type', 'is_active', 'created_at']
     search_fields = ['name', 'url']
     ordering = ['-created_at']
+    readonly_fields = ['last_scraped', 'created_at', 'url_help']
+    actions = ['scrape_selected_sources']
+    fieldsets = (
+        (None, {
+            'fields': ('name', 'url', 'url_help', 'source_type', 'is_active'),
+        }),
+        ('Scraping', {
+            'fields': ('last_scraped',),
+        }),
+        ('Timestamps', {
+            'fields': ('created_at',),
+            'classes': ('collapse',),
+        }),
+    )
+
+    @admin.display(description='Board')
+    def board_kind(self, obj):
+        url = (obj.url or '').lower()
+        if 'greenhouse.io' in url:
+            return 'Greenhouse'
+        if 'lever.co' in url:
+            return 'Lever'
+        if 'ashbyhq.com' in url:
+            return 'Ashby'
+        return '—'
+
+    @admin.display(description='Jobs')
+    def job_count(self, obj):
+        count = obj.jobs.count()
+        if not count:
+            return '0'
+        url = (
+            reverse('admin:job_service_job_changelist')
+            + f'?source__id__exact={obj.pk}'
+        )
+        return format_html('<a href="{}">{}</a>', url, count)
+
+    @admin.display(description='URL format')
+    def url_help(self, obj):
+        return (
+            'Greenhouse: https://boards.greenhouse.io/{company} — '
+            'Lever: https://jobs.lever.co/{company} — '
+            'Ashby: https://jobs.ashbyhq.com/{company}'
+        )
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom = [
+            path(
+                '<path:object_id>/scrape/',
+                self.admin_site.admin_view(self.scrape_source_view),
+                name='job_service_jobsource_scrape',
+            ),
+        ]
+        return custom + urls
+
+    def changeform_view(self, request, object_id=None, form_url='', extra_context=None):
+        extra_context = extra_context or {}
+        if object_id:
+            extra_context['scrape_url'] = reverse(
+                'admin:job_service_jobsource_scrape',
+                args=[object_id],
+            )
+            extra_context['jobs_changelist_url'] = (
+                reverse('admin:job_service_job_changelist')
+                + f'?source__id__exact={object_id}'
+            )
+            extra_context['logs_changelist_url'] = (
+                reverse('admin:job_service_jobscrapinglog_changelist')
+                + f'?source__id__exact={object_id}'
+            )
+        return super().changeform_view(request, object_id, form_url, extra_context)
+
+    def scrape_source_view(self, request, object_id):
+        source = get_object_or_404(JobSource, pk=object_id)
+        if request.method != 'POST':
+            return redirect('admin:job_service_jobsource_change', source.pk)
+
+        if not self.has_change_permission(request, source):
+            messages.error(request, 'You do not have permission to scrape this source.')
+            return redirect('admin:job_service_jobsource_change', source.pk)
+
+        fetch_details = request.POST.get('fetch_details') == '1'
+        try:
+            added, updated, deactivated, found = scrape_source(
+                source, fetch_details=fetch_details
+            )
+        except Exception as exc:
+            messages.error(
+                request,
+                f'Scrape failed for {source.name}: {exc}. '
+                'See Job scraping logs for details.',
+            )
+            return redirect('admin:job_service_jobsource_change', source.pk)
+
+        jobs_url = (
+            reverse('admin:job_service_job_changelist')
+            + f'?source__id__exact={source.pk}'
+        )
+        messages.success(
+            request,
+            format_html(
+                'Scrape complete for <strong>{}</strong>: '
+                'found={}, added={}, updated={}, deactivated={}. '
+                '<a href="{}">View jobs</a>',
+                source.name,
+                found,
+                added,
+                updated,
+                deactivated,
+                jobs_url,
+            ),
+        )
+        return redirect('admin:job_service_jobsource_change', source.pk)
+
+    @admin.action(description='Scrape selected job sources')
+    def scrape_selected_sources(self, request, queryset):
+        ok = 0
+        failed = 0
+        for source in queryset:
+            try:
+                scrape_source(source, fetch_details=True)
+                ok += 1
+            except Exception as exc:
+                failed += 1
+                messages.error(request, f'{source.name}: {exc}')
+        if ok:
+            messages.success(request, f'Scraped {ok} source(s) successfully.')
+        if failed:
+            messages.warning(request, f'{failed} source(s) failed. Check scraping logs.')
+
 
 @admin.register(Job)
 class JobAdmin(admin.ModelAdmin):
-    list_display = ['title', 'company', 'location', 'job_type', 'is_active', 'is_featured', 'is_curated', 'created_at']
+    list_display = ['title', 'company', 'location', 'job_type', 'application_url', 'is_active', 'is_featured', 'is_curated', 'source', 'created_at']
     list_filter = ['job_type', 'is_active', 'is_featured', 'is_curated', 'source', 'created_at']
-    search_fields = ['title', 'company', 'location', 'description']
+    search_fields = ['title', 'company', 'location', 'description', 'application_url']
     readonly_fields = ['job_id', 'created_at', 'updated_at']
     filter_horizontal = []
     ordering = ['-created_at']
     
     fieldsets = (
         ('Basic Information', {
-            'fields': ('job_id', 'title', 'company', 'location', 'job_type')
+            'fields': ('job_id', 'title', 'company', 'location', 'job_type', 'application_url')
         }),
         ('Compensation', {
             'fields': ('salary_min', 'salary_max', 'salary_currency'),

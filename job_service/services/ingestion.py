@@ -20,6 +20,7 @@ class ScrapeCycleResult:
     jobs_found: int = 0
     jobs_added: int = 0
     jobs_updated: int = 0
+    jobs_deactivated: int = 0
 
 
 def run_scrape_cycle(
@@ -41,10 +42,13 @@ def run_scrape_cycle(
     for source in sources:
         result.sources_processed += 1
         try:
-            added, updated, found = scrape_source(source, fetch_details=fetch_details)
+            added, updated, deactivated, found = scrape_source(
+                source, fetch_details=fetch_details
+            )
             result.jobs_found += found
             result.jobs_added += added
             result.jobs_updated += updated
+            result.jobs_deactivated += deactivated
         except Exception:
             result.sources_failed += 1
             logger.exception('Scrape failed for source %s (%s)', source.name, source.pk)
@@ -52,19 +56,19 @@ def run_scrape_cycle(
     return result
 
 
-def scrape_source(source: JobSource, *, fetch_details: bool = True) -> tuple[int, int, int]:
+def scrape_source(source: JobSource, *, fetch_details: bool = True) -> tuple[int, int, int, int]:
     """
     Scrape a single JobSource.
 
     Returns:
-        (jobs_added, jobs_updated, jobs_found)
+        (jobs_added, jobs_updated, jobs_deactivated, jobs_found)
     """
     log = JobScrapingLog.objects.create(source=source, status='running')
 
     try:
         scraper = get_scraper(source, fetch_details=fetch_details)
         scraped_jobs = scraper.fetch()
-        added, updated = upsert_jobs(source, scraped_jobs)
+        added, updated, deactivated = upsert_jobs(source, scraped_jobs)
 
         source.last_scraped = timezone.now()
         source.save(update_fields=['last_scraped'])
@@ -76,7 +80,15 @@ def scrape_source(source: JobSource, *, fetch_details: bool = True) -> tuple[int
         log.completed_at = timezone.now()
         log.save()
 
-        return added, updated, len(scraped_jobs)
+        if deactivated:
+            logger.info(
+                'Deactivated %s missing job(s) for source %s (%s)',
+                deactivated,
+                source.name,
+                source.pk,
+            )
+
+        return added, updated, deactivated, len(scraped_jobs)
     except Exception as exc:
         log.status = 'failed'
         log.error_message = str(exc)
@@ -85,16 +97,27 @@ def scrape_source(source: JobSource, *, fetch_details: bool = True) -> tuple[int
         raise
 
 
-def upsert_jobs(source: JobSource, scraped_jobs: list[ScrapedJob]) -> tuple[int, int]:
-    """Insert or update Job rows for a source. Returns (added, updated)."""
+def upsert_jobs(source: JobSource, scraped_jobs: list[ScrapedJob]) -> tuple[int, int, int]:
+    """
+    Insert or update Job rows for a source.
+
+    Jobs for this source with a non-empty external_id that are missing from
+    the scrape payload are marked is_active=False.
+
+    Returns:
+        (added, updated, deactivated)
+    """
     added = 0
     updated = 0
+    seen_external_ids: set[str] = set()
 
     with transaction.atomic():
         for scraped in scraped_jobs:
             if not scraped.external_id:
                 logger.warning('Skipping job without external_id from source %s', source.pk)
                 continue
+
+            seen_external_ids.add(scraped.external_id)
 
             defaults = {
                 'title': scraped.title,
@@ -123,4 +146,11 @@ def upsert_jobs(source: JobSource, scraped_jobs: list[ScrapedJob]) -> tuple[int,
             else:
                 updated += 1
 
-    return added, updated
+        missing = Job.objects.filter(
+            source=source,
+            is_active=True,
+        ).exclude(external_id='').exclude(external_id__in=seen_external_ids)
+
+        deactivated = missing.update(is_active=False)
+
+    return added, updated, deactivated

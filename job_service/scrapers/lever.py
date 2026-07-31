@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from html import unescape
 from urllib.parse import urlparse
 
@@ -36,7 +36,7 @@ def parse_lever_timestamp(value: int | None) -> datetime | None:
     if not value:
         return None
     try:
-        return datetime.fromtimestamp(value / 1000)
+        return datetime.fromtimestamp(value / 1000, tz=timezone.utc)
     except (OSError, OverflowError, ValueError):
         return None
 

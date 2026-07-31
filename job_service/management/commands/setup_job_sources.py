@@ -4,6 +4,7 @@ from job_service.models import JobSource
 
 
 DEFAULT_SOURCES = [
+    # --- Existing / US ---
     {
         'name': 'Stripe',
         'url': 'https://boards.greenhouse.io/stripe',
@@ -15,8 +16,220 @@ DEFAULT_SOURCES = [
         'source_type': 'api',
     },
     {
-        'name': 'Vercel',
-        'url': 'https://jobs.lever.co/vercel',
+        'name': 'Airbnb',
+        'url': 'https://boards.greenhouse.io/airbnb',
+        'source_type': 'api',
+    },
+    {
+        'name': 'Cloudflare',
+        'url': 'https://boards.greenhouse.io/cloudflare',
+        'source_type': 'api',
+    },
+    {
+        'name': 'Discord',
+        'url': 'https://boards.greenhouse.io/discord',
+        'source_type': 'api',
+    },
+    {
+        'name': 'Anthropic',
+        'url': 'https://boards.greenhouse.io/anthropic',
+        'source_type': 'api',
+    },
+    {
+        'name': 'Notion',
+        'url': 'https://jobs.ashbyhq.com/notion',
+        'source_type': 'api',
+    },
+    {
+        'name': 'Linear',
+        'url': 'https://jobs.ashbyhq.com/linear',
+        'source_type': 'api',
+    },
+    {
+        'name': 'Ramp',
+        'url': 'https://jobs.ashbyhq.com/ramp',
+        'source_type': 'api',
+    },
+    # --- Canadian ---
+    {
+        'name': 'Cohere',
+        'url': 'https://jobs.ashbyhq.com/cohere',
+        'source_type': 'api',
+    },
+    {
+        'name': '1Password',
+        'url': 'https://jobs.ashbyhq.com/1password',
+        'source_type': 'api',
+    },
+    {
+        'name': 'Hopper',
+        'url': 'https://jobs.ashbyhq.com/hopper',
+        'source_type': 'api',
+    },
+    {
+        'name': 'Wealthsimple',
+        'url': 'https://jobs.ashbyhq.com/wealthsimple',
+        'source_type': 'api',
+    },
+    {
+        'name': 'Wattpad',
+        'url': 'https://jobs.lever.co/wattpad',
+        'source_type': 'api',
+    },
+    {
+        'name': 'Hootsuite',
+        'url': 'https://boards.greenhouse.io/hootsuite',
+        'source_type': 'api',
+    },
+    {
+        'name': 'Lightspeed',
+        'url': 'https://jobs.ashbyhq.com/lightspeed',
+        'source_type': 'api',
+    },
+    {
+        'name': 'Ritual',
+        'url': 'https://boards.greenhouse.io/ritual',
+        'source_type': 'api',
+    },
+    {
+        'name': 'BenchSci',
+        'url': 'https://jobs.lever.co/benchsci',
+        'source_type': 'api',
+    },
+    # --- European ---
+    {
+        'name': 'Monzo',
+        'url': 'https://boards.greenhouse.io/monzo',
+        'source_type': 'api',
+    },
+    {
+        'name': 'Spotify',
+        'url': 'https://jobs.lever.co/spotify',
+        'source_type': 'api',
+    },
+    {
+        'name': 'SumUp',
+        'url': 'https://boards.greenhouse.io/sumup',
+        'source_type': 'api',
+    },
+    {
+        'name': 'HelloFresh',
+        'url': 'https://boards.greenhouse.io/hellofresh',
+        'source_type': 'api',
+    },
+    {
+        'name': 'Wolt',
+        'url': 'https://boards.greenhouse.io/wolt',
+        'source_type': 'api',
+    },
+    {
+        'name': 'Celonis',
+        'url': 'https://boards.greenhouse.io/celonis',
+        'source_type': 'api',
+    },
+    {
+        'name': 'Adyen',
+        'url': 'https://boards.greenhouse.io/adyen',
+        'source_type': 'api',
+    },
+    {
+        'name': 'Elastic',
+        'url': 'https://boards.greenhouse.io/elastic',
+        'source_type': 'api',
+    },
+    {
+        'name': 'Deliveroo',
+        'url': 'https://jobs.ashbyhq.com/deliveroo',
+        'source_type': 'api',
+    },
+    {
+        'name': 'Doctolib',
+        'url': 'https://boards.greenhouse.io/doctolib',
+        'source_type': 'api',
+    },
+    {
+        'name': 'Tide',
+        'url': 'https://boards.greenhouse.io/tide',
+        'source_type': 'api',
+    },
+    {
+        'name': 'Alan',
+        'url': 'https://jobs.ashbyhq.com/alan',
+        'source_type': 'api',
+    },
+    {
+        'name': 'N26',
+        'url': 'https://boards.greenhouse.io/n26',
+        'source_type': 'api',
+    },
+    {
+        'name': 'Cabify',
+        'url': 'https://boards.greenhouse.io/cabify',
+        'source_type': 'api',
+    },
+    {
+        'name': 'Trainline',
+        'url': 'https://jobs.ashbyhq.com/trainline',
+        'source_type': 'api',
+    },
+    {
+        'name': 'DeepL',
+        'url': 'https://jobs.ashbyhq.com/deepl',
+        'source_type': 'api',
+    },
+    {
+        'name': 'Bitpanda',
+        'url': 'https://boards.greenhouse.io/bitpanda',
+        'source_type': 'api',
+    },
+    {
+        'name': 'Miro',
+        'url': 'https://jobs.ashbyhq.com/miro',
+        'source_type': 'api',
+    },
+    {
+        'name': 'Mollie',
+        'url': 'https://jobs.ashbyhq.com/mollie',
+        'source_type': 'api',
+    },
+    {
+        'name': 'Qonto',
+        'url': 'https://jobs.ashbyhq.com/qonto',
+        'source_type': 'api',
+    },
+    {
+        'name': 'GoCardless',
+        'url': 'https://boards.greenhouse.io/gocardless',
+        'source_type': 'api',
+    },
+    {
+        'name': 'Contentful',
+        'url': 'https://boards.greenhouse.io/contentful',
+        'source_type': 'api',
+    },
+    {
+        'name': 'BlaBlaCar',
+        'url': 'https://jobs.lever.co/blablacar',
+        'source_type': 'api',
+    },
+    {
+        'name': 'Back Market',
+        'url': 'https://jobs.ashbyhq.com/backmarket',
+        'source_type': 'api',
+    },
+    {
+        'name': 'Typeform',
+        'url': 'https://boards.greenhouse.io/typeform',
+        'source_type': 'api',
+    },
+    {
+        'name': 'Cleo',
+        'url': 'https://boards.greenhouse.io/cleo',
+        'source_type': 'api',
+    },
+    {
+        'name': 'Trade Republic',
+        'url': 'https://boards.greenhouse.io/traderepublic',
         'source_type': 'api',
     },
 ]

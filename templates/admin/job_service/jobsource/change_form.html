@@ -1,0 +1,48 @@
+{% extends "admin/change_form.html" %}
+{% load i18n %}
+
+{% block object-tools-items %}
+{{ block.super }}
+{% endblock %}
+
+{% block after_related_objects %}
+{% if original and original.pk and scrape_url %}
+<div class="module" style="margin-top: 1.5rem;">
+  <h2>{% translate "Fetch jobs from this board" %}</h2>
+  <p style="padding: 0 0.75rem 0.5rem; color: #666;">
+    Calls the same scrape pipeline used by
+    <code>manage.py scrape_jobs</code> and Cloud Run.
+    Jobs are upserted into the database and a scraping log is written.
+  </p>
+  <form method="post" action="{{ scrape_url }}" style="padding: 0 0.75rem 1rem;">
+    {% csrf_token %}
+    <label style="display:inline-flex; align-items:center; gap:0.4rem; margin-right:1rem;">
+      <input type="checkbox" name="fetch_details" value="1" checked>
+      {% translate "Fetch extra job details when description is missing (Greenhouse)" %}
+    </label>
+    <div style="margin-top: 0.75rem;">
+      <button type="submit" class="default" style="padding: 0.5rem 1rem;">
+        {% translate "Scrape jobs now" %}
+      </button>
+      {% if jobs_changelist_url %}
+      <a href="{{ jobs_changelist_url }}" class="button" style="margin-left: 0.5rem; padding: 0.5rem 1rem;">
+        {% translate "View jobs for this source" %}
+      </a>
+      {% endif %}
+      {% if logs_changelist_url %}
+      <a href="{{ logs_changelist_url }}" class="button" style="margin-left: 0.5rem; padding: 0.5rem 1rem;">
+        {% translate "View scrape logs" %}
+      </a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+{% elif add %}
+<div class="module" style="margin-top: 1.5rem;">
+  <h2>{% translate "Fetch jobs" %}</h2>
+  <p style="padding: 0 0.75rem 1rem; color: #666;">
+    Save this job source first, then use <strong>Scrape jobs now</strong>.
+  </p>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from job_service.models import JobSource
+from job_service.scrapers.ashby import AshbyScraper
 from job_service.scrapers.base import BaseScraper
 from job_service.scrapers.greenhouse import GreenhouseScraper
 from job_service.scrapers.lever import LeverScraper
@@ -15,6 +16,9 @@ def get_scraper(source: JobSource, *, fetch_details: bool = True) -> BaseScraper
     """
     url = (source.url or '').lower()
 
+    if 'ashbyhq.com' in url:
+        return AshbyScraper(source, fetch_details=fetch_details)
+
     if 'lever.co' in url:
         return LeverScraper(source, fetch_details=fetch_details)
 
@@ -24,7 +28,8 @@ def get_scraper(source: JobSource, *, fetch_details: bool = True) -> BaseScraper
     if source.source_type == 'api':
         raise ValueError(
             f'Unsupported API job source URL for "{source.name}": {source.url}. '
-            'Supported API boards: Greenhouse (boards.greenhouse.io) and Lever (jobs.lever.co).'
+            'Supported API boards: Greenhouse (boards.greenhouse.io), '
+            'Lever (jobs.lever.co), and Ashby (jobs.ashbyhq.com).'
         )
 
     if source.source_type == 'rss':

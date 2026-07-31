@@ -810,6 +810,7 @@ def submit_application(user, job, artifacts):
 
 | Resource | Path |
 |----------|------|
+| **Job scraper guide (how GH/Lever/Ashby work)** | `docs/architecture/job-scraper-guide.md` |
 | Dashboard AI pipeline | `docs/architecture/dashboard-job-application-pipeline.md` |
 | Job service models | `job_service/models.py` |
 | Subscription models | `subscriptions/models.py` |
