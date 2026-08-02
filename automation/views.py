@@ -53,6 +53,14 @@ def _setup_context(user, profile, resumes, error=None):
         'free_generations_remaining': remaining,
         'can_generate_titles': is_ultimate or (remaining is not None and remaining > 0),
         'ultimate_pricing_url': f"{reverse('subscriptions:pricing')}?plan=ultimate",
+        'search_purpose_choices': UltimateAutomationProfile.SEARCH_PURPOSE_CHOICES,
+        'work_arrangement_choices': [
+            ('remote', 'Remote'),
+            ('hybrid', 'Hybrid'),
+            ('onsite', 'On-site'),
+        ],
+        'setup_ui_version': 'prefs-v4-locations-api',
+        'locations_countries_url': reverse('automation:locations_countries'),
     }
     if error:
         ctx['error'] = error
@@ -87,10 +95,66 @@ def _parse_title_list(raw) -> list[str]:
     return out
 
 
+VALID_WORK_ARRANGEMENTS = {'remote', 'hybrid', 'onsite'}
+VALID_SEARCH_PURPOSES = {c[0] for c in UltimateAutomationProfile.SEARCH_PURPOSE_CHOICES}
+
+
+def _parse_json_list(raw):
+    if raw is None:
+        return []
+    if isinstance(raw, list):
+        return raw
+    if isinstance(raw, str):
+        text = raw.strip()
+        if not text:
+            return []
+        try:
+            parsed = json.loads(text)
+            return parsed if isinstance(parsed, list) else []
+        except json.JSONDecodeError:
+            return []
+    return []
+
+
+def _parse_work_arrangements(raw) -> list[str]:
+    items = _parse_json_list(raw)
+    if not items and isinstance(raw, str) and raw.strip() and not raw.strip().startswith('['):
+        items = [p.strip() for p in raw.split(',') if p.strip()]
+    seen = set()
+    out = []
+    for item in items:
+        key = str(item or '').strip().lower()
+        if key in VALID_WORK_ARRANGEMENTS and key not in seen:
+            seen.add(key)
+            out.append(key)
+    return out
+
+
+def _parse_countries(raw) -> list[dict]:
+    items = _parse_json_list(raw)
+    cleaned = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get('name') or '').strip()[:100]
+        cca2 = str(item.get('cca2') or '').strip().upper()[:3]
+        if not name or not cca2:
+            continue
+        states_raw = item.get('states') or []
+        if isinstance(states_raw, str):
+            states = [s.strip() for s in states_raw.split(',') if s.strip()]
+        elif isinstance(states_raw, list):
+            states = [str(s).strip() for s in states_raw if str(s).strip()]
+        else:
+            states = []
+        cleaned.append({'name': name, 'cca2': cca2, 'states': states[:50]})
+    return cleaned[:20]
+
+
 @login_required
 @require_http_methods(['GET', 'POST'])
 def ultimate_setup(request):
-    """Enroll-first: any logged-in user can build a title family; Ultimate unlocks apply."""
+    """Enroll-first: titles (step 1) then location/prefs (step 2). Ultimate unlocks apply."""
     profile, _ = UltimateAutomationProfile.objects.get_or_create(user=request.user)
     resumes = Resume.objects.filter(user=request.user).order_by('-updated_at')
     is_ultimate = _is_ultimate_subscriber(request.user)
@@ -101,23 +165,47 @@ def ultimate_setup(request):
         exclude = _parse_title_list(request.POST.get('exclude_titles'))
         resume_id = request.POST.get('default_resume') or None
         enable_auto_apply = request.POST.get('auto_apply_enabled') == 'on'
+        search_purpose = (request.POST.get('search_purpose') or '').strip()
+        other_purpose = (request.POST.get('other_purpose') or '').strip()[:500]
+        countries = _parse_countries(request.POST.get('preferred_countries'))
+        city = (request.POST.get('city') or '').strip()[:100]
+        work_arrangements = _parse_work_arrangements(request.POST.get('work_arrangements'))
 
+        try:
+            distance_miles = int(request.POST.get('distance_miles') or 50)
+        except (TypeError, ValueError):
+            distance_miles = 50
+        distance_miles = max(0, min(distance_miles, 500))
+
+        error = None
         if not primary:
+            error = 'Add at least one primary title before continuing.'
+        elif search_purpose not in VALID_SEARCH_PURPOSES:
+            error = 'Choose why you are looking for a job.'
+        elif search_purpose == 'other' and not other_purpose:
+            error = 'Please specify your reason when selecting Other.'
+        elif not work_arrangements:
+            error = 'Select at least one work arrangement (remote, hybrid, or on-site).'
+        elif not city and not countries:
+            error = 'Add a city or at least one country where you want to work.'
+
+        if error:
             return render(
                 request,
                 'automation/ultimate_setup.html',
-                _setup_context(
-                    request.user,
-                    profile,
-                    resumes,
-                    error='Add at least one primary title before continuing.',
-                ),
+                _setup_context(request.user, profile, resumes, error=error),
             )
 
         profile.primary_titles = primary
         profile.related_titles = related
         profile.exclude_titles = exclude
-        # Matching/apply only for Ultimate; free users save a draft profile.
+        profile.search_purpose = search_purpose
+        profile.other_purpose = other_purpose if search_purpose == 'other' else ''
+        profile.preferred_countries = countries
+        profile.city = city
+        profile.distance_miles = distance_miles
+        profile.work_arrangements = work_arrangements
+        # max_applications_per_day is admin-managed; do not overwrite from setup form
         profile.auto_apply_enabled = bool(is_ultimate and enable_auto_apply and primary)
 
         if resume_id:
@@ -221,4 +309,30 @@ def suggest_title_family(request):
         **suggestions,
         'free_generations_remaining': remaining,
         'next': reverse('automation:ultimate_setup'),
+    })
+
+
+@require_http_methods(['GET'])
+def locations_countries(request):
+    """Return supported countries for job-search preferences (US, CA, GB to start)."""
+    from .data.locations import list_countries
+
+    return JsonResponse({'countries': list_countries()})
+
+
+@require_http_methods(['GET'])
+def locations_regions(request, code: str):
+    """Return states / provinces / nations for a supported country code."""
+    from .data.locations import get_country, list_regions
+
+    country = get_country(code)
+    regions = list_regions(code)
+    if country is None or regions is None:
+        return JsonResponse({'error': 'Unknown country code.'}, status=404)
+
+    return JsonResponse({
+        'code': country['code'],
+        'name': country['name'],
+        'region_label': country['region_label'],
+        'regions': regions,
     })

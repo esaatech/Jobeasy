@@ -51,23 +51,10 @@
   }
   .tf-chip:active { cursor: grabbing; }
   .tf-chip.is-dragging { opacity: 0.45; }
-  .tf-chip[data-bucket="primary"] {
-    border-color: #93c5fd;
-    background: #eff6ff;
-  }
-  .tf-chip[data-bucket="related"] {
-    border-color: #d1d5db;
-    background: #fff;
-  }
-  .tf-chip[data-bucket="exclude"] {
-    border-color: #fecaca;
-    background: #fff1f2;
-  }
-  .tf-chip-label {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
+  .tf-chip[data-bucket="primary"] { border-color: #93c5fd; background: #eff6ff; }
+  .tf-chip[data-bucket="related"] { border-color: #d1d5db; background: #fff; }
+  .tf-chip[data-bucket="exclude"] { border-color: #fecaca; background: #fff1f2; }
+  .tf-chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .tf-chip-remove {
     display: inline-flex;
     align-items: center;
@@ -81,15 +68,8 @@
     cursor: pointer;
     flex-shrink: 0;
   }
-  .tf-chip-remove:hover {
-    background: rgba(15, 23, 42, 0.08);
-    color: #b91c1c;
-  }
-  .tf-add-row {
-    display: flex;
-    gap: 0.5rem;
-    margin-top: 0.75rem;
-  }
+  .tf-chip-remove:hover { background: rgba(15, 23, 42, 0.08); color: #b91c1c; }
+  .tf-add-row { display: flex; gap: 0.5rem; margin-top: 0.75rem; }
   .tf-add-row input {
     flex: 1;
     border: 1px solid #d1d5db;
@@ -113,16 +93,8 @@
     cursor: pointer;
   }
   .tf-add-row button:hover { background: #f9fafb; }
-  .tf-hint {
-    margin-top: 0.5rem;
-    font-size: 0.75rem;
-    color: #6b7280;
-  }
-  .tf-empty {
-    font-size: 0.8125rem;
-    color: #9ca3af;
-    padding: 0.35rem 0.15rem;
-  }
+  .tf-hint { margin-top: 0.5rem; font-size: 0.75rem; color: #6b7280; }
+  .tf-empty { font-size: 0.8125rem; color: #9ca3af; padding: 0.35rem 0.15rem; }
   .tf-select {
     appearance: none;
     background-color: #fff;
@@ -136,8 +108,37 @@
     font-size: 0.875rem;
     color: #1f2937;
     line-height: 1.25;
+    width: 100%;
   }
   .tf-select:focus {
+    outline: none;
+    border-color: #1980e6;
+    box-shadow: 0 0 0 3px rgba(25, 128, 230, 0.15);
+  }
+  .tf-input {
+    width: 100%;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    padding: 0.65rem 0.85rem;
+    font-size: 0.875rem;
+    color: #1f2937;
+  }
+  .tf-input:focus {
+    outline: none;
+    border-color: #1980e6;
+    box-shadow: 0 0 0 3px rgba(25, 128, 230, 0.15);
+  }
+  .tf-textarea {
+    width: 100%;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    padding: 0.65rem 0.85rem;
+    font-size: 0.875rem;
+    color: #1f2937;
+    min-height: 5rem;
+    resize: vertical;
+  }
+  .tf-textarea:focus {
     outline: none;
     border-color: #1980e6;
     box-shadow: 0 0 0 3px rgba(25, 128, 230, 0.15);
@@ -151,19 +152,66 @@
     padding-top: 1.25rem;
     border-top: 1px solid #e5e7eb;
   }
-  .tf-resume-default-copy {
-    flex: 1 1 14rem;
-    min-width: 0;
+  .tf-resume-default-copy { flex: 1 1 14rem; min-width: 0; }
+  .tf-resume-default .tf-select { flex: 0 1 18rem; width: 100%; max-width: 18rem; }
+  .tf-suggest-row .tf-select { flex: 1 1 16rem; min-width: 0; max-width: 28rem; }
+  .tf-steps {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.75rem;
+    flex-wrap: wrap;
   }
-  .tf-resume-default .tf-select {
-    flex: 0 1 18rem;
+  .tf-step {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #9ca3af;
+    font-size: 0.875rem;
+    font-weight: 500;
+  }
+  .tf-step.is-active { color: #1980e6; }
+  .tf-step.is-done { color: #059669; }
+  .tf-step-num {
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 9999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: #e5e7eb;
+    color: #6b7280;
+  }
+  .tf-step.is-active .tf-step-num { background: #1980e6; color: #fff; }
+  .tf-step.is-done .tf-step-num { background: #059669; color: #fff; }
+  .tf-step-divider { width: 2rem; height: 1px; background: #e5e7eb; }
+  .tf-toggle-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  .tf-toggle-chip {
+    border: 1px solid #d1d5db;
+    background: #fff;
+    border-radius: 0.5rem;
+    padding: 0.55rem 0.95rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #374151;
+    cursor: pointer;
+  }
+  .tf-toggle-chip.is-selected {
+    border-color: #93c5fd;
+    background: #eff6ff;
+    color: #1d4ed8;
+  }
+  .tf-country-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: #f9fafb;
+    padding: 1rem;
+  }
+  .tf-range {
     width: 100%;
-    max-width: 18rem;
-  }
-  .tf-suggest-row .tf-select {
-    flex: 1 1 16rem;
-    min-width: 0;
-    max-width: 28rem;
+    accent-color: #1980e6;
   }
 </style>
 {% endblock %}
@@ -172,12 +220,14 @@
 {{ profile.primary_titles|json_script:"tf-primary-data" }}
 {{ profile.related_titles|json_script:"tf-related-data" }}
 {{ profile.exclude_titles|json_script:"tf-exclude-data" }}
+{{ profile.preferred_countries|json_script:"tf-countries-data" }}
+{{ profile.work_arrangements|json_script:"tf-arrangements-data" }}
 
 <div class="page-width py-10 sm:py-12">
-  <div class="mb-8 max-w-3xl">
+  <div class="mb-6 max-w-3xl">
     <p class="text-sm font-medium text-blue-600 mb-1">Auto-Apply setup</p>
-    <h1 class="headline-secondary text-gray-900">Choose your job titles</h1>
-    <p class="mt-2 text-gray-600">
+    <h1 class="headline-secondary text-gray-900" id="wizard-title">Choose your job titles</h1>
+    <p class="mt-2 text-gray-600" id="wizard-subtitle">
       We’ll match jobs to these titles. Generate suggestions from your resume, then drag titles between buckets to refine.
       {% if not is_ultimate %}
       After you save, unlock Ultimate to start auto-apply matching.
@@ -185,11 +235,23 @@
     </p>
   </div>
 
+  <div class="tf-steps" aria-label="Setup progress">
+    <div class="tf-step is-active" data-step-indicator="1">
+      <span class="tf-step-num">1</span>
+      <span>Job titles</span>
+    </div>
+    <div class="tf-step-divider" aria-hidden="true"></div>
+    <div class="tf-step" data-step-indicator="2">
+      <span class="tf-step-num">2</span>
+      <span>Preferences</span>
+    </div>
+  </div>
+
   {% if error %}
   <div class="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-red-700">{{ error }}</div>
   {% endif %}
 
-  <div class="tf-panel mb-6">
+  <div id="step1-suggest" class="tf-panel mb-6">
     <label class="block text-sm font-medium text-gray-700 mb-2">Resume for AI suggestions</label>
     <div class="tf-suggest-row flex flex-col sm:flex-row sm:items-center gap-3">
       <select id="resume-select" class="tf-select">
@@ -225,94 +287,177 @@
     {% endif %}
   </div>
 
-  <form method="post" id="title-family-form" class="tf-panel space-y-6">
+  <form method="post" id="title-family-form" class="space-y-6">
     {% csrf_token %}
     <input type="hidden" name="primary_titles" id="primary_titles" value="">
     <input type="hidden" name="related_titles" id="related_titles" value="">
     <input type="hidden" name="exclude_titles" id="exclude_titles" value="">
+    <input type="hidden" name="preferred_countries" id="preferred_countries" value="">
+    <input type="hidden" name="work_arrangements" id="work_arrangements" value="">
 
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-      <section>
-        <label class="block text-sm font-medium text-gray-900 mb-1">
-          Primary titles <span class="text-red-500">*</span>
-        </label>
-        <p class="text-sm text-gray-500 mb-3">Core roles you want matched first.</p>
-        <div class="tf-bucket" data-bucket="primary">
-          <div class="tf-chips" id="primary-chips" data-bucket="primary"></div>
-          <div class="tf-add-row">
-            <input type="text" data-add-for="primary" placeholder="Add a primary title…" maxlength="120">
-            <button type="button" data-add-btn="primary">Add</button>
+    <div id="wizard-step-1" class="tf-panel space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <section>
+          <label class="block text-sm font-medium text-gray-900 mb-1">
+            Primary titles <span class="text-red-500">*</span>
+          </label>
+          <p class="text-sm text-gray-500 mb-3">Core roles you want matched first.</p>
+          <div class="tf-bucket" data-bucket="primary">
+            <div class="tf-chips" id="primary-chips" data-bucket="primary"></div>
+            <div class="tf-add-row">
+              <input type="text" data-add-for="primary" placeholder="Add a primary title…" maxlength="120">
+              <button type="button" data-add-btn="primary">Add</button>
+            </div>
+            <p class="tf-hint">Drag chips here from Related or Exclude.</p>
           </div>
-          <p class="tf-hint">Drag chips here from Related or Exclude.</p>
-        </div>
-      </section>
+        </section>
 
-      <section>
-        <label class="block text-sm font-medium text-gray-900 mb-1">Related titles</label>
-        <p class="text-sm text-gray-500 mb-3">Adjacent roles for broader Stage 2 matching.</p>
-        <div class="tf-bucket" data-bucket="related">
-          <div class="tf-chips" id="related-chips" data-bucket="related"></div>
-          <div class="tf-add-row">
-            <input type="text" data-add-for="related" placeholder="Add a related title…" maxlength="120">
-            <button type="button" data-add-btn="related">Add</button>
+        <section>
+          <label class="block text-sm font-medium text-gray-900 mb-1">Related titles</label>
+          <p class="text-sm text-gray-500 mb-3">Adjacent roles for broader matching.</p>
+          <div class="tf-bucket" data-bucket="related">
+            <div class="tf-chips" id="related-chips" data-bucket="related"></div>
+            <div class="tf-add-row">
+              <input type="text" data-add-for="related" placeholder="Add a related title…" maxlength="120">
+              <button type="button" data-add-btn="related">Add</button>
+            </div>
+            <p class="tf-hint">Drag chips here to broaden matching.</p>
           </div>
-          <p class="tf-hint">Drag chips here to broaden matching.</p>
-        </div>
-      </section>
+        </section>
 
-      <section>
-        <label class="block text-sm font-medium text-gray-900 mb-1">Exclude titles</label>
-        <p class="text-sm text-gray-500 mb-3">Roles to never match.</p>
-        <div class="tf-bucket" data-bucket="exclude">
-          <div class="tf-chips" id="exclude-chips" data-bucket="exclude"></div>
-          <div class="tf-add-row">
-            <input type="text" data-add-for="exclude" placeholder="Add an exclude title…" maxlength="120">
-            <button type="button" data-add-btn="exclude">Add</button>
+        <section>
+          <label class="block text-sm font-medium text-gray-900 mb-1">Exclude titles</label>
+          <p class="text-sm text-gray-500 mb-3">Roles to never match.</p>
+          <div class="tf-bucket" data-bucket="exclude">
+            <div class="tf-chips" id="exclude-chips" data-bucket="exclude"></div>
+            <div class="tf-add-row">
+              <input type="text" data-add-for="exclude" placeholder="Add an exclude title…" maxlength="120">
+              <button type="button" data-add-btn="exclude">Add</button>
+            </div>
+            <p class="tf-hint">Drag chips here to block a career track.</p>
           </div>
-          <p class="tf-hint">Drag chips here to block a career track.</p>
-        </div>
-      </section>
-    </div>
-
-    {% if resumes %}
-    <div class="tf-resume-default">
-      <div class="tf-resume-default-copy">
-        <label for="default-resume-select" class="block text-sm font-medium text-gray-900">
-          Default resume for applications
-        </label>
-        <p class="mt-1 text-sm text-gray-500">
-          Used when we prepare apply packets for matched jobs.
-        </p>
+        </section>
       </div>
-      <select id="default-resume-select" name="default_resume" class="tf-select">
-        {% for resume in resumes %}
-        <option value="{{ resume.id }}" {% if profile.default_resume_id == resume.id %}selected{% endif %}>
-          {{ resume.name }}
-        </option>
-        {% endfor %}
-      </select>
+
+      {% if resumes %}
+      <div class="tf-resume-default">
+        <div class="tf-resume-default-copy">
+          <label for="default-resume-select" class="block text-sm font-medium text-gray-900">
+            Default resume for applications
+          </label>
+          <p class="mt-1 text-sm text-gray-500">
+            Used when we prepare apply packets for matched jobs.
+          </p>
+        </div>
+        <select id="default-resume-select" name="default_resume" class="tf-select">
+          {% for resume in resumes %}
+          <option value="{{ resume.id }}" {% if profile.default_resume_id == resume.id %}selected{% endif %}>
+            {{ resume.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+
+      <div class="flex flex-col sm:flex-row gap-3 pt-2">
+        <button type="button" id="goto-step-2"
+                class="inline-flex justify-center px-6 py-3 rounded-md text-white bg-[#1980e6] hover:bg-[#1980e6]/90 font-medium">
+          Next: preferences
+        </button>
+        <a href="{% url 'dashboard:dashboard' %}"
+           class="inline-flex justify-center px-6 py-3 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 font-medium">
+          Skip for now
+        </a>
+      </div>
     </div>
-    {% endif %}
 
-    {% if is_ultimate %}
-    <label class="flex items-start gap-3">
-      <input type="checkbox" name="auto_apply_enabled" class="mt-1 rounded border-gray-300 text-blue-600"
-             {% if profile.auto_apply_enabled %}checked{% endif %}>
-      <span class="text-sm text-gray-700">
-        Enable auto-apply matching for these job titles (AI prepares packets; operators submit forms).
-      </span>
-    </label>
-    {% endif %}
+    <div id="wizard-step-2" class="tf-panel space-y-8 hidden">
+      <section class="space-y-3">
+        <div>
+          <label for="search_purpose" class="block text-sm font-medium text-gray-900 mb-1">
+            Why are you looking? <span class="text-red-500">*</span>
+          </label>
+          <p class="text-sm text-gray-500 mb-3">Helps operators prioritize the right roles for you.</p>
+          <select name="search_purpose" id="search_purpose" class="tf-select">
+            <option value="">Select a reason…</option>
+            {% for value, label in search_purpose_choices %}
+            <option value="{{ value }}" {% if profile.search_purpose == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div id="other-purpose-wrap" class="{% if profile.search_purpose != 'other' %}hidden{% endif %}">
+          <label for="other_purpose" class="block text-sm font-medium text-gray-900 mb-1">Tell us more</label>
+          <textarea name="other_purpose" id="other_purpose" class="tf-textarea"
+                    placeholder="Briefly describe what you’re looking for…">{{ profile.other_purpose }}</textarea>
+        </div>
+      </section>
 
-    <div class="flex flex-col sm:flex-row gap-3 pt-2">
-      <button type="submit"
-              class="inline-flex justify-center px-6 py-3 rounded-md text-white bg-[#1980e6] hover:bg-[#1980e6]/90 font-medium">
-        {% if is_ultimate %}Save job titles{% else %}Save &amp; continue{% endif %}
-      </button>
-      <a href="{% url 'dashboard:dashboard' %}"
-         class="inline-flex justify-center px-6 py-3 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 font-medium">
-        Skip for now
-      </a>
+      <section class="space-y-4">
+        <div>
+          <h2 class="text-sm font-medium text-gray-900">Where do you want to work?</h2>
+          <p class="text-sm text-gray-500 mt-1">
+            Add USA, Canada, and/or the UK, then pick states or provinces.
+            <span class="text-xs text-gray-400">ui:{{ setup_ui_version }}</span>
+          </p>
+        </div>
+        <div id="selected-countries" class="space-y-3"></div>
+        <div class="flex flex-wrap gap-2" id="add-country-buttons">
+          <!-- Filled from /automation/locations/countries/ -->
+        </div>
+        <p id="locations-status" class="tf-hint hidden"></p>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="city" class="block text-sm font-medium text-gray-900 mb-1">City / metro</label>
+            <input type="text" name="city" id="city" class="tf-input" maxlength="100"
+                   value="{{ profile.city }}" placeholder="e.g. Toronto, New York, London">
+          </div>
+          <div>
+            <label for="distance_miles" class="block text-sm font-medium text-gray-900 mb-1">
+              Search radius
+              <span id="distance-label" class="font-normal text-gray-500">
+                ({{ profile.distance_miles|default:50 }} miles)
+              </span>
+            </label>
+            <input type="range" class="tf-range mt-3" id="distance_miles" name="distance_miles"
+                   min="0" max="200" step="5" value="{{ profile.distance_miles|default:50 }}">
+          </div>
+        </div>
+      </section>
+
+      <section class="space-y-3">
+        <div>
+          <label class="block text-sm font-medium text-gray-900 mb-1">
+            Work arrangement <span class="text-red-500">*</span>
+          </label>
+          <p class="text-sm text-gray-500 mb-3">Select all that fit your flexibility.</p>
+        </div>
+        <div class="tf-toggle-chips" id="arrangement-chips">
+          {% for value, label in work_arrangement_choices %}
+          <button type="button" class="tf-toggle-chip" data-arrangement="{{ value }}">{{ label }}</button>
+          {% endfor %}
+        </div>
+      </section>
+
+      {% if is_ultimate %}
+      <label class="flex items-start gap-3">
+        <input type="checkbox" name="auto_apply_enabled" class="mt-1 rounded border-gray-300 text-blue-600"
+               {% if profile.auto_apply_enabled %}checked{% endif %}>
+        <span class="text-sm text-gray-700">
+          Enable auto-apply matching for these preferences (AI prepares packets; operators submit forms).
+        </span>
+      </label>
+      {% endif %}
+
+      <div class="flex flex-col sm:flex-row gap-3 pt-2">
+        <button type="button" id="back-step-1"
+                class="inline-flex justify-center px-6 py-3 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 font-medium">
+          Back
+        </button>
+        <button type="submit"
+                class="inline-flex justify-center px-6 py-3 rounded-md text-white bg-[#1980e6] hover:bg-[#1980e6]/90 font-medium">
+          {% if is_ultimate %}Save setup{% else %}Save &amp; continue{% endif %}
+        </button>
+      </div>
     </div>
   </form>
 </div>
@@ -337,13 +482,18 @@
 
   let dragTitle = null;
   let dragFrom = null;
+  let currentStep = 1;
+  let selectedCountries = readJson('tf-countries-data');
+  let selectedArrangements = readJson('tf-arrangements-data').map(function (a) {
+    return String(a).toLowerCase();
+  });
 
   function readJson(id) {
     const el = document.getElementById(id);
     if (!el) return [];
     try {
       const data = JSON.parse(el.textContent);
-      return Array.isArray(data) ? data.map(String).filter(Boolean) : [];
+      return Array.isArray(data) ? data : [];
     } catch (e) {
       return [];
     }
@@ -357,6 +507,8 @@
     Object.keys(state).forEach(function (key) {
       hidden[key].value = state[key].join(', ');
     });
+    document.getElementById('preferred_countries').value = JSON.stringify(selectedCountries);
+    document.getElementById('work_arrangements').value = JSON.stringify(selectedArrangements);
   }
 
   function removeFromAll(title) {
@@ -375,11 +527,8 @@
       return state[b].some(function (t) { return t.toLowerCase() === cleaned.toLowerCase(); });
     });
     if (existsElsewhere) {
-      if (opts && opts.move) {
-        removeFromAll(cleaned);
-      } else {
-        return false;
-      }
+      if (opts && opts.move) removeFromAll(cleaned);
+      else return false;
     }
     if (!state[bucket].some(function (t) { return t.toLowerCase() === cleaned.toLowerCase(); })) {
       state[bucket].push(cleaned);
@@ -474,20 +623,53 @@
         zone.classList.add('is-drag-over');
       });
       zone.addEventListener('dragleave', function (e) {
-        if (!zone.contains(e.relatedTarget)) {
-          zone.classList.remove('is-drag-over');
-        }
+        if (!zone.contains(e.relatedTarget)) zone.classList.remove('is-drag-over');
       });
       zone.addEventListener('drop', function (e) {
         e.preventDefault();
         zone.classList.remove('is-drag-over');
         const title = dragTitle || e.dataTransfer.getData('text/plain');
         const toBucket = zone.dataset.bucket;
-        if (title && toBucket && toBucket !== dragFrom) {
-          moveTitle(title, toBucket);
-        }
+        if (title && toBucket && toBucket !== dragFrom) moveTitle(title, toBucket);
       });
     });
+  }
+
+  function showStep(step) {
+    currentStep = step;
+    const step1 = document.getElementById('wizard-step-1');
+    const step2 = document.getElementById('wizard-step-2');
+    const suggest = document.getElementById('step1-suggest');
+    const title = document.getElementById('wizard-title');
+    const subtitle = document.getElementById('wizard-subtitle');
+
+    step1.classList.toggle('hidden', step !== 1);
+    step2.classList.toggle('hidden', step !== 2);
+    if (suggest) suggest.classList.toggle('hidden', step !== 1);
+
+    document.querySelectorAll('[data-step-indicator]').forEach(function (el) {
+      const n = Number(el.getAttribute('data-step-indicator'));
+      el.classList.toggle('is-active', n === step);
+      el.classList.toggle('is-done', n < step);
+    });
+
+    if (step === 1) {
+      title.textContent = 'Choose your job titles';
+      subtitle.textContent = 'We’ll match jobs to these titles. Generate suggestions from your resume, then drag titles between buckets to refine.';
+    } else {
+      title.textContent = 'Where and how you want to work';
+      subtitle.textContent = 'Set location, flexibility, and why you are looking.';
+      renderArrangements();
+      initLocations();
+    }
+  }
+
+  function alertMsg(msg) {
+    if (window.Alert && typeof window.Alert.error === 'function') {
+      window.Alert.error(msg);
+    } else {
+      window.alert(msg);
+    }
   }
 
   document.querySelectorAll('[data-add-btn]').forEach(function (btn) {
@@ -513,11 +695,225 @@
     });
   });
 
-  document.getElementById('title-family-form').addEventListener('submit', function () {
+  document.getElementById('goto-step-2').addEventListener('click', function () {
     syncHidden();
+    if (!state.primary.length) {
+      alertMsg('Add at least one primary title before continuing.');
+      return;
+    }
+    showStep(2);
   });
 
-  // Suggest from resume
+  document.getElementById('back-step-1').addEventListener('click', function () {
+    showStep(1);
+  });
+
+  document.getElementById('search_purpose').addEventListener('change', function () {
+    document.getElementById('other-purpose-wrap').classList.toggle('hidden', this.value !== 'other');
+  });
+
+  const distance = document.getElementById('distance_miles');
+  const distanceLabel = document.getElementById('distance-label');
+  distance.addEventListener('input', function () {
+    distanceLabel.textContent = '(' + this.value + ' miles)';
+  });
+
+  function renderArrangements() {
+    document.querySelectorAll('[data-arrangement]').forEach(function (btn) {
+      const value = btn.getAttribute('data-arrangement');
+      btn.classList.toggle('is-selected', selectedArrangements.indexOf(value) !== -1);
+    });
+    syncHidden();
+  }
+
+  document.querySelectorAll('[data-arrangement]').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      const value = btn.getAttribute('data-arrangement');
+      const idx = selectedArrangements.indexOf(value);
+      if (idx === -1) selectedArrangements.push(value);
+      else selectedArrangements.splice(idx, 1);
+      renderArrangements();
+    });
+  });
+
+  const locationsCountriesUrl = '{% url "automation:locations_countries" %}';
+  const regionCache = {};
+  let catalogCountries = [];
+  let locationsReady = false;
+
+  function escapeHtml(str) {
+    return String(str || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function regionsUrl(code) {
+    return '/automation/locations/countries/' + encodeURIComponent(code) + '/regions/';
+  }
+
+  async function fetchCountriesCatalog() {
+    const status = document.getElementById('locations-status');
+    try {
+      const res = await fetch(locationsCountriesUrl, { headers: { 'Accept': 'application/json' } });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not load countries');
+      catalogCountries = data.countries || [];
+      if (status) {
+        status.classList.add('hidden');
+        status.textContent = '';
+      }
+      return catalogCountries;
+    } catch (err) {
+      if (status) {
+        status.classList.remove('hidden');
+        status.textContent = err.message || 'Could not load location catalog.';
+      }
+      throw err;
+    }
+  }
+
+  async function fetchRegions(code) {
+    if (regionCache[code]) return regionCache[code];
+    const res = await fetch(regionsUrl(code), { headers: { 'Accept': 'application/json' } });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Could not load regions');
+    regionCache[code] = data;
+    return data;
+  }
+
+  function renderAddCountryButtons() {
+    const host = document.getElementById('add-country-buttons');
+    if (!host) return;
+    host.innerHTML = '';
+    catalogCountries.forEach(function (country) {
+      const already = selectedCountries.some(function (s) { return s.cca2 === country.code; });
+      if (already) return;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'inline-flex items-center px-4 py-2.5 rounded-md border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 text-sm font-medium';
+      btn.textContent = 'Add ' + country.name;
+      btn.addEventListener('click', function () { addCountry(country.code); });
+      host.appendChild(btn);
+    });
+    if (!host.children.length && catalogCountries.length) {
+      host.innerHTML = '<p class="tf-empty">All supported countries are selected.</p>';
+    }
+  }
+
+  async function addCountry(code) {
+    if (selectedCountries.some(function (s) { return s.cca2 === code; })) return;
+    const meta = catalogCountries.find(function (c) { return c.code === code; });
+    if (!meta) return;
+    selectedCountries.push({ name: meta.name, cca2: code, states: [] });
+    syncHidden();
+    await renderSelectedCountries();
+    renderAddCountryButtons();
+  }
+
+  async function renderSelectedCountries() {
+    const host = document.getElementById('selected-countries');
+    if (!host) return;
+    host.innerHTML = '';
+    if (!selectedCountries.length) {
+      host.innerHTML = '<p class="tf-empty">No countries yet — add USA, Canada, or the UK.</p>';
+      syncHidden();
+      return;
+    }
+    for (let index = 0; index < selectedCountries.length; index++) {
+      const country = selectedCountries[index];
+      let regionData = { region_label: 'Regions', regions: [] };
+      try {
+        regionData = await fetchRegions(country.cca2);
+      } catch (err) {
+        alertMsg(err.message || 'Could not load regions.');
+      }
+      const selectedStates = Array.isArray(country.states) ? country.states : [];
+      const card = document.createElement('div');
+      card.className = 'tf-country-card';
+      card.innerHTML =
+        '<div class="flex items-start justify-between gap-3 mb-3">' +
+          '<div><p class="font-medium text-gray-900">' + escapeHtml(country.name) + '</p>' +
+          '<p class="text-xs text-gray-500">' + escapeHtml(country.cca2) + '</p></div>' +
+          '<button type="button" class="tf-chip-remove" data-remove-country="' + index + '" aria-label="Remove country">' +
+            '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" d="M6 18L18 6M6 6l12 12"/></svg>' +
+          '</button>' +
+        '</div>' +
+        '<label class="block text-sm font-medium text-gray-700 mb-1">' + escapeHtml(regionData.region_label || 'Regions') + '</label>' +
+        '<select multiple class="tf-select" data-state-select="' + index + '" style="min-height:8rem">' +
+        (regionData.regions || []).map(function (s) {
+          const sel = selectedStates.indexOf(s) !== -1 ? ' selected' : '';
+          return '<option value="' + escapeHtml(s).replace(/"/g, '&quot;') + '"' + sel + '>' + escapeHtml(s) + '</option>';
+        }).join('') +
+        '</select><p class="tf-hint">Hold Ctrl/Cmd to select multiple. Optional — leave empty for nationwide.</p>';
+      host.appendChild(card);
+    }
+    host.querySelectorAll('[data-remove-country]').forEach(function (btn) {
+      btn.addEventListener('click', async function () {
+        selectedCountries.splice(Number(btn.getAttribute('data-remove-country')), 1);
+        syncHidden();
+        await renderSelectedCountries();
+        renderAddCountryButtons();
+      });
+    });
+    host.querySelectorAll('[data-state-select]').forEach(function (sel) {
+      sel.addEventListener('change', function () {
+        const idx = Number(sel.getAttribute('data-state-select'));
+        selectedCountries[idx].states = Array.from(sel.selectedOptions).map(function (o) { return o.value; });
+        syncHidden();
+      });
+    });
+    syncHidden();
+  }
+
+  async function initLocations() {
+    if (!locationsReady) {
+      await fetchCountriesCatalog();
+      locationsReady = true;
+    }
+    renderAddCountryButtons();
+    await renderSelectedCountries();
+  }
+
+  document.getElementById('title-family-form').addEventListener('submit', function (e) {
+    syncHidden();
+    if (currentStep !== 2) {
+      e.preventDefault();
+      showStep(2);
+      return;
+    }
+    const purpose = document.getElementById('search_purpose').value;
+    const other = document.getElementById('other_purpose').value.trim();
+    const city = document.getElementById('city').value.trim();
+    if (!state.primary.length) {
+      e.preventDefault();
+      alertMsg('Add at least one primary title before continuing.');
+      showStep(1);
+      return;
+    }
+    if (!purpose) {
+      e.preventDefault();
+      alertMsg('Choose why you are looking for a job.');
+      return;
+    }
+    if (purpose === 'other' && !other) {
+      e.preventDefault();
+      alertMsg('Please specify your reason when selecting Other.');
+      return;
+    }
+    if (!selectedArrangements.length) {
+      e.preventDefault();
+      alertMsg('Select at least one work arrangement.');
+      return;
+    }
+    if (!city && !selectedCountries.length) {
+      e.preventDefault();
+      alertMsg('Add a city or at least one country.');
+      return;
+    }
+  });
+
   const btn = document.getElementById('suggest-titles-btn');
   const status = document.getElementById('suggest-status');
   const resumeSelect = document.getElementById('resume-select');
@@ -567,7 +963,7 @@
         state.related = (data.related_titles || []).map(normalize).filter(Boolean);
         state.exclude = (data.exclude_titles || []).map(normalize).filter(Boolean);
         render();
-        status.textContent = 'Suggestions loaded. Drag chips between buckets, then save.';
+        status.textContent = 'Suggestions loaded. Drag chips between buckets, then continue.';
         status.className = 'mt-2 text-sm text-green-700';
         const remaining = data.free_generations_remaining;
         if (remaining === null || remaining === undefined) {
@@ -586,6 +982,13 @@
 
   bindDropZones();
   render();
+  renderArrangements();
+
+  {% if error %}
+  showStep(2);
+  {% else %}
+  showStep(1);
+  {% endif %}
 })();
 </script>
 {% endblock %}

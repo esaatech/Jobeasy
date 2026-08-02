@@ -64,6 +64,11 @@ class AutoApplySetupFunnelTests(TestCase):
                 'exclude_titles': 'Data Scientist',
                 'default_resume': self.resume.pk,
                 'auto_apply_enabled': 'on',
+                'search_purpose': 'career_growth',
+                'preferred_countries': '[{"name":"Canada","cca2":"CA","states":["Ontario"]}]',
+                'city': 'Toronto',
+                'distance_miles': '50',
+                'work_arrangements': '["remote","hybrid"]',
             },
         )
         self.assertRedirects(response, reverse('automation:ultimate_setup_done'))
@@ -71,6 +76,22 @@ class AutoApplySetupFunnelTests(TestCase):
         self.assertTrue(profile.title_family_confirmed)
         self.assertFalse(profile.auto_apply_enabled)
         self.assertEqual(profile.primary_titles, ['Backend Engineer', 'Software Engineer'])
+        self.assertEqual(profile.city, 'Toronto')
+        self.assertEqual(profile.work_arrangements, ['remote', 'hybrid'])
+        self.assertEqual(profile.max_applications_per_day, 10)  # admin default; not user-editable
+        self.assertEqual(profile.search_purpose, 'career_growth')
+        self.assertEqual(profile.preferred_countries[0]['cca2'], 'CA')
+
+    def test_setup_requires_preferences(self):
+        response = self.client.post(
+            reverse('automation:ultimate_setup'),
+            {
+                'primary_titles': 'Backend Engineer',
+                'default_resume': self.resume.pk,
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Choose why you are looking')
 
     def test_done_page_shows_checkout_cta_for_free_users(self):
         UltimateAutomationProfile.objects.create(
@@ -109,3 +130,32 @@ class AutoApplySetupFunnelTests(TestCase):
         profile = UltimateAutomationProfile.objects.get(user=self.user)
         self.assertEqual(profile.title_family_ai_generations, FREE_TITLE_FAMILY_AI_GENERATIONS)
         self.assertEqual(mock_generate.call_count, FREE_TITLE_FAMILY_AI_GENERATIONS)
+
+
+class LocationsApiTests(TestCase):
+    def test_list_countries(self):
+        response = self.client.get(reverse('automation:locations_countries'))
+        self.assertEqual(response.status_code, 200)
+        codes = [c['code'] for c in response.json()['countries']]
+        self.assertEqual(codes, ['US', 'CA', 'GB'])
+
+    def test_us_regions_include_all_states(self):
+        response = self.client.get(reverse('automation:locations_regions', args=['US']))
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['code'], 'US')
+        self.assertIn('California', data['regions'])
+        self.assertIn('New York', data['regions'])
+        self.assertGreaterEqual(len(data['regions']), 50)
+
+    def test_ca_and_gb_regions(self):
+        ca = self.client.get(reverse('automation:locations_regions', args=['CA'])).json()
+        gb = self.client.get(reverse('automation:locations_regions', args=['GB'])).json()
+        self.assertIn('Ontario', ca['regions'])
+        self.assertIn('Quebec', ca['regions'])
+        self.assertIn('England', gb['regions'])
+        self.assertIn('Scotland', gb['regions'])
+
+    def test_unknown_country_404(self):
+        response = self.client.get(reverse('automation:locations_regions', args=['XX']))
+        self.assertEqual(response.status_code, 404)

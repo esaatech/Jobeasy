@@ -53,6 +53,43 @@ class UltimateAutomationProfile(models.Model):
         help_text='Successful AI suggest-from-resume calls (free users capped)',
     )
     max_applications_per_day = models.PositiveIntegerField(default=10)
+
+    # Job search preferences (wizard step 2 — mirrors job_service intake)
+    SEARCH_PURPOSE_CHOICES = [
+        ('career_growth', 'Career Growth & Advancement'),
+        ('better_compensation', 'Better Compensation & Benefits'),
+        ('work_life_balance', 'Better Work-Life Balance'),
+        ('relocation', 'Relocation to New City/Country'),
+        ('travel_opportunity', 'Travel & Work Abroad'),
+        ('industry_change', 'Change of Industry'),
+        ('company_culture', 'Better Company Culture'),
+        ('remote_work', 'Remote Work Opportunities'),
+        ('other', 'Other'),
+    ]
+    search_purpose = models.CharField(
+        max_length=50,
+        choices=SEARCH_PURPOSE_CHOICES,
+        blank=True,
+        help_text='Why the user is looking for roles',
+    )
+    other_purpose = models.TextField(blank=True)
+    preferred_countries = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='Selected countries/states, e.g. [{"name":"Canada","cca2":"CA","states":["Ontario"]}]',
+    )
+    city = models.CharField(max_length=100, blank=True)
+    distance_miles = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text='Preferred commute / search radius in miles',
+    )
+    work_arrangements = models.JSONField(
+        default=list,
+        blank=True,
+        help_text='Preferred arrangements: remote, hybrid, onsite',
+    )
+
     setup_completed = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

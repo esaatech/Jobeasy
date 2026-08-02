@@ -12,4 +12,10 @@ urlpatterns = [
         views.suggest_title_family,
         name='suggest_title_family',
     ),
+    path('locations/countries/', views.locations_countries, name='locations_countries'),
+    path(
+        'locations/countries/<str:code>/regions/',
+        views.locations_regions,
+        name='locations_regions',
+    ),
 ]
