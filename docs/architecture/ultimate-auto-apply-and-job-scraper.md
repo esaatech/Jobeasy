@@ -3,7 +3,7 @@
 | Field | Value |
 |--------|--------|
 | **Document ID** | `ARCH-ULTIMATE-AUTO-001` |
-| **Scope** | Job scraping (Phase 1), Ultimate AI apply-packet generation (Phase 2), human-in-the-loop form submission (Phase 3), optional browser automation later (Phase 4+) |
+| **Scope** | Job scraping (Phase 1), manual match → ApplyTask admin queue (Phase 2a), AI apply packets (Phase 2b), human ops UI (Phase 3), optional browser automation later (Phase 4+) |
 | **Audience** | Engineers, product, and ops implementing scraper infrastructure, GCP scheduling, Ultimate automation, and the operator queue |
 
 This document is the canonical plan for building **job ingestion**, **AI-prepared apply packets**, and **managed applications** (human operators submit forms on behalf of Ultimate users).
@@ -19,11 +19,23 @@ This document is the canonical plan for building **job ingestion**, **AI-prepare
 1. User registers and upgrades to **Ultimate**.
 2. User completes resume, **application profile** (contact, work auth, LinkedIn, etc.), sets **target job titles**, location/remote preferences, and enables auto-apply with **explicit consent**.
 3. A **job scraper** populates the `Job` table from external sources (Phase 1 — implemented).
-4. Every **4 hours**, a worker finds Ultimate users, matches scraped jobs to their target titles, runs AI fit check, optimizes resume, and generates a cover letter.
-5. Each match becomes an **`ApplyTask`** in the **operator queue** — a human opens the apply URL, fills the form, uploads documents, and submits.
-6. Operator marks the task **applied** (with screenshot proof); user receives a digest notification.
+4. User completes Ultimate setup: **job titles** + **preferences** (purpose, countries/states, work arrangement). Daily apply cap is **admin-managed**.
+5. A **manual matcher** (CLI / admin action first; Cloud Scheduler later) finds Ultimate users, matches active scraped jobs to titles + location/work arrangement, and creates **`ApplyTask`** rows with the job apply URL.
+6. Operators open each task’s URL, apply on the employer site, and mark **applied** / **skipped** in admin (v1). AI resume/cover packets and a dedicated ops UI come after this loop works.
+7. User receives a digest notification when applications are recorded.
 
 **Who qualifies:** users with an active `subscriptions.UserSubscription` where `plan.name == 'Ultimate'` and `status == 'ACTIVE'`.
+
+### Manual-first Phase 2 (current next slice)
+
+Prove human-in-the-loop **before** AI packets or Cloud Scheduler:
+
+1. **`ApplyTask` model** — user, job, `application_url`, status (`queued` / `applied` / `skipped`), timestamps.
+2. **`job_matcher`** — for each Ultimate user with setup done: match active jobs by titles + location/work arrangement; respect admin `max_applications_per_day`; skip already-queued/applied.
+3. **Manual run** — `manage.py run_ultimate_auto_apply` and/or admin action (no Cloud Scheduler yet).
+4. **Admin queue** — list tasks with link to open the job URL; mark applied / skipped.
+
+That proves the loop end-to-end. **After it works:** AI packets (resume/cover letter), then ops UI polish, then Cloud Run.
 
 ### Why human-in-the-loop first
 
@@ -66,19 +78,29 @@ job_service/
     scrape_jobs.py    # CLI entry point
 ```
 
-### Phase 2 — AI apply packet → new `automation` app
+### Phase 2a — Manual match → ApplyTask → `automation` app (**next**)
 
-Match users, run AI pipeline, create `ApplyTask` rows (no submission yet):
+Match Ultimate users to scraped jobs and queue URL tasks for operators (no AI yet):
 
 ```
 automation/
-  models.py                    # ApplyTask, ApplicationProfile
+  models.py                    # ApplyTask (minimal) + UltimateAutomationProfile
+  data/locations.py            # US / CA / GB catalog (already shipped)
+  services/
+    job_matcher.py             # titles + location + work arrangement + daily cap
+  management/commands/
+    run_ultimate_auto_apply.py # manual CLI first; Scheduler later
+  admin.py                     # ApplyTask queue: open URL, mark applied/skipped
+```
+
+### Phase 2b — AI apply packet → same `automation` app (after 2a)
+
+```
+automation/
   services/
     application_builder.py     # fit gate → cover letter → resume optimize
-    job_matcher.py             # match jobs to Ultimate user preferences
     apply_packet.py            # assemble operator-facing packet
-  management/commands/
-    run_ultimate_auto_apply.py # cron: match + AI + queue tasks
+  # Extend ApplyTask with PDF / short-answer fields; then Cloud Run schedule
 ```
 
 ### Phase 3 — Human operator queue → `automation` app
@@ -111,8 +133,9 @@ automation/
 | Phase | App | Responsibility |
 |-------|-----|----------------|
 | **1** | `job_service` | Scrape → write `Job` ✅ |
-| **2** | `automation` | Ultimate users → match → AI packet → `ApplyTask` |
-| **3** | `automation` | Operator queue UI + human submit + proof |
+| **2a** | `automation` | Match → `ApplyTask` + admin queue (manual CLI) ← **next** |
+| **2b** | `automation` | AI packets on tasks; then schedule Cloud Run |
+| **3** | `automation` | Dedicated ops queue UI + proof + notify |
 | **4+** | `automation` | Email/Playwright adapters to reduce human load |
 
 ---
@@ -247,46 +270,31 @@ class ApplicationProfile(models.Model):
     consent_signed_at = models.DateTimeField(null=True, blank=True)
 ```
 
-### ApplyTask (Phase 2–3 — operator queue)
+### ApplyTask (Phase 2a minimal → expand in 2b/3)
+
+**Phase 2a (manual queue — ship first):**
 
 ```python
 class ApplyTask(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     job = models.ForeignKey('job_service.Job', on_delete=models.CASCADE)
-    resume = models.ForeignKey('resume_builder.Resume', null=True)  # optimized copy
-    cover_letter_text = models.TextField(blank=True)
-    cover_letter_pdf = models.FileField(upload_to='apply_packets/', blank=True)
-    resume_pdf = models.FileField(upload_to='apply_packets/', blank=True)
-    ai_short_answers = models.JSONField(default=dict)  # e.g. {"why_company": "..."}
-
+    application_url = models.URLField(max_length=500)  # snapshot of job.application_url
     status = models.CharField(max_length=20, choices=[
         ('queued', 'Queued'),
-        ('claimed', 'Claimed'),
         ('applied', 'Applied'),
-        ('failed', 'Failed'),
         ('skipped', 'Skipped'),
     ], default='queued')
-
-    priority = models.PositiveSmallIntegerField(default=0)
-    assigned_to = models.ForeignKey(User, null=True, blank=True, related_name='claimed_apply_tasks')
-    claimed_at = models.DateTimeField(null=True, blank=True)
-    applied_at = models.DateTimeField(null=True, blank=True)
-
-    confirmation_url = models.URLField(max_length=500, blank=True)
-    proof_screenshot = models.FileField(upload_to='apply_proofs/', blank=True)
+    skip_reason = models.CharField(max_length=50, blank=True)
     operator_notes = models.TextField(blank=True)
-    skip_reason = models.CharField(max_length=50, blank=True)  # captcha, login_required, job_closed, geo_block
-    failure_reason = models.TextField(blank=True)
-
+    applied_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         unique_together = ['user', 'job']
-        indexes = [
-            models.Index(fields=['status', 'priority', 'created_at']),
-        ]
 ```
+
+**Later (Phase 2b/3):** add claim/assigned_to, AI packet fields (`resume_pdf`, `cover_letter_pdf`, `ai_short_answers`), proof screenshot, confirmation URL, priority.
 
 On **applied**, also create `job_service.JobApplication` and notify the user.
 
@@ -308,45 +316,48 @@ def is_ultimate_subscriber(user):
 
 ## 5. Job matching logic
 
-```python
-def job_matches_user(job, user_prefs):
-    title_lower = job.title.lower()
+Matching uses `UltimateAutomationProfile` (not only legacy `UserJobPreferences`):
 
-    # Title match: any target title appears in job title
+```python
+def job_matches_user(job, profile: UltimateAutomationProfile):
+    title_lower = job.title.lower()
+    location_lower = (job.location or '').lower()
+
+    # Title match: any title-family string appears in job title
+    # (exclude_titles hard-reject if present in job title)
+    if any(ex.lower() in title_lower for ex in (profile.exclude_titles or [])):
+        return False
+
     title_match = any(
         target.lower() in title_lower
-        for target in user_prefs.target_job_titles
+        for target in profile.title_family
     )
     if not title_match:
         return False
 
-    # Optional: location filter
-    if user_prefs.preferred_locations:
-        if not any(loc.lower() in job.location.lower()
-                   for loc in user_prefs.preferred_locations):
-            return False
-
-    # Optional: remote preference
-    if user_prefs.remote_preference == 'remote_only':
-        if 'remote' not in job.location.lower():
-            return False
+    # Location: country name/code or city substring in job.location
+    # (preferred_countries from setup step 2; city optional)
+    # Work arrangements: remote/hybrid/onsite heuristics on job.location / tags
 
     return True
 ```
 
-Skip jobs already applied to (`job_service.JobApplication` has `unique_together = ['user', 'job']`).
+Skip jobs already represented by an `ApplyTask` or `job_service.JobApplication` for that user.
 
-Enforce daily cap per user:
+Enforce daily cap per user (admin field on profile):
 
 ```python
-applications_today = JobApplication.objects.filter(
+today_count = ApplyTask.objects.filter(
     user=user,
-    applied_at__date=today,
+    created_at__date=timezone.localdate(),
+    status__in=['queued', 'applied'],
 ).count()
-
-if applications_today >= user_prefs.max_applications_per_day:
-    continue  # skip this user for this run
+if today_count >= profile.max_applications_per_day:
+    return  # stop creating more tasks for this user today
 ```
+
+**Phase 2a:** matcher writes `ApplyTask(status='queued', application_url=job.application_url)` only.  
+**Phase 2b:** after match, optionally run AI packet generation before operators pick up the task.
 
 ---
 
@@ -607,13 +618,15 @@ gcloud scheduler jobs create http scrape-jobs-trigger \
 **App:** `job_service`
 
 - [x] Create `job_service/scrapers/` module with `BaseScraper` interface
-- [x] Implement first scraper (Greenhouse or Lever public API)
+- [x] Implement Greenhouse, Lever, and Ashby public board scrapers
 - [x] Create `job_service/services/ingestion.py` (normalize, dedup by `external_id`, upsert)
-- [x] Create `management/commands/scrape_jobs.py`
+- [x] Deactivate jobs whose `external_id` is missing from a successful scrape
+- [x] Create `management/commands/scrape_jobs.py` + `setup_job_sources.py` (US + CA/EU seeds)
 - [x] Wire `JobScrapingLog` on every run
+- [x] Admin scrape actions + show `application_url` on Job admin
 - [x] Add `scrape-entrypoint.sh` for Cloud Run Job
 - [ ] Deploy Cloud Run Job + Cloud Scheduler (4–6×/day to start)
-- [ ] Verify jobs appear in admin and job listings UI
+- [ ] Optional: verify jobs appear in public job listings UI
 
 **GCP deliverables:**
 
@@ -624,23 +637,43 @@ gcloud scheduler jobs create http scrape-jobs-trigger \
 
 ---
 
-### Phase 2 — AI apply packet generation
+### Phase 2a — Manual match → ApplyTask queue (**next**)
 
-**App:** `automation` (new Django app)
+**App:** `automation` — no AI packets, no Cloud Scheduler yet.
 
-- [ ] Create `automation` app + register in `INSTALLED_APPS`
-- [ ] Add `ApplicationProfile` model + Ultimate onboarding UI
-- [ ] Add `target_job_titles`, `auto_apply_enabled`, `default_resume` to preferences
-- [ ] Add `ApplyTask` model (status `queued` only — no submission)
+Goal: turn setup prefs + scraped jobs into apply tasks operators can work from admin.
+
+- [x] Create `automation` app + register in `INSTALLED_APPS`
+- [x] Ultimate setup wizard: title family (primary / related / exclude) + default resume
+- [x] Ultimate setup step 2: search purpose, US/CA/UK locations API, work arrangements
+- [x] `max_applications_per_day` admin-managed (not user-editable in setup)
+- [x] Add **`ApplyTask`** model: user, job, `application_url`, status (`queued` / `applied` / `skipped`), timestamps; unique `(user, job)`
+- [ ] Implement `automation/services/job_matcher.py`
+  - Gate: Ultimate (or Test) `ACTIVE` + `auto_apply_enabled` + setup/titles confirmed
+  - Match: title family vs active `Job.title`; location vs preferred countries/city; work arrangements vs job location text
+  - Cap: admin `max_applications_per_day` (count queued + applied today)
+  - Skip: already queued/applied for that user+job; inactive jobs
+- [ ] Create `management/commands/run_ultimate_auto_apply.py` (manual CLI)
+- [ ] Optional: JobSource/admin-style action to run matcher for one user or all
+- [ ] **Admin queue:** list `ApplyTask` with openable job URL; actions to mark **applied** / **skipped**
+- [ ] On applied: create `job_service.JobApplication` (minimal; notify later if needed)
+
+**Exit criteria:** operator can run matcher manually, open a matched job URL, apply on the ATS site, and mark the task done in admin.
+
+---
+
+### Phase 2b — AI apply packet generation (after 2a works)
+
+**App:** `automation`
+
+- [ ] Add `ApplicationProfile` model + onboarding fields for form fill (phone, LinkedIn, work auth, consent)
 - [ ] Extract dashboard AI pipeline → `automation/services/application_builder.py`
-- [ ] Implement `job_matcher.py` (title + location + remote)
 - [ ] Implement `apply_packet.py` (resume PDF, cover letter PDF, profile fields)
-- [ ] Create `management/commands/run_ultimate_auto_apply.py`
-- [ ] Gate on `plan.name == 'Ultimate'` and `status == 'ACTIVE'`
-- [ ] Enforce `max_applications_per_day` (queued + applied count)
-- [ ] Deploy Cloud Run Job + Scheduler (every 4 hours)
+- [ ] Attach packet artifacts to `ApplyTask` before operator opens the URL
+- [ ] Gate + daily cap already from 2a; keep enforcing them
+- [ ] Deploy Cloud Run Job + Scheduler (every 4 hours) **only after** manual CLI path is trusted
 
-**GCP deliverables:**
+**GCP deliverables (defer until 2a is solid):**
 
 - [ ] Cloud Run Job: `ultimate-auto-apply`
 - [ ] Cloud Scheduler: `0 */4 * * *`
@@ -649,7 +682,7 @@ gcloud scheduler jobs create http scrape-jobs-trigger \
 
 ### Phase 3 — Human operator queue (primary submit path)
 
-**App:** `automation`
+**App:** `automation` — dedicated ops UI beyond Django admin
 
 - [ ] Operator group + permissions
 - [ ] Ops queue list view (filter by status, priority, SLA)
@@ -826,11 +859,13 @@ def submit_application(user, job, artifacts):
 |----------|--------|
 | New app for Phase 1? | **No** — use `job_service` |
 | New app for Phase 2–3? | **Yes** — `automation` |
-| Who submits applications in v1? | **Human operators** (ops queue), not bots |
+| Next build slice? | **Phase 2a** — `ApplyTask` + `job_matcher` + manual CLI + admin queue (no AI packets / no Scheduler yet) |
+| Who submits applications in v1? | **Human operators** (admin queue first, ops UI in Phase 3) |
 | GCP pattern for scraper? | **Cloud Run Job** + **Cloud Scheduler** (same Docker image) |
 | Scrape how often in prod? | **4×/day** to start (not hourly, not once daily) |
-| Apply packet cron how often? | **Every 4 hours** for Ultimate users |
+| Apply packet cron how often? | Manual CLI first; **every 4 hours** only after 2a is trusted |
 | Who gets automation? | **Ultimate plan only** (`plan.name == 'Ultimate'`, `status == 'ACTIVE'`) |
+| Daily apply cap? | Admin field `max_applications_per_day` on `UltimateAutomationProfile` |
 | Biggest cost levers? | **Applications per user per day** (AI + human ops) |
 | When to add Playwright apply? | **Phase 4** — after ops queue metrics show which ATS to automate |
 | VPN for applies? | **Operator browser + VPN** per SOP; not server-side scraping |

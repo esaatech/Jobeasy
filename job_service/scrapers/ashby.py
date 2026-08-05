@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 from job_service.scrapers.base import BaseScraper, ScrapedJob
 from job_service.scrapers.greenhouse import normalize_job_type
 from job_service.scrapers.http import fetch_json
+from job_service.scrapers.workplace import classify_ashby
 
 ASHBY_API_BASE = 'https://api.ashbyhq.com/posting-api/job-board'
 
@@ -102,16 +103,22 @@ class AshbyScraper(BaseScraper):
                 if value
             ]
 
+            location_value = resolve_location(job)[:200]
             scraped.append(
                 ScrapedJob(
                     external_id=f'ashby:{job_id}',
                     title=title[:200],
                     company=company[:200],
-                    location=resolve_location(job)[:200],
+                    location=location_value,
                     job_type=normalize_job_type(job.get('employmentType')),
                     description=description,
                     application_url=application_url[:500],
                     tags=tags[:20],
+                    work_arrangement=classify_ashby(
+                        is_remote=job.get('isRemote'),
+                        workplace_type=job.get('workplaceType'),
+                        location=location_value,
+                    ),
                     posted_date=parse_ashby_datetime(job.get('publishedAt')),
                     is_active=True,
                 )

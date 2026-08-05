@@ -33,6 +33,18 @@ class Job(models.Model):
         ('internship', 'Internship'),
         ('freelance', 'Freelance')
     ])
+    work_arrangement = models.CharField(
+        max_length=20,
+        choices=[
+            ('remote', 'Remote'),
+            ('hybrid', 'Hybrid'),
+            ('onsite', 'On-site'),
+            ('unknown', 'Unknown'),
+        ],
+        default='unknown',
+        db_index=True,
+        help_text='Workplace mode inferred at scrape time (remote / hybrid / onsite).',
+    )
     salary_min = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     salary_max = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     salary_currency = models.CharField(max_length=3, default='USD')
@@ -57,6 +69,13 @@ class Job(models.Model):
             models.Index(fields=['location']),
             models.Index(fields=['job_type']),
             models.Index(fields=['is_active', 'is_featured']),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=('source', 'external_id'),
+                condition=models.Q(external_id__gt=''),
+                name='unique_job_source_external_id',
+            ),
         ]
     
     def __str__(self):

@@ -92,6 +92,23 @@ class UpsertJobsTests(TestCase):
         self.assertTrue(Job.objects.get(external_id='lever:1').is_active)
         self.assertFalse(Job.objects.get(external_id='lever:2').is_active)
 
+    def test_upsert_persists_work_arrangement(self):
+        scraped = [
+            ScrapedJob(
+                external_id='lever:remote-1',
+                title='Remote Engineer',
+                company='Test Co',
+                location='Remote',
+                job_type='full-time',
+                description='Build APIs',
+                application_url='https://jobs.lever.co/testco/remote-1',
+                work_arrangement='remote',
+            )
+        ]
+        upsert_jobs(self.source, scraped)
+        job = Job.objects.get(external_id='lever:remote-1')
+        self.assertEqual(job.work_arrangement, 'remote')
+
 
 class ScrapeSourceFailureTests(TestCase):
     def setUp(self):

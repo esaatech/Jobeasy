@@ -126,3 +126,97 @@ class UltimateAutomationProfile(models.Model):
                 'updated_at',
             ]
         )
+
+
+class ApplyTask(models.Model):
+    """
+    Phase 2a operator queue row: a matched job for an Ultimate user.
+
+    Matcher creates status=queued with a snapshot of job.application_url.
+    Operators open the URL, apply on the ATS, then mark applied/skipped.
+    AI packet fields are deferred to Phase 2b.
+    """
+
+    STATUS_QUEUED = 'queued'
+    STATUS_APPLIED = 'applied'
+    STATUS_SKIPPED = 'skipped'
+    STATUS_CHOICES = [
+        (STATUS_QUEUED, 'Queued'),
+        (STATUS_APPLIED, 'Applied'),
+        (STATUS_SKIPPED, 'Skipped'),
+    ]
+
+    SKIP_REASON_CHOICES = [
+        ('captcha', 'CAPTCHA'),
+        ('login_required', 'Login required'),
+        ('job_closed', 'Job closed'),
+        ('geo_block', 'Geo blocked'),
+        ('email_only', 'Email-only apply'),
+        ('other', 'Other'),
+    ]
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='apply_tasks',
+    )
+    job = models.ForeignKey(
+        'job_service.Job',
+        on_delete=models.CASCADE,
+        related_name='apply_tasks',
+    )
+    application_url = models.URLField(
+        max_length=500,
+        help_text='Snapshot of job.application_url at match time',
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_QUEUED,
+        db_index=True,
+    )
+    skip_reason = models.CharField(
+        max_length=50,
+        choices=SKIP_REASON_CHOICES,
+        blank=True,
+    )
+    operator_notes = models.TextField(blank=True)
+    applied_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Apply task'
+        verbose_name_plural = 'Apply tasks'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'job'],
+                name='unique_apply_task_user_job',
+            ),
+        ]
+        indexes = [
+            models.Index(fields=['status', 'created_at']),
+            models.Index(fields=['user', 'status', 'created_at']),
+        ]
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.user} → {self.job} [{self.status}]'
+
+    def mark_applied(self, *, notes: str = ''):
+        self.status = self.STATUS_APPLIED
+        self.applied_at = timezone.now()
+        if notes:
+            self.operator_notes = notes
+        self.save(
+            update_fields=['status', 'applied_at', 'operator_notes', 'updated_at']
+        )
+
+    def mark_skipped(self, *, reason: str = 'other', notes: str = ''):
+        self.status = self.STATUS_SKIPPED
+        self.skip_reason = reason or 'other'
+        if notes:
+            self.operator_notes = notes
+        self.save(
+            update_fields=['status', 'skip_reason', 'operator_notes', 'updated_at']
+        )

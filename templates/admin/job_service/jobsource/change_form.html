@@ -7,6 +7,11 @@
 
 {% block after_related_objects %}
 {% if original and original.pk and scrape_url %}
+{#
+  Must NOT nest a <form> here — Django admin already wraps this block in
+  the change form. Nested forms make browsers submit the outer /change/
+  URL instead of scrape. Use formaction on a submit button instead.
+#}
 <div class="module" style="margin-top: 1.5rem;">
   <h2>{% translate "Fetch jobs from this board" %}</h2>
   <p style="padding: 0 0.75rem 0.5rem; color: #666;">
@@ -14,14 +19,21 @@
     <code>manage.py scrape_jobs</code> and Cloud Run.
     Jobs are upserted into the database and a scraping log is written.
   </p>
-  <form method="post" action="{{ scrape_url }}" style="padding: 0 0.75rem 1rem;">
-    {% csrf_token %}
+  <div style="padding: 0 0.75rem 1rem;">
     <label style="display:inline-flex; align-items:center; gap:0.4rem; margin-right:1rem;">
       <input type="checkbox" name="fetch_details" value="1" checked>
       {% translate "Fetch extra job details when description is missing (Greenhouse)" %}
     </label>
     <div style="margin-top: 0.75rem;">
-      <button type="submit" class="default" style="padding: 0.5rem 1rem;">
+      <button
+        type="submit"
+        class="default"
+        style="padding: 0.5rem 1rem;"
+        formaction="{{ scrape_url }}"
+        formmethod="post"
+        name="_scrape"
+        value="1"
+      >
         {% translate "Scrape jobs now" %}
       </button>
       {% if jobs_changelist_url %}
@@ -35,7 +47,7 @@
       </a>
       {% endif %}
     </div>
-  </form>
+  </div>
 </div>
 {% elif add %}
 <div class="module" style="margin-top: 1.5rem;">

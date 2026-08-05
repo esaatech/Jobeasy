@@ -6,6 +6,36 @@ from job_service.scrapers.ashby import AshbyScraper, parse_board_name
 from job_service.scrapers.greenhouse import GreenhouseScraper, parse_board_token, strip_html
 from job_service.scrapers.lever import LeverScraper, parse_site_name
 from job_service.scrapers.registry import get_scraper
+from job_service.scrapers.workplace import (
+    classify_ashby,
+    classify_from_text,
+)
+
+
+class WorkplaceClassifierTests(SimpleTestCase):
+    def test_remote_and_hybrid_from_location(self):
+        self.assertEqual(classify_from_text('Remote'), 'remote')
+        self.assertEqual(classify_from_text('New York, NY (Hybrid)'), 'hybrid')
+        self.assertEqual(classify_from_text('Toronto, ON'), 'onsite')
+        self.assertEqual(classify_from_text('Unspecified'), 'unknown')
+
+    def test_ashby_prefers_workplace_type(self):
+        self.assertEqual(
+            classify_ashby(
+                is_remote=True,
+                workplace_type='Hybrid',
+                location='San Francisco (Remote)',
+            ),
+            'hybrid',
+        )
+        self.assertEqual(
+            classify_ashby(is_remote=True, workplace_type=None, location='Remote'),
+            'remote',
+        )
+        self.assertEqual(
+            classify_ashby(is_remote=False, workplace_type='Onsite', location='NYC'),
+            'onsite',
+        )
 
 
 class GreenhouseParserTests(SimpleTestCase):
@@ -89,6 +119,7 @@ class LeverScraperFetchTests(SimpleTestCase):
         self.assertEqual(jobs[0].title, 'Software Engineer')
         self.assertEqual(jobs[0].company, 'Example Co')
         self.assertEqual(jobs[0].job_type, 'full-time')
+        self.assertEqual(jobs[0].work_arrangement, 'remote')
 
 
 class AshbyScraperFetchTests(SimpleTestCase):
@@ -123,3 +154,4 @@ class AshbyScraperFetchTests(SimpleTestCase):
         self.assertEqual(jobs[0].title, 'Backend Engineer')
         self.assertIn('Remote', jobs[0].location)
         self.assertEqual(jobs[0].job_type, 'full-time')
+        self.assertEqual(jobs[0].work_arrangement, 'hybrid')

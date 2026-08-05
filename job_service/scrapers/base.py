@@ -27,6 +27,7 @@ class ScrapedJob:
     salary_max: Decimal | None = None
     salary_currency: str = 'USD'
     tags: list[str] = field(default_factory=list)
+    work_arrangement: str = 'unknown'
     posted_date: datetime | None = None
     is_active: bool = True
 

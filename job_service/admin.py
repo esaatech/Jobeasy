@@ -159,8 +159,8 @@ class JobSourceAdmin(admin.ModelAdmin):
 
 @admin.register(Job)
 class JobAdmin(admin.ModelAdmin):
-    list_display = ['title', 'company', 'location', 'job_type', 'application_url', 'is_active', 'is_featured', 'is_curated', 'source', 'created_at']
-    list_filter = ['job_type', 'is_active', 'is_featured', 'is_curated', 'source', 'created_at']
+    list_display = ['title', 'company', 'location', 'job_type', 'work_arrangement', 'application_url', 'posted_date', 'is_active', 'is_featured', 'is_curated', 'source', 'created_at']
+    list_filter = ['job_type', 'work_arrangement', 'is_active', 'is_featured', 'is_curated', 'source', 'created_at', 'posted_date']
     search_fields = ['title', 'company', 'location', 'description', 'application_url']
     readonly_fields = ['job_id', 'created_at', 'updated_at']
     filter_horizontal = []
@@ -168,7 +168,7 @@ class JobAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Basic Information', {
-            'fields': ('job_id', 'title', 'company', 'location', 'job_type', 'application_url')
+            'fields': ('job_id', 'title', 'company', 'location', 'job_type', 'work_arrangement', 'application_url', 'posted_date')
         }),
         ('Compensation', {
             'fields': ('salary_min', 'salary_max', 'salary_currency'),
@@ -178,7 +178,7 @@ class JobAdmin(admin.ModelAdmin):
             'fields': ('description', 'requirements', 'benefits')
         }),
         ('Metadata', {
-            'fields': ('source', 'external_id', 'tags', 'posted_date'),
+            'fields': ('source', 'external_id', 'tags'),
             'classes': ('collapse',)
         }),
         ('Status', {

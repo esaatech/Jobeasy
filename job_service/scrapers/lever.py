@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 from job_service.scrapers.base import BaseScraper, ScrapedJob
 from job_service.scrapers.greenhouse import normalize_job_type
 from job_service.scrapers.http import fetch_json
+from job_service.scrapers.workplace import classify_from_text
 
 LEVER_API_BASE = 'https://api.lever.co/v0/postings'
 
@@ -93,6 +94,7 @@ class LeverScraper(BaseScraper):
                     description=description,
                     application_url=application_url[:500],
                     tags=tags[:20],
+                    work_arrangement=classify_from_text(location, *tags),
                     posted_date=parse_lever_timestamp(job.get('createdAt')),
                     is_active=job.get('state', 'published') != 'closed',
                 )

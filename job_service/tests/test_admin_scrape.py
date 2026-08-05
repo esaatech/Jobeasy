@@ -32,7 +32,11 @@ class JobSourceAdminScrapeTests(TestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'Scrape jobs now')
-        self.assertContains(response, f'/admin/job_service/jobsource/{self.source.pk}/scrape/')
+        scrape_url = f'/admin/job_service/jobsource/{self.source.pk}/scrape/'
+        self.assertContains(response, scrape_url)
+        # Nested <form action=".../scrape/"> breaks in Django admin; use formaction.
+        self.assertContains(response, f'formaction="{scrape_url}"')
+        self.assertNotContains(response, f'<form method="post" action="{scrape_url}"')
 
     @patch('job_service.admin.scrape_source')
     def test_scrape_post_calls_shared_pipeline(self, mock_scrape):

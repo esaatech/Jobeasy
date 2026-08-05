@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 
 from job_service.scrapers.base import BaseScraper, ScrapedJob
 from job_service.scrapers.http import fetch_json
+from job_service.scrapers.workplace import classify_from_text
 
 GREENHOUSE_API_BASE = 'https://boards-api.greenhouse.io/v1/boards'
 JOB_TYPE_MAP = {
@@ -112,16 +113,18 @@ class GreenhouseScraper(BaseScraper):
                     if isinstance(dept, dict) and dept.get('name')
                 )
 
+            location_value = (location_name or 'Unspecified')[:200]
             scraped.append(
                 ScrapedJob(
                     external_id=f'greenhouse:{job_id}',
                     title=title[:200],
                     company=company[:200],
-                    location=(location_name or 'Unspecified')[:200],
+                    location=location_value,
                     job_type=normalize_job_type(job.get('employment_type')),
                     description=description,
                     application_url=application_url[:500],
                     tags=tags[:20],
+                    work_arrangement=classify_from_text(location_value, *tags[:5]),
                     posted_date=parse_datetime(job.get('updated_at') or job.get('first_published')),
                     is_active=True,
                 )
