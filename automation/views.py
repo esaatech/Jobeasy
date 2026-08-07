@@ -8,41 +8,16 @@ from django.urls import reverse
 from django.views.decorators.http import require_http_methods, require_POST
 
 from resume_builder.models import Resume
-from subscriptions.models import UserSubscription
 
 from .models import FREE_TITLE_FAMILY_AI_GENERATIONS, UltimateAutomationProfile
+from .services.eligibility import is_ultimate_subscriber
 from .services.title_family import generate_title_family_from_resume
 
 logger = logging.getLogger(__name__)
 
 
-def _is_ultimate_subscriber(user) -> bool:
-    sub = (
-        UserSubscription.objects.filter(
-            user=user,
-            plan__name__iexact='Ultimate',
-            status='ACTIVE',
-        )
-        .select_related('plan')
-        .first()
-    )
-    if sub and sub.is_active:
-        return True
-    # Test plan mirrors Ultimate for local/QA.
-    test_sub = (
-        UserSubscription.objects.filter(
-            user=user,
-            plan__name__iexact='Test',
-            status='ACTIVE',
-        )
-        .select_related('plan')
-        .first()
-    )
-    return bool(test_sub and test_sub.is_active)
-
-
 def _setup_context(user, profile, resumes, error=None):
-    is_ultimate = _is_ultimate_subscriber(user)
+    is_ultimate = is_ultimate_subscriber(user)
     used = profile.title_family_ai_generations or 0
     remaining = None if is_ultimate else max(0, FREE_TITLE_FAMILY_AI_GENERATIONS - used)
     ctx = {
@@ -59,7 +34,7 @@ def _setup_context(user, profile, resumes, error=None):
             ('hybrid', 'Hybrid'),
             ('onsite', 'On-site'),
         ],
-        'setup_ui_version': 'prefs-v4-locations-api',
+        'setup_ui_version': 'prefs-v5-all-regions',
         'locations_countries_url': reverse('automation:locations_countries'),
     }
     if error:
@@ -147,7 +122,9 @@ def _parse_countries(raw) -> list[dict]:
             states = [str(s).strip() for s in states_raw if str(s).strip()]
         else:
             states = []
-        cleaned.append({'name': name, 'cca2': cca2, 'states': states[:50]})
+        # UI "All" sentinel → empty list means nationwide.
+        states = [s for s in states if s and s != '__all__'][:50]
+        cleaned.append({'name': name, 'cca2': cca2, 'states': states})
     return cleaned[:20]
 
 
@@ -157,7 +134,7 @@ def ultimate_setup(request):
     """Enroll-first: titles (step 1) then location/prefs (step 2). Ultimate unlocks apply."""
     profile, _ = UltimateAutomationProfile.objects.get_or_create(user=request.user)
     resumes = Resume.objects.filter(user=request.user).order_by('-updated_at')
-    is_ultimate = _is_ultimate_subscriber(request.user)
+    is_ultimate = is_ultimate_subscriber(request.user)
 
     if request.method == 'POST':
         primary = _parse_title_list(request.POST.get('primary_titles'))
@@ -228,7 +205,7 @@ def ultimate_setup(request):
 @login_required
 def ultimate_setup_done(request):
     profile = get_object_or_404(UltimateAutomationProfile, user=request.user)
-    is_ultimate = _is_ultimate_subscriber(request.user)
+    is_ultimate = is_ultimate_subscriber(request.user)
     return render(
         request,
         'automation/ultimate_setup_done.html',
@@ -250,7 +227,7 @@ def suggest_title_family(request):
         payload = {}
 
     profile, _ = UltimateAutomationProfile.objects.get_or_create(user=request.user)
-    is_ultimate = _is_ultimate_subscriber(request.user)
+    is_ultimate = is_ultimate_subscriber(request.user)
     used = profile.title_family_ai_generations or 0
 
     if not is_ultimate and used >= FREE_TITLE_FAMILY_AI_GENERATIONS:

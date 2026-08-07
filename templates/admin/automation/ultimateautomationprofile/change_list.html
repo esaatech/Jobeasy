@@ -1,0 +1,13 @@
+{% extends "admin/change_list.html" %}
+{% load i18n %}
+
+{% block object-tools-items %}
+  {% if match_ultimate_url %}
+  <li>
+    <a href="{{ match_ultimate_url }}" class="addlink">
+      {% translate "Match Ultimate users" %}
+    </a>
+  </li>
+  {% endif %}
+  {{ block.super }}
+{% endblock %}

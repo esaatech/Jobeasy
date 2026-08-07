@@ -227,3 +227,368 @@ class ApplyTaskModelTests(TestCase):
         task.refresh_from_db()
         self.assertEqual(task.status, ApplyTask.STATUS_SKIPPED)
         self.assertEqual(task.skip_reason, 'job_closed')
+
+
+class JobMatcherTests(TestCase):
+    def setUp(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from job_service.models import Job, JobSource
+        from subscriptions.models import PlanDuration, SubscriptionPlan, UserSubscription
+
+        self.user = User.objects.create_user(username='matcher', password='pass12345')
+        plan, _ = SubscriptionPlan.objects.get_or_create(
+            name='Ultimate',
+            defaults={
+                'description': 'Ultimate',
+                'has_full_access': True,
+                'is_active': True,
+            },
+        )
+        duration, _ = PlanDuration.objects.get_or_create(
+            plan=plan,
+            duration_type='MONTHLY',
+            defaults={'price': 40},
+        )
+        UserSubscription.objects.create(
+            user=self.user,
+            plan=plan,
+            plan_duration=duration,
+            status='ACTIVE',
+            start_date=timezone.now() - timedelta(days=1),
+        )
+        self.profile = UltimateAutomationProfile.objects.create(
+            user=self.user,
+            primary_titles=['Backend Engineer'],
+            related_titles=['Software Engineer'],
+            exclude_titles=['Manager'],
+            work_arrangements=['remote', 'hybrid'],
+            preferred_countries=[{'name': 'Canada', 'cca2': 'CA', 'states': ['Ontario']}],
+            city='Toronto',
+            auto_apply_enabled=True,
+            setup_completed=True,
+            title_family_confirmed=True,
+            max_applications_per_day=5,
+        )
+        self.source = JobSource.objects.create(
+            name='Board',
+            url='https://jobs.lever.co/board',
+            source_type='api',
+        )
+        self.remote_job = Job.objects.create(
+            title='Backend Engineer',
+            company='Co',
+            location='Toronto, ON (Remote)',
+            job_type='full-time',
+            work_arrangement='remote',
+            description='Build APIs',
+            application_url='https://jobs.lever.co/board/1',
+            source=self.source,
+            external_id='lever:1',
+            is_active=True,
+        )
+        self.onsite_job = Job.objects.create(
+            title='Backend Engineer',
+            company='Co',
+            location='Toronto, ON',
+            job_type='full-time',
+            work_arrangement='onsite',
+            description='Office role',
+            application_url='https://jobs.lever.co/board/2',
+            source=self.source,
+            external_id='lever:2',
+            is_active=True,
+        )
+        self.wrong_title = Job.objects.create(
+            title='Engineering Manager',
+            company='Co',
+            location='Remote',
+            job_type='full-time',
+            work_arrangement='remote',
+            description='Lead team',
+            application_url='https://jobs.lever.co/board/3',
+            source=self.source,
+            external_id='lever:3',
+            is_active=True,
+        )
+
+    def test_title_and_work_arrangement_filters(self):
+        from automation.services.job_matcher import job_matches_user, title_matches, work_arrangement_matches
+
+        self.assertTrue(title_matches(self.remote_job, self.profile))
+        self.assertFalse(title_matches(self.wrong_title, self.profile))
+        self.assertTrue(work_arrangement_matches(self.remote_job, self.profile))
+        self.assertFalse(work_arrangement_matches(self.onsite_job, self.profile))
+        self.assertTrue(job_matches_user(self.remote_job, self.profile))
+        self.assertFalse(job_matches_user(self.onsite_job, self.profile))
+        self.assertFalse(job_matches_user(self.wrong_title, self.profile))
+
+    def test_title_respects_seniority_levels(self):
+        from automation.services.job_matcher import title_matches, title_target_matches_job
+        from job_service.models import Job
+
+        self.assertTrue(title_target_matches_job('Software Engineer', 'Software Engineer, Platform'))
+        self.assertFalse(title_target_matches_job('Software Engineer', 'Staff Software Engineer'))
+        self.assertFalse(title_target_matches_job('Software Engineer', 'Senior Software Engineer'))
+        self.assertTrue(
+            title_target_matches_job('Senior Software Engineer', 'Senior Software Engineer, Backend')
+        )
+        self.assertFalse(
+            title_target_matches_job('Senior Software Engineer', 'Staff+ Software Engineer')
+        )
+
+        staff_job = Job.objects.create(
+            title='Staff Software Engineer, AI Reliability',
+            company='Co',
+            location='Remote',
+            job_type='full-time',
+            work_arrangement='remote',
+            description='x',
+            application_url='https://jobs.lever.co/board/staff',
+            source=self.source,
+            external_id='lever:staff',
+        )
+        self.assertFalse(title_matches(staff_job, self.profile))
+
+        self.profile.related_titles = list(self.profile.related_titles or []) + [
+            'Senior Backend Engineer',
+        ]
+        self.profile.save(update_fields=['related_titles'])
+        senior_job = Job.objects.create(
+            title='Senior Backend Engineer',
+            company='Co',
+            location='Toronto (Remote)',
+            job_type='full-time',
+            work_arrangement='remote',
+            description='x',
+            application_url='https://jobs.lever.co/board/senior',
+            source=self.source,
+            external_id='lever:senior',
+        )
+        self.assertTrue(title_matches(senior_job, self.profile))
+
+    def test_location_remote_wrong_region(self):
+        from automation.services.job_matcher import location_matches
+        from job_service.models import Job
+
+        job = Job.objects.create(
+            title='Backend Engineer',
+            company='Co',
+            location='Remote - United States',
+            job_type='full-time',
+            work_arrangement='remote',
+            description='US remote',
+            application_url='https://jobs.lever.co/board/us',
+            source=self.source,
+            external_id='lever:us',
+        )
+        self.assertFalse(location_matches(job, self.profile))
+
+    def test_match_creates_tasks_and_respects_cap(self):
+        from automation.models import ApplyTask
+        from automation.services.job_matcher import match_jobs_for_profile
+
+        self.profile.max_applications_per_day = 1
+        self.profile.save(update_fields=['max_applications_per_day'])
+
+        result = match_jobs_for_profile(self.profile)
+        self.assertEqual(result.created, 1)
+        self.assertEqual(ApplyTask.objects.filter(user=self.user).count(), 1)
+
+        again = match_jobs_for_profile(self.profile)
+        self.assertTrue(again.skipped_cap)
+        self.assertEqual(again.created, 0)
+
+    def test_dry_run_does_not_create(self):
+        from automation.models import ApplyTask
+        from automation.services.job_matcher import run_match_cycle
+
+        cycle = run_match_cycle(user_id=self.user.id, dry_run=True)
+        self.assertGreaterEqual(cycle.tasks_created, 1)
+        self.assertEqual(ApplyTask.objects.count(), 0)
+
+    def test_skips_existing_job_application(self):
+        from automation.models import ApplyTask
+        from automation.services.job_matcher import match_jobs_for_profile
+        from job_service.models import JobApplication
+
+        JobApplication.objects.create(user=self.user, job=self.remote_job, status='applied')
+        result = match_jobs_for_profile(self.profile)
+        self.assertEqual(
+            ApplyTask.objects.filter(user=self.user, job=self.remote_job).count(),
+            0,
+        )
+        self.assertEqual(result.created, 0)
+
+
+class ApplyTaskAdminActionTests(TestCase):
+    def setUp(self):
+        from job_service.models import Job, JobSource
+
+        self.admin = User.objects.create_superuser(
+            username='ops',
+            email='ops@example.com',
+            password='pass12345',
+        )
+        self.user = User.objects.create_user(username='candidate', password='pass12345')
+        UltimateAutomationProfile.objects.create(user=self.user)
+        self.client = Client()
+        self.client.force_login(self.admin)
+        self.source = JobSource.objects.create(
+            name='Board',
+            url='https://jobs.lever.co/board',
+            source_type='api',
+        )
+        self.job = Job.objects.create(
+            title='Backend Engineer',
+            company='Co',
+            location='Remote',
+            job_type='full-time',
+            work_arrangement='remote',
+            description='Build',
+            application_url='https://jobs.lever.co/board/x',
+            source=self.source,
+            external_id='lever:x',
+        )
+        from automation.models import ApplyTask
+
+        self.task = ApplyTask.objects.create(
+            user=self.user,
+            job=self.job,
+            application_url=self.job.application_url,
+        )
+
+    def test_complete_apply_task_creates_job_application(self):
+        from automation.models import ApplyTask
+        from automation.services.apply_tasks import complete_apply_task
+        from job_service.models import JobApplication
+
+        complete_apply_task(self.task, notes='Done')
+        self.task.refresh_from_db()
+        self.assertEqual(self.task.status, ApplyTask.STATUS_APPLIED)
+        self.assertTrue(
+            JobApplication.objects.filter(user=self.user, job=self.job).exists()
+        )
+
+    def test_admin_mark_applied_action(self):
+        from automation.models import ApplyTask
+        from job_service.models import JobApplication
+
+        url = reverse('admin:automation_applytask_changelist')
+        response = self.client.post(
+            url + '?status__exact=queued',
+            {
+                'action': 'mark_as_applied',
+                '_selected_action': [str(self.task.pk)],
+            },
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.task.refresh_from_db()
+        self.assertEqual(self.task.status, ApplyTask.STATUS_APPLIED)
+        self.assertTrue(
+            JobApplication.objects.filter(user=self.user, job=self.job).exists()
+        )
+
+
+class MatchUltimateUsersAdminTests(TestCase):
+    def setUp(self):
+        from datetime import timedelta
+
+        from django.utils import timezone
+
+        from job_service.models import Job, JobSource
+        from subscriptions.models import PlanDuration, SubscriptionPlan, UserSubscription
+
+        self.admin = User.objects.create_superuser(
+            username='matchadmin',
+            email='matchadmin@example.com',
+            password='pass12345',
+        )
+        self.client = Client()
+        self.client.force_login(self.admin)
+
+        self.user = User.objects.create_user(username='ultmatch', password='pass12345')
+        plan, _ = SubscriptionPlan.objects.get_or_create(
+            name='Ultimate',
+            defaults={
+                'description': 'Ultimate',
+                'has_full_access': True,
+                'is_active': True,
+            },
+        )
+        duration, _ = PlanDuration.objects.get_or_create(
+            plan=plan,
+            duration_type='MONTHLY',
+            defaults={'price': 40},
+        )
+        UserSubscription.objects.create(
+            user=self.user,
+            plan=plan,
+            plan_duration=duration,
+            status='ACTIVE',
+            start_date=timezone.now() - timedelta(days=1),
+        )
+        UltimateAutomationProfile.objects.create(
+            user=self.user,
+            primary_titles=['Backend Engineer'],
+            work_arrangements=['remote'],
+            preferred_countries=[{'name': 'Canada', 'cca2': 'CA', 'states': []}],
+            auto_apply_enabled=True,
+            setup_completed=True,
+            title_family_confirmed=True,
+            max_applications_per_day=10,
+        )
+        self.source = JobSource.objects.create(
+            name='Board',
+            url='https://jobs.lever.co/board',
+            source_type='api',
+        )
+        Job.objects.create(
+            title='Backend Engineer',
+            company='Co',
+            location='Remote',
+            job_type='full-time',
+            work_arrangement='remote',
+            description='Build',
+            application_url='https://jobs.lever.co/board/m',
+            source=self.source,
+            external_id='lever:m',
+            is_active=True,
+        )
+
+    def test_match_page_lists_ultimate_user(self):
+        url = reverse('admin:automation_ultimateautomationprofile_match')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'ultmatch')
+        self.assertContains(response, 'Select all')
+        self.assertContains(response, 'Match selected users')
+
+    def test_match_post_creates_tasks_once(self):
+        from automation.models import ApplyTask
+
+        url = reverse('admin:automation_ultimateautomationprofile_match')
+        response = self.client.post(
+            url,
+            {'run_match': '1', 'user_ids': [str(self.user.pk)]},
+            follow=True,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(ApplyTask.objects.filter(user=self.user).count(), 1)
+
+        # Second run must not duplicate.
+        self.client.post(url, {'run_match': '1', 'user_ids': [str(self.user.pk)]})
+        self.assertEqual(ApplyTask.objects.filter(user=self.user).count(), 1)
+
+    def test_profiles_changelist_has_match_link(self):
+        url = reverse('admin:automation_ultimateautomationprofile_changelist')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Match Ultimate users')
+        self.assertContains(
+            response,
+            reverse('admin:automation_ultimateautomationprofile_match'),
+        )

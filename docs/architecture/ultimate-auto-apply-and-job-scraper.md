@@ -337,7 +337,7 @@ def job_matches_user(job, profile: UltimateAutomationProfile):
 
     # Location: country name/code or city substring in job.location
     # (preferred_countries from setup step 2; city optional)
-    # Work arrangements: remote/hybrid/onsite heuristics on job.location / tags
+    # Work arrangements: Job.work_arrangement (remote/hybrid/onsite/unknown)
 
     return True
 ```
@@ -648,15 +648,16 @@ Goal: turn setup prefs + scraped jobs into apply tasks operators can work from a
 - [x] Ultimate setup step 2: search purpose, US/CA/UK locations API, work arrangements
 - [x] `max_applications_per_day` admin-managed (not user-editable in setup)
 - [x] Add **`ApplyTask`** model: user, job, `application_url`, status (`queued` / `applied` / `skipped`), timestamps; unique `(user, job)`
-- [ ] Implement `automation/services/job_matcher.py`
+- [x] Implement `automation/services/job_matcher.py`
   - Gate: Ultimate (or Test) `ACTIVE` + `auto_apply_enabled` + setup/titles confirmed
-  - Match: title family vs active `Job.title`; location vs preferred countries/city; work arrangements vs job location text
+  - Match: title family vs active `Job.title`; location vs preferred countries/city; work arrangements vs `Job.work_arrangement`
   - Cap: admin `max_applications_per_day` (count queued + applied today)
   - Skip: already queued/applied for that user+job; inactive jobs
-- [ ] Create `management/commands/run_ultimate_auto_apply.py` (manual CLI)
-- [ ] Optional: JobSource/admin-style action to run matcher for one user or all
-- [ ] **Admin queue:** list `ApplyTask` with openable job URL; actions to mark **applied** / **skipped**
-- [ ] On applied: create `job_service.JobApplication` (minimal; notify later if needed)
+- [x] Create `management/commands/run_ultimate_auto_apply.py` (manual CLI)
+- [x] Optional: JobSource/admin-style action to run matcher for one user or all
+  - Admin page **Match Ultimate users** (select all + match; existing tasks skipped)
+- [x] **Admin queue:** list `ApplyTask` with openable job URL; actions to mark **applied** / **skipped**
+- [x] On applied: create `job_service.JobApplication` (minimal; notify later if needed)
 
 **Exit criteria:** operator can run matcher manually, open a matched job URL, apply on the ATS site, and mark the task done in admin.
 

@@ -1,0 +1,104 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}{% translate "Match Ultimate users" %}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+  &rsaquo; <a href="{% url 'admin:app_list' app_label='automation' %}">Ultimate Automation</a>
+  &rsaquo; <a href="{% url 'admin:automation_ultimateautomationprofile_changelist' %}">{% translate 'Ultimate automation profiles' %}</a>
+  &rsaquo; {% translate "Match Ultimate users" %}
+</div>
+{% endblock %}
+
+{% block content %}
+<h1>{% translate "Match Ultimate users to jobs" %}</h1>
+<p>
+  Only users with an active <strong>Ultimate</strong> or <strong>Test</strong> subscription appear here.
+  Existing ApplyTasks / applications for a user+job are never duplicated.
+</p>
+
+{% if not rows %}
+<p class="help">{% translate "No Ultimate/Test subscribers found. Assign a subscription in admin, then return here." %}</p>
+<p><a href="{% url 'admin:automation_ultimateautomationprofile_changelist' %}" class="button">{% translate "Back to profiles" %}</a></p>
+{% else %}
+<form method="post" id="match-ultimate-form">
+  {% csrf_token %}
+  <div style="margin: 1rem 0; display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+    <button type="button" class="button" id="select-all-ultimate">{% translate "Select all" %}</button>
+    <button type="button" class="button" id="clear-all-ultimate">{% translate "Clear all" %}</button>
+    <button type="submit" class="default" name="run_match" value="1" style="padding: 0.5rem 1rem;">
+      {% translate "Match selected users" %}
+    </button>
+    <a href="{% url 'admin:automation_applytask_changelist' %}" class="button">{% translate "View Apply tasks" %}</a>
+  </div>
+
+  <div class="results">
+    <table id="result_list">
+      <thead>
+        <tr>
+          <th scope="col" style="width: 2rem;"></th>
+          <th scope="col">{% translate "User" %}</th>
+          <th scope="col">{% translate "Plan" %}</th>
+          <th scope="col">{% translate "Auto-apply" %}</th>
+          <th scope="col">{% translate "Setup" %}</th>
+          <th scope="col">{% translate "Titles" %}</th>
+          <th scope="col">{% translate "Ready" %}</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in rows %}
+        <tr class="{% cycle 'row1' 'row2' %}">
+          <td>
+            <input
+              type="checkbox"
+              name="user_ids"
+              value="{{ row.user.id }}"
+              class="ultimate-user-cb"
+              checked
+            >
+          </td>
+          <td>
+            <a href="{% url 'admin:automation_ultimateautomationprofile_change' row.profile.pk %}">
+              {{ row.user.username }}
+            </a>
+            {% if row.user.email %}<br><span class="help">{{ row.user.email }}</span>{% endif %}
+          </td>
+          <td>{{ row.plan_name }}</td>
+          <td>{% if row.profile.auto_apply_enabled %}Yes{% else %}No{% endif %}</td>
+          <td>{% if row.profile.setup_completed %}Yes{% else %}No{% endif %}</td>
+          <td>{{ row.title_preview|default:"—" }}</td>
+          <td>
+            {% if row.ready %}
+              <span style="color: #0a0;">Ready</span>
+            {% else %}
+              <span style="color: #a00;">{{ row.reason }}</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div style="margin: 1rem 0;">
+    <button type="submit" class="default" name="run_match" value="1" style="padding: 0.5rem 1rem;">
+      {% translate "Match selected users" %}
+    </button>
+  </div>
+</form>
+
+<script>
+(function () {
+  const boxes = () => Array.from(document.querySelectorAll('.ultimate-user-cb'));
+  document.getElementById('select-all-ultimate').addEventListener('click', function () {
+    boxes().forEach(function (el) { el.checked = true; });
+  });
+  document.getElementById('clear-all-ultimate').addEventListener('click', function () {
+    boxes().forEach(function (el) { el.checked = false; });
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}
