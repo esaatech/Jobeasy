@@ -312,6 +312,11 @@ LOGGING = {
             'level': 'DEBUG',
             'propagate': True,
         },
+        'ai_service': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
         # Add detailed email logging
         'django.core.mail': {
             'handlers': ['console'],
@@ -340,7 +345,7 @@ if DJANGO_ENV == "development":
     }
     
     # Add file handler to loggers
-    for logger_name in ['django', 'home', 'authentication']:
+    for logger_name in ['django', 'home', 'authentication', 'ai_service']:
         LOGGING['loggers'][logger_name]['handlers'].append('file')
 
 # Authentication Settings

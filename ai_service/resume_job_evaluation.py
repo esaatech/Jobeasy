@@ -429,6 +429,16 @@ def evaluate_resume_against_job(
         temperature=temperature,
         model_id_override=override,
     )
+    logger.info(
+        "resume_job_evaluation: using provider=%s model_id=%s ai_model_id=%s "
+        "display_name=%s prompt=%s temperature=%s",
+        provider,
+        gen.model_id,
+        gen.ai_model_id,
+        gen.ai_model_display_name or "",
+        cfg.slug,
+        gen.temperature,
+    )
 
     system_instruction = cfg.system_prompt.strip()
     user_block = build_user_prompt(job_description, resume_text)
