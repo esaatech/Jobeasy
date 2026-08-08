@@ -1,4 +1,4 @@
-"""Match scraped jobs to Ultimate users and create queued ApplyTask rows."""
+"""Match scraped jobs to Ultimate users and create MatchedTask rows."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from django.db.models import F, Q
 from django.utils import timezone
 
-from automation.models import ApplyTask, UltimateAutomationProfile
+from automation.models import MatchedTask, UltimateAutomationProfile
 from automation.services.eligibility import is_ultimate_subscriber
 from job_service.models import Job, JobApplication
 
@@ -42,6 +42,7 @@ class MatchUserResult:
     skipped_cap: bool = False
     skipped_ineligible: bool = False
     reason: str = ''
+    created_tasks: list = field(default_factory=list)
 
 
 @dataclass
@@ -50,6 +51,7 @@ class MatchCycleResult:
     users_matched: int = 0
     tasks_created: int = 0
     per_user: list[MatchUserResult] = field(default_factory=list)
+    created_tasks: list = field(default_factory=list)
 
 
 def profile_is_match_ready(profile: UltimateAutomationProfile) -> tuple[bool, str]:
@@ -213,10 +215,15 @@ def job_matches_user(job: Job, profile: UltimateAutomationProfile) -> bool:
 
 def today_task_count(user) -> int:
     today = timezone.localdate()
-    return ApplyTask.objects.filter(
+    return MatchedTask.objects.filter(
         user=user,
         created_at__date=today,
-        status__in=[ApplyTask.STATUS_QUEUED, ApplyTask.STATUS_APPLIED],
+        status__in=[
+            MatchedTask.STATUS_MATCHED,
+            MatchedTask.STATUS_FIT_PAUSED,
+            MatchedTask.STATUS_READY,
+            MatchedTask.STATUS_APPLIED,
+        ],
     ).count()
 
 
@@ -251,7 +258,7 @@ def match_jobs_for_profile(
         return result
 
     existing_task_job_ids = set(
-        ApplyTask.objects.filter(user=profile.user).values_list('job_id', flat=True)
+        MatchedTask.objects.filter(user=profile.user).values_list('job_id', flat=True)
     )
     existing_app_job_ids = set(
         JobApplication.objects.filter(user=profile.user).values_list('job_id', flat=True)
@@ -259,6 +266,7 @@ def match_jobs_for_profile(
     skip_ids = existing_task_job_ids | existing_app_job_ids
 
     created = 0
+    created_tasks: list[MatchedTask] = []
     for job in candidate_jobs_queryset().iterator(chunk_size=200):
         if created >= remaining:
             break
@@ -271,19 +279,21 @@ def match_jobs_for_profile(
             created += 1
             continue
 
-        _, was_created = ApplyTask.objects.get_or_create(
+        task, was_created = MatchedTask.objects.get_or_create(
             user=profile.user,
             job=job,
             defaults={
                 'application_url': job.application_url,
-                'status': ApplyTask.STATUS_QUEUED,
+                'status': MatchedTask.STATUS_MATCHED,
             },
         )
         if was_created:
             created += 1
             skip_ids.add(job.pk)
+            created_tasks.append(task)
 
     result.created = created
+    result.created_tasks = created_tasks
     return result
 
 
@@ -308,6 +318,7 @@ def run_match_cycle(
         user_result = match_jobs_for_profile(profile, dry_run=dry_run)
         cycle.per_user.append(user_result)
         cycle.tasks_created += user_result.created
+        cycle.created_tasks.extend(user_result.created_tasks)
         if user_result.created:
             cycle.users_matched += 1
             logger.info(

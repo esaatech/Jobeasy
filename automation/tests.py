@@ -161,7 +161,7 @@ class LocationsApiTests(TestCase):
         self.assertEqual(response.status_code, 404)
 
 
-class ApplyTaskModelTests(TestCase):
+class MatchedTaskModelTests(TestCase):
     def setUp(self):
         from job_service.models import Job, JobSource
 
@@ -182,50 +182,50 @@ class ApplyTaskModelTests(TestCase):
             external_id='lever:abc',
         )
 
-    def test_create_queued_task(self):
-        from automation.models import ApplyTask
+    def test_create_matched_task(self):
+        from automation.models import MatchedTask
 
-        task = ApplyTask.objects.create(
+        task = MatchedTask.objects.create(
             user=self.user,
             job=self.job,
             application_url=self.job.application_url,
         )
-        self.assertEqual(task.status, ApplyTask.STATUS_QUEUED)
+        self.assertEqual(task.status, MatchedTask.STATUS_MATCHED)
         self.assertEqual(task.application_url, self.job.application_url)
 
     def test_unique_user_job(self):
-        from automation.models import ApplyTask
+        from automation.models import MatchedTask
         from django.db import IntegrityError
 
-        ApplyTask.objects.create(
+        MatchedTask.objects.create(
             user=self.user,
             job=self.job,
             application_url=self.job.application_url,
         )
         with self.assertRaises(IntegrityError):
-            ApplyTask.objects.create(
+            MatchedTask.objects.create(
                 user=self.user,
                 job=self.job,
                 application_url=self.job.application_url,
             )
 
     def test_mark_applied_and_skipped(self):
-        from automation.models import ApplyTask
+        from automation.models import MatchedTask
 
-        task = ApplyTask.objects.create(
+        task = MatchedTask.objects.create(
             user=self.user,
             job=self.job,
             application_url=self.job.application_url,
         )
         task.mark_applied(notes='Submitted via Lever')
         task.refresh_from_db()
-        self.assertEqual(task.status, ApplyTask.STATUS_APPLIED)
+        self.assertEqual(task.status, MatchedTask.STATUS_APPLIED)
         self.assertIsNotNone(task.applied_at)
         self.assertIn('Submitted', task.operator_notes)
 
         task.mark_skipped(reason='job_closed', notes='404 on URL')
         task.refresh_from_db()
-        self.assertEqual(task.status, ApplyTask.STATUS_SKIPPED)
+        self.assertEqual(task.status, MatchedTask.STATUS_SKIPPED)
         self.assertEqual(task.skip_reason, 'job_closed')
 
 
@@ -387,7 +387,7 @@ class JobMatcherTests(TestCase):
         self.assertFalse(location_matches(job, self.profile))
 
     def test_match_creates_tasks_and_respects_cap(self):
-        from automation.models import ApplyTask
+        from automation.models import MatchedTask
         from automation.services.job_matcher import match_jobs_for_profile
 
         self.profile.max_applications_per_day = 1
@@ -395,35 +395,35 @@ class JobMatcherTests(TestCase):
 
         result = match_jobs_for_profile(self.profile)
         self.assertEqual(result.created, 1)
-        self.assertEqual(ApplyTask.objects.filter(user=self.user).count(), 1)
+        self.assertEqual(MatchedTask.objects.filter(user=self.user).count(), 1)
 
         again = match_jobs_for_profile(self.profile)
         self.assertTrue(again.skipped_cap)
         self.assertEqual(again.created, 0)
 
     def test_dry_run_does_not_create(self):
-        from automation.models import ApplyTask
+        from automation.models import MatchedTask
         from automation.services.job_matcher import run_match_cycle
 
         cycle = run_match_cycle(user_id=self.user.id, dry_run=True)
         self.assertGreaterEqual(cycle.tasks_created, 1)
-        self.assertEqual(ApplyTask.objects.count(), 0)
+        self.assertEqual(MatchedTask.objects.count(), 0)
 
     def test_skips_existing_job_application(self):
-        from automation.models import ApplyTask
+        from automation.models import MatchedTask
         from automation.services.job_matcher import match_jobs_for_profile
         from job_service.models import JobApplication
 
         JobApplication.objects.create(user=self.user, job=self.remote_job, status='applied')
         result = match_jobs_for_profile(self.profile)
         self.assertEqual(
-            ApplyTask.objects.filter(user=self.user, job=self.remote_job).count(),
+            MatchedTask.objects.filter(user=self.user, job=self.remote_job).count(),
             0,
         )
         self.assertEqual(result.created, 0)
 
 
-class ApplyTaskAdminActionTests(TestCase):
+class MatchedTaskAdminActionTests(TestCase):
     def setUp(self):
         from job_service.models import Job, JobSource
 
@@ -452,33 +452,34 @@ class ApplyTaskAdminActionTests(TestCase):
             source=self.source,
             external_id='lever:x',
         )
-        from automation.models import ApplyTask
+        from automation.models import MatchedTask
 
-        self.task = ApplyTask.objects.create(
+        self.task = MatchedTask.objects.create(
             user=self.user,
             job=self.job,
             application_url=self.job.application_url,
+            status=MatchedTask.STATUS_READY,
         )
 
-    def test_complete_apply_task_creates_job_application(self):
-        from automation.models import ApplyTask
-        from automation.services.apply_tasks import complete_apply_task
+    def test_complete_matched_task_creates_job_application(self):
+        from automation.models import MatchedTask
+        from automation.services.apply_tasks import complete_matched_task
         from job_service.models import JobApplication
 
-        complete_apply_task(self.task, notes='Done')
+        complete_matched_task(self.task, notes='Done')
         self.task.refresh_from_db()
-        self.assertEqual(self.task.status, ApplyTask.STATUS_APPLIED)
+        self.assertEqual(self.task.status, MatchedTask.STATUS_APPLIED)
         self.assertTrue(
             JobApplication.objects.filter(user=self.user, job=self.job).exists()
         )
 
     def test_admin_mark_applied_action(self):
-        from automation.models import ApplyTask
+        from automation.models import MatchedTask
         from job_service.models import JobApplication
 
-        url = reverse('admin:automation_applytask_changelist')
+        url = reverse('admin:automation_matchedtask_changelist')
         response = self.client.post(
-            url + '?status__exact=queued',
+            url + '?queue=open',
             {
                 'action': 'mark_as_applied',
                 '_selected_action': [str(self.task.pk)],
@@ -487,10 +488,29 @@ class ApplyTaskAdminActionTests(TestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.task.refresh_from_db()
-        self.assertEqual(self.task.status, ApplyTask.STATUS_APPLIED)
+        self.assertEqual(self.task.status, MatchedTask.STATUS_APPLIED)
         self.assertTrue(
             JobApplication.objects.filter(user=self.user, job=self.job).exists()
         )
+
+    def test_list_shows_open_job_and_resume(self):
+        from automation.models import MatchedTask
+        from resume_builder.models import Resume
+
+        resume = Resume.objects.create(
+            user=self.user,
+            name='Base',
+            template_id='modern',
+            personal_info={'full_name': 'Candidate'},
+        )
+        self.task.source_resume = resume
+        self.task.save(update_fields=['source_resume'])
+
+        url = reverse('admin:automation_matchedtask_changelist')
+        response = self.client.get(url + '?queue=open')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Open job')
+        self.assertContains(response, 'Open resume')
 
 
 class MatchUltimateUsersAdminTests(TestCase):
@@ -566,22 +586,71 @@ class MatchUltimateUsersAdminTests(TestCase):
         self.assertContains(response, 'ultmatch')
         self.assertContains(response, 'Select all')
         self.assertContains(response, 'Match selected users')
+        self.assertContains(response, 'Optimize Resume')
+        self.assertContains(response, 'Remember my preference')
 
     def test_match_post_creates_tasks_once(self):
-        from automation.models import ApplyTask
+        from automation.models import MatchedTask
+        from unittest.mock import patch
 
         url = reverse('admin:automation_ultimateautomationprofile_match')
-        response = self.client.post(
-            url,
-            {'run_match': '1', 'user_ids': [str(self.user.pk)]},
-            follow=True,
-        )
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(ApplyTask.objects.filter(user=self.user).count(), 1)
+        with patch('automation.admin.build_packets_for_tasks') as mock_packets:
+            mock_packets.return_value = []
+            response = self.client.post(
+                url,
+                {'run_match': '1', 'user_ids': [str(self.user.pk)]},
+                follow=True,
+            )
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(MatchedTask.objects.filter(user=self.user).count(), 1)
+            self.assertTrue(mock_packets.called)
 
-        # Second run must not duplicate.
-        self.client.post(url, {'run_match': '1', 'user_ids': [str(self.user.pk)]})
-        self.assertEqual(ApplyTask.objects.filter(user=self.user).count(), 1)
+            # Second run must not duplicate.
+            mock_packets.reset_mock()
+            self.client.post(url, {'run_match': '1', 'user_ids': [str(self.user.pk)]})
+            self.assertEqual(MatchedTask.objects.filter(user=self.user).count(), 1)
+            mock_packets.assert_not_called()
+
+    def test_remember_prefs_persists_for_staff(self):
+        from automation.models import StaffMatchRunPreferences
+        from unittest.mock import patch
+
+        url = reverse('admin:automation_ultimateautomationprofile_match')
+        with patch('automation.admin.build_packets_for_tasks') as mock_packets:
+            mock_packets.return_value = []
+            # Create matched rows; fit builder mocked (always invoked on new tasks).
+            self.client.post(
+                url,
+                {'run_match': '1', 'user_ids': [str(self.user.pk)]},
+                follow=True,
+            )
+            self.assertTrue(mock_packets.called)
+
+            mock_packets.reset_mock()
+            self.client.post(
+                url,
+                {
+                    'run_match': '1',
+                    'user_ids': [str(self.user.pk)],
+                    'optimize_resume': '1',
+                    'generate_cover_letter': '1',
+                    'remember_prefs': '1',
+                },
+                follow=True,
+            )
+            mock_packets.assert_not_called()  # no new MatchedTasks
+
+        prefs = StaffMatchRunPreferences.objects.get(user=self.admin)
+        self.assertTrue(prefs.optimize_resume)
+        self.assertTrue(prefs.generate_cover_letter)
+        self.assertFalse(prefs.generate_why_should_hire)
+
+        response = self.client.get(url)
+        self.assertContains(response, 'id="dlg-optimize-resume"')
+        self.assertRegex(
+            response.content.decode(),
+            r'id="dlg-optimize-resume"[^>]*checked',
+        )
 
     def test_profiles_changelist_has_match_link(self):
         url = reverse('admin:automation_ultimateautomationprofile_changelist')
@@ -592,3 +661,284 @@ class MatchUltimateUsersAdminTests(TestCase):
             response,
             reverse('admin:automation_ultimateautomationprofile_match'),
         )
+
+
+class ApplicationBuilderTests(TestCase):
+    def setUp(self):
+        from job_service.models import Job, JobSource
+        from resume_builder.models import Resume
+
+        self.user = User.objects.create_user(username='packetuser', password='pass12345')
+        self.resume = Resume.objects.create(
+            user=self.user,
+            name='Base Resume',
+            template_id='modern',
+            personal_info={'full_name': 'Packet User'},
+            experience=[{'title': 'Engineer', 'company': 'Acme'}],
+            skills={'languages': ['Python']},
+        )
+        self.profile = UltimateAutomationProfile.objects.create(
+            user=self.user,
+            primary_titles=['Backend Engineer'],
+            default_resume=self.resume,
+            auto_apply_enabled=True,
+            setup_completed=True,
+            title_family_confirmed=True,
+        )
+        self.source = JobSource.objects.create(
+            name='Board',
+            url='https://jobs.lever.co/board',
+            source_type='api',
+        )
+        self.job = Job.objects.create(
+            title='Backend Engineer',
+            company='Co',
+            location='Remote',
+            job_type='full-time',
+            work_arrangement='remote',
+            description='Build APIs with Python',
+            application_url='https://jobs.lever.co/board/p',
+            source=self.source,
+            external_id='lever:p',
+        )
+        from automation.models import MatchedTask
+
+        self.task = MatchedTask.objects.create(
+            user=self.user,
+            job=self.job,
+            application_url=self.job.application_url,
+        )
+
+    def test_fit_always_runs_without_generators(self):
+        from automation.models import MatchedTask
+        from automation.services.application_builder import build_packet_for_matched_task
+
+        with patch(
+            'automation.services.application_builder.run_dashboard_job_fit_evaluation'
+        ) as mock_fit:
+            mock_fit.return_value = {
+                'success': True,
+                'auto_proceed': True,
+                'tier': 'green',
+                'overall_score': 82,
+                'recommendation': 'Strong Fit',
+                'summary': {'overall_score': 82, 'recommendation': 'Strong Fit'},
+            }
+            result = build_packet_for_matched_task(self.task)
+        self.assertEqual(result.message, 'ready')
+        self.task.refresh_from_db()
+        self.assertEqual(self.task.status, MatchedTask.STATUS_READY)
+        self.assertEqual(self.task.fit_score, 82)
+        self.assertIsNone(self.task.optimized_resume_id)
+        self.assertIsNone(self.task.cover_letter_id)
+        mock_fit.assert_called_once()
+
+    @patch('automation.services.application_builder.run_dashboard_job_fit_evaluation')
+    @patch('automation.services.application_builder._optimize_resume_for_job_application')
+    def test_green_optimize_checked_sets_ready(self, mock_optimize, mock_fit):
+        from automation.models import MatchedTask
+        from automation.services.application_builder import build_packet_for_matched_task
+        from resume_builder.models import Resume
+
+        optimized = Resume.objects.create(
+            user=self.user,
+            name='Optimized',
+            template_id='modern',
+            is_optimized=True,
+        )
+        mock_fit.return_value = {
+            'success': True,
+            'auto_proceed': True,
+            'tier': 'green',
+            'overall_score': 88,
+            'recommendation': 'Strong Fit',
+            'summary': {'overall_score': 88, 'recommendation': 'Strong Fit'},
+            'evaluation_id': None,
+        }
+        mock_optimize.return_value = (optimized, None, {})
+
+        result = build_packet_for_matched_task(self.task, optimize_resume=True)
+        self.task.refresh_from_db()
+        self.assertEqual(result.status, MatchedTask.STATUS_READY)
+        self.assertEqual(self.task.status, MatchedTask.STATUS_READY)
+        self.assertEqual(self.task.optimized_resume_id, optimized.pk)
+        mock_optimize.assert_called_once()
+
+    @patch('automation.services.application_builder.run_dashboard_job_fit_evaluation')
+    @patch('automation.services.application_builder._optimize_resume_for_job_application')
+    @patch('automation.services.application_builder.generate_why_should_i_apply')
+    def test_green_optimize_unchecked_skips_optimize(self, mock_why, mock_optimize, mock_fit):
+        from automation.models import MatchedTask
+        from automation.services.application_builder import build_packet_for_matched_task
+
+        mock_fit.return_value = {
+            'success': True,
+            'auto_proceed': True,
+            'tier': 'green',
+            'overall_score': 90,
+            'recommendation': 'Strong Fit',
+            'summary': {'overall_score': 90, 'recommendation': 'Strong Fit'},
+        }
+        mock_why.return_value = {
+            'success': True,
+            'answer_text': 'Strong technical fit.',
+            'model_id': 'test-model',
+        }
+
+        result = build_packet_for_matched_task(
+            self.task,
+            generate_cover_letter=False,
+            optimize_resume=False,
+            generate_why_should_hire=True,
+        )
+        mock_optimize.assert_not_called()
+        self.task.refresh_from_db()
+        self.assertEqual(result.status, MatchedTask.STATUS_READY)
+        self.assertIsNone(self.task.optimized_resume_id)
+        self.assertIsNotNone(self.task.why_should_i_apply_answer_id)
+
+    @patch('automation.services.application_builder.run_dashboard_job_fit_evaluation')
+    @patch('automation.services.application_builder._optimize_resume_for_job_application')
+    @patch('automation.services.application_builder.generate_cover_letter_from_raw_text')
+    @patch('automation.services.application_builder.generate_why_should_i_apply')
+    def test_yellow_fit_pauses_without_generators(
+        self, mock_why, mock_cl, mock_optimize, mock_fit
+    ):
+        from automation.models import MatchedTask
+        from automation.services.application_builder import build_packet_for_matched_task
+
+        mock_fit.return_value = {
+            'success': True,
+            'auto_proceed': False,
+            'tier': 'yellow',
+            'overall_score': 55,
+            'recommendation': 'Moderate Fit',
+            'summary': {'overall_score': 55, 'recommendation': 'Moderate Fit'},
+            'evaluation_id': None,
+        }
+
+        result = build_packet_for_matched_task(
+            self.task,
+            optimize_resume=True,
+            generate_cover_letter=True,
+            generate_why_should_hire=True,
+        )
+        self.task.refresh_from_db()
+        self.assertEqual(result.status, MatchedTask.STATUS_FIT_PAUSED)
+        self.assertEqual(self.task.status, MatchedTask.STATUS_FIT_PAUSED)
+        self.assertEqual(self.task.fit_score, 55)
+        self.assertIsNone(self.task.optimized_resume_id)
+        self.assertIsNone(self.task.cover_letter_id)
+        mock_optimize.assert_not_called()
+        mock_cl.assert_not_called()
+        mock_why.assert_not_called()
+
+    @patch('automation.services.application_builder.generate_cover_letter_from_raw_text')
+    def test_ondemand_cover_letter_allowed_when_yellow(self, mock_cl):
+        from automation.models import MatchedTask
+        from automation.services.application_builder import (
+            generate_cover_letter_for_matched_task,
+        )
+
+        self.task.status = MatchedTask.STATUS_FIT_PAUSED
+        self.task.fit_tier = 'yellow'
+        self.task.fit_score = 55
+        self.task.source_resume = self.resume
+        self.task.save()
+        mock_cl.return_value = {
+            'success': True,
+            'cover_letter': 'Dear hiring manager…',
+            'title': 'CL',
+        }
+        result = generate_cover_letter_for_matched_task(self.task)
+        self.task.refresh_from_db()
+        self.assertTrue(result.success)
+        self.assertIsNotNone(self.task.cover_letter_id)
+        self.assertEqual(self.task.status, MatchedTask.STATUS_FIT_PAUSED)
+
+
+class MatchedTaskOpsViewTests(TestCase):
+    def setUp(self):
+        from job_service.models import Job, JobSource
+        from resume_builder.models import Resume
+
+        from automation.models import MatchedTask
+
+        self.admin = User.objects.create_superuser(
+            username='opsdetail',
+            email='opsdetail@example.com',
+            password='pass12345',
+        )
+        self.client = Client()
+        self.client.force_login(self.admin)
+        self.user = User.objects.create_user(username='cand', password='pass12345')
+        self.resume = Resume.objects.create(
+            user=self.user,
+            name='Base',
+            template_id='modern',
+            personal_info={'full_name': 'Cand'},
+        )
+        UltimateAutomationProfile.objects.create(
+            user=self.user,
+            default_resume=self.resume,
+        )
+        source = JobSource.objects.create(
+            name='Board',
+            url='https://jobs.lever.co/board',
+            source_type='api',
+        )
+        self.job = Job.objects.create(
+            title='Backend Engineer',
+            company='Co',
+            location='Remote',
+            job_type='full-time',
+            work_arrangement='remote',
+            description='Build APIs',
+            application_url='https://jobs.lever.co/board/ops',
+            source=source,
+            external_id='lever:ops',
+        )
+        self.task = MatchedTask.objects.create(
+            user=self.user,
+            job=self.job,
+            application_url=self.job.application_url,
+            status=MatchedTask.STATUS_READY,
+            fit_score=88,
+            fit_tier='green',
+            fit_summary={'overall_score': 88, 'recommendation': 'Strong Fit'},
+            source_resume=self.resume,
+        )
+
+    def test_ops_page_renders(self):
+        url = reverse('automation:matched_task_ops', args=[self.task.pk])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Backend Engineer')
+        self.assertContains(response, 'Job fit evaluation')
+        self.assertContains(response, 'Open job')
+        self.assertContains(response, 'Optimize resume')
+        self.assertContains(response, 'Generate cover letter')
+
+    @patch('automation.services.application_builder._optimize_resume_for_job_application')
+    def test_ops_optimize_post(self, mock_optimize):
+        from resume_builder.models import Resume
+
+        optimized = Resume.objects.create(
+            user=self.user,
+            name='Opt',
+            template_id='modern',
+            is_optimized=True,
+        )
+        mock_optimize.return_value = (optimized, None, {})
+        url = reverse('automation:matched_task_ops', args=[self.task.pk])
+        response = self.client.post(url, {'action': 'optimize_resume'}, follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.task.refresh_from_db()
+        self.assertEqual(self.task.optimized_resume_id, optimized.pk)
+
+    def test_admin_list_has_ops_open_link(self):
+        url = reverse('admin:automation_matchedtask_changelist')
+        response = self.client.get(url + '?queue=open')
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, reverse('automation:matched_task_ops', args=[self.task.pk]))
+        self.assertContains(response, 'target="_blank"')

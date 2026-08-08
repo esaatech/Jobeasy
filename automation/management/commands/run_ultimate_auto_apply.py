@@ -6,7 +6,7 @@ from automation.services.job_matcher import run_match_cycle
 class Command(BaseCommand):
     help = (
         'Match active scraped jobs to Ultimate/Test users with auto-apply enabled '
-        'and create queued ApplyTask rows.'
+        'and create MatchedTask rows.'
     )
 
     def add_arguments(self, parser):
@@ -18,7 +18,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '--dry-run',
             action='store_true',
-            help='Count matches without creating ApplyTask rows.',
+            help='Count matches without creating MatchedTask rows.',
         )
 
     def handle(self, *args, **options):

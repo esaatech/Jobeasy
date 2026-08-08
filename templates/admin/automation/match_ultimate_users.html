@@ -3,6 +3,44 @@
 
 {% block title %}{% translate "Match Ultimate users" %}{% endblock %}
 
+{% block extrastyle %}
+{{ block.super }}
+<style>
+  .match-modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+  }
+  .match-modal-backdrop.open { display: flex; }
+  .match-modal {
+    background: var(--body-bg, #fff);
+    color: var(--body-fg, #333);
+    border-radius: 8px;
+    padding: 1.25rem 1.5rem;
+    max-width: 28rem;
+    width: 92%;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.25);
+  }
+  .match-modal h2 { margin-top: 0; }
+  .match-modal label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.6rem 0;
+  }
+  .match-modal .actions {
+    margin-top: 1.25rem;
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+  }
+</style>
+{% endblock %}
+
 {% block breadcrumbs %}
 <div class="breadcrumbs">
   <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
@@ -16,7 +54,9 @@
 <h1>{% translate "Match Ultimate users to jobs" %}</h1>
 <p>
   Only users with an active <strong>Ultimate</strong> or <strong>Test</strong> subscription appear here.
-  Existing ApplyTasks / applications for a user+job are never duplicated.
+  Existing MatchedTasks for a user+job are never duplicated.
+  Optionally run packet generators (optimize / cover letter / why-hire) when fit auto-proceeds;
+  Fit score is always evaluated after matching.
 </p>
 
 {% if not rows %}
@@ -25,13 +65,19 @@
 {% else %}
 <form method="post" id="match-ultimate-form">
   {% csrf_token %}
+  <input type="hidden" name="run_match" value="1">
+  <input type="hidden" name="optimize_resume" id="field-optimize-resume" value="">
+  <input type="hidden" name="generate_cover_letter" id="field-generate-cover-letter" value="">
+  <input type="hidden" name="generate_why_should_hire" id="field-generate-why-should-hire" value="">
+  <input type="hidden" name="remember_prefs" id="field-remember-prefs" value="">
+
   <div style="margin: 1rem 0; display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
     <button type="button" class="button" id="select-all-ultimate">{% translate "Select all" %}</button>
     <button type="button" class="button" id="clear-all-ultimate">{% translate "Clear all" %}</button>
-    <button type="submit" class="default" name="run_match" value="1" style="padding: 0.5rem 1rem;">
+    <button type="button" class="default" id="open-match-dialog" style="padding: 0.5rem 1rem;">
       {% translate "Match selected users" %}
     </button>
-    <a href="{% url 'admin:automation_applytask_changelist' %}" class="button">{% translate "View Apply tasks" %}</a>
+    <a href="{% url 'admin:automation_matchedtask_changelist' %}" class="button">{% translate "View matched tasks" %}</a>
   </div>
 
   <div class="results">
@@ -81,13 +127,39 @@
       </tbody>
     </table>
   </div>
-
-  <div style="margin: 1rem 0;">
-    <button type="submit" class="default" name="run_match" value="1" style="padding: 0.5rem 1rem;">
-      {% translate "Match selected users" %}
-    </button>
-  </div>
 </form>
+
+<div class="match-modal-backdrop" id="match-dialog" role="dialog" aria-modal="true" aria-labelledby="match-dialog-title">
+  <div class="match-modal">
+    <h2 id="match-dialog-title">{% translate "Match options" %}</h2>
+    <p class="help">
+      Title match always runs, then the same job-fit gate as the dashboard
+      (Fit score is always saved). Checkboxes below eagerly generate packets
+      only when fit auto-proceeds; you can still generate later from each task’s Open page.
+    </p>
+    <label>
+      <input type="checkbox" id="dlg-optimize-resume" {% if prefs.optimize_resume %}checked{% endif %}>
+      {% translate "Optimize Resume" %}
+    </label>
+    <label>
+      <input type="checkbox" id="dlg-generate-cover-letter" {% if prefs.generate_cover_letter %}checked{% endif %}>
+      {% translate "Generate Cover Letter" %}
+    </label>
+    <label>
+      <input type="checkbox" id="dlg-generate-why-should-hire" {% if prefs.generate_why_should_hire %}checked{% endif %}>
+      {% translate "Why should we hire you?" %}
+    </label>
+    <hr>
+    <label>
+      <input type="checkbox" id="dlg-remember-prefs">
+      {% translate "Remember my preference" %}
+    </label>
+    <div class="actions">
+      <button type="button" class="button" id="match-dialog-cancel">{% translate "Cancel" %}</button>
+      <button type="button" class="default" id="match-dialog-confirm">{% translate "Run match" %}</button>
+    </div>
+  </div>
+</div>
 
 <script>
 (function () {
@@ -97,6 +169,31 @@
   });
   document.getElementById('clear-all-ultimate').addEventListener('click', function () {
     boxes().forEach(function (el) { el.checked = false; });
+  });
+
+  const dialog = document.getElementById('match-dialog');
+  const form = document.getElementById('match-ultimate-form');
+  document.getElementById('open-match-dialog').addEventListener('click', function () {
+    if (!boxes().some(function (el) { return el.checked; })) {
+      alert('Select at least one Ultimate user.');
+      return;
+    }
+    dialog.classList.add('open');
+  });
+  document.getElementById('match-dialog-cancel').addEventListener('click', function () {
+    dialog.classList.remove('open');
+  });
+  document.getElementById('match-dialog-confirm').addEventListener('click', function () {
+    document.getElementById('field-optimize-resume').value =
+      document.getElementById('dlg-optimize-resume').checked ? '1' : '';
+    document.getElementById('field-generate-cover-letter').value =
+      document.getElementById('dlg-generate-cover-letter').checked ? '1' : '';
+    document.getElementById('field-generate-why-should-hire').value =
+      document.getElementById('dlg-generate-why-should-hire').checked ? '1' : '';
+    document.getElementById('field-remember-prefs').value =
+      document.getElementById('dlg-remember-prefs').checked ? '1' : '';
+    dialog.classList.remove('open');
+    form.submit();
   });
 })();
 </script>

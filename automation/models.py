@@ -128,20 +128,42 @@ class UltimateAutomationProfile(models.Model):
         )
 
 
-class ApplyTask(models.Model):
-    """
-    Phase 2a operator queue row: a matched job for an Ultimate user.
+class StaffMatchRunPreferences(models.Model):
+    """Remember Match Ultimate users dialog checkboxes per staff admin."""
 
-    Matcher creates status=queued with a snapshot of job.application_url.
-    Operators open the URL, apply on the ATS, then mark applied/skipped.
-    AI packet fields are deferred to Phase 2b.
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='ultimate_match_run_preferences',
+    )
+    optimize_resume = models.BooleanField(default=False)
+    generate_cover_letter = models.BooleanField(default=False)
+    generate_why_should_hire = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Staff match-run preferences'
+        verbose_name_plural = 'Staff match-run preferences'
+
+    def __str__(self):
+        return f'Match-run prefs for {self.user.username}'
+
+
+class MatchedTask(models.Model):
+    """
+    Operator queue row: title-matched job for an Ultimate user, optionally
+    with fit evaluation and apply-packet artifacts (resume / CL / why-hire).
     """
 
-    STATUS_QUEUED = 'queued'
+    STATUS_MATCHED = 'matched'
+    STATUS_FIT_PAUSED = 'fit_paused'
+    STATUS_READY = 'ready'
     STATUS_APPLIED = 'applied'
     STATUS_SKIPPED = 'skipped'
     STATUS_CHOICES = [
-        (STATUS_QUEUED, 'Queued'),
+        (STATUS_MATCHED, 'Matched'),
+        (STATUS_FIT_PAUSED, 'Fit paused'),
+        (STATUS_READY, 'Ready to apply'),
         (STATUS_APPLIED, 'Applied'),
         (STATUS_SKIPPED, 'Skipped'),
     ]
@@ -152,18 +174,19 @@ class ApplyTask(models.Model):
         ('job_closed', 'Job closed'),
         ('geo_block', 'Geo blocked'),
         ('email_only', 'Email-only apply'),
+        ('weak_fit', 'Weak / paused fit'),
         ('other', 'Other'),
     ]
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
-        related_name='apply_tasks',
+        related_name='matched_tasks',
     )
     job = models.ForeignKey(
         'job_service.Job',
         on_delete=models.CASCADE,
-        related_name='apply_tasks',
+        related_name='matched_tasks',
     )
     application_url = models.URLField(
         max_length=500,
@@ -172,7 +195,7 @@ class ApplyTask(models.Model):
     status = models.CharField(
         max_length=20,
         choices=STATUS_CHOICES,
-        default=STATUS_QUEUED,
+        default=STATUS_MATCHED,
         db_index=True,
     )
     skip_reason = models.CharField(
@@ -182,26 +205,83 @@ class ApplyTask(models.Model):
     )
     operator_notes = models.TextField(blank=True)
     applied_at = models.DateTimeField(null=True, blank=True)
+
+    fit_evaluation = models.ForeignKey(
+        'ai_service.ResumeJobEvaluation',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='matched_tasks',
+    )
+    fit_summary = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text='Dashboard-shaped fit summary (score, recommendation, strengths, gaps).',
+    )
+    fit_tier = models.CharField(max_length=20, blank=True)
+    fit_score = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text='Denormalized overall fit score for list sorting.',
+    )
+    source_resume = models.ForeignKey(
+        'resume_builder.Resume',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='matched_tasks_as_source',
+    )
+    optimized_resume = models.ForeignKey(
+        'resume_builder.Resume',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='matched_tasks_as_optimized',
+    )
+    cover_letter = models.ForeignKey(
+        'coverletter.CoverLetter',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='matched_tasks',
+    )
+    why_should_i_apply_answer = models.ForeignKey(
+        'ai_service.WhyShouldIApplyAnswer',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='matched_tasks',
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name = 'Apply task'
-        verbose_name_plural = 'Apply tasks'
+        verbose_name = 'Matched task'
+        verbose_name_plural = 'Matched tasks'
         constraints = [
             models.UniqueConstraint(
                 fields=['user', 'job'],
-                name='unique_apply_task_user_job',
+                name='unique_matched_task_user_job',
             ),
         ]
         indexes = [
             models.Index(fields=['status', 'created_at']),
             models.Index(fields=['user', 'status', 'created_at']),
+            models.Index(
+                fields=['status', 'fit_score'],
+                name='matchedtask_status_fit_idx',
+            ),
         ]
-        ordering = ['-created_at']
+        ordering = ['-fit_score', '-created_at']
 
     def __str__(self):
         return f'{self.user} → {self.job} [{self.status}]'
+
+    @property
+    def resume_for_apply(self):
+        return self.optimized_resume or self.source_resume
 
     def mark_applied(self, *, notes: str = ''):
         self.status = self.STATUS_APPLIED
@@ -220,3 +300,7 @@ class ApplyTask(models.Model):
         self.save(
             update_fields=['status', 'skip_reason', 'operator_notes', 'updated_at']
         )
+
+
+# Backwards-compatible alias for any leftover imports during rollout.
+ApplyTask = MatchedTask

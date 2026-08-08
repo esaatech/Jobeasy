@@ -59,11 +59,15 @@ def run_dashboard_job_fit_evaluation(
     resume,
     job_description: str,
     resume_text: str,
+    persist_fit_review_application: bool = True,
 ) -> dict[str, Any]:
     """
     Run job-fit evaluation for dashboard using gate settings prompt (provider from AIModel).
 
     Returns a dict suitable for JsonResponse (not including HTTP status).
+
+    When ``persist_fit_review_application`` is False (Ultimate MatchedTask path),
+    yellow/red tiers still return summaries but do not create dashboard JobApplication rows.
     """
     gate_settings = get_job_fit_gate_settings()
 
@@ -146,7 +150,7 @@ def run_dashboard_job_fit_evaluation(
         "recommendation": eval_row.recommendation,
     }
 
-    if tier in FIT_REVIEW_TIERS:
+    if persist_fit_review_application and tier in FIT_REVIEW_TIERS:
         job_app = create_fit_review_job_application(
             user=user,
             resume=resume,

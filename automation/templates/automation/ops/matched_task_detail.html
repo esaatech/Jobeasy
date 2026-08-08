@@ -1,0 +1,399 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Matched task #{{ task.id }} — {{ task.job.title }}</title>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --panel: #1a222c;
+      --border: #2d3a47;
+      --text: #e7ecf1;
+      --muted: #9aa8b5;
+      --accent: #3b82f6;
+      --ok: #22c55e;
+      --warn: #eab308;
+      --bad: #ef4444;
+      --card: #121820;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.45;
+    }
+    .wrap { max-width: 960px; margin: 0 auto; padding: 1.5rem 1.25rem 3rem; }
+    a { color: var(--accent); }
+    h1 { font-size: 1.35rem; margin: 0 0 0.35rem; }
+    .meta { color: var(--muted); margin-bottom: 1.25rem; }
+    .messages { list-style: none; padding: 0; margin: 0 0 1rem; }
+    .messages li {
+      padding: 0.65rem 0.85rem;
+      border-radius: 6px;
+      margin-bottom: 0.4rem;
+      background: var(--panel);
+      border: 1px solid var(--border);
+    }
+    .messages .success { border-color: var(--ok); }
+    .messages .error { border-color: var(--bad); }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.1rem 1.2rem;
+      margin-bottom: 1rem;
+    }
+    .panel h2 {
+      font-size: 1.05rem;
+      margin: 0 0 0.25rem;
+      font-weight: 650;
+    }
+    .panel .sub { color: var(--muted); font-size: 0.9rem; margin: 0 0 1rem; }
+    .row { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; }
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.85rem;
+      margin-bottom: 1.1rem;
+    }
+    @media (max-width: 720px) {
+      .metrics { grid-template-columns: 1fr; }
+    }
+    .metric {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--card);
+      padding: 0.9rem 0.75rem;
+      text-align: center;
+    }
+    .metric .label {
+      font-size: 0.7rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin: 0;
+    }
+    .metric .value {
+      font-size: 1.85rem;
+      font-weight: 700;
+      margin: 0.4rem 0 0;
+    }
+    .metric .value .unit { font-size: 1rem; font-weight: 400; color: var(--muted); }
+    .metric .rec {
+      font-size: 1.1rem;
+      font-weight: 650;
+      margin-top: 0.45rem;
+    }
+    .tier-green, .rec-ok { color: var(--ok); }
+    .tier-yellow, .rec-warn { color: var(--warn); }
+    .tier-red, .rec-bad { color: var(--bad); }
+    .bar {
+      width: 100%;
+      height: 8px;
+      background: #2a3542;
+      border-radius: 999px;
+      margin-top: 0.55rem;
+      overflow: hidden;
+    }
+    .bar > span {
+      display: block;
+      height: 100%;
+      background: var(--warn);
+    }
+    .bar.ok > span { background: var(--ok); }
+    .reason-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.85rem 1rem;
+      color: var(--text);
+      margin: 0;
+      font-size: 0.92rem;
+    }
+    .error-box {
+      background: #2a1515;
+      border: 1px solid var(--bad);
+      border-radius: 8px;
+      padding: 0.85rem 1rem;
+      color: #fecaca;
+      margin: 0 0 1rem;
+      font-size: 0.92rem;
+    }
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+      margin-top: 1rem;
+    }
+    @media (max-width: 720px) {
+      .two-col { grid-template-columns: 1fr; }
+    }
+    .two-col h3 { margin: 0 0 0.45rem; font-size: 0.95rem; }
+    .fit-list { margin: 0; padding-left: 1.15rem; color: var(--muted); }
+    .fit-list li { margin: 0.25rem 0; }
+    .footer-meta { font-size: 0.8rem; color: var(--muted); margin-top: 1rem; }
+    .btn {
+      display: inline-block;
+      border: 1px solid var(--border);
+      background: #243041;
+      color: var(--text);
+      padding: 0.5rem 0.85rem;
+      border-radius: 6px;
+      text-decoration: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .btn-ok { background: #166534; border-color: #166534; color: #fff; }
+    .btn-warn { background: #854d0e; border-color: #854d0e; color: #fff; }
+    form.inline { display: inline; }
+    .artifact {
+      border-top: 1px solid var(--border);
+      padding-top: 0.75rem;
+      margin-top: 0.75rem;
+    }
+    .artifact:first-of-type { border-top: 0; padding-top: 0; margin-top: 0; }
+    .artifact pre {
+      white-space: pre-wrap;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.75rem;
+      max-height: 240px;
+      overflow: auto;
+      font-size: 0.85rem;
+    }
+    label { display: block; margin: 0.4rem 0 0.2rem; color: var(--muted); font-size: 0.85rem; }
+    select, textarea {
+      width: 100%;
+      max-width: 420px;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.45rem 0.55rem;
+    }
+    .top-nav { margin-bottom: 1rem; color: var(--muted); font-size: 0.9rem; }
+    .fit-actions { margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top-nav">
+      <a href="{{ admin_list_url }}">&larr; Matched tasks</a>
+    </div>
+
+    {% if messages %}
+    <ul class="messages">
+      {% for message in messages %}
+      <li class="{{ message.tags }}">{{ message }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+
+    <h1>{{ task.job.title }}</h1>
+    <p class="meta">
+      {{ task.job.company }}
+      {% if task.job.location %} · {{ task.job.location }}{% endif %}
+      · {{ task.get_status_display }}
+      · User: {{ task.user.username }}
+    </p>
+
+    <div class="panel">
+      <div class="row" style="justify-content:space-between;">
+        <div>
+          <h2>Job fit evaluation</h2>
+          <p class="sub">Fit summary</p>
+        </div>
+        <form method="post" class="inline">
+          {% csrf_token %}
+          <input type="hidden" name="action" value="rerun_fit">
+          <button type="submit" class="btn">Re-run fit</button>
+        </form>
+      </div>
+
+      {% if summary.error %}
+      <div class="error-box">
+        <strong>Fit evaluation failed</strong><br>
+        {{ summary.error }}
+      </div>
+      {% endif %}
+
+      <div class="metrics">
+        <div class="metric">
+          <p class="label">Overall score</p>
+          <p class="value {% if task.fit_tier %}tier-{{ task.fit_tier }}{% endif %}">
+            {% if display_score is not None %}{{ display_score }}{% else %}—{% endif %}<span class="unit">/100</span>
+          </p>
+        </div>
+        <div class="metric">
+          <p class="label">Recommendation</p>
+          <p class="rec {% if task.fit_tier == 'green' %}rec-ok{% elif task.fit_tier == 'yellow' %}rec-warn{% else %}rec-bad{% endif %}">
+            {{ summary.recommendation|default:task.fit_tier|default:"—" }}
+          </p>
+        </div>
+        <div class="metric">
+          <p class="label">Optimization potential</p>
+          <p class="value">
+            {% if summary.optimization_potential != None %}{{ summary.optimization_potential }}%{% else %}—{% endif %}
+          </p>
+          {% if summary.optimization_potential != None %}
+          <div class="bar {% if task.fit_tier == 'green' %}ok{% endif %}">
+            <span style="width: {{ summary.optimization_potential }}%;"></span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if summary.proceed_reasoning %}
+      <div style="margin-bottom:1rem;">
+        <h3 style="margin:0 0 0.45rem; font-size:0.95rem;">Why generation was paused</h3>
+        <p class="reason-box">{{ summary.proceed_reasoning }}</p>
+      </div>
+      {% endif %}
+
+      {% if strengths or gaps %}
+      <div class="two-col">
+        <div>
+          <h3>Strengths</h3>
+          {% if strengths %}
+          <ul class="fit-list">
+            {% for item in strengths %}<li>{{ item }}</li>{% endfor %}
+          </ul>
+          {% else %}
+          <p class="meta" style="margin:0;">—</p>
+          {% endif %}
+        </div>
+        <div>
+          <h3>Gaps</h3>
+          {% if gaps %}
+          <ul class="fit-list">
+            {% for item in gaps %}<li>{{ item }}</li>{% endfor %}
+          </ul>
+          {% else %}
+          <p class="meta" style="margin:0;">—</p>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      {% if summary.confidence or summary.risk_level %}
+      <p class="footer-meta">
+        {% if summary.confidence %}Confidence: {{ summary.confidence }}{% endif %}
+        {% if summary.confidence and summary.risk_level %} · {% endif %}
+        {% if summary.risk_level %}Risk: {{ summary.risk_level }}{% endif %}
+      </p>
+      {% endif %}
+    </div>
+
+    <div class="panel">
+      <h2>Apply</h2>
+      <div class="row" style="margin-top:0.75rem;">
+        {% if task.application_url %}
+        <a class="btn btn-primary" href="{{ task.application_url }}" target="_blank" rel="noopener noreferrer">Open job</a>
+        {% endif %}
+        {% if resume_url %}
+        <a class="btn" href="{{ resume_url }}" target="_blank" rel="noopener noreferrer">
+          {% if task.optimized_resume_id %}Open optimized resume{% else %}Open resume{% endif %}
+        </a>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Packet actions</h2>
+      <p class="sub">Generate on demand (allowed even when fit is paused).</p>
+
+      <div class="artifact">
+        <strong>Resume optimize</strong>
+        {% if task.optimized_resume_id %}
+        <span class="meta"> · done</span>
+        {% endif %}
+        <div class="row" style="margin-top:0.5rem;">
+          <form method="post" class="inline">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="optimize_resume">
+            <button type="submit" class="btn">
+              {% if task.optimized_resume_id %}Re-optimize resume{% else %}Optimize resume{% endif %}
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <div class="artifact">
+        <strong>Cover letter</strong>
+        {% if task.cover_letter_id %}
+        <span class="meta"> · done</span>
+        {% if task.cover_letter.content %}
+        <pre>{{ task.cover_letter.content }}</pre>
+        {% endif %}
+        {% endif %}
+        <div class="row" style="margin-top:0.5rem;">
+          <form method="post" class="inline">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="generate_cover_letter">
+            <button type="submit" class="btn">
+              {% if task.cover_letter_id %}Regenerate cover letter{% else %}Generate cover letter{% endif %}
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <div class="artifact">
+        <strong>Why should we hire you?</strong>
+        {% if task.why_should_i_apply_answer_id %}
+        <span class="meta"> · done</span>
+        {% if task.why_should_i_apply_answer.content %}
+        <pre>{{ task.why_should_i_apply_answer.content }}</pre>
+        {% endif %}
+        {% endif %}
+        <div class="row" style="margin-top:0.5rem;">
+          <form method="post" class="inline">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="generate_why_hire">
+            <button type="submit" class="btn">
+              {% if task.why_should_i_apply_answer_id %}Regenerate why-hire{% else %}Generate why-hire{% endif %}
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Complete task</h2>
+      {% if task.status == 'applied' or task.status == 'skipped' %}
+      <p class="meta">This task is already {{ task.get_status_display|lower }}.</p>
+      {% else %}
+      <form method="post" style="margin-bottom:1rem;">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="mark_applied">
+        <label for="notes_applied">Notes (optional)</label>
+        <textarea id="notes_applied" name="notes" rows="2"></textarea>
+        <div class="row" style="margin-top:0.6rem;">
+          <button type="submit" class="btn btn-ok">Mark applied</button>
+        </div>
+      </form>
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="mark_skipped">
+        <label for="skip_reason">Skip reason</label>
+        <select id="skip_reason" name="skip_reason">
+          {% for value, label in skip_reasons %}
+          <option value="{{ value }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+        <label for="notes_skipped">Notes (optional)</label>
+        <textarea id="notes_skipped" name="notes" rows="2"></textarea>
+        <div class="row" style="margin-top:0.6rem;">
+          <button type="submit" class="btn btn-warn">Mark skipped</button>
+        </div>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</body>
+</html>

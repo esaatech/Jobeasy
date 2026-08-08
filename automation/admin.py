@@ -5,13 +5,47 @@ from django.shortcuts import redirect, render
 from django.urls import path, reverse
 from django.utils.html import format_html
 
-from .models import ApplyTask, UltimateAutomationProfile
-from .services.apply_tasks import complete_apply_task, skip_apply_task
+from .models import MatchedTask, StaffMatchRunPreferences, UltimateAutomationProfile
+from .services.apply_tasks import complete_matched_task, skip_matched_task
+from .services.application_builder import build_packets_for_tasks
 from .services.job_matcher import (
     profile_is_match_ready,
     run_match_cycle,
     ultimate_subscriber_user_ids,
 )
+
+
+class MatchedTaskQueueFilter(admin.SimpleListFilter):
+    title = 'queue'
+    parameter_name = 'queue'
+
+    def lookups(self, request, model_admin):
+        return [
+            ('open', 'Open (ready + fit paused)'),
+            ('ready', 'Ready to apply'),
+            ('fit_paused', 'Fit paused'),
+            ('matched', 'Matched (pre-fit)'),
+            ('done', 'Applied / skipped'),
+            ('all', 'All statuses'),
+        ]
+
+    def queryset(self, request, queryset):
+        value = self.value()
+        if value == 'open':
+            return queryset.filter(
+                status__in=[MatchedTask.STATUS_READY, MatchedTask.STATUS_FIT_PAUSED]
+            )
+        if value == 'ready':
+            return queryset.filter(status=MatchedTask.STATUS_READY)
+        if value == 'fit_paused':
+            return queryset.filter(status=MatchedTask.STATUS_FIT_PAUSED)
+        if value == 'matched':
+            return queryset.filter(status=MatchedTask.STATUS_MATCHED)
+        if value == 'done':
+            return queryset.filter(
+                status__in=[MatchedTask.STATUS_APPLIED, MatchedTask.STATUS_SKIPPED]
+            )
+        return queryset
 
 
 @admin.register(UltimateAutomationProfile)
@@ -92,6 +126,8 @@ class UltimateAutomationProfileAdmin(admin.ModelAdmin):
             messages.error(request, 'You do not have permission to match Ultimate users.')
             return redirect('admin:automation_ultimateautomationprofile_changelist')
 
+        prefs, _ = StaffMatchRunPreferences.objects.get_or_create(user=request.user)
+
         if request.method == 'POST' and request.POST.get('run_match'):
             raw_ids = request.POST.getlist('user_ids')
             user_ids = []
@@ -101,28 +137,37 @@ class UltimateAutomationProfileAdmin(admin.ModelAdmin):
                 except (TypeError, ValueError):
                     continue
 
-            # Only Ultimate/Test subscribers may be matched from this page.
             allowed = set(ultimate_subscriber_user_ids())
             user_ids = [uid for uid in user_ids if uid in allowed]
+
+            optimize_resume = request.POST.get('optimize_resume') == '1'
+            generate_cover_letter = request.POST.get('generate_cover_letter') == '1'
+            generate_why_should_hire = request.POST.get('generate_why_should_hire') == '1'
+            remember = request.POST.get('remember_prefs') == '1'
+
+            if remember:
+                prefs.optimize_resume = optimize_resume
+                prefs.generate_cover_letter = generate_cover_letter
+                prefs.generate_why_should_hire = generate_why_should_hire
+                prefs.save()
 
             if not user_ids:
                 messages.warning(request, 'No Ultimate/Test users selected.')
                 return redirect('admin:automation_ultimateautomationprofile_match')
 
-            # Ensure a profile row exists so the matcher can evaluate them.
             User = get_user_model()
             for user in User.objects.filter(pk__in=user_ids):
                 UltimateAutomationProfile.objects.get_or_create(user=user)
 
             result = run_match_cycle(user_ids=user_ids)
-            tasks_url = reverse('admin:automation_applytask_changelist')
+            tasks_url = reverse('admin:automation_matchedtask_changelist')
             messages.success(
                 request,
                 format_html(
                     'Match complete for {} user(s): '
-                    'created {} new ApplyTask(s) '
+                    'created {} new MatchedTask(s) '
                     '(existing user+job pairs skipped). '
-                    '<a href="{}">View Apply tasks</a>',
+                    '<a href="{}">View matched tasks</a>',
                     result.users_considered,
                     result.tasks_created,
                     tasks_url,
@@ -144,7 +189,27 @@ class UltimateAutomationProfileAdmin(admin.ModelAdmin):
                         request,
                         f'{user_result.username}: created {user_result.created} task(s)',
                     )
-            return redirect('admin:automation_applytask_changelist')
+
+            if result.created_tasks:
+                packet_results = build_packets_for_tasks(
+                    result.created_tasks,
+                    optimize_resume=optimize_resume,
+                    generate_cover_letter=generate_cover_letter,
+                    generate_why_should_hire=generate_why_should_hire,
+                )
+                ready = sum(1 for r in packet_results if r.status == MatchedTask.STATUS_READY)
+                paused = sum(
+                    1 for r in packet_results if r.status == MatchedTask.STATUS_FIT_PAUSED
+                )
+                eager = optimize_resume or generate_cover_letter or generate_why_should_hire
+                messages.info(
+                    request,
+                    f'Fit complete: {ready} ready, {paused} fit-paused '
+                    f'(same JobFitGateSettings as dashboard'
+                    f'{"; eager packets for checked options" if eager else ""}).',
+                )
+
+            return redirect('admin:automation_matchedtask_changelist')
 
         rows = []
         User = get_user_model()
@@ -172,25 +237,37 @@ class UltimateAutomationProfileAdmin(admin.ModelAdmin):
             'opts': self.model._meta,
             'title': 'Match Ultimate users',
             'rows': rows,
+            'prefs': prefs,
         }
         return render(request, 'admin/automation/match_ultimate_users.html', context)
 
 
-@admin.register(ApplyTask)
-class ApplyTaskAdmin(admin.ModelAdmin):
+@admin.register(MatchedTask)
+class MatchedTaskAdmin(admin.ModelAdmin):
     list_display = [
         'id',
+        'ops_open_link',
         'user',
         'job_title',
         'company',
         'job_location',
         'work_arrangement',
+        'fit_score_display',
+        'fit_recommendation',
         'status',
         'application_link',
+        'resume_link',
         'created_at',
         'applied_at',
     ]
-    list_filter = ['status', 'skip_reason', 'job__work_arrangement', 'created_at']
+    list_filter = [
+        MatchedTaskQueueFilter,
+        'status',
+        'fit_tier',
+        'skip_reason',
+        'job__work_arrangement',
+        'created_at',
+    ]
     search_fields = [
         'user__username',
         'user__email',
@@ -198,10 +275,25 @@ class ApplyTaskAdmin(admin.ModelAdmin):
         'job__company',
         'application_url',
     ]
-    readonly_fields = ['created_at', 'updated_at', 'applied_at']
-    raw_id_fields = ['user', 'job']
-    ordering = ['created_at']
-    list_select_related = ['user', 'job']
+    readonly_fields = [
+        'created_at',
+        'updated_at',
+        'applied_at',
+        'fit_summary',
+        'fit_tier',
+        'fit_score',
+    ]
+    raw_id_fields = [
+        'user',
+        'job',
+        'fit_evaluation',
+        'source_resume',
+        'optimized_resume',
+        'cover_letter',
+        'why_should_i_apply_answer',
+    ]
+    ordering = ['-fit_score', '-created_at']
+    list_select_related = ['user', 'job', 'optimized_resume', 'source_resume']
     actions = [
         'mark_as_applied',
         'mark_skipped_captcha',
@@ -215,6 +307,17 @@ class ApplyTaskAdmin(admin.ModelAdmin):
         (None, {
             'fields': ('user', 'job', 'application_url', 'status'),
         }),
+        ('Fit evaluation', {
+            'fields': ('fit_score', 'fit_tier', 'fit_evaluation', 'fit_summary'),
+        }),
+        ('Apply packet', {
+            'fields': (
+                'source_resume',
+                'optimized_resume',
+                'cover_letter',
+                'why_should_i_apply_answer',
+            ),
+        }),
         ('Operator', {
             'fields': ('skip_reason', 'operator_notes', 'applied_at'),
         }),
@@ -225,19 +328,33 @@ class ApplyTaskAdmin(admin.ModelAdmin):
     )
 
     def get_queryset(self, request):
-        return super().get_queryset(request).select_related('user', 'job')
+        return super().get_queryset(request).select_related(
+            'user',
+            'job',
+            'optimized_resume',
+            'source_resume',
+            'cover_letter',
+        )
 
     def changelist_view(self, request, extra_context=None):
-        # Default to the operator queue (queued) when no status filter is set.
         if (
             request.method == 'GET'
+            and 'queue' not in request.GET
             and 'status__exact' not in request.GET
-            and 'status' not in request.GET
+            and 'status__in' not in request.GET
         ):
             params = request.GET.copy()
-            params['status__exact'] = ApplyTask.STATUS_QUEUED
+            params['queue'] = 'open'
             return HttpResponseRedirect(f'{request.path}?{params.urlencode()}')
         return super().changelist_view(request, extra_context=extra_context)
+
+    @admin.display(description='Open')
+    def ops_open_link(self, obj):
+        url = reverse('automation:matched_task_ops', args=[obj.pk])
+        return format_html(
+            '<a href="{}" target="_blank" rel="noopener noreferrer">Open</a>',
+            url,
+        )
 
     @admin.display(description='Job title', ordering='job__title')
     def job_title(self, obj):
@@ -257,22 +374,54 @@ class ApplyTaskAdmin(admin.ModelAdmin):
             return '—'
         return obj.job.get_work_arrangement_display()
 
+    @admin.display(description='Fit score', ordering='fit_score')
+    def fit_score_display(self, obj):
+        if obj.fit_score is not None:
+            return obj.fit_score
+        summary = obj.fit_summary or {}
+        score = summary.get('overall_score')
+        return score if score is not None else '—'
+
+    @admin.display(description='Fit')
+    def fit_recommendation(self, obj):
+        summary = obj.fit_summary or {}
+        if summary.get('error') and not summary.get('overall_score') and obj.fit_score is None:
+            return 'Eval failed'
+        return summary.get('recommendation') or obj.fit_tier or '—'
+
     @admin.display(description='Apply URL')
     def application_link(self, obj):
         if not obj.application_url:
             return '—'
         return format_html(
-            '<a href="{}" target="_blank" rel="noopener noreferrer">Open</a>',
+            '<a href="{}" target="_blank" rel="noopener noreferrer">Open job</a>',
             obj.application_url,
+        )
+
+    @admin.display(description='Resume')
+    def resume_link(self, obj):
+        resume = obj.resume_for_apply
+        if not resume:
+            return '—'
+        url = reverse('resume_builder:view_resume_by_id', args=[resume.pk])
+        label = 'Open resume'
+        if obj.optimized_resume_id:
+            label = 'Open optimized'
+        return format_html(
+            '<a href="{}" target="_blank" rel="noopener noreferrer">{}</a>',
+            url,
+            label,
         )
 
     @admin.action(description='Mark selected as applied')
     def mark_as_applied(self, request, queryset):
         done = 0
-        for task in queryset.select_related('user', 'job', 'user__ultimate_automation_profile'):
-            if task.status == ApplyTask.STATUS_APPLIED:
+        for task in queryset.select_related(
+            'user', 'job', 'user__ultimate_automation_profile', 'optimized_resume', 'source_resume'
+        ):
+            if task.status == MatchedTask.STATUS_APPLIED:
                 continue
-            complete_apply_task(task)
+            complete_matched_task(task)
             done += 1
         self.message_user(
             request,
@@ -283,9 +432,9 @@ class ApplyTaskAdmin(admin.ModelAdmin):
     def _mark_skipped(self, request, queryset, reason: str):
         done = 0
         for task in queryset:
-            if task.status == ApplyTask.STATUS_SKIPPED and task.skip_reason == reason:
+            if task.status == MatchedTask.STATUS_SKIPPED and task.skip_reason == reason:
                 continue
-            skip_apply_task(task, reason=reason)
+            skip_matched_task(task, reason=reason)
             done += 1
         self.message_user(
             request,
@@ -312,3 +461,16 @@ class ApplyTaskAdmin(admin.ModelAdmin):
     @admin.action(description='Mark skipped — other')
     def mark_skipped_other(self, request, queryset):
         self._mark_skipped(request, queryset, 'other')
+
+
+@admin.register(StaffMatchRunPreferences)
+class StaffMatchRunPreferencesAdmin(admin.ModelAdmin):
+    list_display = [
+        'user',
+        'optimize_resume',
+        'generate_cover_letter',
+        'generate_why_should_hire',
+        'updated_at',
+    ]
+    search_fields = ['user__username', 'user__email']
+    raw_id_fields = ['user']

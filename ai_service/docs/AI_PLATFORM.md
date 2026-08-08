@@ -366,7 +366,11 @@ The structured payload is designed so the **UI never has to parse free text**.
 
 ### Dashboard fit gate (implemented)
 
-Before cover letter / resume optimization, the dashboard runs the **same** `evaluate_resume_against_job()` used in admin. Configuration is **not** env-driven: thresholds and production prompt come from **`JobFitGateSettings`** (singleton, admin) and prompt slug **`default-job-evaluation`** (seeded by `setup_job_fit_gate`).
+Before cover letter / resume optimization, the dashboard runs the **same** `evaluate_resume_against_job()` used in admin. Configuration is **not** env-driven: thresholds and production prompt come from **`JobFitGateSettings`** (singleton, admin). The gate’s **`prompt_config` FK** is the production prompt (seeded slug **`default-job-evaluation`** via `setup_job_fit_gate`).
+
+**Unlike other AI features**, dashboard + Ultimate MatchedTask fit do **not** resolve via the Resume-to-Job Evaluation service’s `is_default` prompt. The service default (e.g. “Evaluator instruction v1.0”) applies to the admin playground when no prompt is selected. To change production fit wording: edit the prompt linked on **Job fit gate settings**, or change that link.
+
+**Ultimate MatchedTask path:** `automation/services/application_builder.py` calls the same `run_dashboard_job_fit_evaluation(..., persist_fit_review_application=False)` so yellow/red do not create dashboard `fit_review` JobApplications.
 
 **Resume text sent to Gemini** (parity with admin paste): `utils.resume_text.build_resume_text_for_evaluation(resume)` in `run_dashboard_job_fit_evaluation()`:
 
@@ -541,7 +545,7 @@ Each new structured task: add Pydantic model → document in prompt → seed `AI
 | Run manual cover letter tests | **Cover letter playground** — job + resume text/PDF; pick a prompt from `cover_letter` or `cover_letter_with_email_subject` |
 | Run manual resume optimization tests | **Resume optimization playground** — job + SOURCE_RESUME JSON; pick `resume_optimization` or `resume_optimization_with_email_subject` |
 | Resume wizard **Generate AI Summary** | `build_resume_text_for_summary` (same PDF → `original_content` → structured sources as job-fit; structured fallback omits existing summary); always default prompt |
-| Tune dashboard gate thresholds / production prompt | **Job fit gate settings** (singleton) |
+| Tune dashboard / Ultimate MatchedTask gate thresholds + production prompt | **Job fit gate settings** (singleton `prompt_config` FK — not service `is_default`) |
 | Edit why-apply instructions | **AI Prompt Configurations** → service “Why Should I Apply” |
 
 **Deploy verification:** `entrypoint.sh` runs `setup_ai_models`, `setup_resume_job_evaluation`, `setup_job_fit_gate`, `setup_why_should_i_apply`, `setup_professional_summary`, `setup_title_family`, `setup_cover_letter`, `setup_resume_optimization`, then `check_ai_platform`. Admin header shows `AI platform <build>`. Under **AI SERVICE**: **AI models**, **AI Prompt Configurations**, **Job fit gate settings**, **Resume-job evaluations**, **Cover letter playground**, **Resume optimization playground**, **Why should I apply playground**, **Professional summary playground**, **Title family playground**.

@@ -1,6 +1,7 @@
 from django.urls import path
 
 from . import views
+from . import views_ops
 
 app_name = 'automation'
 
@@ -17,5 +18,10 @@ urlpatterns = [
         'locations/countries/<str:code>/regions/',
         views.locations_regions,
         name='locations_regions',
+    ),
+    path(
+        'ops/matched-tasks/<int:task_id>/',
+        views_ops.matched_task_ops,
+        name='matched_task_ops',
     ),
 ]
