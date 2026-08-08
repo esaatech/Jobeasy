@@ -372,6 +372,8 @@ Before cover letter / resume optimization, the dashboard runs the **same** `eval
 
 **Ultimate MatchedTask path:** `automation/services/application_builder.py` calls the same `run_dashboard_job_fit_evaluation(..., persist_fit_review_application=False)` so yellow/red do not create dashboard `fit_review` JobApplications.
 
+**Structured JSON reliability:** `evaluate_resume_against_job` automatically **retries once** when the model returns truncated or invalid JSON (e.g. unterminated string). Lenient JSON repair runs first; if parse still fails, the same provider call is retried after a short delay. Permanent errors (missing prompt config, auth/API client failures) are not retried as JSON flakes.
+
 **Resume text sent to Gemini** (parity with admin paste): `utils.resume_text.build_resume_text_for_evaluation(resume)` in `run_dashboard_job_fit_evaluation()`:
 
 1. If `resume.pdf_file` is set → `extract_text_from_pdf` (same as upload/admin).

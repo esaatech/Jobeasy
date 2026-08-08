@@ -425,6 +425,48 @@ class ResumeJobEvaluationMultiProviderTests(TestCase):
         self.assertEqual(result["model_id"], "deepseek-v4-flash")
         mock_client.chat.completions.create.assert_called_once()
 
+    @patch("ai_service.resume_job_evaluation.time.sleep", return_value=None)
+    @patch("ai_service.resume_job_evaluation.gemini_generate_structured_sync")
+    def test_gemini_retries_once_on_invalid_json_then_succeeds(self, mock_gemini, _sleep):
+        mock_gemini.side_effect = [
+            ValueError(
+                "Invalid JSON response from Gemini: "
+                "Unterminated string starting at: line 46 column 16 (char 3698)"
+            ),
+            {
+                "raw": json.dumps(self.valid_eval),
+                "parsed": self.valid_eval,
+                "model": "gemini-2.5-flash",
+            },
+        ]
+        prompt = AIPromptConfiguration.objects.create(
+            name="Gemini retry",
+            slug="eval-gemini-retry",
+            ai_model=self.gemini,
+            **self.base_prompt_kwargs,
+        )
+        result = evaluate_resume_against_job("Senior Dev", "Jane resume", prompt_config=prompt)
+        self.assertTrue(result["success"])
+        self.assertEqual(result["evaluation"]["overall_score"], 72)
+        self.assertEqual(mock_gemini.call_count, 2)
+
+    @patch("ai_service.resume_job_evaluation.time.sleep", return_value=None)
+    @patch("ai_service.resume_job_evaluation.gemini_generate_structured_sync")
+    def test_gemini_exhausts_retries_on_persistent_invalid_json(self, mock_gemini, _sleep):
+        mock_gemini.side_effect = ValueError(
+            "Invalid JSON response from Gemini: Unterminated string"
+        )
+        prompt = AIPromptConfiguration.objects.create(
+            name="Gemini fail",
+            slug="eval-gemini-fail",
+            ai_model=self.gemini,
+            **self.base_prompt_kwargs,
+        )
+        result = evaluate_resume_against_job("Senior Dev", "Jane resume", prompt_config=prompt)
+        self.assertFalse(result["success"])
+        self.assertIn("Invalid JSON", result["error"] or "")
+        self.assertEqual(mock_gemini.call_count, 2)
+
     def test_get_default_prompt_config(self):
         AIPromptConfiguration.objects.create(
             name="Default",

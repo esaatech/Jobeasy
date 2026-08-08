@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import logging
+import time
 from typing import Any
 
 from openai import OpenAIError
@@ -22,12 +23,16 @@ from .deepseek_client import get_deepseek_client
 from .generation_config import resolve_for_prompt_config
 from .gemini_schema import ResumeJobEvaluationPayload
 from .gemini_client import gemini_generate_structured_sync
+from .json_repair import loads_json_lenient
 from .models import AIModel, AIService, AIPromptConfiguration, ResumeJobEvaluation
 from .open_ai import client
 
 logger = logging.getLogger(__name__)
 
 RESUME_JOB_EVALUATION_SERVICE_SLUG = "resume_job_evaluation"
+# One initial call + one retry for truncated / invalid structured JSON.
+_JSON_MAX_ATTEMPTS = 2
+_JSON_RETRY_SLEEP_SECONDS = 0.4
 
 
 def parse_pending_evaluation_result(raw: str | None) -> dict[str, Any] | None:
@@ -235,7 +240,7 @@ def _coerce_evaluation_dict(data: Any, raw: str | None) -> dict[str, Any]:
     if isinstance(data, dict):
         return data
     if raw:
-        parsed = json.loads(raw)
+        parsed = loads_json_lenient(raw)
         if isinstance(parsed, dict):
             return parsed
     raise ValueError("Model structured response missing a JSON object.")
@@ -320,7 +325,8 @@ def _generate_with_openai_json(
         response_format={"type": "json_object"},
     )
     raw = (chat_resp.choices[0].message.content or "").strip()
-    data = _coerce_evaluation_dict(json.loads(raw) if raw else None, raw or None)
+    parsed = loads_json_lenient(raw) if raw else None
+    data = _coerce_evaluation_dict(parsed, raw or None)
     return data, raw or None
 
 
@@ -340,8 +346,53 @@ def _generate_with_deepseek_json(
         response_format={"type": "json_object"},
     )
     raw = (chat_resp.choices[0].message.content or "").strip()
-    data = _coerce_evaluation_dict(json.loads(raw) if raw else None, raw or None)
+    parsed = loads_json_lenient(raw) if raw else None
+    data = _coerce_evaluation_dict(parsed, raw or None)
     return data, raw or None
+
+
+def _is_retryable_json_error(exc: BaseException) -> bool:
+    """True for truncated / invalid structured JSON — safe to re-call the model once."""
+    if isinstance(exc, json.JSONDecodeError):
+        return True
+    if isinstance(exc, ValueError):
+        msg = str(exc).lower()
+        markers = (
+            "invalid json",
+            "unterminated string",
+            "expecting",
+            "json object",
+            "json decode",
+            "structured response missing",
+        )
+        return any(m in msg for m in markers)
+    return False
+
+
+def _generate_evaluation_for_provider(
+    *,
+    provider: str,
+    system_instruction: str,
+    user_block: str,
+    gen,
+) -> tuple[dict[str, Any], str | None]:
+    if provider == AIModel.Provider.GEMINI:
+        return _generate_with_gemini(
+            system_instruction=system_instruction,
+            user_block=user_block,
+            gen=gen,
+        )
+    if provider == AIModel.Provider.DEEPSEEK:
+        return _generate_with_deepseek_json(
+            system_instruction=system_instruction,
+            user_block=user_block,
+            gen=gen,
+        )
+    return _generate_with_openai_json(
+        system_instruction=system_instruction,
+        user_block=user_block,
+        gen=gen,
+    )
 
 
 def evaluate_resume_against_job(
@@ -384,33 +435,88 @@ def evaluate_resume_against_job(
     base_meta = _meta_from_config(cfg, gen, provider=provider)
 
     raw: str | None = None
-    try:
-        if provider == AIModel.Provider.GEMINI:
-            data, raw = _generate_with_gemini(
+    last_exc: BaseException | None = None
+    for attempt in range(1, _JSON_MAX_ATTEMPTS + 1):
+        try:
+            data, raw = _generate_evaluation_for_provider(
+                provider=provider,
                 system_instruction=system_instruction,
                 user_block=user_block,
                 gen=gen,
             )
-        elif provider == AIModel.Provider.DEEPSEEK:
-            data, raw = _generate_with_deepseek_json(
-                system_instruction=system_instruction,
-                user_block=user_block,
-                gen=gen,
-            )
-        else:
-            data, raw = _generate_with_openai_json(
-                system_instruction=system_instruction,
-                user_block=user_block,
-                gen=gen,
-            )
-    except (OpenAIError, json.JSONDecodeError, ValueError, TypeError, Exception) as exc:
-        logger.exception("resume_job_evaluation: %s call failed", provider)
-        return {
-            "success": False,
-            "evaluation": None,
-            "error": str(exc),
-            "raw_text": raw,
-            **base_meta,
-        }
+            result = _validate_evaluation_payload(data, raw=raw, base_meta=base_meta)
+            if result.get("success"):
+                if attempt > 1:
+                    logger.warning(
+                        "resume_job_evaluation: structured JSON recovered on retry "
+                        "provider=%s attempt=%s",
+                        provider,
+                        attempt,
+                    )
+                return result
+            # Schema validation failure is usually not fixed by a blind retry;
+            # still retry once if the validate path looks parse-related.
+            err = str(result.get("error") or "")
+            if attempt < _JSON_MAX_ATTEMPTS and _is_retryable_json_error(ValueError(err)):
+                logger.warning(
+                    "resume_job_evaluation: parse/validate fail provider=%s attempt=%s "
+                    "error=%s; retrying",
+                    provider,
+                    attempt,
+                    err,
+                )
+                time.sleep(_JSON_RETRY_SLEEP_SECONDS)
+                continue
+            return result
+        except OpenAIError as exc:
+            # Auth / quota / API client errors: do not retry as "bad JSON".
+            logger.exception("resume_job_evaluation: %s call failed", provider)
+            return {
+                "success": False,
+                "evaluation": None,
+                "error": str(exc),
+                "raw_text": raw,
+                **base_meta,
+            }
+        except (json.JSONDecodeError, ValueError, TypeError) as exc:
+            last_exc = exc
+            if attempt < _JSON_MAX_ATTEMPTS and _is_retryable_json_error(exc):
+                logger.warning(
+                    "resume_job_evaluation: retryable JSON error provider=%s attempt=%s "
+                    "error=%s; retrying",
+                    provider,
+                    attempt,
+                    exc,
+                )
+                time.sleep(_JSON_RETRY_SLEEP_SECONDS)
+                continue
+            logger.exception("resume_job_evaluation: %s call failed", provider)
+            return {
+                "success": False,
+                "evaluation": None,
+                "error": str(exc),
+                "raw_text": raw,
+                **base_meta,
+            }
+        except Exception as exc:
+            logger.exception("resume_job_evaluation: %s call failed", provider)
+            return {
+                "success": False,
+                "evaluation": None,
+                "error": str(exc),
+                "raw_text": raw,
+                **base_meta,
+            }
 
-    return _validate_evaluation_payload(data, raw=raw, base_meta=base_meta)
+    logger.exception(
+        "resume_job_evaluation: %s call failed after retries",
+        provider,
+        exc_info=last_exc,
+    )
+    return {
+        "success": False,
+        "evaluation": None,
+        "error": str(last_exc) if last_exc else "Evaluation failed after retries",
+        "raw_text": raw,
+        **base_meta,
+    }
